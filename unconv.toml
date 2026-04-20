@@ -1,0 +1,31 @@
+# Permitted regardless of namespace unless overridden
+[global]
+types = [
+  "build",
+  "chore",
+  "ci",
+  "doc",
+  "feat",
+  "fix",
+  "lint",
+  "misc",
+  "refac",
+  "test",
+]
+
+# Defined namespaces
+[num]
+
+[p2p_core]
+
+[params]
+
+[pkc]
+
+[pow]
+
+[primitives]
+
+[script]
+
+[sdk]
