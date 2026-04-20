@@ -1,0 +1,79 @@
+name: Lint and build on nightly
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        description: Cargo package name (e.g. dash-num)
+        required: true
+        type: string
+      package_dir:
+        description: Package directory relative to pkgs/ (e.g. num)
+        required: true
+        type: string
+      features:
+        description: Cargo features to enable (default full,_internal)
+        required: false
+        type: string
+        default: full,_internal
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    name: ubuntu-24.04-arm (nightly)
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-01
+          components: clippy, rustfmt
+
+      - name: Restore cargo registry
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Restore build artifacts
+        uses: actions/cache@v5
+        with:
+          path: target
+          key: cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-${{ github.sha }}
+          restore-keys: |
+            cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-
+
+      - name: Format package
+        run: cargo fmt -p ${{ inputs.package }} --check
+
+      - name: Lint package
+        run: cargo clippy -p ${{ inputs.package }} --features ${{ inputs.features }} --tests -- -D warnings
+
+      - name: Build package
+        run: cargo build -p ${{ inputs.package }} --features ${{ inputs.features }}
+
+      - name: Test package
+        run: cargo test -p ${{ inputs.package }} --features ${{ inputs.features }}
+
+      - name: Sanity check benchmarks
+        run: cargo bench -p ${{ inputs.package }} --features ${{ inputs.features }} --no-run
+
+      - name: Save cargo registry
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}

@@ -1,0 +1,106 @@
+name: Build on MSRV and stable
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        description: Cargo package name (e.g. dash-num)
+        required: true
+        type: string
+      package_dir:
+        description: Package directory relative to pkgs/ (e.g. num)
+        required: true
+        type: string
+      features:
+        description: Cargo features to enable (default full,_internal)
+        required: false
+        type: string
+        default: full,_internal
+
+permissions:
+  contents: read
+
+jobs:
+  msrv:
+    name: ubuntu-24.04-arm (MSRV)
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.85.0
+
+      - name: Restore cargo registry
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Build package
+        run: cargo build -p ${{ inputs.package }} --features ${{ inputs.features }}
+
+      - name: Test package
+        run: cargo test -p ${{ inputs.package }} --features ${{ inputs.features }}
+
+  stable:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04-arm
+            arch: arm64
+          - os: windows-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
+
+    name: ${{ matrix.os }} (stable)
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Restore cargo registry
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Restore build artifacts
+        uses: actions/cache@v5
+        with:
+          path: target
+          key: cargo-build-stable-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-${{ github.sha }}
+          restore-keys: |
+            cargo-build-stable-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-
+
+      - name: Build package
+        run: cargo build -p ${{ inputs.package }} --features ${{ inputs.features }}
+
+      - name: Test package
+        run: cargo test -p ${{ inputs.package }} --features ${{ inputs.features }}
+
+      - name: Save cargo registry
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}

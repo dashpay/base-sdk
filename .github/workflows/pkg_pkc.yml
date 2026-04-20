@@ -1,0 +1,38 @@
+name: "dash-pkc"
+
+on:
+  push:
+    paths:
+      - pkgs/pkc/**
+      - pkgs/num/**
+      - Cargo.lock
+      - Cargo.toml
+      - .github/workflows/pkg_pkc.yml
+      - .github/workflows/build_stable.yml
+      - .github/workflows/build_nightly.yml
+  pull_request:
+    paths:
+      - pkgs/pkc/**
+      - pkgs/num/**
+      - Cargo.lock
+      - Cargo.toml
+      - .github/workflows/pkg_pkc.yml
+      - .github/workflows/build_stable.yml
+      - .github/workflows/build_nightly.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stable:
+    uses: ./.github/workflows/build_stable.yml
+    with:
+      package: dash-pkc
+      package_dir: pkc
+
+  nightly:
+    uses: ./.github/workflows/build_nightly.yml
+    with:
+      package: dash-pkc
+      package_dir: pkc

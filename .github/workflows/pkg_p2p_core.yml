@@ -1,0 +1,44 @@
+name: "dash-p2p-core"
+
+on:
+  push:
+    paths:
+      - pkgs/p2p_core/**
+      - pkgs/num/**
+      - pkgs/params/**
+      - pkgs/primitives/**
+      - pkgs/script/**
+      - Cargo.lock
+      - Cargo.toml
+      - .github/workflows/pkg_p2p_core.yml
+      - .github/workflows/build_stable.yml
+      - .github/workflows/build_nightly.yml
+  pull_request:
+    paths:
+      - pkgs/p2p_core/**
+      - pkgs/num/**
+      - pkgs/params/**
+      - pkgs/primitives/**
+      - pkgs/script/**
+      - Cargo.lock
+      - Cargo.toml
+      - .github/workflows/pkg_p2p_core.yml
+      - .github/workflows/build_stable.yml
+      - .github/workflows/build_nightly.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stable:
+    uses: ./.github/workflows/build_stable.yml
+    with:
+      package: dash-p2p-core
+      package_dir: p2p_core
+
+  nightly:
+    uses: ./.github/workflows/build_nightly.yml
+    with:
+      package: dash-p2p-core
+      package_dir: p2p_core

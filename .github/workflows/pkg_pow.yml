@@ -1,0 +1,39 @@
+name: "dash-pow"
+
+on:
+  push:
+    paths:
+      - pkgs/pow/**
+      - pkgs/num/**
+      - Cargo.lock
+      - Cargo.toml
+      - .github/workflows/pkg_pow.yml
+      - .github/workflows/build_stable.yml
+      - .github/workflows/build_nightly.yml
+  pull_request:
+    paths:
+      - pkgs/pow/**
+      - pkgs/num/**
+      - Cargo.lock
+      - Cargo.toml
+      - .github/workflows/pkg_pow.yml
+      - .github/workflows/build_stable.yml
+      - .github/workflows/build_nightly.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stable:
+    uses: ./.github/workflows/build_stable.yml
+    with:
+      package: dash-pow
+      package_dir: pow
+      features: std,_internal
+
+  nightly:
+    uses: ./.github/workflows/build_nightly.yml
+    with:
+      package: dash-pow
+      package_dir: pow
