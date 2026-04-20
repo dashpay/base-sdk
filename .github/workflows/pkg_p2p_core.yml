@@ -42,3 +42,4 @@ jobs:
     with:
       package: dash-p2p-core
       package_dir: p2p_core
+    secrets: inherit

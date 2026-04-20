@@ -16,6 +16,9 @@ on:
         required: false
         type: string
         default: full,_internal
+    secrets:
+      CODECOV_TOKEN:
+        required: true
 
 permissions:
   contents: read
@@ -35,7 +38,10 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly-2026-02-01
-          components: clippy, rustfmt
+          components: clippy, llvm-tools, rustfmt
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Restore cargo registry
         uses: actions/cache/restore@v5
@@ -64,7 +70,19 @@ jobs:
         run: cargo build -p ${{ inputs.package }} --features ${{ inputs.features }}
 
       - name: Test package
-        run: cargo test -p ${{ inputs.package }} --features ${{ inputs.features }}
+        run: >
+          cargo llvm-cov
+          --package ${{ inputs.package }}
+          --features ${{ inputs.features }}
+          --lcov --output-path lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          flags: ${{ inputs.package }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Sanity check benchmarks
         run: cargo bench -p ${{ inputs.package }} --features ${{ inputs.features }} --no-run

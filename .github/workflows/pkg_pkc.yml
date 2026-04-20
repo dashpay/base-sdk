@@ -36,3 +36,4 @@ jobs:
     with:
       package: dash-pkc
       package_dir: pkc
+    secrets: inherit

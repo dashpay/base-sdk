@@ -40,3 +40,4 @@ jobs:
     with:
       package: dash-params
       package_dir: params
+    secrets: inherit

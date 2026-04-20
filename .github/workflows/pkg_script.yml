@@ -34,3 +34,4 @@ jobs:
     with:
       package: dash-script
       package_dir: script
+    secrets: inherit
