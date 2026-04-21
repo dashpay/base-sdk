@@ -1,0 +1,31 @@
+name: Comment on PRs
+
+on:
+  push:
+  pull_request_target:
+    types: [synchronize, opened, reopened, closed]
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  comment:
+    name: Comment on pull requests
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Update PR comments
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const script = require("./.github/scripts/pr_comment.js");
+            await script({ github, context });
