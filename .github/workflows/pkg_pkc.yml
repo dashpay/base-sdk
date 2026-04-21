@@ -1,6 +1,7 @@
 name: "dash-pkc"
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - pkgs/pkc/**

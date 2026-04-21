@@ -1,6 +1,7 @@
 name: "dash-params"
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - pkgs/params/**
