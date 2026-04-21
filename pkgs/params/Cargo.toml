@@ -1,0 +1,34 @@
+[package]
+name = "dash-params"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+
+[features]
+default = []
+std = ["dash-primitives/std"]
+full = ["std"]
+_internal = []
+
+[dependencies]
+bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
+  "alloc",
+] }
+bitcoin-units = { version = "0.3", default-features = false, features = ["alloc"] }
+dash-num = { version = "0.0.0", path = "../num" }
+dash-primitives = { version = "0.0.0", path = "../primitives" }
+hex-literal = "0.4"
+
+[dev-dependencies]
+bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
+  "alloc",
+] }
+dash-pow = { version = "0.0.0", path = "../pow" }
+hex-literal = "0.4"
+rstest = "0.25"
+
+[lints]
+workspace = true
+
+[package.rust-version]
+workspace = true

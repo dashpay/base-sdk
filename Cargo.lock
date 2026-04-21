@@ -259,6 +259,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dash-params"
+version = "0.0.0"
+dependencies = [
+ "bitcoin-consensus-encoding 0.2.0",
+ "bitcoin-units",
+ "dash-num",
+ "dash-pow",
+ "dash-primitives",
+ "hex-literal",
+ "rstest",
+]
+
+[[package]]
 name = "dash-pkc"
 version = "0.0.0"
 dependencies = [

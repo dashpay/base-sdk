@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "pkgs/num",
+  "pkgs/params",
   "pkgs/pkc",
   "pkgs/pow",
   "pkgs/primitives",
