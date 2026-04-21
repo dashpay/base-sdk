@@ -2,6 +2,7 @@
 members = [
   "pkgs/num",
   "pkgs/params",
+  "pkgs/p2p_core",
   "pkgs/pkc",
   "pkgs/pow",
   "pkgs/primitives",

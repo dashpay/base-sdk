@@ -259,6 +259,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dash-p2p-core"
+version = "0.0.0"
+dependencies = [
+ "bitcoin-consensus-encoding 0.2.0",
+ "bitcoin-internals",
+ "bitcoin-units",
+ "dash-num",
+ "dash-params",
+ "dash-primitives",
+ "hex",
+ "hex-literal",
+ "rstest",
+]
+
+[[package]]
 name = "dash-params"
 version = "0.0.0"
 dependencies = [
