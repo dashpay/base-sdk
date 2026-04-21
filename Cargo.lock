@@ -267,6 +267,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dash-pow"
+version = "0.0.0"
+dependencies = [
+ "cfg-if",
+ "dash-num",
+ "divan",
+ "hex",
+ "hex-literal",
+ "rayon",
+ "rstest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "dash-script"
 version = "0.0.0"
 dependencies = [

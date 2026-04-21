@@ -2,6 +2,7 @@
 members = [
   "pkgs/num",
   "pkgs/pkc",
+  "pkgs/pow",
   "pkgs/script",
 ]
 resolver = "2"

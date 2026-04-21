@@ -1,0 +1,82 @@
+[package]
+name = "dash-pow"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+
+[features]
+default = []
+std = ["dep:rayon"]
+full = ["std", "aes_hw", "simd"]
+_internal = []
+aes_hw = []
+simd = []
+
+[dependencies]
+cfg-if = "1"
+dash-num = { version = "0.0.0", path = "../num" }
+rayon = { version = "1", optional = true }
+
+[dev-dependencies]
+divan = "0.1"
+hex = "0.4"
+hex-literal = "0.4"
+rstest = "0.25"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[test]]
+name = "blake"
+required-features = ["_internal"]
+
+[[test]]
+name = "bmw"
+required-features = ["_internal"]
+
+[[test]]
+name = "cubehash"
+required-features = ["_internal"]
+
+[[test]]
+name = "echo"
+required-features = ["_internal"]
+
+[[test]]
+name = "groestl"
+required-features = ["_internal"]
+
+[[test]]
+name = "jh"
+required-features = ["_internal"]
+
+[[test]]
+name = "keccak"
+required-features = ["_internal"]
+
+[[test]]
+name = "luffa"
+required-features = ["_internal"]
+
+[[test]]
+name = "shavite"
+required-features = ["_internal"]
+
+[[test]]
+name = "simd_hash"
+required-features = ["_internal"]
+
+[[test]]
+name = "skein"
+required-features = ["_internal"]
+
+[[bench]]
+name = "pow"
+path = "bench/main.rs"
+harness = false
+required-features = ["_internal"]
+
+[lints]
+workspace = true
+
+[package.rust-version]
+workspace = true
