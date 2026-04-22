@@ -1,0 +1,52 @@
+[package]
+name = "dash-pkc"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+
+[[bench]]
+name = "pkc"
+path = "bench/main.rs"
+harness = false
+
+[dependencies]
+blst = { version = "0.3", default-features = false, optional = true }
+dash-num = { version = "0.0.0", path = "../num" }
+hex-literal = "0.4"
+k256 = { version = "0.13", default-features = false, features = [
+  "arithmetic",
+  "ecdsa",
+  "sha256",
+], optional = true }
+rand_core = { version = "0.6", default-features = false }
+rayon = { version = "1", optional = true }
+serde = { version = "1", default-features = false, features = [
+  "alloc",
+  "derive",
+], optional = true }
+sha2 = { version = "0.10", default-features = false, optional = true }
+zeroize = { version = "1", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+divan = "0.1"
+hex = "0.4"
+rand_core = { version = "0.6", features = ["getrandom"] }
+rstest = "0.25"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+default = []
+std = ["dep:rayon", "rand_core/getrandom"]
+bls_chia = ["dep:blst", "dep:sha2"]
+bls_ietf = ["dep:blst", "dep:sha2"]
+k256 = ["dep:k256"]
+serde = ["dep:serde"]
+full = ["k256", "bls_ietf", "bls_chia", "serde", "std"]
+_internal = []
+
+[lints]
+workspace = true
+
+[package.rust-version]
+workspace = true

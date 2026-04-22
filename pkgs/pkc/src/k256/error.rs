@@ -1,0 +1,57 @@
+//
+// Copyright (c) 2026-present, The Dash Core developers
+// SPDX-License-Identifier: MIT
+// See the accompanying file LICENSE or https://opensource.org/license/MIT
+//
+
+//! Error types for secp256k1 operations.
+
+use core::fmt;
+
+/// Errors produced by secp256k1 operations.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Error {
+  /// secret key bytes are not a valid scalar
+  InvalidSecretKey,
+  /// public key bytes are not a valid curve point
+  InvalidPublicKey,
+  /// signature bytes are malformed
+  InvalidSignature,
+  /// signature verification failed
+  VerifyFailed,
+  /// recovery id is out of range (must be 0..4)
+  InvalidRecoveryId,
+  /// recovery failed; no valid public key for this signature and message
+  RecoveryFailed,
+  /// signing operation failed
+  SigningFailed,
+}
+
+impl fmt::Display for Error {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::InvalidSecretKey => {
+        write!(f, "secret key bytes are not a valid scalar")
+      }
+      Self::InvalidPublicKey => {
+        write!(f, "public key bytes are not a valid curve point")
+      }
+      Self::InvalidSignature => {
+        write!(f, "signature bytes are malformed")
+      }
+      Self::VerifyFailed => {
+        write!(f, "signature verification failed")
+      }
+      Self::InvalidRecoveryId => {
+        write!(f, "recovery id out of range (must be 0..4)")
+      }
+      Self::RecoveryFailed => {
+        write!(f, "recovery failed; no valid public key")
+      }
+      Self::SigningFailed => write!(f, "signing failed"),
+    }
+  }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for Error {}
