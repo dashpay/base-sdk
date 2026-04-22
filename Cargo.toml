@@ -1,0 +1,35 @@
+[workspace]
+members = [
+  "pkgs/num",
+]
+resolver = "2"
+
+[workspace.lints.clippy]
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+unwrap_used = "deny"
+
+[workspace.lints.rust]
+keyword_idents = { level = "deny", priority = -1 }
+missing_debug_implementations = "deny"
+non_ascii_idents = "deny"
+rust_2021_incompatible_closure_captures = "deny"
+rust_2021_incompatible_or_patterns = "deny"
+unsafe_code = "deny"
+unused_must_use = "deny"
+
+[workspace.package]
+rust-version = "1.85.0"
+
+[profile.release]
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
+
+[profile.dev]
+codegen-units = 1
+overflow-checks = true
