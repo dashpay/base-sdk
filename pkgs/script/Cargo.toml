@@ -1,0 +1,28 @@
+[package]
+name = "dash-script"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+
+[features]
+default = []
+std = ["bitcoin_hashes/std", "base58ck/std", "bitcoin-consensus-encoding/std"]
+full = ["std"]
+_internal = []
+
+[dependencies]
+base58ck = { version = "0.4", default-features = false, features = ["alloc"] }
+bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
+  "alloc",
+] }
+bitcoin_hashes = { version = "0.20", default-features = false, features = [
+  "alloc",
+] }
+[dev-dependencies]
+hex-literal = "0.4"
+
+[lints]
+workspace = true
+
+[package.rust-version]
+workspace = true

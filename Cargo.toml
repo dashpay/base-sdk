@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "pkgs/num",
+  "pkgs/script",
 ]
 resolver = "2"
 
