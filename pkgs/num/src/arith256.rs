@@ -801,28 +801,3 @@ impl<'de> serde::Deserialize<'de> for Arith256 {
     }
   }
 }
-
-#[cfg(feature = "serde")]
-impl bincode::Encode for Arith256 {
-  fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
-    bincode::Encode::encode(&self.to_le_bytes(), encoder)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<Context> bincode::Decode<Context> for Arith256 {
-  fn decode<D: bincode::de::Decoder<Context = Context>>(decoder: &mut D) -> Result<Self, bincode::error::DecodeError> {
-    let bytes = <[u8; 32] as bincode::Decode<Context>>::decode(decoder)?;
-    Ok(Self::from_le_bytes(bytes))
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'de, Context> bincode::BorrowDecode<'de, Context> for Arith256 {
-  fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
-    decoder: &mut D,
-  ) -> Result<Self, bincode::error::DecodeError> {
-    let bytes = <[u8; 32] as bincode::BorrowDecode<'de, Context>>::borrow_decode(decoder)?;
-    Ok(Self::from_le_bytes(bytes))
-  }
-}

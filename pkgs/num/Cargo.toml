@@ -8,13 +8,10 @@ license = "MIT"
 default = []
 std = []
 full = ["std", "serde"]
-serde = ["dep:serde", "dep:bincode"]
+serde = ["dep:serde"]
 _internal = []
 
 [dependencies]
-bincode = { version = "2", default-features = false, features = [
-  "alloc",
-], optional = true }
 bitcoin-consensus-encoding = { version = "0.2", default-features = false }
 serde = { version = "1", default-features = false, features = [
   "derive",
@@ -22,7 +19,6 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 
 [dev-dependencies]
-bincode = "2"
 divan = "0.1"
 hex-literal = "0.4"
 rstest = "0.25"

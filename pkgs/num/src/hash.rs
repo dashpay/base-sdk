@@ -342,33 +342,6 @@ macro_rules! define_hash {
         }
       }
     }
-
-    #[cfg(feature = "serde")]
-    impl bincode::Encode for $name {
-      fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
-        bincode::Encode::encode(&self.0, encoder)
-      }
-    }
-
-    #[cfg(feature = "serde")]
-    impl<Context> bincode::Decode<Context> for $name {
-      fn decode<D: bincode::de::Decoder<Context = Context>>(
-        decoder: &mut D,
-      ) -> Result<Self, bincode::error::DecodeError> {
-        Ok(Self(<[u8; $n] as bincode::Decode<Context>>::decode(decoder)?))
-      }
-    }
-
-    #[cfg(feature = "serde")]
-    impl<'de, Context> bincode::BorrowDecode<'de, Context> for $name {
-      fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
-        decoder: &mut D,
-      ) -> Result<Self, bincode::error::DecodeError> {
-        Ok(Self(<[u8; $n] as bincode::BorrowDecode<'de, Context>>::borrow_decode(
-          decoder,
-        )?))
-      }
-    }
   };
 }
 
