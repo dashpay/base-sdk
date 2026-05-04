@@ -13,6 +13,14 @@ use super::sig::{RecoveryId, Signature};
 
 /// A secp256k1 public key.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  serde(
+    into = "dash_types::EcdsaPublicKeyBytes",
+    try_from = "dash_types::EcdsaPublicKeyBytes",
+  )
+)]
 pub struct PublicKey(ecdsa::VerifyingKey);
 
 impl PublicKey {
@@ -65,24 +73,16 @@ impl core::hash::Hash for PublicKey {
   }
 }
 
-#[cfg(feature = "serde")]
-mod serde_impl {
-  use super::*;
-  use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-  impl Serialize for PublicKey {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-      serde::Serialize::serialize(&self.to_bytes().as_slice(), s)
-    }
+impl From<PublicKey> for dash_types::EcdsaPublicKeyBytes {
+  fn from(pk: PublicKey) -> Self {
+    Self(pk.to_bytes())
   }
+}
 
-  impl<'de> Deserialize<'de> for PublicKey {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-      let v = <alloc::vec::Vec<u8>>::deserialize(d)?;
-      let bytes: [u8; 33] = v
-        .try_into()
-        .map_err(|_| serde::de::Error::custom("expected 33 bytes"))?;
-      PublicKey::from_bytes(&bytes).map_err(serde::de::Error::custom)
-    }
+impl TryFrom<dash_types::EcdsaPublicKeyBytes> for PublicKey {
+  type Error = super::error::Error;
+
+  fn try_from(bytes: dash_types::EcdsaPublicKeyBytes) -> Result<Self, Self::Error> {
+    Self::from_bytes(&bytes.0)
   }
 }

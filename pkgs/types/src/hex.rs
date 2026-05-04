@@ -148,7 +148,9 @@ pub mod serde {
   }
 
   define_fixed!(w20, 20);
+  define_fixed!(w33, 33);
   define_fixed!(w48, 48);
+  define_fixed!(w64, 64);
   define_fixed!(w96, 96);
 }
 

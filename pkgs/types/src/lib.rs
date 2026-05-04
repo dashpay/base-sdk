@@ -40,3 +40,13 @@ make_bytes! {
   /// Raw BLS signature bytes (96 bytes, unvalidated).
   BlsSignatureBytes, 96, "crate::serialize::hex::w96"
 }
+
+make_bytes! {
+  /// Raw compressed ECDSA public key bytes (33 bytes, unvalidated).
+  EcdsaPublicKeyBytes, 33, "crate::serialize::hex::w33"
+}
+
+make_bytes! {
+  /// Raw compact ECDSA signature bytes (64 bytes, unvalidated).
+  EcdsaSignatureBytes, 64, "crate::serialize::hex::w64"
+}

@@ -271,6 +271,7 @@ version = "0.0.0"
 dependencies = [
  "blst",
  "dash-num",
+ "dash-types",
  "divan",
  "hex",
  "hex-literal",

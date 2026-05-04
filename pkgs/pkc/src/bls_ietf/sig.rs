@@ -16,6 +16,11 @@ use super::{DST, DST_POP};
 
 /// A BLS signature (96-byte compressed G2 point).
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  serde(into = "dash_types::BlsSignatureBytes", try_from = "dash_types::BlsSignatureBytes",)
+)]
 pub struct Signature(pub(super) min_pk::Signature);
 
 impl Signature {
@@ -60,4 +65,17 @@ impl Signature {
 }
 
 crate::common::bls::impl_hash_via_bytes!(Signature);
-crate::common::bls::impl_serde_via_bytes!(Signature, 96);
+
+impl From<Signature> for dash_types::BlsSignatureBytes {
+  fn from(sig: Signature) -> Self {
+    Self(sig.to_bytes())
+  }
+}
+
+impl TryFrom<dash_types::BlsSignatureBytes> for Signature {
+  type Error = super::error::Error;
+
+  fn try_from(bytes: dash_types::BlsSignatureBytes) -> Result<Self, Self::Error> {
+    Self::from_bytes(&bytes.0)
+  }
+}

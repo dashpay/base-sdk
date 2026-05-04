@@ -12,6 +12,7 @@ harness = false
 [dependencies]
 blst = { version = "0.3", default-features = false, optional = true }
 dash-num = { version = "0.0.0", path = "../num" }
+dash-types = { version = "0.0.0", path = "../types", default-features = false }
 hex-literal = "0.4"
 k256 = { version = "0.13", default-features = false, features = [
   "arithmetic",
@@ -37,11 +38,11 @@ serde_json = "1"
 
 [features]
 default = []
-std = ["dep:rayon", "rand_core/getrandom"]
+std = ["dep:rayon", "rand_core/getrandom", "dash-types/std"]
 bls_chia = ["dep:blst", "dep:sha2"]
 bls_ietf = ["dep:blst", "dep:sha2"]
 k256 = ["dep:k256"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "dash-types/serde"]
 full = ["k256", "bls_ietf", "bls_chia", "serde", "std"]
 _internal = []
 

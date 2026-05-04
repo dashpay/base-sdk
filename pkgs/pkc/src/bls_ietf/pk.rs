@@ -16,6 +16,11 @@ use super::DST_POP_PROVE;
 
 /// A BLS public key (48-byte compressed G1 point).
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  serde(into = "dash_types::BlsPublicKeyBytes", try_from = "dash_types::BlsPublicKeyBytes",)
+)]
 pub struct PublicKey(pub(super) min_pk::PublicKey);
 
 impl PublicKey {
@@ -75,4 +80,17 @@ impl PublicKey {
 }
 
 crate::common::bls::impl_hash_via_bytes!(PublicKey);
-crate::common::bls::impl_serde_via_bytes!(PublicKey, 48);
+
+impl From<PublicKey> for dash_types::BlsPublicKeyBytes {
+  fn from(pk: PublicKey) -> Self {
+    Self(pk.to_bytes())
+  }
+}
+
+impl TryFrom<dash_types::BlsPublicKeyBytes> for PublicKey {
+  type Error = super::error::Error;
+
+  fn try_from(bytes: dash_types::BlsPublicKeyBytes) -> Result<Self, Self::Error> {
+    Self::from_bytes(&bytes.0)
+  }
+}
