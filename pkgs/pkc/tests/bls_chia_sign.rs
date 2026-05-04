@@ -120,6 +120,8 @@ fn legacy_pk_serialization_differs_from_ietf() {
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
   use sha2::{Digest, Sha256};
 
@@ -156,7 +158,7 @@ mod kat {
       let sk = dash_pkc::bls_chia::SecretKey::from_bytes(&sk_bytes).unwrap();
       let sig = sk.sign(&msg);
       assert_eq!(
-        hex::encode(sig.to_bytes()),
+        sig.to_bytes().to_lower_hex_string(),
         v.sig,
         "sig mismatch for sk={} msg={}",
         v.sk,
@@ -193,7 +195,7 @@ mod kat {
         concat[..32].copy_from_slice(&h0);
         concat[32..].copy_from_slice(&h1);
         assert_eq!(
-          hex::encode(concat),
+          concat.to_lower_hex_string(),
           **exp,
           "SHA-256 mismatch for tag {:?}",
           std::str::from_utf8(*tag).unwrap()

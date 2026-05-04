@@ -276,7 +276,7 @@ dependencies = [
  "dash-num",
  "dash-types",
  "divan",
- "hex",
+ "hex-conservative",
  "hex-literal",
  "k256",
  "rand_core",

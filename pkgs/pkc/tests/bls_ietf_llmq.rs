@@ -18,6 +18,8 @@ mod common;
 use dash_pkc::bls_ietf::{aggregate_pk, aggregate_sig, threshold, PublicKey, SecretKey, Signature};
 use dash_pkc::Hash256;
 
+use hex_conservative::DisplayHex;
+
 #[test]
 fn llmq_contribute_vvec() {
   let f = common::load("bls_ietf_llmq_100");
@@ -149,7 +151,7 @@ fn llmq_commit_quorum_key() {
     .collect();
   let pk_refs: Vec<&PublicKey> = member_pks.iter().collect();
   let agg_pk = aggregate_pk(&pk_refs).unwrap();
-  assert_eq!(hex::encode(agg_pk.to_bytes()), expected_qpk,);
+  assert_eq!(agg_pk.to_bytes().to_lower_hex_string(), expected_qpk,);
 }
 
 #[test]
@@ -172,7 +174,7 @@ fn llmq_commit_sk_share() {
     let refs: Vec<&SecretKey> = received.iter().collect();
     let agg = dash_pkc::bls_ietf::aggregate_sk(&refs).unwrap();
     assert_eq!(
-      hex::encode(agg.to_bytes()),
+      agg.to_bytes().to_lower_hex_string(),
       expected_share,
       "sk_share mismatch for member {}",
       member_idx,
@@ -250,7 +252,12 @@ fn llmq_finalize_recover_quorum_sig() {
       // sid is internal byte order; byte-reverse to get
       // the display hex that matches member_ids.
       let sid_bytes = common::hex_to_32(sid);
-      let sid_display = hex::encode(sid_bytes.iter().copied().rev().collect::<Vec<u8>>());
+      let sid_display = sid_bytes
+        .iter()
+        .copied()
+        .rev()
+        .collect::<Vec<u8>>()
+        .to_lower_hex_string();
       let idx = member_ids.iter().position(|m| *m == sid_display).unwrap();
       let sk = SecretKey::from_bytes(&common::hex_to_32(commits[idx]["sk_share"].as_str().unwrap())).unwrap();
       let member_id = common::hash_from_hex(&sid_display);

@@ -77,6 +77,8 @@ fn serde_pk_roundtrip(alice: SecretKey) {
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -95,7 +97,7 @@ mod kat {
       let sk = dash_pkc::k256::SecretKey::from_bytes(&sk_bytes).unwrap();
       let pk = sk.public_key();
       assert_eq!(
-        hex::encode(pk.to_bytes()),
+        pk.to_bytes().to_lower_hex_string(),
         v.pk_compressed,
         "pk mismatch for sk {}",
         v.sk

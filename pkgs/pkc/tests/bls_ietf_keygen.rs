@@ -65,6 +65,8 @@ fn cross_format_pk_differs(sk_seed0: SecretKey) {
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -82,7 +84,7 @@ mod kat {
       let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
       let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
       assert_eq!(
-        hex::encode(sk.public_key().to_bytes()),
+        sk.public_key().to_bytes().to_lower_hex_string(),
         v.pk,
         "pk mismatch for sk {}",
         v.sk

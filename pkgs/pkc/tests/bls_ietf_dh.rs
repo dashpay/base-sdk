@@ -39,6 +39,8 @@ fn dh_exchange_roundtrip(sk_seed0: SecretKey, sk_seed1: SecretKey) {
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -59,7 +61,7 @@ mod kat {
       let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
       let peer_pk = dash_pkc::bls_ietf::PublicKey::from_bytes(&pk_bytes).unwrap();
       let shared = dash_pkc::bls_ietf::PublicKey::dh_exchange(&sk, &peer_pk).unwrap();
-      assert_eq!(hex::encode(shared.to_bytes()), v.shared);
+      assert_eq!(shared.to_bytes().to_lower_hex_string(), v.shared);
     }
   }
 }
