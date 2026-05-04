@@ -7,12 +7,17 @@ license = "MIT"
 [features]
 default = []
 std = ["bitcoin-consensus-encoding/std", "hex-conservative?/std"]
-full = ["std"]
+full = ["std", "serde"]
+serde = ["dep:serde", "dep:hex-conservative"]
 _internal = []
 
 [dependencies]
 bitcoin-consensus-encoding = { version = "0.2", default-features = false }
 hex-conservative = { version = "0.3", default-features = false, features = [
+  "alloc",
+], optional = true }
+serde = { version = "1", default-features = false, features = [
+  "derive",
   "alloc",
 ], optional = true }
 

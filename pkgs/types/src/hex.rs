@@ -12,11 +12,16 @@
 macro_rules! make_bytes {
   (
     $(#[$attr:meta])*
-    $name:ident, $n:literal
+    $name:ident, $n:literal, $serde_with:literal
   ) => {
     $(#[$attr])*
     #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct $name(pub [u8; $n]);
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(transparent))]
+    pub struct $name(
+      #[cfg_attr(feature = "serde", serde(with = $serde_with))]
+      pub [u8; $n],
+    );
 
     impl Default for $name {
       fn default() -> Self { Self([0u8; $n]) }
@@ -97,6 +102,54 @@ macro_rules! make_bytes {
       }
     }
   };
+}
+
+/// Native-endian hex for `Vec<u8>` and fixed-size byte arrays.
+///
+/// Use with `#[serde(with = "dash_types::serialize::hex")]` on
+/// `Vec<u8>` fields. For fixed-size byte arrays use a sub-module
+/// (e.g. `hex::w16` for `[u8; 16]`).
+#[cfg(feature = "serde")]
+pub mod serde {
+  use alloc::string::String;
+  use alloc::vec::Vec;
+
+  use hex_conservative::{DisplayHex, FromHex};
+
+  /// Serializes bytes as a native-endian hex string.
+  pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(&data.to_lower_hex_string())
+  }
+
+  /// Deserializes a hex string into bytes.
+  pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
+    let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
+    Vec::<u8>::from_hex(&s).map_err(::serde::de::Error::custom)
+  }
+
+  macro_rules! define_fixed {
+    ($mod_name:ident, $n:literal) => {
+      #[doc = concat!("Native-endian hex for `[u8; ", stringify!($n), "]`.")]
+      pub mod $mod_name {
+        use super::*;
+
+        /// Serializes as a native-endian hex string.
+        pub fn serialize<S: ::serde::Serializer>(data: &[u8; $n], serializer: S) -> Result<S::Ok, S::Error> {
+          serializer.serialize_str(&data.to_lower_hex_string())
+        }
+
+        /// Deserializes a hex string into the array.
+        pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<[u8; $n], D::Error> {
+          let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
+          <[u8; $n]>::from_hex(&s).map_err(::serde::de::Error::custom)
+        }
+      }
+    };
+  }
+
+  define_fixed!(w20, 20);
+  define_fixed!(w48, 48);
+  define_fixed!(w96, 96);
 }
 
 /// Generic decoder for fixed-size byte newtypes.

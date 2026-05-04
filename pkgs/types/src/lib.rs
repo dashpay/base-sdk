@@ -20,17 +20,23 @@ pub mod __private {
   pub use bitcoin_consensus_encoding;
 }
 
+/// Helpers for `#[serde(with = "...")]` annotations.
+#[cfg(feature = "serde")]
+pub mod serialize {
+  pub use crate::hex::serde as hex;
+}
+
 make_bytes! {
   /// Platform node identifier for Evo masternodes.
-  PlatformNodeId, 20
+  PlatformNodeId, 20, "crate::serialize::hex::w20"
 }
 
 make_bytes! {
   /// Raw BLS public key bytes (48 bytes, unvalidated).
-  BlsPublicKeyBytes, 48
+  BlsPublicKeyBytes, 48, "crate::serialize::hex::w48"
 }
 
 make_bytes! {
   /// Raw BLS signature bytes (96 bytes, unvalidated).
-  BlsSignatureBytes, 96
+  BlsSignatureBytes, 96, "crate::serialize::hex::w96"
 }
