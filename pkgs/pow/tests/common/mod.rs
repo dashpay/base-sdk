@@ -11,6 +11,8 @@
 
 use std::collections::HashMap;
 
+use hex_conservative::FromHex;
+
 const NIST_MSG_BLOB: &[u8] = include_bytes!("../../corpus/nist_msg.bin");
 
 /// Returns the NIST test message of `byte_len` bytes.
@@ -36,7 +38,7 @@ pub fn load(name: &str) -> NistVectors {
     .map(|(k, v)| {
       let bit_len: usize = k.parse().expect("key must be numeric");
       assert_eq!(bit_len % 8, 0, "only byte-aligned vectors supported");
-      let bytes = hex::decode(&v).expect("invalid hex in test vector");
+      let bytes = Vec::<u8>::from_hex(&v).expect("invalid hex in test vector");
       assert_eq!(bytes.len(), 64, "digest must be 64 bytes");
       let mut arr = [0u8; 64];
       arr.copy_from_slice(&bytes);
