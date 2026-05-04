@@ -7,6 +7,7 @@ on:
       - pkgs/primitives/**
       - pkgs/num/**
       - pkgs/script/**
+      - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
       - .github/workflows/pkg_primitives.yml
@@ -17,6 +18,7 @@ on:
       - pkgs/primitives/**
       - pkgs/num/**
       - pkgs/script/**
+      - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
       - .github/workflows/pkg_primitives.yml

@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - pkgs/script/**
+      - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
       - .github/workflows/pkg_script.yml
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - pkgs/script/**
+      - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
       - .github/workflows/pkg_script.yml
