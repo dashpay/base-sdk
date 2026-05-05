@@ -12,11 +12,10 @@ use crate::validation::{check_protx_version, max_protx_version_no_ext, Deploymen
 use crate::wire;
 use crate::{InputsHash, TxHash};
 
-use dash_types::BlsSignatureBytes;
-
 use core::fmt;
 
 use bitcoin_consensus_encoding as encoding;
+use dash_types::BlsSignatureBytes;
 
 /// ProUpRevTx -- revoke a masternode (type 4).
 ///

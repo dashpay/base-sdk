@@ -9,9 +9,8 @@
 use crate::support::LlmqType;
 use crate::tx_types::{MnType, TxType};
 
-use dash_types::{AsUint, TryFromUint};
-
 pub use dash_types::serialize::uint;
+use dash_types::{AsUint, TryFromUint};
 
 /// Serializes [`Amount`](bitcoin_units::Amount) as a `u64` (satoshis).
 pub mod amount {

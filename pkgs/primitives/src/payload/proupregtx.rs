@@ -6,8 +6,6 @@
 
 //! ProUpRegTx registrar-update payload (type 3).
 
-use dash_script::KeyId;
-
 use crate::error::DecodeError;
 use crate::script::Script;
 use crate::validation::{
@@ -16,11 +14,11 @@ use crate::validation::{
 use crate::wire;
 use crate::{InputsHash, TxHash};
 
+use bitcoin_consensus_encoding as encoding;
+use dash_script::KeyId;
 use dash_types::BlsPublicKeyBytes;
 
 use core::fmt;
-
-use bitcoin_consensus_encoding as encoding;
 
 /// Maximum owner ECDSA signature size.
 const MAX_VCH_SIG_SIZE: usize = 256;
