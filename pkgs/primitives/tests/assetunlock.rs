@@ -11,7 +11,8 @@
 mod util;
 
 use dash_primitives::payload::AssetUnlock;
-use dash_primitives::{BlsSignatureBytes, QuorumHash};
+use dash_primitives::QuorumHash;
+use dash_types::BlsSignatureBytes;
 use rstest::rstest;
 
 #[rstest]

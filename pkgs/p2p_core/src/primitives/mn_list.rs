@@ -14,10 +14,9 @@ use core::fmt;
 use bitcoin_consensus_encoding as encoding;
 use dash_primitives::payload::Commitment;
 use dash_primitives::wire;
-use dash_primitives::{
-  BlockHash, BlsPublicKeyBytes, BlsSignatureBytes, CService, KeyId, LlmqType, MnType, PlatformNodeId, Transaction,
-  TxHash,
-};
+use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash};
+use dash_script::KeyId;
+use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, PlatformNodeId};
 
 /// Maximum number of entries in a single MN list diff.
 const MAX_MN_LIST: usize = 10_000;

@@ -75,7 +75,3 @@ pub use tx_in::TxIn;
 pub use tx_out::TxOut;
 pub use tx_types::{MnType, TxType};
 pub use validation::DeploymentContext;
-
-/// Re-exports
-pub use dash_script::KeyId;
-pub use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, PlatformNodeId};

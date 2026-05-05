@@ -15,7 +15,7 @@ std = [
   "dash-script/std",
   "dash-types/std",
 ]
-serde = ["dep:serde", "dash-num/serde", "dash-types/serde"]
+serde = ["dep:serde", "dash-num/serde", "dash-script/serde", "dash-types/serde"]
 full = ["std", "serde"]
 _internal = []
 

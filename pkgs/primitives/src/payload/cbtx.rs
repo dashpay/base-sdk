@@ -9,7 +9,9 @@
 use crate::error::DecodeError;
 use crate::validation::DeploymentContext;
 use crate::wire;
-use crate::{BlsSignatureBytes, MerkleRoot};
+use crate::MerkleRoot;
+
+use dash_types::BlsSignatureBytes;
 
 use bitcoin_units::BlockHeight;
 

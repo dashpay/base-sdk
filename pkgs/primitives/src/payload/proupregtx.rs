@@ -6,13 +6,17 @@
 
 //! ProUpRegTx registrar-update payload (type 3).
 
+use dash_script::KeyId;
+
 use crate::error::DecodeError;
 use crate::script::Script;
 use crate::validation::{
   check_operator_key_not_null, check_protx_version, max_protx_version_no_ext, DeploymentContext, ProTxInvalid,
 };
 use crate::wire;
-use crate::{BlsPublicKeyBytes, InputsHash, KeyId, TxHash};
+use crate::{InputsHash, TxHash};
+
+use dash_types::BlsPublicKeyBytes;
 
 use core::fmt;
 

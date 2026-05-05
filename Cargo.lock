@@ -247,6 +247,7 @@ dependencies = [
  "dash-num",
  "dash-params",
  "dash-primitives",
+ "dash-script",
  "dash-types",
  "hex",
  "hex-literal",

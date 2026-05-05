@@ -10,7 +10,9 @@ use crate::error::DecodeError;
 use crate::prelude::*;
 use crate::support::{DynBitset, LlmqType};
 use crate::wire;
-use crate::{BlsPublicKeyBytes, BlsSignatureBytes, QuorumHash, QuorumVvecHash};
+use crate::{QuorumHash, QuorumVvecHash};
+
+use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 
 use core::fmt;
 

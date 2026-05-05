@@ -14,7 +14,8 @@ use core::fmt;
 use bitcoin_consensus_encoding as encoding;
 use dash_num::Hash256;
 use dash_primitives::wire;
-use dash_primitives::{BlsSignatureBytes, OutPoint};
+use dash_primitives::OutPoint;
+use dash_types::BlsSignatureBytes;
 
 /// Governance vote outcome.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
