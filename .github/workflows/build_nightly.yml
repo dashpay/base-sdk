@@ -18,7 +18,7 @@ on:
         default: full,_internal
     secrets:
       CODECOV_TOKEN:
-        required: true
+        required: false
 
 permissions:
   contents: read
@@ -77,11 +77,13 @@ jobs:
           --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
+        if: ${{ env.HAS_CODECOV == 'true' }}
         uses: codecov/codecov-action@v5
         with:
           files: lcov.info
           flags: ${{ inputs.package }}
         env:
+          HAS_CODECOV: ${{ secrets.CODECOV_TOKEN != '' }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Sanity check benchmarks
