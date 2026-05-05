@@ -15,7 +15,6 @@ extern crate std;
 mod prelude;
 
 use types::byte::define_byte_type;
-use types::hash256::define_hash256_type;
 
 pub mod block;
 pub mod block_header;
@@ -35,32 +34,32 @@ pub mod types;
 pub mod validation;
 pub mod wire;
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Hash of a block header.
   BlockHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// SHA256d hash of a serialized transaction.
   TxHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Merkle tree root hash.
   MerkleRoot
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Hash of serialized transaction inputs.
   InputsHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// LLMQ quorum identifier.
   QuorumHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Quorum verification vector hash.
   QuorumVvecHash
 }

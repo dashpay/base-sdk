@@ -7,4 +7,3 @@
 //! Macro-generated newtypes for consensus-critical identifiers.
 
 pub mod byte;
-pub mod hash256;
