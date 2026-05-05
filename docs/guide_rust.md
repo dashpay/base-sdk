@@ -244,8 +244,8 @@ Consistent conversion names tell the reader the cost and ownership semantics of 
 
 | Prefix  | Cost                  | Ownership      | Example                   |
 | ------- | --------------------- | -------------- | ------------------------- |
-| `as_`   | Free                  | `&T` to `&U`   | `KeyId::as_byte_array()`  |
-| `to_`   | Allocates or computes | Borrows input  | `KeyId::to_byte_array()`  |
+| `as_`   | Free                  | `&T` to `&U`   | `KeyId::as_bytes()`       |
+| `to_`   | Allocates or computes | Borrows input  | `Hash256::to_bytes()`     |
 | `into_` | Variable              | Consumes input | `String::into_bytes()`    |
 
 - Implement `From<T>` for infallible conversions; the blanket impl provides `Into<T>` automatically, so we never implement `Into` directly

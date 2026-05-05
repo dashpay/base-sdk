@@ -38,7 +38,10 @@ serde = { version = "1", default-features = false, features = [
 [dev-dependencies]
 hex-conservative = "0.3"
 hex-literal = "0.4"
+json5 = "0.4"
 rstest = "0.25"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [lints]
 workspace = true

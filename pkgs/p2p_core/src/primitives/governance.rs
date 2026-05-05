@@ -156,9 +156,6 @@ impl dash_types::TryFromUint<u32> for VoteSignal {
   }
 }
 
-/// Maximum governance object data length (16 KiB).
-const MAX_GOV_DATA: usize = 16 * 1024;
-
 /// A governance object (proposal or superblock trigger).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -193,7 +190,7 @@ impl GovernanceObject {
       hash: outpoint_hash,
       index: outpoint_n,
     };
-    let data_len = wire::read_compact_size(sl, MAX_GOV_DATA)?;
+    let data_len = wire::read_compact_size(sl, MAX_P2P_PAYLOAD)?;
     let obj_data = wire::read_bytes(sl, data_len)?.to_vec();
     let sig = BlsSignatureBytes(wire::read_array(sl)?);
     Ok(Self {

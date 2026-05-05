@@ -57,10 +57,9 @@ pub struct SimplifiedMnListEntry {
 }
 
 impl SimplifiedMnListEntry {
-  /// Decodes an entry using the enclosing diff's version to gate
-  /// conditional fields.
-  pub(crate) fn decode_versioned(sl: &mut &[u8], diff_version: u16) -> Result<Self, WireDecodeError> {
-    let version = if diff_version >= 2 { wire::read_u16_le(sl)? } else { 0 };
+  /// Decodes an entry from the wire format.
+  pub(crate) fn decode(sl: &mut &[u8]) -> Result<Self, WireDecodeError> {
+    let version = wire::read_u16_le(sl)?;
     let pro_reg_tx_hash = TxHash::from_bytes(wire::read_array(sl)?);
     let confirmed_hash = BlockHash::from_bytes(wire::read_array(sl)?);
     let service = wire::read_cservice(sl)?;
@@ -68,7 +67,8 @@ impl SimplifiedMnListEntry {
     let voting_key_id = KeyId(wire::read_array(sl)?);
     let is_valid = wire::read_bool(sl)?;
 
-    let mn_type = if diff_version >= 2 {
+    // nType is gated by the entry's version
+    let mn_type = if version >= 2 {
       MnType::from_u16(wire::read_u16_le(sl)?)
     } else {
       MnType::Regular
@@ -96,11 +96,9 @@ impl SimplifiedMnListEntry {
     })
   }
 
-  /// Encodes this entry for the given diff version.
-  pub(crate) fn encode_versioned(&self, diff_version: u16, buf: &mut Vec<u8>) {
-    if diff_version >= 2 {
-      buf.extend_from_slice(&self.version.to_le_bytes());
-    }
+  /// Encodes this entry to the wire format.
+  pub(crate) fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&self.version.to_le_bytes());
     buf.extend_from_slice(&self.pro_reg_tx_hash.to_bytes());
     buf.extend_from_slice(&self.confirmed_hash.to_bytes());
     buf.extend_from_slice(&self.service.addr);
@@ -108,15 +106,12 @@ impl SimplifiedMnListEntry {
     buf.extend_from_slice(&self.operator_key.0);
     buf.extend_from_slice(&self.voting_key_id.0);
     buf.push(u8::from(self.is_valid));
-    if diff_version >= 2 {
+    // nType and platform fields are gated by the entry's version
+    if self.version >= 2 {
       buf.extend_from_slice(&self.mn_type.to_u16().to_le_bytes());
-    }
-    if self.mn_type == MnType::Evo {
-      if let Some(port) = self.platform_http_port {
-        buf.extend_from_slice(&port.to_le_bytes());
-      }
-      if let Some(ref nid) = self.platform_node_id {
-        buf.extend_from_slice(&nid.0);
+      if self.mn_type == MnType::Evo {
+        buf.extend_from_slice(&self.platform_http_port.unwrap_or(0).to_le_bytes());
+        buf.extend_from_slice(self.platform_node_id.as_ref().map_or(&[0u8; 20], |n| &n.0));
       }
     }
   }
@@ -213,7 +208,7 @@ impl MnListDiffPayload {
     let mn_count = wire::read_compact_size(sl, MAX_MN_LIST)?;
     let mut mn_list = Vec::with_capacity(mn_count);
     for _ in 0..mn_count {
-      mn_list.push(SimplifiedMnListEntry::decode_versioned(sl, version)?);
+      mn_list.push(SimplifiedMnListEntry::decode(sl)?);
     }
 
     let dq_count = wire::read_compact_size(sl, MAX_QUORUMS)?;
@@ -227,8 +222,8 @@ impl MnListDiffPayload {
     let nq_count = wire::read_compact_size(sl, MAX_QUORUMS)?;
     let mut new_quorums = Vec::with_capacity(nq_count);
     for _ in 0..nq_count {
-      let commitment = encoding::decode_from_slice_unbounded::<Commitment>(sl)
-        .map_err(|e| WireDecodeError(alloc::format!("commitment decode: {e}")))?;
+      let commitment =
+        Commitment::decode_inner(sl).map_err(|e| WireDecodeError(alloc::format!("commitment decode: {e}")))?;
       new_quorums.push(commitment);
     }
 
@@ -286,7 +281,7 @@ impl MnListDiffPayload {
 
     encode_compact_size(self.mn_list.len(), &mut buf);
     for entry in &self.mn_list {
-      entry.encode_versioned(self.version, &mut buf);
+      entry.encode(&mut buf);
     }
 
     encode_compact_size(self.deleted_quorums.len(), &mut buf);

@@ -197,7 +197,7 @@ impl ProRegTx {
     }
 
     if let Some(hash) = dash_script::p2pkh_hash160(payout) {
-      if hash == self.key_id_owner.as_byte_array() || hash == self.key_id_voting.as_byte_array() {
+      if hash == self.key_id_owner.as_bytes() || hash == self.key_id_voting.as_bytes() {
         return Err(ProTxInvalid::PayoutKeyReuse);
       }
     }

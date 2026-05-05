@@ -43,7 +43,7 @@ macro_rules! make_uint {
       }
 
       /// Returns the inner integer value.
-      pub const fn to_inner(self) -> $uint {
+      pub const fn value(self) -> $uint {
         self.0
       }
     }

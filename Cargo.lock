@@ -251,8 +251,10 @@ dependencies = [
  "dash-types",
  "hex-conservative",
  "hex-literal",
+ "json5",
  "rstest",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

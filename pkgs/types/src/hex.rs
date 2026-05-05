@@ -29,12 +29,12 @@ macro_rules! make_bytes {
 
     impl $name {
       /// Returns the inner byte array.
-      pub const fn to_byte_array(self) -> [u8; $n] {
+      pub const fn to_bytes(self) -> [u8; $n] {
         self.0
       }
 
-      /// Returns a reference to the inner byte array.
-      pub const fn as_byte_array(&self) -> &[u8; $n] {
+      /// Borrows the inner byte array.
+      pub const fn as_bytes(&self) -> &[u8; $n] {
         &self.0
       }
 

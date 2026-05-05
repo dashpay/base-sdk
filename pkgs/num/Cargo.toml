@@ -6,7 +6,7 @@ license = "MIT"
 
 [features]
 default = []
-std = []
+std = ["bitcoin-consensus-encoding/std"]
 full = ["std", "serde"]
 serde = ["dep:serde"]
 _internal = []

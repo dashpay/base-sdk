@@ -17,11 +17,10 @@ use crate::validation::{
 use crate::wire;
 use crate::{InputsHash, TxHash};
 
-use dash_types::{BlsSignatureBytes, PlatformNodeId};
-
 use core::fmt;
 
 use bitcoin_consensus_encoding as encoding;
+use dash_types::{BlsSignatureBytes, PlatformNodeId};
 
 /// ProUpServTx -- update MN service addr (type 2).
 ///
