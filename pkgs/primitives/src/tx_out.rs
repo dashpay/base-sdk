@@ -15,8 +15,10 @@ use bitcoin_units::Amount;
 
 /// A transaction output.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TxOut {
   /// Output value in duffs.
+  #[cfg_attr(feature = "serde", serde(with = "crate::serialize::amount"))]
   pub value: Amount,
   /// Locking script.
   pub script_pubkey: Script,

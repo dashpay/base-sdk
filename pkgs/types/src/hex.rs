@@ -104,7 +104,7 @@ macro_rules! make_bytes {
   };
 }
 
-/// Native-endian hex for `Vec<u8>` and fixed-size byte arrays.
+/// Wire-order hex for `Vec<u8>` and fixed-size byte arrays.
 ///
 /// Use with `#[serde(with = "dash_types::serialize::hex")]` on
 /// `Vec<u8>` fields. For fixed-size byte arrays use a sub-module
@@ -116,7 +116,7 @@ pub mod serde {
 
   use hex_conservative::{DisplayHex, FromHex};
 
-  /// Serializes bytes as a native-endian hex string.
+  /// Serializes bytes as a wire-order hex string.
   pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
     serializer.serialize_str(&data.to_lower_hex_string())
   }
@@ -129,11 +129,11 @@ pub mod serde {
 
   macro_rules! define_fixed {
     ($mod_name:ident, $n:literal) => {
-      #[doc = concat!("Native-endian hex for `[u8; ", stringify!($n), "]`.")]
+      #[doc = concat!("Wire-order hex for `[u8; ", stringify!($n), "]`.")]
       pub mod $mod_name {
         use super::*;
 
-        /// Serializes as a native-endian hex string.
+        /// Serializes as a wire-order hex string.
         pub fn serialize<S: ::serde::Serializer>(data: &[u8; $n], serializer: S) -> Result<S::Ok, S::Error> {
           serializer.serialize_str(&data.to_lower_hex_string())
         }
@@ -147,6 +147,7 @@ pub mod serde {
     };
   }
 
+  define_fixed!(w16, 16);
   define_fixed!(w20, 20);
   define_fixed!(w33, 33);
   define_fixed!(w48, 48);

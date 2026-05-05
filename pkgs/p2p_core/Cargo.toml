@@ -6,8 +6,14 @@ license = "MIT"
 
 [features]
 default = []
-std = ["dash-primitives/std"]
-full = ["std"]
+std = ["dash-primitives/std", "dash-types/std"]
+serde = [
+  "dep:serde",
+  "dash-num/serde",
+  "dash-primitives/serde",
+  "dash-types/serde",
+]
+full = ["std", "serde"]
 _internal = []
 
 [dependencies]
@@ -15,10 +21,17 @@ bitcoin-consensus-encoding = { version = "0.2", default-features = false, featur
   "alloc",
 ] }
 bitcoin-internals = { version = "0.5", default-features = false }
-bitcoin-units = { version = "0.3", default-features = false, features = ["alloc"] }
+bitcoin-units = { version = "0.3", default-features = false, features = [
+  "alloc",
+] }
 dash-num = { version = "0.0.0", path = "../num" }
 dash-params = { version = "0.0.0", path = "../params" }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
+dash-types = { version = "0.0.0", path = "../types", default-features = false }
+serde = { version = "1", default-features = false, features = [
+  "alloc",
+  "derive",
+], optional = true }
 
 [dev-dependencies]
 hex = "0.4"

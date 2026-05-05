@@ -78,6 +78,8 @@ impl TryFrom<dash_types::EcdsaSignatureBytes> for Signature {
 
 /// Recovery id (0..3) used to recover a public key from an ECDSA signature.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "u8", try_from = "u8"))]
 pub struct RecoveryId(ecdsa::RecoveryId);
 
 impl RecoveryId {
@@ -131,21 +133,16 @@ impl PartialEq for DerSignature {
 
 impl Eq for DerSignature {}
 
-#[cfg(feature = "serde")]
-mod serde_impl {
-  use super::*;
-  use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-  impl Serialize for RecoveryId {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-      serde::Serialize::serialize(&self.to_byte(), s)
-    }
+impl From<RecoveryId> for u8 {
+  fn from(rid: RecoveryId) -> Self {
+    rid.to_byte()
   }
+}
 
-  impl<'de> Deserialize<'de> for RecoveryId {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-      let byte = u8::deserialize(d)?;
-      RecoveryId::new(byte).map_err(serde::de::Error::custom)
-    }
+impl TryFrom<u8> for RecoveryId {
+  type Error = super::error::Error;
+
+  fn try_from(byte: u8) -> Result<Self, Self::Error> {
+    Self::new(byte)
   }
 }

@@ -247,9 +247,11 @@ dependencies = [
  "dash-num",
  "dash-params",
  "dash-primitives",
+ "dash-types",
  "hex",
  "hex-literal",
  "rstest",
+ "serde",
 ]
 
 [[package]]
@@ -328,7 +330,9 @@ dependencies = [
  "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin_hashes",
+ "dash-types",
  "hex-literal",
+ "serde",
 ]
 
 [[package]]

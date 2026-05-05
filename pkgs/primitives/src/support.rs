@@ -200,11 +200,56 @@ impl NetworkType {
 
 /// LSB-first dynamic bitset.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(into = "DynBitsetSerde"))]
 pub struct DynBitset {
   /// Number of bits in the bitset.
   pub num_bits: u64,
   /// Raw byte data (LSB-first encoding).
   pub data: Vec<u8>,
+}
+
+/// Serde helper for [`DynBitset`] that validates on deserialisation.
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+struct DynBitsetSerde {
+  num_bits: u64,
+  #[serde(with = "dash_types::serialize::hex")]
+  data: Vec<u8>,
+}
+
+#[cfg(feature = "serde")]
+impl From<DynBitset> for DynBitsetSerde {
+  fn from(b: DynBitset) -> Self {
+    Self {
+      num_bits: b.num_bits,
+      data: b.data,
+    }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for DynBitset {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    let raw = DynBitsetSerde::deserialize(deserializer)?;
+    let num_bits: usize = raw
+      .num_bits
+      .try_into()
+      .map_err(|_| serde::de::Error::custom("DynBitset num_bits too large"))?;
+    let required = num_bits.div_ceil(8);
+    if raw.data.len() != required {
+      return Err(serde::de::Error::custom(alloc::format!(
+        "DynBitset data length mismatch: {0} bytes for {1} bits (expected {2})",
+        raw.data.len(),
+        raw.num_bits,
+        required,
+      )));
+    }
+    Ok(Self {
+      num_bits: raw.num_bits,
+      data: raw.data,
+    })
+  }
 }
 
 impl DynBitset {
@@ -276,8 +321,10 @@ impl encoding::Encodable for DynBitset {
 
 /// Legacy CService network address (ADDRv1 format, 18 bytes).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CService {
   /// 16-byte address (IPv4-mapped IPv6 or native IPv6).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex::w16"))]
   pub addr: [u8; 16],
   /// Network port (big-endian on the wire).
   pub port: u16,

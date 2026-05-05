@@ -23,6 +23,8 @@ pub mod hash;
 pub mod outpoint;
 pub mod payload;
 pub mod script;
+#[cfg(feature = "serde")]
+pub mod serialize;
 pub mod support;
 pub mod transaction;
 pub mod tx_in;

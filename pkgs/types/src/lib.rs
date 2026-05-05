@@ -13,6 +13,7 @@ extern crate alloc;
 extern crate std;
 
 mod hex;
+mod uint;
 
 #[doc(hidden)]
 pub mod __private {
@@ -24,7 +25,10 @@ pub mod __private {
 #[cfg(feature = "serde")]
 pub mod serialize {
   pub use crate::hex::serde as hex;
+  pub use crate::uint::serde as uint;
 }
+
+pub use uint::{AsUint, TryFromUint};
 
 make_bytes! {
   /// Platform node identifier for Evo masternodes.

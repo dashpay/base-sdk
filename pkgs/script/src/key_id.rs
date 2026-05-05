@@ -12,7 +12,9 @@ use bitcoin_consensus_encoding as encoding;
 
 /// 20-byte public key hash (RIPEMD-160 of SHA-256).
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct KeyId(pub [u8; 20]);
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct KeyId(#[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex::w20"))] pub [u8; 20]);
 
 impl KeyId {
   /// Returns the inner byte array.

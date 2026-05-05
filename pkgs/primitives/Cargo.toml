@@ -15,7 +15,8 @@ std = [
   "dash-script/std",
   "dash-types/std",
 ]
-full = ["std"]
+serde = ["dep:serde", "dash-num/serde", "dash-types/serde"]
+full = ["std", "serde"]
 _internal = []
 
 [dependencies]
@@ -33,6 +34,10 @@ dash-num = { version = "0.0.0", path = "../num" }
 dash-script = { version = "0.0.0", path = "../script" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
+serde = { version = "1", default-features = false, features = [
+  "alloc",
+  "derive",
+], optional = true }
 
 [dev-dependencies]
 base58ck = "0.4"
