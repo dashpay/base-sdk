@@ -12,8 +12,8 @@ use core::fmt;
 
 use bitcoin_consensus_encoding as encoding;
 
-/// Maximum script size in bytes (consensus limit).
-const MAX_SCRIPT_SIZE: usize = 10_000;
+/// Maximum serialized object size (32 MiB).
+const MAX_SIZE: usize = 0x0200_0000;
 
 /// A variable-length script, CompactSize-prefixed on the wire.
 #[derive(Clone, PartialEq, Eq, Hash, Default)]
@@ -89,7 +89,7 @@ pub struct ScriptDecoder(encoding::ByteVecDecoder);
 impl ScriptDecoder {
   /// Constructs a new decoder with the default script size limit.
   pub const fn new() -> Self {
-    Self(encoding::ByteVecDecoder::new_with_limit(MAX_SCRIPT_SIZE))
+    Self(encoding::ByteVecDecoder::new_with_limit(MAX_SIZE))
   }
 }
 

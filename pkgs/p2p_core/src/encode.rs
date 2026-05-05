@@ -12,8 +12,8 @@ use core::fmt;
 
 pub use dash_primitives::codec::{BufferDecoder, VecEncoder};
 
-/// Maximum buffered P2P message payload (4 MB).
-pub(crate) const MAX_P2P_PAYLOAD: usize = 4_000_000;
+/// Maximum buffered P2P message payload (3 MiB).
+pub(crate) const MAX_P2P_PAYLOAD: usize = 3_145_728;
 
 /// Encodes a `usize` as a Bitcoin-style CompactSize integer.
 pub(crate) fn encode_compact_size(value: usize, buf: &mut Vec<u8>) {
