@@ -21,6 +21,9 @@ mod compact;
 mod error;
 mod hash;
 mod hash_encoding;
+#[cfg(feature = "serde")]
+#[doc(hidden)]
+pub mod serialize;
 
 pub use arith::ArithInt;
 pub use arith256::Arith256;
