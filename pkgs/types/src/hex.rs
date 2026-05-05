@@ -8,7 +8,8 @@
 
 /// Generates a fixed-size byte newtype with consensus encoding traits and
 /// standard trait implementations.
-macro_rules! define_byte_type {
+#[macro_export]
+macro_rules! make_bytes {
   (
     $(#[$attr:meta])*
     $name:ident, $n:literal
@@ -79,22 +80,24 @@ macro_rules! define_byte_type {
       }
     }
 
-    impl bitcoin_consensus_encoding::Encodable for $name {
-      type Encoder<'e> = bitcoin_consensus_encoding::ArrayRefEncoder<'e, $n>;
+    impl $crate::__private::bitcoin_consensus_encoding::Encodable for $name {
+      type Encoder<'e> = $crate::__private::bitcoin_consensus_encoding::ArrayRefEncoder<'e, $n>;
 
       fn encoder(&self) -> Self::Encoder<'_> {
-        bitcoin_consensus_encoding::ArrayRefEncoder::without_length_prefix(&self.0)
+        $crate::__private::bitcoin_consensus_encoding::ArrayRefEncoder::without_length_prefix(
+          &self.0,
+        )
       }
     }
 
-    impl bitcoin_consensus_encoding::Decodable for $name {
-      type Decoder = $crate::types::byte::ByteTypeDecoder<$name, $n>;
-      fn decoder() -> Self::Decoder { $crate::types::byte::ByteTypeDecoder::new() }
+    impl $crate::__private::bitcoin_consensus_encoding::Decodable for $name {
+      type Decoder = $crate::__private::ByteTypeDecoder<$name, $n>;
+      fn decoder() -> Self::Decoder {
+        $crate::__private::ByteTypeDecoder::new()
+      }
     }
   };
 }
-
-pub(crate) use define_byte_type;
 
 /// Generic decoder for fixed-size byte newtypes.
 #[derive(Debug)]

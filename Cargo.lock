@@ -311,6 +311,7 @@ dependencies = [
  "dash-num",
  "dash-pow",
  "dash-script",
+ "dash-types",
  "hex",
  "hex-literal",
  "json5",
@@ -327,6 +328,16 @@ dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin_hashes",
  "hex-literal",
+]
+
+[[package]]
+name = "dash-types"
+version = "0.0.0"
+dependencies = [
+ "bitcoin-consensus-encoding 0.2.0",
+ "hex-conservative",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
