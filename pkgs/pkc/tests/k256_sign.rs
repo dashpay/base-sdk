@@ -126,6 +126,8 @@ fn serde_recovery_id_roundtrip() {
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -155,7 +157,7 @@ mod kat {
       let sk = dash_pkc::k256::SecretKey::from_bytes(&sk_bytes).unwrap();
       let (sig, rid) = sk.sign_recoverable(&msg).unwrap();
       assert_eq!(
-        hex::encode(sig.to_compact()),
+        sig.to_compact().to_lower_hex_string(),
         v.sig,
         "sig mismatch for sk={} msg={}",
         v.sk,
@@ -176,7 +178,7 @@ mod kat {
       let sig = dash_pkc::k256::Signature::from_compact(&sig_bytes).unwrap();
       let rid = dash_pkc::k256::RecoveryId::new(v.recovery_id).unwrap();
       let pk = dash_pkc::k256::PublicKey::recover(&msg, &sig, rid).unwrap();
-      assert_eq!(hex::encode(pk.to_bytes()), v.pk, "recovered pk mismatch");
+      assert_eq!(pk.to_bytes().to_lower_hex_string(), v.pk, "recovered pk mismatch");
     }
   }
 }

@@ -96,6 +96,8 @@ fn secure_aggregate_order_independent() {
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -135,7 +137,7 @@ mod kat {
         .collect();
       let pk_refs: Vec<_> = pks.iter().collect();
       let agg = dash_pkc::bls_chia::aggregate_pk(&pk_refs).unwrap();
-      assert_eq!(hex::encode(agg.to_bytes()), v.agg_pk);
+      assert_eq!(agg.to_bytes().to_lower_hex_string(), v.agg_pk);
     }
   }
 
@@ -155,7 +157,7 @@ mod kat {
         .collect();
       let sig_refs: Vec<_> = sigs.iter().collect();
       let agg = dash_pkc::bls_chia::aggregate_sig(&sig_refs).unwrap();
-      assert_eq!(hex::encode(agg.to_bytes()), v.agg_sig);
+      assert_eq!(agg.to_bytes().to_lower_hex_string(), v.agg_sig);
     }
   }
 

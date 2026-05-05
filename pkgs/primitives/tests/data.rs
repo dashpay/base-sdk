@@ -11,6 +11,7 @@
 mod util;
 
 use dash_primitives::{TxHash, TxType};
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
@@ -36,7 +37,7 @@ fn decode_fields() {
     for (i, ev) in expected_vin.iter().enumerate() {
       if let Some(cb) = ev.get("coinbase") {
         // Coinbase input
-        let expected_script = hex::decode(util::json_str(cb)).unwrap();
+        let expected_script = Vec::<u8>::from_hex(util::json_str(cb)).unwrap();
         assert_eq!(
           tx.inputs[i].script_sig.as_bytes(),
           &expected_script[..],
@@ -71,7 +72,7 @@ fn decode_fields() {
         bitcoin_units::Amount::from_sat(util::json_u64(&ev["valueSat"])).unwrap(),
         "{txid} vout[{i}] value",
       );
-      let expected_script = hex::decode(util::json_str(&ev["scriptPubKey"])).unwrap();
+      let expected_script = Vec::<u8>::from_hex(util::json_str(&ev["scriptPubKey"])).unwrap();
       assert_eq!(
         tx.outputs[i].script_pubkey.as_bytes(),
         &expected_script[..],

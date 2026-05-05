@@ -13,6 +13,8 @@ mod common;
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -39,7 +41,11 @@ mod kat {
       // identically.
       let legacy_bytes: [u8; 48] = decode_hex(&v.pk_legacy).try_into().unwrap();
       let pk = dash_pkc::bls_chia::PublicKey::from_bytes(&legacy_bytes).unwrap();
-      assert_eq!(hex::encode(pk.to_bytes()), v.pk_legacy, "legacy pk roundtrip mismatch");
+      assert_eq!(
+        pk.to_bytes().to_lower_hex_string(),
+        v.pk_legacy,
+        "legacy pk roundtrip mismatch"
+      );
 
       // The two formats must differ for the same point.
       assert_ne!(v.pk_legacy, v.pk_ietf, "legacy and ietf should differ");
@@ -56,7 +62,7 @@ mod kat {
       let legacy_bytes: [u8; 96] = decode_hex(&v.sig_legacy).try_into().unwrap();
       let sig = dash_pkc::bls_chia::Signature::from_bytes(&legacy_bytes).unwrap();
       assert_eq!(
-        hex::encode(sig.to_bytes()),
+        sig.to_bytes().to_lower_hex_string(),
         v.sig_legacy,
         "legacy sig roundtrip mismatch"
       );

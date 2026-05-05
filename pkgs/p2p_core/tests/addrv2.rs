@@ -14,6 +14,7 @@ use dash_p2p_core::primitives::service_flags::ServiceFlags;
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec};
 use dash_primitives::NetworkType;
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 fn ipv4_entry(ip: [u8; 4], port: u16, time: u32) -> AddrV2Entry {
@@ -95,7 +96,7 @@ fn addrv2_bip155_wire_vector() {
     "f1f2",                             // port 0xf1f2
   );
 
-  let bytes = hex::decode(hex).unwrap_or_else(|e| panic!("bad hex: {e}"));
+  let bytes = Vec::<u8>::from_hex(hex).unwrap_or_else(|e| panic!("bad hex: {e}"));
   let decoded: AddrV2Msg = decode_from_slice(&bytes).unwrap_or_else(|e| panic!("decode failed: {e}"));
 
   assert_eq!(decoded.addrs.len(), 3);
@@ -145,7 +146,7 @@ fn addr_v1_wire_vector() {
     "f1f2",                             // port
   );
 
-  let bytes = hex::decode(hex).unwrap_or_else(|e| panic!("bad hex: {e}"));
+  let bytes = Vec::<u8>::from_hex(hex).unwrap_or_else(|e| panic!("bad hex: {e}"));
   let decoded: Addr = decode_from_slice(&bytes).unwrap_or_else(|e| panic!("decode failed: {e}"));
 
   assert_eq!(decoded.addrs.len(), 3);
@@ -169,10 +170,10 @@ fn addr_v1_wire_vector() {
 /// round-trip correctly.
 #[rstest]
 fn addrv2_all_bip155_network_types() {
-  let torv3: Vec<u8> = hex::decode("79bcc625184b05194975c28b66b66b0469f7f6556fb1ac3189a79b40dda32f1f")
+  let torv3: Vec<u8> = Vec::<u8>::from_hex("79bcc625184b05194975c28b66b66b0469f7f6556fb1ac3189a79b40dda32f1f")
     .unwrap_or_else(|e| panic!("bad hex: {e}"));
 
-  let i2p: Vec<u8> = hex::decode("a2894dabaec08c0051a481a6dac88b64f98232ae42d4b6fd2fa81952dfe36a87")
+  let i2p: Vec<u8> = Vec::<u8>::from_hex("a2894dabaec08c0051a481a6dac88b64f98232ae42d4b6fd2fa81952dfe36a87")
     .unwrap_or_else(|e| panic!("bad hex: {e}"));
 
   let original = AddrV2Msg {

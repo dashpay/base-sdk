@@ -14,6 +14,7 @@ use dash_primitives::payload::ProUpRegTx;
 use dash_primitives::{InputsHash, TxHash};
 use dash_script::KeyId;
 use dash_types::BlsPublicKeyBytes;
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
@@ -41,7 +42,7 @@ fn decode_fields() {
       assert_eq!(payload.key_id_voting, KeyId(key_id), "{txid} votingAddress",);
     }
 
-    let expected_pubkey: [u8; 48] = hex::decode(util::json_str(&d["pubKeyOperator"]))
+    let expected_pubkey: [u8; 48] = Vec::<u8>::from_hex(util::json_str(&d["pubKeyOperator"]))
       .unwrap()
       .try_into()
       .unwrap();

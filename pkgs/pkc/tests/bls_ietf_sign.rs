@@ -129,6 +129,8 @@ fn cross_format_sig_differs(sk_seed0: SecretKey) {
 
 mod kat {
   use super::common::{self, decode_hex, VectorFile};
+
+  use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -149,7 +151,7 @@ mod kat {
       let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
       let sig = sk.sign(&msg);
       assert_eq!(
-        hex::encode(sig.to_bytes()),
+        sig.to_bytes().to_lower_hex_string(),
         v.sig,
         "sig mismatch for sk={} msg={}",
         v.sk,

@@ -12,13 +12,14 @@ mod util;
 
 use dash_primitives::gov::{GovObject, GovObjectType};
 use dash_primitives::TxHash;
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
 fn decode_and_hash() {
   let corpus = util::load_triggers();
   for (obj_hash_hex, entry) in &corpus {
-    let raw = hex::decode(&entry.raw).unwrap();
+    let raw = Vec::<u8>::from_hex(&entry.raw).unwrap();
     let obj = GovObject::decode(&raw).unwrap();
     let d = &entry.details;
     let payload = &d["payload"];
