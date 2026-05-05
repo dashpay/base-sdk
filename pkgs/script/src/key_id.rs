@@ -18,12 +18,12 @@ pub struct KeyId(#[cfg_attr(feature = "serde", serde(with = "dash_types::seriali
 
 impl KeyId {
   /// Returns the inner byte array.
-  pub const fn to_byte_array(self) -> [u8; 20] {
+  pub const fn to_bytes(self) -> [u8; 20] {
     self.0
   }
 
-  /// Returns a reference to the inner byte array.
-  pub const fn as_byte_array(&self) -> &[u8; 20] {
+  /// Borrows the inner byte array.
+  pub const fn as_bytes(&self) -> &[u8; 20] {
     &self.0
   }
 

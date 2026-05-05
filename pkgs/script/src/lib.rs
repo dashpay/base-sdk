@@ -156,7 +156,7 @@ pub fn encode_p2sh(hash160: &[u8], prefix: u8) -> Option<String> {
 
 /// Encode a `KeyId` as a Base58Check P2PKH address.
 pub fn encode_key_id(key_id: &KeyId, prefix: u8) -> String {
-  let bytes = key_id.to_byte_array();
+  let bytes = key_id.to_bytes();
   let mut payload = Vec::with_capacity(HASH160_LEN + 1);
   payload.push(prefix);
   payload.extend_from_slice(&bytes);
