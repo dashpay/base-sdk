@@ -245,6 +245,17 @@ impl<'de> serde::Deserialize<'de> for DynBitset {
         required,
       )));
     }
+    let remainder = num_bits % 8;
+    if remainder != 0 {
+      let mask = !((1u8 << remainder) - 1);
+      if raw.data[required - 1] & mask != 0 {
+        return Err(serde::de::Error::custom(alloc::format!(
+          "DynBitset padding bits set in last byte: {:#04x} for {1} bits",
+          raw.data[required - 1],
+          raw.num_bits,
+        )));
+      }
+    }
     Ok(Self {
       num_bits: raw.num_bits,
       data: raw.data,
