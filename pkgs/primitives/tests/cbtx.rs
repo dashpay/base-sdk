@@ -13,6 +13,7 @@ mod util;
 use dash_primitives::payload::CoinbaseCommitment;
 use dash_primitives::MerkleRoot;
 use dash_types::BlsSignatureBytes;
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
@@ -53,7 +54,7 @@ fn decode_fields() {
     }
 
     if let Some(sig) = d.get("bestCLSignature") {
-      let expected: [u8; 96] = hex::decode(util::json_str(sig)).unwrap().try_into().unwrap();
+      let expected: [u8; 96] = Vec::<u8>::from_hex(util::json_str(sig)).unwrap().try_into().unwrap();
       assert_eq!(cbtx.best_cl_signature.unwrap(), BlsSignatureBytes(expected), "{txid}",);
     }
 

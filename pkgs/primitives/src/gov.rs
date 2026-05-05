@@ -16,6 +16,7 @@ use crate::TxHash;
 use core::fmt;
 
 use bitcoin_hashes::sha256d;
+use hex_conservative::DisplayHex;
 
 /// Governance object type codes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -189,7 +190,7 @@ impl GovObject {
   /// `object_type` are excluded, and `data` is hex-encoded as ASCII bytes
   /// before hashing.
   pub fn hash(&self) -> TxHash {
-    let data_hex = hex::encode(&self.data);
+    let data_hex = self.data.to_lower_hex_string();
 
     let mut buf = Vec::new();
     buf.extend_from_slice(self.hash_parent.as_bytes());
@@ -217,7 +218,7 @@ impl GovObject {
 
   /// Returns the data as a hex string.
   pub fn data_as_hex(&self) -> alloc::string::String {
-    hex::encode(&self.data)
+    self.data.to_lower_hex_string()
   }
 }
 

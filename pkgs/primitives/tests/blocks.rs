@@ -12,13 +12,14 @@ mod util;
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec};
 use dash_primitives::{Block, BlockHash, DeploymentContext, MerkleRoot};
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
 fn decode_fields() {
   let corpus = util::load_blocks();
   for (block_hash_hex, entry) in &corpus {
-    let raw = hex::decode(&entry.raw).unwrap();
+    let raw = Vec::<u8>::from_hex(&entry.raw).unwrap();
     let block: Block = decode_from_slice(&raw).unwrap();
     assert!(block.validate(&DeploymentContext::default()).is_ok());
 
@@ -76,7 +77,7 @@ fn decode_fields() {
 fn round_trip() {
   let corpus = util::load_blocks();
   for (block_hash_hex, entry) in &corpus {
-    let raw = hex::decode(&entry.raw).unwrap();
+    let raw = Vec::<u8>::from_hex(&entry.raw).unwrap();
     let block: Block = decode_from_slice(&raw).unwrap();
     let encoded = encode_to_vec(&block);
     assert_eq!(encoded, raw, "{block_hash_hex} round-trip");
@@ -87,7 +88,7 @@ fn round_trip() {
 fn block_hash() {
   let corpus = util::load_blocks();
   for (block_hash_hex, entry) in &corpus {
-    let raw = hex::decode(&entry.raw).unwrap();
+    let raw = Vec::<u8>::from_hex(&entry.raw).unwrap();
     let pow_hash = BlockHash::from(dash_pow::hash(&raw[..80]));
     let expected = BlockHash::from_hex(block_hash_hex).unwrap();
     assert_eq!(pow_hash, expected, "{block_hash_hex} hash");

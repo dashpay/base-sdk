@@ -13,6 +13,7 @@ mod util;
 use dash_primitives::payload::AssetUnlock;
 use dash_primitives::QuorumHash;
 use dash_types::BlsSignatureBytes;
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
@@ -42,7 +43,7 @@ fn decode_fields() {
       "{txid}",
     );
 
-    let expected_sig: [u8; 96] = hex::decode(util::json_str(&d["quorumSig"]))
+    let expected_sig: [u8; 96] = Vec::<u8>::from_hex(util::json_str(&d["quorumSig"]))
       .unwrap()
       .try_into()
       .unwrap();

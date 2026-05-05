@@ -13,6 +13,7 @@ mod util;
 use dash_primitives::payload::MnHardFork;
 use dash_primitives::QuorumHash;
 use dash_types::BlsSignatureBytes;
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
@@ -41,7 +42,10 @@ fn decode_fields() {
       "{txid}",
     );
 
-    let expected_sig: [u8; 96] = hex::decode(util::json_str(&signal["sig"])).unwrap().try_into().unwrap();
+    let expected_sig: [u8; 96] = Vec::<u8>::from_hex(util::json_str(&signal["sig"]))
+      .unwrap()
+      .try_into()
+      .unwrap();
     assert_eq!(payload.sig, BlsSignatureBytes(expected_sig), "{txid}",);
   }
 }

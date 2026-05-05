@@ -13,6 +13,7 @@ mod util;
 use dash_primitives::payload::FinalCommitment;
 use dash_primitives::{LlmqType, QuorumHash, QuorumVvecHash};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
@@ -73,15 +74,15 @@ fn decode_fields() {
     );
 
     // Bitset raw data
-    let expected_signers = hex::decode(util::json_str(&c["signers"])).unwrap();
+    let expected_signers = Vec::<u8>::from_hex(util::json_str(&c["signers"])).unwrap();
     assert_eq!(commitment.signers.data, expected_signers, "{txid} commitment.signers",);
-    let expected_valid = hex::decode(util::json_str(&c["validMembers"])).unwrap();
+    let expected_valid = Vec::<u8>::from_hex(util::json_str(&c["validMembers"])).unwrap();
     assert_eq!(
       commitment.valid_members.data, expected_valid,
       "{txid} commitment.validMembers",
     );
 
-    let expected_pk: [u8; 48] = hex::decode(util::json_str(&c["quorumPublicKey"]))
+    let expected_pk: [u8; 48] = Vec::<u8>::from_hex(util::json_str(&c["quorumPublicKey"]))
       .unwrap()
       .try_into()
       .unwrap();
@@ -97,7 +98,7 @@ fn decode_fields() {
       "{txid} commitment.quorumVvecHash",
     );
 
-    let expected_qsig: [u8; 96] = hex::decode(util::json_str(&c["quorumSig"]))
+    let expected_qsig: [u8; 96] = Vec::<u8>::from_hex(util::json_str(&c["quorumSig"]))
       .unwrap()
       .try_into()
       .unwrap();
@@ -107,7 +108,7 @@ fn decode_fields() {
       "{txid} commitment.quorumSig",
     );
 
-    let expected_msig: [u8; 96] = hex::decode(util::json_str(&c["membersSig"]))
+    let expected_msig: [u8; 96] = Vec::<u8>::from_hex(util::json_str(&c["membersSig"]))
       .unwrap()
       .try_into()
       .unwrap();

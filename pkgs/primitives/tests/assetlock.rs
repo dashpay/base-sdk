@@ -11,6 +11,7 @@
 mod util;
 
 use dash_primitives::payload::AssetLock;
+use hex_conservative::FromHex;
 use rstest::rstest;
 
 #[rstest]
@@ -40,7 +41,7 @@ fn decode_fields() {
         "{txid} output {i}",
       );
 
-      let expected_script = hex::decode(util::json_str(&expected["scriptPubKey"])).unwrap();
+      let expected_script = Vec::<u8>::from_hex(util::json_str(&expected["scriptPubKey"])).unwrap();
       assert_eq!(
         output.script_pubkey.as_bytes(),
         &expected_script[..],

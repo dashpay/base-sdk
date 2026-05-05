@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec};
 use dash_primitives::{Transaction, TxHash};
+use hex_conservative::FromHex;
 use serde::Deserialize;
 
 /// A single entry from a transaction corpus JSON5 file.
@@ -79,20 +80,20 @@ pub fn load_triggers() -> BTreeMap<String, CorpusTrigger> {
 
 /// Decodes a raw transaction hex string into a `Transaction`.
 pub fn decode_tx(raw_hex: &str) -> Transaction {
-  let bytes = hex::decode(raw_hex).unwrap();
+  let bytes = Vec::<u8>::from_hex(raw_hex).unwrap();
   decode_from_slice::<Transaction>(&bytes).unwrap()
 }
 
 /// Asserts that re-encoding a transaction produces the same bytes.
 pub fn assert_round_trip(raw_hex: &str, tx: &Transaction, label: &str) {
-  let expected = hex::decode(raw_hex).unwrap();
+  let expected = Vec::<u8>::from_hex(raw_hex).unwrap();
   let encoded = encode_to_vec(tx);
   assert_eq!(encoded, expected, "round-trip mismatch for {label}");
 }
 
 /// Asserts that `double_sha256(raw_hex)` matches the corpus txid key.
 pub fn assert_txid(raw_hex: &str, expected_txid: &str) {
-  let raw = hex::decode(raw_hex).unwrap();
+  let raw = Vec::<u8>::from_hex(raw_hex).unwrap();
   let computed = dash_primitives::hash::tx_hash(&raw);
   let expected = TxHash::from_hex(expected_txid).unwrap();
   assert_eq!(computed, expected, "txid mismatch for {expected_txid}");
@@ -104,7 +105,7 @@ pub fn assert_txid(raw_hex: &str, expected_txid: &str) {
 /// in big-endian display order; this reverses them to wire order.
 /// For 32-byte hashes, use `Hash256::from_hex()` instead.
 pub fn parse_reversed_hex<const N: usize>(hex_str: &str) -> [u8; N] {
-  let decoded = hex::decode(hex_str).unwrap();
+  let decoded = Vec::<u8>::from_hex(hex_str).unwrap();
   assert_eq!(decoded.len(), N, "expected {N}-byte value, got {}", decoded.len());
   let mut bytes = [0u8; N];
   bytes.copy_from_slice(&decoded);
