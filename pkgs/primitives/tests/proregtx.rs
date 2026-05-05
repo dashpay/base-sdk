@@ -11,7 +11,9 @@
 mod util;
 
 use dash_primitives::payload::ProRegTx;
-use dash_primitives::{BlsPublicKeyBytes, InputsHash, KeyId, PlatformNodeId, TxHash};
+use dash_primitives::{InputsHash, TxHash};
+use dash_script::KeyId;
+use dash_types::{BlsPublicKeyBytes, PlatformNodeId};
 use rstest::rstest;
 
 #[rstest]

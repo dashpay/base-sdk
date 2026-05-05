@@ -15,7 +15,9 @@ use crate::validation::{
   PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
 };
 use crate::wire;
-use crate::{BlsSignatureBytes, InputsHash, PlatformNodeId, TxHash};
+use crate::{InputsHash, TxHash};
+
+use dash_types::{BlsSignatureBytes, PlatformNodeId};
 
 use core::fmt;
 

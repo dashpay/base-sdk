@@ -1,51 +1,29 @@
 [package]
-name = "dash-num"
+name = "dash-types"
 version = "0.0.0"
 edition = "2021"
 license = "MIT"
 
 [features]
 default = []
-std = []
+std = ["bitcoin-consensus-encoding/std", "hex-conservative?/std"]
 full = ["std", "serde"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "dep:hex-conservative"]
 _internal = []
 
 [dependencies]
 bitcoin-consensus-encoding = { version = "0.2", default-features = false }
+hex-conservative = { version = "0.3", default-features = false, features = [
+  "alloc",
+], optional = true }
 serde = { version = "1", default-features = false, features = [
   "derive",
   "alloc",
 ], optional = true }
 
 [dev-dependencies]
-divan = "0.1"
-hex-literal = "0.4"
-rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-[[test]]
-name = "hash"
-path = "tests/hash.rs"
-
-[[test]]
-name = "arith"
-path = "tests/arith.rs"
-
-[[test]]
-name = "compact"
-path = "tests/compact.rs"
-
-[[test]]
-name = "serde"
-path = "tests/serde.rs"
-required-features = ["serde"]
-
-[[bench]]
-name = "num"
-path = "bench/main.rs"
-harness = false
 
 [lints]
 workspace = true

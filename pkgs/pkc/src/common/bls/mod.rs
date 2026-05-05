@@ -105,27 +105,3 @@ macro_rules! impl_hash_via_bytes {
   };
 }
 pub(crate) use impl_hash_via_bytes;
-
-/// Implement serde Serialize/Deserialize via to_bytes()/from_bytes() for a BLS
-/// type.
-macro_rules! impl_serde_via_bytes {
-  ($ty:ty, $n:expr) => {
-    #[cfg(feature = "serde")]
-    impl serde::Serialize for $ty {
-      fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        serde::Serialize::serialize(&self.to_bytes().as_slice(), s)
-      }
-    }
-    #[cfg(feature = "serde")]
-    impl<'de> serde::Deserialize<'de> for $ty {
-      fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let v = <alloc::vec::Vec<u8> as serde::Deserialize>::deserialize(d)?;
-        let bytes: [u8; $n] = v
-          .try_into()
-          .map_err(|_| serde::de::Error::custom(concat!("expected ", stringify!($n), " bytes")))?;
-        Self::from_bytes(&bytes).map_err(serde::de::Error::custom)
-      }
-    }
-  };
-}
-pub(crate) use impl_serde_via_bytes;

@@ -15,11 +15,13 @@ use crate::validation::{
   DeploymentContext, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
 };
 use crate::wire;
-use crate::{BlsPublicKeyBytes, InputsHash, KeyId, PlatformNodeId, TxHash};
+use crate::{InputsHash, TxHash};
 
 use core::fmt;
 
 use bitcoin_consensus_encoding as encoding;
+use dash_script::KeyId;
+use dash_types::{BlsPublicKeyBytes, PlatformNodeId};
 
 /// Maximum owner ECDSA signature size.
 const MAX_VCH_SIG_SIZE: usize = 256;

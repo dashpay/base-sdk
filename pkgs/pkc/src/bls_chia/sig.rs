@@ -15,6 +15,11 @@ use super::ser;
 
 /// A legacy BLS signature (96-byte G2 point in legacy serialization).
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  serde(into = "dash_types::BlsSignatureBytes", try_from = "dash_types::BlsSignatureBytes",)
+)]
 pub struct Signature(pub(super) blst_p2_affine);
 
 impl Signature {
@@ -63,7 +68,20 @@ impl Signature {
 }
 
 crate::common::bls::impl_hash_via_bytes!(Signature);
-crate::common::bls::impl_serde_via_bytes!(Signature, 96);
+
+impl From<Signature> for dash_types::BlsSignatureBytes {
+  fn from(sig: Signature) -> Self {
+    Self(sig.to_bytes())
+  }
+}
+
+impl TryFrom<dash_types::BlsSignatureBytes> for Signature {
+  type Error = super::error::Error;
+
+  fn try_from(bytes: dash_types::BlsSignatureBytes) -> Result<Self, Self::Error> {
+    Self::from_bytes(&bytes.0)
+  }
+}
 
 extern "C" {
   fn blst_p1_generator() -> *const blst_p1;

@@ -14,9 +14,6 @@ extern crate std;
 
 mod prelude;
 
-use types::byte::define_byte_type;
-use types::hash256::define_hash256_type;
-
 pub mod block;
 pub mod block_header;
 pub mod codec;
@@ -26,62 +23,45 @@ pub mod hash;
 pub mod outpoint;
 pub mod payload;
 pub mod script;
+#[cfg(feature = "serde")]
+pub mod serialize;
 pub mod support;
 pub mod transaction;
 pub mod tx_in;
 pub mod tx_out;
 pub mod tx_types;
-pub mod types;
 pub mod validation;
 pub mod wire;
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Hash of a block header.
   BlockHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// SHA256d hash of a serialized transaction.
   TxHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Merkle tree root hash.
   MerkleRoot
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Hash of serialized transaction inputs.
   InputsHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// LLMQ quorum identifier.
   QuorumHash
 }
 
-define_hash256_type! {
+dash_num::make_hash256! {
   /// Quorum verification vector hash.
   QuorumVvecHash
 }
-
-define_byte_type! {
-  /// Platform node identifier for Evo masternodes.
-  PlatformNodeId, 20
-}
-
-define_byte_type! {
-  /// Raw BLS public key bytes (48 bytes, unvalidated).
-  BlsPublicKeyBytes, 48
-}
-
-define_byte_type! {
-  /// Raw BLS signature bytes (96 bytes, unvalidated).
-  BlsSignatureBytes, 96
-}
-
-/// Re-export from `dash-script`.
-pub use dash_script::KeyId;
 
 pub use block::Block;
 pub use block_header::BlockHeader;

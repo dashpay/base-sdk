@@ -1,25 +1,21 @@
-name: "dash-pkc"
+name: "dash-types"
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - pkgs/pkc/**
-      - pkgs/num/**
       - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
-      - .github/workflows/pkg_pkc.yml
+      - .github/workflows/pkg_types.yml
       - .github/workflows/build_stable.yml
       - .github/workflows/build_nightly.yml
   pull_request:
     paths:
-      - pkgs/pkc/**
-      - pkgs/num/**
       - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
-      - .github/workflows/pkg_pkc.yml
+      - .github/workflows/pkg_types.yml
       - .github/workflows/build_stable.yml
       - .github/workflows/build_nightly.yml
 
@@ -31,12 +27,12 @@ jobs:
   stable:
     uses: ./.github/workflows/build_stable.yml
     with:
-      package: dash-pkc
-      package_dir: pkc
+      package: dash-types
+      package_dir: types
 
   nightly:
     uses: ./.github/workflows/build_nightly.yml
     with:
-      package: dash-pkc
-      package_dir: pkc
+      package: dash-types
+      package_dir: types
     secrets: inherit

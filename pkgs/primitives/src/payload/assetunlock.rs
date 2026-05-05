@@ -9,7 +9,9 @@
 use crate::error::DecodeError;
 use crate::validation::DeploymentContext;
 use crate::wire;
-use crate::{BlsSignatureBytes, QuorumHash};
+use crate::QuorumHash;
+
+use dash_types::BlsSignatureBytes;
 
 use core::fmt;
 

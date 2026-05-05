@@ -17,7 +17,9 @@ const MAX_SCRIPT_SIZE: usize = 10_000;
 
 /// A variable-length script, CompactSize-prefixed on the wire.
 #[derive(Clone, PartialEq, Eq, Hash, Default)]
-pub struct Script(pub Vec<u8>);
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct Script(#[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))] pub Vec<u8>);
 
 impl Script {
   /// Creates a new script from raw bytes.

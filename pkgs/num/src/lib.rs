@@ -21,6 +21,16 @@ mod compact;
 mod error;
 mod hash;
 mod hash_encoding;
+#[cfg(feature = "serde")]
+#[doc(hidden)]
+pub mod serialize;
+#[doc(hidden)]
+pub mod util;
+
+#[doc(hidden)]
+pub mod __private {
+  pub use bitcoin_consensus_encoding;
+}
 
 pub use arith::ArithInt;
 pub use arith256::Arith256;

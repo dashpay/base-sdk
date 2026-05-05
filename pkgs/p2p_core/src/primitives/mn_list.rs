@@ -14,10 +14,9 @@ use core::fmt;
 use bitcoin_consensus_encoding as encoding;
 use dash_primitives::payload::Commitment;
 use dash_primitives::wire;
-use dash_primitives::{
-  BlockHash, BlsPublicKeyBytes, BlsSignatureBytes, CService, KeyId, LlmqType, MnType, PlatformNodeId, Transaction,
-  TxHash,
-};
+use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash};
+use dash_script::KeyId;
+use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, PlatformNodeId};
 
 /// Maximum number of entries in a single MN list diff.
 const MAX_MN_LIST: usize = 10_000;
@@ -32,6 +31,7 @@ const MAX_MERKLE_FLAGS: usize = 100_000;
 
 /// A single entry in the simplified masternode list.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SimplifiedMnListEntry {
   /// Entry serialisation version.
   pub version: u16,
@@ -48,6 +48,7 @@ pub struct SimplifiedMnListEntry {
   /// Whether this masternode is currently valid.
   pub is_valid: bool,
   /// Masternode type (Regular or Evo).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::uint::w16"))]
   pub mn_type: MnType,
   /// Platform HTTP port (Evo masternodes only).
   pub platform_http_port: Option<u16>,
@@ -129,8 +130,10 @@ impl fmt::Display for SimplifiedMnListEntry {
 
 /// Deleted quorum identifier (type + hash).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeletedQuorum {
   /// LLMQ type.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::uint::w8"))]
   pub llmq_type: LlmqType,
   /// Quorum hash.
   pub hash: BlockHash,
@@ -141,6 +144,7 @@ pub struct DeletedQuorum {
 /// Each entry maps a BLS signature to the indices (within
 /// `new_quorums`) of the quorums it covers.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct QuorumClSig {
   /// BLS signature.
   pub sig: BlsSignatureBytes,
@@ -150,6 +154,7 @@ pub struct QuorumClSig {
 
 /// Full masternode list diff payload.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MnListDiffPayload {
   /// Serialisation version.
   pub version: u16,
@@ -162,6 +167,7 @@ pub struct MnListDiffPayload {
   /// Merkle branch hashes.
   pub merkle_hashes: Vec<TxHash>,
   /// Merkle branch flag bytes.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub merkle_flags: Vec<u8>,
   /// Coinbase transaction (carries the MN list commitment).
   pub cb_tx: Transaction,

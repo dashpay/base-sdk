@@ -164,7 +164,7 @@ pub(crate) fn check_protx_version(version: u16, max: Option<u16>) -> Result<(), 
 }
 
 /// Checks that a BLS operator public key is not all zeros.
-pub(crate) fn check_operator_key_not_null(key: &crate::BlsPublicKeyBytes) -> Result<(), ProTxInvalid> {
+pub(crate) fn check_operator_key_not_null(key: &dash_types::BlsPublicKeyBytes) -> Result<(), ProTxInvalid> {
   if key.is_null() {
     return Err(ProTxInvalid::NullKey);
   }

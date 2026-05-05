@@ -26,6 +26,7 @@
 | [dash-pow](./pkgs/pow) | Proof of work scheme | [![dash-pow](https://img.shields.io/github/actions/workflow/status/dashpay/base-sdk/pkg_pow.yml?style=flat&logo=github&logoColor=white&label=pow)](https://github.com/dashpay/base-sdk/actions/workflows/pkg_pow.yml) | [![dash-pow](https://img.shields.io/codecov/c/github/dashpay/base-sdk/develop?flag=dash-pow&style=flat&logo=codecov&logoColor=white&label=pow)](https://app.codecov.io/github/dashpay/base-sdk/tree/develop/pkgs%2Fpow) |
 | [dash-primitives](./pkgs/primitives) | Blocks, transactions, payloads, governance objects | [![dash-primitives](https://img.shields.io/github/actions/workflow/status/dashpay/base-sdk/pkg_primitives.yml?style=flat&logo=github&logoColor=white&label=primitives)](https://github.com/dashpay/base-sdk/actions/workflows/pkg_primitives.yml) | [![dash-primitives](https://img.shields.io/codecov/c/github/dashpay/base-sdk/develop?flag=dash-primitives&style=flat&logo=codecov&logoColor=white&label=primitives)](https://app.codecov.io/github/dashpay/base-sdk/tree/develop/pkgs%2Fprimitives) |
 | [dash-script](./pkgs/script) | Script opcodes, classification, and address derivation | [![dash-script](https://img.shields.io/github/actions/workflow/status/dashpay/base-sdk/pkg_script.yml?style=flat&logo=github&logoColor=white&label=script)](https://github.com/dashpay/base-sdk/actions/workflows/pkg_script.yml) | [![dash-script](https://img.shields.io/codecov/c/github/dashpay/base-sdk/develop?flag=dash-script&style=flat&logo=codecov&logoColor=white&label=script)](https://app.codecov.io/github/dashpay/base-sdk/tree/develop/pkgs%2Fscript) |
+| [dash-types](./pkgs/types) | Shared byte and integer newtypes, serde helpers | [![dash-types](https://img.shields.io/github/actions/workflow/status/dashpay/base-sdk/pkg_types.yml?style=flat&logo=github&logoColor=white&label=types)](https://github.com/dashpay/base-sdk/actions/workflows/pkg_types.yml) | [![dash-types](https://img.shields.io/codecov/c/github/dashpay/base-sdk/develop?flag=dash-types&style=flat&logo=codecov&logoColor=white&label=types)](https://app.codecov.io/github/dashpay/base-sdk/tree/develop/pkgs%2Ftypes) |
 
 ## Dependencies
 
@@ -35,10 +36,11 @@
 ```mermaid
 graph LR
   subgraph " "
+    types[dash-types]
     num[dash-num]
-    script[dash-script]
   end
   subgraph "  "
+    script[dash-script]
     pow[dash-pow]
     pkc[dash-pkc]
     primitives[dash-primitives]
@@ -48,17 +50,22 @@ graph LR
     p2p_core[dash-p2p-core]
   end
 
+  types --> script
+  types --> pkc
+  types --> primitives
+  types --> p2p_core
   num --> pow
   num --> pkc
   num --> primitives
-  script --> primitives
-  pow -.-> primitives
-  primitives --> params
   num --> params
+  num --> p2p_core
+  script --> primitives
+  script --> p2p_core
+  pow -.-> primitives
   pow -.-> params
+  primitives --> params
   primitives --> p2p_core
   params --> p2p_core
-  num --> p2p_core
 ```
 
 ## Features
@@ -69,7 +76,7 @@ All crates support these standard features:
 |---------|-------------|--------|
 | `default` | `no_std` + `alloc` (always enabled) | _All_ |
 | `std` | Enable standard library support | _All_ |
-| `serde` | Enable serde serialization (where applicable) | [pkc](./pkgs/pkc) |
+| `serde` | Enable serde serialization (where applicable) | [num](./pkgs/num), [p2p-core](./pkgs/p2p_core), [pkc](./pkgs/pkc), [primitives](./pkgs/primitives), [script](./pkgs/script), [types](./pkgs/types) |
 | `full` | Enables all non-conflicting features | _All_ |
 
 Specific crates define additional features:

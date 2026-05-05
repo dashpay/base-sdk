@@ -12,9 +12,9 @@ use core::fmt;
 use core::hash::Hash;
 use core::str::FromStr;
 
-const HEX_LOWER: [u8; 16] = *b"0123456789abcdef";
+pub(crate) const HEX_LOWER: [u8; 16] = *b"0123456789abcdef";
 
-fn hex_val(c: u8) -> Result<u8, ParseHexError> {
+pub(crate) fn hex_val(c: u8) -> Result<u8, ParseHexError> {
   match c {
     b'0'..=b'9' => Ok(c - b'0'),
     b'a'..=b'f' => Ok(c - b'a' + 10),
@@ -50,10 +50,12 @@ pub trait HashBlob:
 }
 
 macro_rules! define_hash {
-  ($name:ident, $n:literal) => {
+  ($name:ident, $n:literal, $serde_with:literal) => {
     /// Fixed-size opaque hash blob stored in little-endian byte order.
     #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct $name([u8; $n]);
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(transparent))]
+    pub struct $name(#[cfg_attr(feature = "serde", serde(with = $serde_with))] [u8; $n]);
 
     impl $name {
       /// The all-zeros (null) hash.
@@ -289,92 +291,12 @@ macro_rules! define_hash {
         $crate::HashTypeDecoder::new()
       }
     }
-
-    #[cfg(feature = "serde")]
-    impl serde::Serialize for $name {
-      fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        if serializer.is_human_readable() {
-          // Big-endian hex string (same as Display).
-          serializer.collect_str(self)
-        } else {
-          // Raw little-endian bytes (internal storage / consensus wire).
-          serializer.serialize_bytes(&self.0)
-        }
-      }
-    }
-
-    #[cfg(feature = "serde")]
-    impl<'de> serde::Deserialize<'de> for $name {
-      fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        if deserializer.is_human_readable() {
-          let s = <alloc::string::String as serde::Deserialize>::deserialize(deserializer)?;
-          Self::from_hex(&s).map_err(serde::de::Error::custom)
-        } else {
-          struct BytesVisitor;
-          impl<'de> serde::de::Visitor<'de> for BytesVisitor {
-            type Value = [u8; $n];
-
-            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-              write!(f, "{} bytes", $n)
-            }
-
-            fn visit_bytes<E: serde::de::Error>(self, v: &[u8]) -> Result<Self::Value, E> {
-              if v.len() != $n {
-                return Err(E::invalid_length(v.len(), &self));
-              }
-              let mut arr = [0u8; $n];
-              arr.copy_from_slice(v);
-              Ok(arr)
-            }
-
-            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
-              let mut arr = [0u8; $n];
-              for (i, byte) in arr.iter_mut().enumerate() {
-                *byte = seq
-                  .next_element()?
-                  .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
-              }
-              Ok(arr)
-            }
-          }
-          let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
-          Ok(Self(bytes))
-        }
-      }
-    }
-
-    #[cfg(feature = "serde")]
-    impl bincode::Encode for $name {
-      fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
-        bincode::Encode::encode(&self.0, encoder)
-      }
-    }
-
-    #[cfg(feature = "serde")]
-    impl<Context> bincode::Decode<Context> for $name {
-      fn decode<D: bincode::de::Decoder<Context = Context>>(
-        decoder: &mut D,
-      ) -> Result<Self, bincode::error::DecodeError> {
-        Ok(Self(<[u8; $n] as bincode::Decode<Context>>::decode(decoder)?))
-      }
-    }
-
-    #[cfg(feature = "serde")]
-    impl<'de, Context> bincode::BorrowDecode<'de, Context> for $name {
-      fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
-        decoder: &mut D,
-      ) -> Result<Self, bincode::error::DecodeError> {
-        Ok(Self(<[u8; $n] as bincode::BorrowDecode<'de, Context>>::borrow_decode(
-          decoder,
-        )?))
-      }
-    }
   };
 }
 
-define_hash!(Hash160, 20);
-define_hash!(Hash256, 32);
-define_hash!(Hash512, 64);
+define_hash!(Hash160, 20, "crate::serialize::hex_blob::w20");
+define_hash!(Hash256, 32, "crate::serialize::hex_blob::w32");
+define_hash!(Hash512, 64, "crate::serialize::hex_blob::w64");
 
 impl Hash512 {
   /// Truncate to 256 bits by taking the first 32 bytes (low half in LE).

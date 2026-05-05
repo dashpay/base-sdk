@@ -9,6 +9,7 @@ on:
       - pkgs/params/**
       - pkgs/primitives/**
       - pkgs/script/**
+      - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
       - .github/workflows/pkg_p2p_core.yml
@@ -21,6 +22,7 @@ on:
       - pkgs/params/**
       - pkgs/primitives/**
       - pkgs/script/**
+      - pkgs/types/**
       - Cargo.lock
       - Cargo.toml
       - .github/workflows/pkg_p2p_core.yml

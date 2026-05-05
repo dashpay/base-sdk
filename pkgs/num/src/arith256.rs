@@ -751,78 +751,15 @@ impl ShrAssign<u32> for Arith256 {
 #[cfg(feature = "serde")]
 impl serde::Serialize for Arith256 {
   fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    if serializer.is_human_readable() {
-      // Big-endian hex string, 64 chars.
-      serializer.collect_str(&format_args!("{:032x}{:032x}", self.hi, self.lo))
-    } else {
-      // Raw little-endian bytes.
-      serializer.serialize_bytes(&self.to_le_bytes())
-    }
+    let h = Hash256::from(*self);
+    h.serialize(serializer)
   }
 }
 
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Arith256 {
   fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    if deserializer.is_human_readable() {
-      let s = <alloc::string::String as serde::Deserialize>::deserialize(deserializer)?;
-      let h = Hash256::from_hex(&s).map_err(serde::de::Error::custom)?;
-      Ok(Self::from(h))
-    } else {
-      struct BytesVisitor;
-      impl<'de> serde::de::Visitor<'de> for BytesVisitor {
-        type Value = [u8; 32];
-
-        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-          f.write_str("32 bytes")
-        }
-
-        fn visit_bytes<E: serde::de::Error>(self, v: &[u8]) -> Result<Self::Value, E> {
-          if v.len() != 32 {
-            return Err(E::invalid_length(v.len(), &self));
-          }
-          let mut arr = [0u8; 32];
-          arr.copy_from_slice(v);
-          Ok(arr)
-        }
-
-        fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
-          let mut arr = [0u8; 32];
-          for (i, byte) in arr.iter_mut().enumerate() {
-            *byte = seq
-              .next_element()?
-              .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
-          }
-          Ok(arr)
-        }
-      }
-      let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
-      Ok(Self::from_le_bytes(bytes))
-    }
-  }
-}
-
-#[cfg(feature = "serde")]
-impl bincode::Encode for Arith256 {
-  fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
-    bincode::Encode::encode(&self.to_le_bytes(), encoder)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<Context> bincode::Decode<Context> for Arith256 {
-  fn decode<D: bincode::de::Decoder<Context = Context>>(decoder: &mut D) -> Result<Self, bincode::error::DecodeError> {
-    let bytes = <[u8; 32] as bincode::Decode<Context>>::decode(decoder)?;
-    Ok(Self::from_le_bytes(bytes))
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'de, Context> bincode::BorrowDecode<'de, Context> for Arith256 {
-  fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
-    decoder: &mut D,
-  ) -> Result<Self, bincode::error::DecodeError> {
-    let bytes = <[u8; 32] as bincode::BorrowDecode<'de, Context>>::borrow_decode(decoder)?;
-    Ok(Self::from_le_bytes(bytes))
+    let h = Hash256::deserialize(deserializer)?;
+    Ok(Self::from(h))
   }
 }

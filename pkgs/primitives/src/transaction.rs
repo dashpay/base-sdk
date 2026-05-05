@@ -29,10 +29,12 @@ pub const MAX_EXTRA_PAYLOAD_SIZE: usize = 100_000;
 /// Special transactions (type != Spend, version >= 3) carry an `extra_payload`
 /// decoded separately by payload-specific decoders.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Transaction {
   /// Transaction version (lower 16 bits of the wire i32).
   pub version: i16,
   /// Transaction type (upper 16 bits of the wire i32).
+  #[cfg_attr(feature = "serde", serde(with = "crate::serialize::uint::w16"))]
   pub tx_type: TxType,
   /// Transaction inputs.
   pub inputs: Vec<TxIn>,
@@ -41,6 +43,7 @@ pub struct Transaction {
   /// Lock time.
   pub lock_time: u32,
   /// Extra payload for special transactions.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub extra_payload: Vec<u8>,
 }
 

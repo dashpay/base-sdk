@@ -148,28 +148,3 @@ impl<'de> serde::Deserialize<'de> for CompactTarget {
     u32::deserialize(deserializer).map(CompactTarget)
   }
 }
-
-#[cfg(feature = "serde")]
-impl bincode::Encode for CompactTarget {
-  fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
-    bincode::Encode::encode(&self.0, encoder)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<Context> bincode::Decode<Context> for CompactTarget {
-  fn decode<D: bincode::de::Decoder<Context = Context>>(decoder: &mut D) -> Result<Self, bincode::error::DecodeError> {
-    Ok(CompactTarget(<u32 as bincode::Decode<Context>>::decode(decoder)?))
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'de, Context> bincode::BorrowDecode<'de, Context> for CompactTarget {
-  fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
-    decoder: &mut D,
-  ) -> Result<Self, bincode::error::DecodeError> {
-    Ok(CompactTarget(
-      <u32 as bincode::BorrowDecode<'de, Context>>::borrow_decode(decoder)?,
-    ))
-  }
-}

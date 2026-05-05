@@ -8,23 +8,26 @@
 
 /// Generates a newtype wrapping `dash_num::Hash256` with full trait
 /// implementations and consensus encoding support.
-macro_rules! define_hash256_type {
+#[macro_export]
+macro_rules! make_hash256 {
   (
     $(#[$attr:meta])*
     $name:ident
   ) => {
     $(#[$attr])*
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct $name(dash_num::Hash256);
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(transparent))]
+    pub struct $name($crate::Hash256);
 
     impl $name {
       /// The all-zeros (null) hash.
-      pub const ZERO: Self = Self(dash_num::Hash256::ZERO);
+      pub const ZERO: Self = Self($crate::Hash256::ZERO);
 
       /// Wrap raw little-endian bytes into a hash.
       #[inline]
       pub const fn from_bytes(bytes: [u8; 32]) -> Self {
-        Self(dash_num::Hash256::from_bytes(bytes))
+        Self($crate::Hash256::from_bytes(bytes))
       }
 
       /// Return the raw little-endian bytes.
@@ -42,7 +45,7 @@ macro_rules! define_hash256_type {
       /// Construct from big-endian bytes (consensus display order).
       #[inline]
       pub const fn new(be: [u8; 32]) -> Self {
-        Self(dash_num::Hash256::new(be))
+        Self($crate::Hash256::new(be))
       }
 
       /// Returns `true` if every byte is zero.
@@ -53,8 +56,8 @@ macro_rules! define_hash256_type {
 
       /// Parse from a big-endian hex string.
       #[inline]
-      pub fn from_hex(s: &str) -> Result<Self, dash_num::ParseHexError> {
-        dash_num::Hash256::from_hex(s).map(Self)
+      pub fn from_hex(s: &str) -> Result<Self, $crate::ParseHexError> {
+        $crate::Hash256::from_hex(s).map(Self)
       }
     }
 
@@ -76,7 +79,7 @@ macro_rules! define_hash256_type {
     }
 
     impl core::str::FromStr for $name {
-      type Err = dash_num::ParseHexError;
+      type Err = $crate::ParseHexError;
 
       fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_hex(s)
@@ -93,12 +96,12 @@ macro_rules! define_hash256_type {
       fn from(h: $name) -> Self { h.to_bytes() }
     }
 
-    impl From<dash_num::Hash256> for $name {
+    impl From<$crate::Hash256> for $name {
       #[inline]
-      fn from(h: dash_num::Hash256) -> Self { Self(h) }
+      fn from(h: $crate::Hash256) -> Self { Self(h) }
     }
 
-    impl From<$name> for dash_num::Hash256 {
+    impl From<$name> for $crate::Hash256 {
       #[inline]
       fn from(h: $name) -> Self { h.0 }
     }
@@ -113,24 +116,24 @@ macro_rules! define_hash256_type {
       fn as_ref(&self) -> &[u8; 32] { self.0.as_bytes() }
     }
 
-    impl bitcoin_consensus_encoding::Encodable for $name {
-      type Encoder<'e> = bitcoin_consensus_encoding::ArrayRefEncoder<'e, 32>;
+    impl $crate::__private::bitcoin_consensus_encoding::Encodable for $name {
+      type Encoder<'e> = $crate::__private::bitcoin_consensus_encoding::ArrayRefEncoder<'e, 32>;
 
       fn encoder(&self) -> Self::Encoder<'_> {
-        bitcoin_consensus_encoding::ArrayRefEncoder::without_length_prefix(self.0.as_bytes())
+        $crate::__private::bitcoin_consensus_encoding::ArrayRefEncoder::without_length_prefix(
+          self.0.as_bytes(),
+        )
       }
     }
 
-    impl bitcoin_consensus_encoding::Decodable for $name {
-      type Decoder = $crate::types::hash256::Hash256TypeDecoder<$name>;
+    impl $crate::__private::bitcoin_consensus_encoding::Decodable for $name {
+      type Decoder = $crate::util::Hash256TypeDecoder<$name>;
       fn decoder() -> Self::Decoder {
-        $crate::types::hash256::Hash256TypeDecoder::new()
+        $crate::util::Hash256TypeDecoder::new()
       }
     }
   };
 }
-
-pub(crate) use define_hash256_type;
 
 /// Generic decoder for hash256 newtypes.
 #[derive(Debug)]

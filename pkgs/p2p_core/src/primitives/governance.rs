@@ -14,7 +14,8 @@ use core::fmt;
 use bitcoin_consensus_encoding as encoding;
 use dash_num::Hash256;
 use dash_primitives::wire;
-use dash_primitives::{BlsSignatureBytes, OutPoint};
+use dash_primitives::OutPoint;
+use dash_types::BlsSignatureBytes;
 
 /// Governance vote outcome.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -64,6 +65,22 @@ impl fmt::Display for VoteOutcome {
       Self::Abstain => f.write_str("abstain"),
       Self::Unknown(v) => write!(f, "unknown({v})"),
     }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl dash_types::AsUint<u32> for VoteOutcome {
+  fn as_uint(&self) -> u32 {
+    self.to_u32()
+  }
+}
+
+#[cfg(feature = "serde")]
+impl dash_types::TryFromUint<u32> for VoteOutcome {
+  type Err = core::convert::Infallible;
+
+  fn try_from_uint(v: u32) -> Result<Self, Self::Err> {
+    Ok(Self::from_u32(v))
   }
 }
 
@@ -123,11 +140,28 @@ impl fmt::Display for VoteSignal {
   }
 }
 
+#[cfg(feature = "serde")]
+impl dash_types::AsUint<u32> for VoteSignal {
+  fn as_uint(&self) -> u32 {
+    self.to_u32()
+  }
+}
+
+#[cfg(feature = "serde")]
+impl dash_types::TryFromUint<u32> for VoteSignal {
+  type Err = core::convert::Infallible;
+
+  fn try_from_uint(v: u32) -> Result<Self, Self::Err> {
+    Ok(Self::from_u32(v))
+  }
+}
+
 /// Maximum governance object data length (16 KiB).
 const MAX_GOV_DATA: usize = 16 * 1024;
 
 /// A governance object (proposal or superblock trigger).
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GovernanceObject {
   /// Parent object hash (zero for root objects).
   pub parent_hash: Hash256,
@@ -140,6 +174,7 @@ pub struct GovernanceObject {
   /// Masternode outpoint that signed this object.
   pub mn_outpoint: OutPoint,
   /// Serialised JSON data.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub data: Vec<u8>,
   /// BLS signature.
   pub sig: BlsSignatureBytes,
@@ -203,14 +238,17 @@ impl encoding::Decodable for GovernanceObject {
 
 /// A masternode vote on a governance object.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GovernanceVote {
   /// Masternode outpoint casting the vote.
   pub mn_outpoint: OutPoint,
   /// Hash of the governance object being voted on.
   pub parent_hash: Hash256,
   /// Vote outcome.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::uint::w32"))]
   pub outcome: VoteOutcome,
   /// Vote signal type.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::uint::w32"))]
   pub signal: VoteSignal,
   /// Vote timestamp (seconds since epoch).
   pub time: i64,

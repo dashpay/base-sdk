@@ -12,6 +12,14 @@ use super::error::Error;
 
 /// An ECDSA signature (64-byte compact r||s).
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+  feature = "serde",
+  serde(
+    into = "dash_types::EcdsaSignatureBytes",
+    try_from = "dash_types::EcdsaSignatureBytes",
+  )
+)]
 pub struct Signature(ecdsa::Signature);
 
 impl Signature {
@@ -54,8 +62,24 @@ impl core::hash::Hash for Signature {
   }
 }
 
+impl From<Signature> for dash_types::EcdsaSignatureBytes {
+  fn from(sig: Signature) -> Self {
+    Self(sig.to_compact())
+  }
+}
+
+impl TryFrom<dash_types::EcdsaSignatureBytes> for Signature {
+  type Error = super::error::Error;
+
+  fn try_from(bytes: dash_types::EcdsaSignatureBytes) -> Result<Self, Self::Error> {
+    Self::from_compact(&bytes.0)
+  }
+}
+
 /// Recovery id (0..3) used to recover a public key from an ECDSA signature.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "u8", try_from = "u8"))]
 pub struct RecoveryId(ecdsa::RecoveryId);
 
 impl RecoveryId {
@@ -109,37 +133,16 @@ impl PartialEq for DerSignature {
 
 impl Eq for DerSignature {}
 
-#[cfg(feature = "serde")]
-mod serde_impl {
-  use super::*;
-  use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-  impl Serialize for Signature {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-      serde::Serialize::serialize(&self.to_compact().as_slice(), s)
-    }
+impl From<RecoveryId> for u8 {
+  fn from(rid: RecoveryId) -> Self {
+    rid.to_byte()
   }
+}
 
-  impl<'de> Deserialize<'de> for Signature {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-      let v = <alloc::vec::Vec<u8>>::deserialize(d)?;
-      let bytes: [u8; 64] = v
-        .try_into()
-        .map_err(|_| serde::de::Error::custom("expected 64 bytes"))?;
-      Signature::from_compact(&bytes).map_err(serde::de::Error::custom)
-    }
-  }
+impl TryFrom<u8> for RecoveryId {
+  type Error = super::error::Error;
 
-  impl Serialize for RecoveryId {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-      serde::Serialize::serialize(&self.to_byte(), s)
-    }
-  }
-
-  impl<'de> Deserialize<'de> for RecoveryId {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-      let byte = u8::deserialize(d)?;
-      RecoveryId::new(byte).map_err(serde::de::Error::custom)
-    }
+  fn try_from(byte: u8) -> Result<Self, Self::Error> {
+    Self::new(byte)
   }
 }

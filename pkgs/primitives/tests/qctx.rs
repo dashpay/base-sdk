@@ -11,7 +11,8 @@
 mod util;
 
 use dash_primitives::payload::FinalCommitment;
-use dash_primitives::{BlsPublicKeyBytes, BlsSignatureBytes, LlmqType, QuorumHash, QuorumVvecHash};
+use dash_primitives::{LlmqType, QuorumHash, QuorumVvecHash};
+use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 use rstest::rstest;
 
 #[rstest]

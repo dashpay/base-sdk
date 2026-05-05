@@ -10,7 +10,9 @@ use crate::error::DecodeError;
 use crate::support::RevocationReason;
 use crate::validation::{check_protx_version, max_protx_version_no_ext, DeploymentContext, ProTxInvalid};
 use crate::wire;
-use crate::{BlsSignatureBytes, InputsHash, TxHash};
+use crate::{InputsHash, TxHash};
+
+use dash_types::BlsSignatureBytes;
 
 use core::fmt;
 
