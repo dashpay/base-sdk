@@ -8,10 +8,6 @@
 
 use crate::prelude::*;
 
-use dash_types::codec::DecodeError;
-
-use core::fmt;
-
 pub use dash_primitives::codec::{BufferDecoder, VecEncoder};
 
 /// Maximum buffered P2P message payload (3 MiB).
@@ -33,21 +29,5 @@ pub(crate) fn encode_compact_size(value: usize, buf: &mut Vec<u8>) {
       buf.push(0xFF);
       buf.extend_from_slice(&(value as u64).to_le_bytes());
     }
-  }
-}
-
-/// Error wrapper for cursor-based decode operations.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct WireDecodeError(pub(crate) String);
-
-impl fmt::Display for WireDecodeError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_str(&self.0)
-  }
-}
-
-impl From<DecodeError> for WireDecodeError {
-  fn from(e: DecodeError) -> Self {
-    Self(format!("{e}"))
   }
 }
