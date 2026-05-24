@@ -6,7 +6,6 @@
 
 //! Dash network magic bytes.
 
-use dash_params::types::MessageStart;
 use dash_types::impl_bytes;
 
 use core::fmt;
@@ -25,12 +24,6 @@ impl Magic {
   /// Borrows the inner byte array.
   pub const fn as_bytes(&self) -> &[u8; 4] {
     &self.0
-  }
-}
-
-impl From<MessageStart> for Magic {
-  fn from(ms: MessageStart) -> Self {
-    Self(ms)
   }
 }
 
