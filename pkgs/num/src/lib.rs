@@ -20,7 +20,6 @@ mod arith256;
 mod compact;
 mod error;
 mod hash;
-mod hash_encoding;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
@@ -40,4 +39,3 @@ pub use arith256::Arith256;
 pub use compact::{CompactTarget, DecodedTarget};
 pub use error::ParseHexError;
 pub use hash::{Hash160, Hash256, Hash512, HashBlob};
-pub use hash_encoding::{HashDecoder, HashDecoderError, HashTypeDecoder};
