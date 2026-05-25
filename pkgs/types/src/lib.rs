@@ -30,8 +30,6 @@ pub mod serialize {
 
 #[doc(hidden)]
 pub mod __private {
-  pub use crate::hex::{ByteTypeDecoder, ByteTypeDecoderError};
-
   pub use bitcoin_consensus_encoding;
 }
 
