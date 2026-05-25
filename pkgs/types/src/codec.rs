@@ -243,3 +243,93 @@ pub trait BaseCodec: Sized {
   /// Encodes into the buffer.
   fn encode(&self, buf: &mut Vec<u8>);
 }
+
+impl BaseCodec for u8 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_u8(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.push(*self);
+  }
+}
+
+impl BaseCodec for i8 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_u8(data).map(|b| b as i8)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.push(*self as u8);
+  }
+}
+
+impl BaseCodec for u16 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_u16_le(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&self.to_le_bytes());
+  }
+}
+
+impl BaseCodec for i16 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_i16_le(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&self.to_le_bytes());
+  }
+}
+
+impl BaseCodec for u32 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_u32_le(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&self.to_le_bytes());
+  }
+}
+
+impl BaseCodec for i32 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_i32_le(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&self.to_le_bytes());
+  }
+}
+
+impl BaseCodec for u64 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_u64_le(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&self.to_le_bytes());
+  }
+}
+
+impl BaseCodec for i64 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_i64_le(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&self.to_le_bytes());
+  }
+}
+
+impl BaseCodec for bool {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    read_bool(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.push(u8::from(*self));
+  }
+}
