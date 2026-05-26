@@ -21,6 +21,8 @@ const MAX_USER_AGENT: usize = 256;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct UserAgent(Vec<u8>);
 
+impl_p2p!(UserAgent);
+
 /// The user agent exceeds the 256-byte limit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserAgentTooLong {
@@ -31,6 +33,18 @@ pub struct UserAgentTooLong {
 impl fmt::Display for UserAgentTooLong {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "user agent too long: {} bytes, max {MAX_USER_AGENT}", self.len)
+  }
+}
+
+impl BaseCodec for UserAgent {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let len = codec::read_compact_size(data, MAX_USER_AGENT)?;
+    let raw = codec::read_bytes(data, len)?;
+    Ok(Self(raw.to_vec()))
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.0.encode(buf);
   }
 }
 
@@ -68,17 +82,6 @@ impl UserAgent {
   }
 }
 
-impl BaseCodec for UserAgent {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let bytes = codec::read_blob(data, MAX_USER_AGENT)?;
-    Ok(Self(bytes))
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    codec::write_blob(&self.0, buf);
-  }
-}
-
 impl fmt::Display for UserAgent {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.as_str() {
@@ -87,5 +90,3 @@ impl fmt::Display for UserAgent {
     }
   }
 }
-
-impl_p2p!(UserAgent);

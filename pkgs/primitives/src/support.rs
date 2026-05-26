@@ -391,9 +391,6 @@ impl BaseCodec for CService {
 const MAX_PURPOSES: usize = 8;
 /// Maximum entries per purpose.
 const MAX_ENTRIES: usize = 8;
-/// Maximum domain name length.
-const MAX_DOMAIN: usize = 256;
-
 /// Purpose tag for an extended network info entry.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum NetInfoPurpose {
@@ -476,19 +473,17 @@ impl BaseCodec for ExtendedNetInfo {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = u8::decode(data)?;
     let purpose_count = codec::read_compact_size(data, MAX_PURPOSES)?;
-
     let mut entries = Vec::with_capacity(purpose_count);
     for _ in 0..purpose_count {
       let purpose = NetInfoPurpose::from_base(u8::decode(data)?);
       let entry_count = codec::read_compact_size(data, MAX_ENTRIES)?;
       let mut group = Vec::with_capacity(entry_count);
-
       for _ in 0..entry_count {
         let entry_type = u8::decode(data)?;
         let entry = match entry_type {
           0x01 => NetInfoEntry::Service(CService::decode(data)?),
           0x02 => {
-            let name = codec::read_blob(data, MAX_DOMAIN)?;
+            let name: Vec<u8> = Vec::decode(data)?;
             let port = codec::read_u16_be(data)?;
             NetInfoEntry::Domain { name, port }
           }
@@ -496,10 +491,8 @@ impl BaseCodec for ExtendedNetInfo {
         };
         group.push(entry);
       }
-
       entries.push((purpose, group));
     }
-
     Ok(Self { version, entries })
   }
 
@@ -518,7 +511,7 @@ impl BaseCodec for ExtendedNetInfo {
           }
           NetInfoEntry::Domain { name, port } => {
             0x02u8.encode(buf);
-            codec::write_blob(name, buf);
+            name.encode(buf);
             buf.extend_from_slice(&port.to_be_bytes());
           }
           NetInfoEntry::Invalid => {}

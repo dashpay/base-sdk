@@ -7,12 +7,11 @@
 //! Governance object and vote types.
 
 use crate::codec::impl_p2p;
-use crate::codec::MAX_P2P_PAYLOAD;
 use crate::prelude::*;
 
 use dash_num::Hash256;
 use dash_primitives::OutPoint;
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::impl_num;
 use dash_types::BlsSignatureBytes;
 
@@ -156,7 +155,7 @@ impl BaseCodec for GovernanceObject {
       time: i64::decode(data)?,
       collateral_hash: Hash256::decode(data)?,
       mn_outpoint: OutPoint::decode(data)?,
-      data: codec::read_blob(data, MAX_P2P_PAYLOAD)?,
+      data: Vec::decode(data)?,
       sig: BlsSignatureBytes::decode(data)?,
     })
   }
@@ -167,7 +166,7 @@ impl BaseCodec for GovernanceObject {
     self.time.encode(buf);
     self.collateral_hash.encode(buf);
     self.mn_outpoint.encode(buf);
-    codec::write_blob(&self.data, buf);
+    self.data.encode(buf);
     self.sig.encode(buf);
   }
 }

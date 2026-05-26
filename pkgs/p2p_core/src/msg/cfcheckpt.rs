@@ -11,10 +11,7 @@ use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
 
 use dash_primitives::BlockHash;
-use dash_types::codec::{self, BaseCodec, DecodeError};
-
-/// Maximum checkpoints per message.
-const MAX_CFCHECKPT: usize = 1_000;
+use dash_types::codec::{BaseCodec, DecodeError};
 
 /// Requests evenly-spaced compact filter checkpoints.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -59,14 +56,14 @@ impl BaseCodec for CFCheckpt {
     Ok(Self {
       filter_type: FilterType(u8::decode(data)?),
       stop_hash: BlockHash::decode(data)?,
-      filter_headers: codec::read_vec(data, MAX_CFCHECKPT)?,
+      filter_headers: Vec::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
     self.filter_type.0.encode(buf);
     self.stop_hash.encode(buf);
-    codec::write_vec(&self.filter_headers, buf);
+    self.filter_headers.encode(buf);
   }
 }
 

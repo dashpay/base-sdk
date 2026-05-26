@@ -162,10 +162,10 @@ impl BaseCodec for GovObject {
       revision: i32::decode(data)?,
       time: i64::decode(data)?,
       collateral_hash: TxHash::decode(data)?,
-      data: codec::read_blob(data, 16_384)?,
+      data: Vec::decode(data)?,
       object_type: GovObjectType::from_i32(i32::decode(data)?),
       masternode_outpoint: OutPoint::decode(data)?,
-      sig: codec::read_blob(data, 1024)?,
+      sig: Vec::decode(data)?,
     })
   }
 
@@ -174,10 +174,10 @@ impl BaseCodec for GovObject {
     self.revision.encode(buf);
     self.time.encode(buf);
     self.collateral_hash.encode(buf);
-    codec::write_blob(&self.data, buf);
+    self.data.encode(buf);
     self.object_type.to_i32().encode(buf);
     self.masternode_outpoint.encode(buf);
-    codec::write_blob(&self.sig, buf);
+    self.sig.encode(buf);
   }
 }
 
@@ -197,13 +197,14 @@ impl GovObject {
     buf.extend_from_slice(&self.revision.to_le_bytes());
     buf.extend_from_slice(&self.time.to_le_bytes());
     // data hex is serialized as a string (CompactSize + bytes)
-    codec::write_blob(data_hex.as_bytes(), &mut buf);
+    codec::write_compact_size(data_hex.len(), &mut buf);
+    buf.extend_from_slice(data_hex.as_bytes());
     // outpoint + dummy padding for legacy hash compat
     buf.extend_from_slice(self.masternode_outpoint.hash.as_bytes());
     buf.extend_from_slice(&self.masternode_outpoint.index.to_le_bytes());
     buf.push(0x00);
     buf.extend_from_slice(&0xFFFF_FFFFu32.to_le_bytes());
-    codec::write_blob(&self.sig, &mut buf);
+    self.sig.encode(&mut buf);
 
     TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
   }
@@ -251,7 +252,7 @@ impl BaseCodec for GovVote {
       outcome: i32::decode(data)?,
       signal: i32::decode(data)?,
       time: i64::decode(data)?,
-      sig: codec::read_blob(data, 1024)?,
+      sig: Vec::decode(data)?,
     })
   }
 
@@ -261,7 +262,7 @@ impl BaseCodec for GovVote {
     self.outcome.encode(buf);
     self.signal.encode(buf);
     self.time.encode(buf);
-    codec::write_blob(&self.sig, buf);
+    self.sig.encode(buf);
   }
 }
 

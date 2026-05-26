@@ -19,9 +19,6 @@ use dash_types::impl_type;
 
 use core::fmt;
 
-/// Maximum number of inputs/outputs.
-const MAX_TX_IO: usize = 100_000;
-
 /// A Dash transaction.
 ///
 /// The wire format packs `version` (i16) and `tx_type` (u16) into a single
@@ -55,33 +52,28 @@ impl BaseCodec for Transaction {
     let version = raw as i16;
     let tx_type = TxType::from_base(((raw >> 16) & 0xffff) as u16);
 
-    let inputs: Vec<TxIn> = codec::read_vec(data, MAX_TX_IO)?;
-    let outputs: Vec<TxOut> = codec::read_vec(data, MAX_TX_IO)?;
-    let lock_time = u32::decode(data)?;
-
-    let extra_payload = if version >= 3 && tx_type != TxType::Spend {
-      codec::read_blob(data, crate::codec::MAX_SPTX_PAYLOAD_SIZE)?
-    } else {
-      Vec::new()
-    };
-
     Ok(Self {
       version,
       tx_type,
-      inputs,
-      outputs,
-      lock_time,
-      extra_payload,
+      inputs: Vec::decode(data)?,
+      outputs: Vec::decode(data)?,
+      lock_time: u32::decode(data)?,
+      extra_payload: if version >= 3 && tx_type != TxType::Spend {
+        let len = codec::read_compact_size(data, crate::codec::MAX_SPTX_PAYLOAD_SIZE)?;
+        codec::read_bytes(data, len)?.to_vec()
+      } else {
+        Vec::new()
+      },
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
     self.raw_version().encode(buf);
-    codec::write_vec(&self.inputs, buf);
-    codec::write_vec(&self.outputs, buf);
+    self.inputs.encode(buf);
+    self.outputs.encode(buf);
     self.lock_time.encode(buf);
     if self.has_extra_payload() {
-      codec::write_blob(&self.extra_payload, buf);
+      self.extra_payload.encode(buf);
     }
   }
 }

@@ -18,7 +18,7 @@ use crate::validation::{
 };
 use crate::{InputsHash, TxHash};
 
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::{BlsSignatureBytes, PlatformNodeId};
 
 use core::fmt;
@@ -65,7 +65,7 @@ impl BaseCodec for ProUpServTx {
 
     let pro_tx_hash = TxHash::decode(data)?;
     let net_info = if version >= 3 {
-      let raw = codec::read_blob(data, 1024)?;
+      let raw: Vec<u8> = Vec::decode(data)?;
       NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&mut &raw[..])?)
     } else {
       NetInfo::Legacy(CService::decode(data)?)
@@ -103,13 +103,16 @@ impl BaseCodec for ProUpServTx {
       self.mn_type.to_base().encode(buf);
     }
     self.pro_tx_hash.encode(buf);
-    match &self.net_info {
-      NetInfo::Extended(ext) => {
+    // Branch on version to match the decode path. Validation
+    // guarantees the variant matches the version.
+    if self.version >= 3 {
+      if let NetInfo::Extended(ext) = &self.net_info {
         let mut inner = Vec::new();
         ext.encode(&mut inner);
-        codec::write_blob(&inner, buf);
+        inner.encode(buf);
       }
-      NetInfo::Legacy(svc) => svc.encode(buf),
+    } else if let NetInfo::Legacy(svc) = &self.net_info {
+      svc.encode(buf);
     }
     self.script_operator_payout.encode(buf);
     self.inputs_hash.encode(buf);

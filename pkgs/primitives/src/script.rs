@@ -8,13 +8,10 @@
 
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError};
 use dash_types::impl_type;
 
 use core::fmt;
-
-/// Maximum serialized object size (32 MiB).
-const MAX_SIZE: usize = 0x0200_0000;
 
 /// A variable-length script, CompactSize-prefixed on the wire.
 #[derive(Clone, Eq, Hash, PartialEq, Default)]
@@ -26,11 +23,11 @@ impl_type!(Script);
 
 impl BaseCodec for Script {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    codec::read_blob(data, MAX_SIZE).map(Self)
+    Vec::decode(data).map(Self)
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    codec::write_blob(&self.0, buf);
+    self.0.encode(buf);
   }
 }
 

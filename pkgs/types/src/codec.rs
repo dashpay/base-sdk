@@ -10,6 +10,9 @@ use crate::prelude::*;
 
 use core::fmt;
 
+/// Maximum bytes to pre-allocate per batch when deserializing vectors.
+const MAX_VECTOR_ALLOCATE: usize = 5_000_000;
+
 /// An error encountered during consensus decoding.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DecodeError {
@@ -105,23 +108,6 @@ pub fn read_bytes<'a>(data: &mut &'a [u8], n: usize) -> Result<&'a [u8], DecodeE
   Ok(head)
 }
 
-/// Reads a CompactSize-prefixed byte blob.
-///
-/// # Errors
-///
-/// Returns `DecodeError` when the prefix or payload is
-/// malformed or exceeds `limit`.
-pub fn read_blob(data: &mut &[u8], limit: usize) -> Result<Vec<u8>, DecodeError> {
-  let len = read_compact_size(data, limit)?;
-  Ok(read_bytes(data, len)?.to_vec())
-}
-
-/// Writes a CompactSize-prefixed byte blob.
-pub fn write_blob(bytes: &[u8], buf: &mut Vec<u8>) {
-  write_compact_size(bytes.len(), buf);
-  buf.extend_from_slice(bytes);
-}
-
 /// Reads a CompactSize-encoded `u64` with minimal encoding check.
 pub fn read_compact_u64(data: &mut &[u8]) -> Result<u64, DecodeError> {
   let first = u8::decode(data)?;
@@ -182,29 +168,6 @@ pub fn write_compact_u64(value: u64, buf: &mut Vec<u8>) {
       buf.push(0xFF);
       buf.extend_from_slice(&value.to_le_bytes());
     }
-  }
-}
-
-/// Reads a CompactSize-prefixed vector of `BaseCodec` elements.
-///
-/// # Errors
-///
-/// Returns `DecodeError` when the prefix, element count,
-/// or any element is malformed.
-pub fn read_vec<T: BaseCodec>(data: &mut &[u8], limit: usize) -> Result<Vec<T>, DecodeError> {
-  let count = read_compact_size(data, limit)?;
-  let mut items = Vec::with_capacity(count);
-  for _ in 0..count {
-    items.push(T::decode(data)?);
-  }
-  Ok(items)
-}
-
-/// Writes a CompactSize-prefixed vector of `BaseCodec` elements.
-pub fn write_vec<T: BaseCodec>(items: &[T], buf: &mut Vec<u8>) {
-  write_compact_size(items.len(), buf);
-  for item in items {
-    item.encode(buf);
   }
 }
 
@@ -325,5 +288,39 @@ impl BaseCodec for bool {
 
   fn encode(&self, buf: &mut Vec<u8>) {
     buf.push(u8::from(*self));
+  }
+}
+
+impl<const N: usize> BaseCodec for [u8; N] {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    take::<N>(data)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(self);
+  }
+}
+
+impl<T: BaseCodec> BaseCodec for Vec<T> {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let count = read_compact_size(data, data.len())?;
+    let batch = MAX_VECTOR_ALLOCATE / core::mem::size_of::<T>().max(1);
+    let mut items = Vec::new();
+    let mut allocated = 0usize;
+    for _ in 0..count {
+      if items.len() == allocated {
+        allocated = count.min(allocated + batch);
+        items.reserve(allocated - items.len());
+      }
+      items.push(T::decode(data)?);
+    }
+    Ok(items)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    write_compact_size(self.len(), buf);
+    for item in self {
+      item.encode(buf);
+    }
   }
 }

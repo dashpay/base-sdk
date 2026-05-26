@@ -11,13 +11,10 @@ use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
 use crate::validation::{DeploymentContext, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE};
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError};
 use dash_types::impl_type;
 
 use core::fmt;
-
-/// Maximum number of transactions in a block.
-const MAX_BLOCK_TXS: usize = 100_000;
 
 /// A Dash block: header followed by a vector of transactions.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -33,13 +30,13 @@ impl BaseCodec for Block {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
       header: BlockHeader::decode(data)?,
-      transactions: codec::read_vec(data, MAX_BLOCK_TXS)?,
+      transactions: Vec::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
     self.header.encode(buf);
-    codec::write_vec(&self.transactions, buf);
+    self.transactions.encode(buf);
   }
 }
 

@@ -79,20 +79,12 @@ impl BaseCodec for CoinbaseCommitment {
     self.height.to_u32().encode(buf);
     self.merkle_root_mn_list.encode(buf);
     if self.version >= 2 {
-      if let Some(ref root) = self.merkle_root_quorums {
-        root.encode(buf);
-      }
+      self.merkle_root_quorums.unwrap_or_default().encode(buf);
     }
     if self.version >= 3 {
-      if let Some(diff) = self.best_cl_height_diff {
-        codec::write_compact_u64(diff, buf);
-      }
-      if let Some(ref sig) = self.best_cl_signature {
-        sig.encode(buf);
-      }
-      if let Some(balance) = self.credit_pool_balance {
-        balance.encode(buf);
-      }
+      codec::write_compact_u64(self.best_cl_height_diff.unwrap_or(0), buf);
+      self.best_cl_signature.unwrap_or_default().encode(buf);
+      self.credit_pool_balance.unwrap_or(0).encode(buf);
     }
   }
 }

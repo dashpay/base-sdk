@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::tx_out::TxOut;
 use crate::validation::DeploymentContext;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError};
 
 use core::fmt;
 
@@ -29,13 +29,13 @@ impl BaseCodec for AssetLock {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
       version: u8::decode(data)?,
-      credit_outputs: codec::read_vec(data, 100)?,
+      credit_outputs: Vec::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
     self.version.encode(buf);
-    codec::write_vec(&self.credit_outputs, buf);
+    self.credit_outputs.encode(buf);
   }
 }
 
