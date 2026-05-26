@@ -92,7 +92,7 @@ impl SpecialPayload {
   /// # Errors
   ///
   /// Returns `PayloadError` if a recognized type fails to decode.
-  pub fn decode(tx_type: TxType, data: &[u8]) -> Result<Self, PayloadError> {
+  pub fn decode(tx_type: TxType, data: &mut &[u8]) -> Result<Self, PayloadError> {
     use dash_types::codec::DecodeError;
 
     let err = |e: DecodeError| PayloadError {
@@ -117,10 +117,14 @@ impl SpecialPayload {
       TxType::AssetUnlock => assetunlock::AssetUnlock::decode(data)
         .map(Self::AssetUnlock)
         .map_err(err),
-      unknown => Ok(Self::Unknown {
-        tx_type: unknown,
-        data: data.to_vec(),
-      }),
+      unknown => {
+        let bytes = data.to_vec();
+        *data = &[];
+        Ok(Self::Unknown {
+          tx_type: unknown,
+          data: bytes,
+        })
+      }
     }
   }
 }

@@ -32,6 +32,13 @@ pub enum DecodeError {
     /// The decoded value.
     value: u64,
   },
+  /// A decoded value does not match the expected value.
+  InvalidValue {
+    /// The value that was expected.
+    expected: u64,
+    /// The value that was decoded.
+    actual: u64,
+  },
 }
 
 impl fmt::Display for DecodeError {
@@ -45,6 +52,9 @@ impl fmt::Display for DecodeError {
       }
       Self::CompactSizeExceedsLimit { limit, value } => {
         write!(f, "compact size value {value} exceeds limit {limit}",)
+      }
+      Self::InvalidValue { expected, actual } => {
+        write!(f, "invalid value: expected {expected}, got {actual}")
       }
     }
   }
@@ -208,4 +218,17 @@ pub trait NumCodec<N>: Sized {
 
   /// Returns the base integer.
   fn to_base(&self) -> N;
+}
+
+/// Cursor-based encode/decode for consensus wire types.
+pub trait BaseCodec: Sized {
+  /// Decodes from the cursor, advancing it past consumed bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns `DecodeError` on malformed input.
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError>;
+
+  /// Encodes into the buffer.
+  fn encode(&self, buf: &mut Vec<u8>);
 }
