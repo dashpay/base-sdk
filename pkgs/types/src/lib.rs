@@ -12,12 +12,15 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+mod entity;
 mod hex;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 mod uint;
 
 pub mod codec;
+
+pub use entity::{BufferDecoder, VecEncoder};
 
 /// Helpers for `#[serde(with = "...")]` annotations.
 #[cfg(feature = "serde")]

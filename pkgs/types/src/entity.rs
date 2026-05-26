@@ -61,6 +61,9 @@ impl<T, E> encoding::Decoder for BufferDecoder<T, E> {
 
   fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
     let remaining = self.limit.saturating_sub(self.buf.len());
+    if remaining == 0 {
+      return Ok(false);
+    }
     let take = bytes.len().min(remaining);
     self.buf.extend_from_slice(&bytes[..take]);
     *bytes = &bytes[take..];
