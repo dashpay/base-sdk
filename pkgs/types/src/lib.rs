@@ -57,3 +57,8 @@ make_bytes! {
   /// Raw compact ECDSA signature bytes (64 bytes, unvalidated).
   EcdsaSignatureBytes, 64, "crate::serialize::hex::w64"
 }
+
+make_bytes! {
+  /// 20-byte public key hash (RIPEMD-160 of SHA-256).
+  KeyId, 20, "crate::serialize::hex::w20"
+}

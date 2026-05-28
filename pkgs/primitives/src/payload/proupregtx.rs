@@ -14,9 +14,8 @@ use crate::validation::{
 };
 use crate::{InputsHash, TxHash};
 
-use dash_script::KeyId;
 use dash_types::codec::{BaseCodec, DecodeError};
-use dash_types::BlsPublicKeyBytes;
+use dash_types::{BlsPublicKeyBytes, KeyId};
 
 use core::fmt;
 

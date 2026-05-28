@@ -17,9 +17,8 @@ use crate::validation::{
 };
 use crate::{InputsHash, TxHash};
 
-use dash_script::KeyId;
 use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
-use dash_types::{BlsPublicKeyBytes, PlatformNodeId};
+use dash_types::{BlsPublicKeyBytes, KeyId, PlatformNodeId};
 
 use core::fmt;
 
@@ -74,6 +73,8 @@ pub struct ProRegTx {
   /// Owner ECDSA signature (variable-length).
   pub vch_sig: Vec<u8>,
 }
+
+impl_payload!(ProRegTx);
 
 impl BaseCodec for ProRegTx {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -159,14 +160,6 @@ impl BaseCodec for ProRegTx {
   }
 }
 
-impl_payload!(ProRegTx);
-
-impl fmt::Display for ProRegTx {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
-  }
-}
-
 impl ProRegTx {
   /// Validates structural invariants without chain context.
   ///
@@ -221,5 +214,11 @@ impl ProRegTx {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for ProRegTx {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
   }
 }

@@ -11,9 +11,8 @@ use crate::prelude::*;
 
 use dash_primitives::payload::Commitment;
 use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash};
-use dash_script::KeyId;
 use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
-use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, PlatformNodeId};
+use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, KeyId, PlatformNodeId};
 
 use core::fmt;
 
