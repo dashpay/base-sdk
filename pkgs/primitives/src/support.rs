@@ -10,6 +10,7 @@ use crate::prelude::*;
 
 use bitcoin_consensus_encoding as encoding;
 use bitcoin_internals::array::ArrayExt as _;
+use dash_types::codec::DecodeError;
 
 use core::fmt;
 
@@ -513,7 +514,7 @@ impl ExtendedNetInfo {
   /// # Errors
   ///
   /// Returns `DecodeError` if the data is malformed.
-  pub fn decode(data: &[u8]) -> Result<Self, crate::error::DecodeError> {
+  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
     use crate::wire;
 
     let sl = &mut &data[..];

@@ -17,6 +17,8 @@ mod hex;
 mod prelude;
 mod uint;
 
+pub mod codec;
+
 /// Helpers for `#[serde(with = "...")]` annotations.
 #[cfg(feature = "serde")]
 pub mod serialize {

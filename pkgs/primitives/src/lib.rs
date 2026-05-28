@@ -18,7 +18,6 @@ mod prelude;
 pub mod block;
 pub mod block_header;
 pub mod codec;
-pub mod error;
 pub mod gov;
 pub mod hash;
 pub mod outpoint;
