@@ -23,9 +23,6 @@ mod hash;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
-#[cfg(feature = "serde")]
-#[doc(hidden)]
-pub mod serialize;
 #[doc(hidden)]
 pub mod util;
 

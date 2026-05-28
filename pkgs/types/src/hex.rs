@@ -6,21 +6,17 @@
 
 //! Fixed-size byte newtype macros.
 
-/// Generates `From<[u8; N]>` + `BaseCodec` + `Encodable` + `Decodable`
+/// Generates `BaseCodec` + `Encodable` + `Decodable` + `From<[u8; N]>`
 /// for a fixed-size byte newtype that wraps `[u8; N]` and exposes
 /// `as_bytes()`.
 #[macro_export]
 macro_rules! impl_bytes {
   ($n:literal, $($name:ident),* $(,)?) => { $(
-    impl From<[u8; $n]> for $name {
-      fn from(bytes: [u8; $n]) -> Self { Self(bytes) }
-    }
-
     impl $crate::codec::BaseCodec for $name {
       fn decode(
         data: &mut &[u8],
       ) -> Result<Self, $crate::codec::DecodeError> {
-        $crate::codec::take::<$n>(data).map(Self::from)
+        $crate::codec::take::<$n>(data).map(|b| Self(b))
       }
 
       fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
@@ -29,6 +25,10 @@ macro_rules! impl_bytes {
     }
 
     $crate::impl_type!($name);
+
+    impl From<[u8; $n]> for $name {
+      fn from(bytes: [u8; $n]) -> Self { Self(bytes) }
+    }
   )* };
 }
 
@@ -38,20 +38,13 @@ macro_rules! impl_bytes {
 macro_rules! make_bytes {
   (
     $(#[$attr:meta])*
-    $name:ident, $n:literal, $serde_with:literal
+    $name:ident, $n:literal
   ) => {
     $(#[$attr])*
     #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-    #[cfg_attr(feature = "serde", serde(transparent))]
-    pub struct $name(
-      #[cfg_attr(feature = "serde", serde(with = $serde_with))]
-      pub [u8; $n],
-    );
+    pub struct $name(pub [u8; $n]);
 
-    impl Default for $name {
-      fn default() -> Self { Self([0u8; $n]) }
-    }
+    $crate::impl_bytes!($n, $name);
 
     impl $name {
       /// Returns the inner byte array.
@@ -68,6 +61,10 @@ macro_rules! make_bytes {
       pub fn is_null(&self) -> bool {
         self.0.iter().all(|&b| b == 0)
       }
+    }
+
+    impl Default for $name {
+      fn default() -> Self { Self([0u8; $n]) }
     }
 
     impl From<$name> for [u8; $n] {
@@ -107,7 +104,23 @@ macro_rules! make_bytes {
       }
     }
 
-    $crate::impl_bytes!($n, $name);
+    #[cfg(feature = "serde")]
+    impl ::serde::Serialize for $name {
+      fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use $crate::__private::hex_conservative::DisplayHex;
+        serializer.serialize_str(&self.0.to_lower_hex_string())
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl<'de> ::serde::Deserialize<'de> for $name {
+      fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
+        <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
+          .map(Self)
+          .map_err(::serde::de::Error::custom)
+      }
+    }
   };
 }
 
@@ -132,31 +145,4 @@ pub mod serde {
     let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
     Vec::<u8>::from_hex(&s).map_err(::serde::de::Error::custom)
   }
-
-  macro_rules! define_fixed {
-    ($mod_name:ident, $n:literal) => {
-      #[doc = concat!("Wire-order hex for `[u8; ", stringify!($n), "]`.")]
-      pub mod $mod_name {
-        use super::*;
-
-        /// Serializes as a wire-order hex string.
-        pub fn serialize<S: ::serde::Serializer>(data: &[u8; $n], serializer: S) -> Result<S::Ok, S::Error> {
-          serializer.serialize_str(&data.to_lower_hex_string())
-        }
-
-        /// Deserializes a hex string into the array.
-        pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<[u8; $n], D::Error> {
-          let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
-          <[u8; $n]>::from_hex(&s).map_err(::serde::de::Error::custom)
-        }
-      }
-    };
-  }
-
-  define_fixed!(w16, 16);
-  define_fixed!(w20, 20);
-  define_fixed!(w33, 33);
-  define_fixed!(w48, 48);
-  define_fixed!(w64, 64);
-  define_fixed!(w96, 96);
 }

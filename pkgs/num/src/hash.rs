@@ -50,12 +50,10 @@ pub trait HashBlob:
 }
 
 macro_rules! define_hash {
-  ($name:ident, $n:literal, $serde_with:literal) => {
+  ($name:ident, $n:literal) => {
     /// Fixed-size opaque hash blob stored in little-endian byte order.
-    #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-    #[cfg_attr(feature = "serde", serde(transparent))]
-    pub struct $name(#[cfg_attr(feature = "serde", serde(with = $serde_with))] [u8; $n]);
+    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct $name([u8; $n]);
 
     impl $name {
       /// The all-zeros (null) hash.
@@ -288,12 +286,27 @@ macro_rules! define_hash {
     }
 
     dash_types::impl_type!($name);
+
+    #[cfg(feature = "serde")]
+    impl ::serde::Serialize for $name {
+      fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&::alloc::format!("{}", self))
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl<'de> ::serde::Deserialize<'de> for $name {
+      fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
+        Self::from_hex(&s).map_err(::serde::de::Error::custom)
+      }
+    }
   };
 }
 
-define_hash!(Hash160, 20, "crate::serialize::hex_blob::w20");
-define_hash!(Hash256, 32, "crate::serialize::hex_blob::w32");
-define_hash!(Hash512, 64, "crate::serialize::hex_blob::w64");
+define_hash!(Hash160, 20);
+define_hash!(Hash256, 32);
+define_hash!(Hash512, 64);
 
 impl Hash512 {
   /// Truncate to 256 bits by taking the first 32 bytes (low half in LE).
