@@ -53,6 +53,8 @@ pub struct ProUpServTx {
   pub sig: BlsSignatureBytes,
 }
 
+impl_payload!(ProUpServTx);
+
 impl BaseCodec for ProUpServTx {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = u16::decode(data)?;
@@ -127,14 +129,6 @@ impl BaseCodec for ProUpServTx {
   }
 }
 
-impl_payload!(ProUpServTx);
-
-impl fmt::Display for ProUpServTx {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "ProUpServTx {{ v{}, mn_type: {} }}", self.version, self.mn_type,)
-  }
-}
-
 impl ProUpServTx {
   /// Validates structural invariants without chain context.
   ///
@@ -161,12 +155,18 @@ impl ProUpServTx {
         check_net_info_trivially_valid(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR)?;
       }
       NetInfo::Legacy(svc) => {
-        if svc.addr == [0u8; 16] && svc.port == 0 {
+        if svc.addr.is_null() && svc.port == 0 {
           return Err(ProTxInvalid::NetInfoEmpty);
         }
       }
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for ProUpServTx {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "ProUpServTx {{ v{}, mn_type: {} }}", self.version, self.mn_type,)
   }
 }

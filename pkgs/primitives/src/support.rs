@@ -9,7 +9,7 @@
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
-use dash_types::{impl_num, impl_type};
+use dash_types::{impl_num, impl_type, AddrV1};
 
 use core::fmt;
 
@@ -365,8 +365,7 @@ impl Iterator for DynBitsetIterator<'_> {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CService {
   /// 16-byte address (IPv4-mapped IPv6 or native IPv6).
-  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex::w16"))]
-  pub addr: [u8; 16],
+  pub addr: AddrV1,
   /// Network port (big-endian on the wire).
   pub port: u16,
 }
@@ -376,13 +375,13 @@ impl_type!(CService);
 impl BaseCodec for CService {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
-      addr: codec::take(data)?,
+      addr: AddrV1::decode(data)?,
       port: codec::read_u16_be(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.addr);
+    self.addr.encode(buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
   }
 }

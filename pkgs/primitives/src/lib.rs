@@ -65,6 +65,7 @@ dash_num::make_hash256! {
 pub use block::Block;
 pub use block_header::BlockHeader;
 pub use codec::MAX_SPTX_PAYLOAD_SIZE;
+pub use dash_types::AddrV1;
 pub use outpoint::OutPoint;
 pub use script::Script;
 pub use support::{

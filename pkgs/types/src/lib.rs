@@ -34,8 +34,8 @@ pub mod __private {
 }
 
 make_bytes! {
-  /// Platform node identifier for Evo masternodes.
-  PlatformNodeId, 20, "crate::serialize::hex::w20"
+  /// ADDRv1 IPv4-mapped IPv6 address (16 bytes).
+  AddrV1, 16,  "crate::serialize::hex::w16"
 }
 
 make_bytes! {
@@ -61,4 +61,9 @@ make_bytes! {
 make_bytes! {
   /// 20-byte public key hash (RIPEMD-160 of SHA-256).
   KeyId, 20, "crate::serialize::hex::w20"
+}
+
+make_bytes! {
+  /// Platform node identifier for Evo masternodes.
+  PlatformNodeId, 20, "crate::serialize::hex::w20"
 }
