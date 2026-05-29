@@ -6,15 +6,13 @@
 
 //! BIP157 compact filter messages: getcfilters, cfilter.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
 
-use bitcoin_consensus_encoding as encoding;
 use bitcoin_units::BlockHeight;
 use dash_primitives::BlockHash;
 use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::{BufferDecoder, VecEncoder};
 
 /// Maximum filter data bytes.
 const MAX_FILTER_DATA: usize = 256 * 1024;
@@ -50,21 +48,7 @@ impl BaseCodec for GetCFilters {
   }
 }
 
-impl encoding::Encodable for GetCFilters {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for GetCFilters {
-  type Decoder = BufferDecoder<GetCFilters, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(GetCFilters);
 
 /// A single compact block filter.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -99,18 +83,4 @@ impl BaseCodec for CFilter {
   }
 }
 
-impl encoding::Encodable for CFilter {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for CFilter {
-  type Decoder = BufferDecoder<CFilter, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(CFilter);

@@ -6,15 +6,13 @@
 
 //! Compressed header messages: getheaders2, headers2, sendheaders2.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 use crate::primitives::compressed_header::CompressionState;
 use crate::primitives::protocol_version::ProtocolVersion;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_primitives::BlockHash;
 use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::{BufferDecoder, VecEncoder};
 
 /// Maximum block locator hashes.
 const MAX_LOCATOR: usize = 101;
@@ -59,21 +57,7 @@ impl BaseCodec for GetHeaders2 {
   }
 }
 
-impl encoding::Encodable for GetHeaders2 {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for GetHeaders2 {
-  type Decoder = BufferDecoder<GetHeaders2, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(GetHeaders2);
 
 /// Response carrying DIP-0025 delta-compressed block headers.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -103,18 +87,4 @@ impl BaseCodec for Headers2 {
   }
 }
 
-impl encoding::Encodable for Headers2 {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for Headers2 {
-  type Decoder = BufferDecoder<Headers2, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(Headers2);

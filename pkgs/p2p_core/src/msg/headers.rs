@@ -6,14 +6,12 @@
 
 //! Block header messages: getheaders, headers, sendheaders.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 use crate::primitives::protocol_version::ProtocolVersion;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
 use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::{BufferDecoder, VecEncoder};
 
 /// Maximum block locator hashes.
 const MAX_LOCATOR: usize = 101;
@@ -58,21 +56,7 @@ impl BaseCodec for GetHeaders {
   }
 }
 
-impl encoding::Encodable for GetHeaders {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for GetHeaders {
-  type Decoder = BufferDecoder<GetHeaders, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(GetHeaders);
 
 /// Response carrying block headers.
 ///
@@ -124,18 +108,4 @@ impl BaseCodec for Headers {
   }
 }
 
-impl encoding::Encodable for Headers {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for Headers {
-  type Decoder = BufferDecoder<Headers, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(Headers);

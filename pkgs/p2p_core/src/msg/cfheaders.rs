@@ -6,15 +6,13 @@
 
 //! BIP157 compact filter header messages: getcfheaders, cfheaders.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
 
-use bitcoin_consensus_encoding as encoding;
 use bitcoin_units::BlockHeight;
 use dash_primitives::BlockHash;
 use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::{BufferDecoder, VecEncoder};
 
 /// Maximum filter hashes per message.
 const MAX_CFHEADERS: usize = 2_000;
@@ -50,21 +48,7 @@ impl BaseCodec for GetCFHeaders {
   }
 }
 
-impl encoding::Encodable for GetCFHeaders {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for GetCFHeaders {
-  type Decoder = BufferDecoder<GetCFHeaders, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(GetCFHeaders);
 
 /// Response carrying filter headers and their hashes.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -109,18 +93,4 @@ impl BaseCodec for CFHeaders {
   }
 }
 
-impl encoding::Encodable for CFHeaders {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for CFHeaders {
-  type Decoder = BufferDecoder<CFHeaders, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(CFHeaders);

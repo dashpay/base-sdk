@@ -6,13 +6,11 @@
 
 //! Governance sync request message.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_num::Hash256;
 use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::{BufferDecoder, VecEncoder};
 
 /// Maximum bloom filter size in bytes.
 const MAX_BLOOM_FILTER: usize = 36_000;
@@ -46,18 +44,4 @@ impl BaseCodec for GovSync {
   }
 }
 
-impl encoding::Encodable for GovSync {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for GovSync {
-  type Decoder = BufferDecoder<GovSync, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(GovSync);

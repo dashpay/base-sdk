@@ -6,7 +6,7 @@
 
 //! Simplified masternode list types for `getmnlistd`/`mnlistdiff`.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 
 use bitcoin_consensus_encoding as encoding;
@@ -16,7 +16,6 @@ use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash
 use dash_script::KeyId;
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, PlatformNodeId};
-use dash_types::{BufferDecoder, VecEncoder};
 
 use core::fmt;
 
@@ -115,6 +114,8 @@ impl BaseCodec for SimplifiedMnListEntry {
     }
   }
 }
+
+impl_p2p!(SimplifiedMnListEntry);
 
 impl fmt::Display for SimplifiedMnListEntry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -306,21 +307,7 @@ impl BaseCodec for MnListDiffPayload {
   }
 }
 
-impl encoding::Encodable for MnListDiffPayload {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for MnListDiffPayload {
-  type Decoder = BufferDecoder<MnListDiffPayload, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(MnListDiffPayload);
 
 impl fmt::Display for MnListDiffPayload {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

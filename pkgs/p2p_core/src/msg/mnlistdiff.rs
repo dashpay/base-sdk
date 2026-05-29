@@ -6,7 +6,7 @@
 
 //! Masternode list diff messages: getmnlistd, mnlistdiff.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::MAX_P2P_PAYLOAD;
 use crate::primitives::mn_list::MnListDiffPayload;
 
 use bitcoin_consensus_encoding as encoding;

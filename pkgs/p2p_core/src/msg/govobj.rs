@@ -6,7 +6,7 @@
 
 //! Governance object message.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::MAX_P2P_PAYLOAD;
 use crate::prelude::*;
 use crate::primitives::governance::GovernanceObject;
 

@@ -6,17 +6,16 @@
 
 //! Governance object and vote types.
 
-use crate::encode::MAX_P2P_PAYLOAD;
+use crate::codec::impl_p2p;
+use crate::codec::MAX_P2P_PAYLOAD;
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_num::Hash256;
 use dash_primitives::wire;
 use dash_primitives::OutPoint;
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
 use dash_types::impl_num;
 use dash_types::BlsSignatureBytes;
-use dash_types::{BufferDecoder, VecEncoder};
 
 use core::fmt;
 
@@ -187,21 +186,7 @@ impl BaseCodec for GovernanceObject {
   }
 }
 
-impl encoding::Encodable for GovernanceObject {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for GovernanceObject {
-  type Decoder = BufferDecoder<GovernanceObject, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(GovernanceObject);
 
 /// A masternode vote on a governance object.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -255,18 +240,4 @@ impl BaseCodec for GovernanceVote {
   }
 }
 
-impl encoding::Encodable for GovernanceVote {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    BaseCodec::encode(self, &mut buf);
-    VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for GovernanceVote {
-  type Decoder = BufferDecoder<GovernanceVote, DecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(<Self as BaseCodec>::decode, MAX_P2P_PAYLOAD)
-  }
-}
+impl_p2p!(GovernanceVote);
