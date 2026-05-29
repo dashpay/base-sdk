@@ -20,7 +20,7 @@ mod uint;
 
 pub mod codec;
 
-pub use entity::{BufferDecoder, VecEncoder};
+pub use entity::{BufferDecoder, VecEncoder, MAX_SER_SIZE};
 
 /// Helpers for `#[serde(with = "...")]` annotations.
 #[cfg(feature = "serde")]

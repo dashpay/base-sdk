@@ -17,6 +17,7 @@ mod prelude;
 
 pub mod block;
 pub mod block_header;
+pub mod codec;
 pub mod gov;
 pub mod hash;
 pub mod outpoint;
@@ -64,12 +65,13 @@ dash_num::make_hash256! {
 
 pub use block::Block;
 pub use block_header::BlockHeader;
+pub use codec::MAX_SPTX_PAYLOAD_SIZE;
 pub use outpoint::OutPoint;
 pub use script::Script;
 pub use support::{
   CService, DynBitset, ExtendedNetInfo, LlmqType, NetInfoEntry, NetInfoPurpose, NetworkType, RevocationReason,
 };
-pub use transaction::{Transaction, MAX_EXTRA_PAYLOAD_SIZE};
+pub use transaction::Transaction;
 pub use tx_in::TxIn;
 pub use tx_out::TxOut;
 pub use tx_types::{MnType, TxType};

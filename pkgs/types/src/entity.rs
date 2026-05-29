@@ -4,14 +4,17 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Bridge utilities for wrapping cursor-based decode/encode logic behind the
-//! `bitcoin_consensus_encoding` ecosystem traits.
+//! Bridge utilities for `BaseCodec` types to `bitcoin_consensus_encoding`
+//! traits.
 
 use crate::prelude::*;
 
 use bitcoin_consensus_encoding as encoding;
 
 use core::fmt;
+
+/// Maximum serialized object size (32 MiB).
+pub const MAX_SER_SIZE: usize = 0x0200_0000;
 
 /// A decoder that buffers all input and decodes in `end()`.
 ///
@@ -22,6 +25,18 @@ pub struct BufferDecoder<T, E> {
   buf: Vec<u8>,
   limit: usize,
   decode_fn: fn(&mut &[u8]) -> Result<T, E>,
+}
+
+impl<T, E> BufferDecoder<T, E> {
+  /// Creates a new decoder with the given decode function and
+  /// maximum buffer size.
+  pub fn new(decode_fn: fn(&mut &[u8]) -> Result<T, E>, limit: usize) -> Self {
+    Self {
+      buf: Vec::new(),
+      limit,
+      decode_fn,
+    }
+  }
 }
 
 impl<T, E> fmt::Debug for BufferDecoder<T, E> {
@@ -39,18 +54,6 @@ impl<T, E> Clone for BufferDecoder<T, E> {
       buf: self.buf.clone(),
       limit: self.limit,
       decode_fn: self.decode_fn,
-    }
-  }
-}
-
-impl<T, E> BufferDecoder<T, E> {
-  /// Creates a new decoder with the given decode function and
-  /// maximum buffer size.
-  pub fn new(decode_fn: fn(&mut &[u8]) -> Result<T, E>, limit: usize) -> Self {
-    Self {
-      buf: Vec::new(),
-      limit,
-      decode_fn,
     }
   }
 }
@@ -110,4 +113,29 @@ impl encoding::Encoder for VecEncoder {
       false
     }
   }
+}
+
+/// Generates `Encodable` + `Decodable` for a `BaseCodec` implementor.
+#[macro_export]
+macro_rules! impl_type {
+  ($ty:ty) => {
+    $crate::impl_type!($ty, $crate::MAX_SER_SIZE);
+  };
+  ($ty:ty, $max:expr) => {
+    impl ::bitcoin_consensus_encoding::Encodable for $ty {
+      type Encoder<'e> = $crate::VecEncoder;
+      fn encoder(&self) -> Self::Encoder<'_> {
+        let mut buf = ::alloc::vec::Vec::new();
+        $crate::codec::BaseCodec::encode(self, &mut buf);
+        $crate::VecEncoder::new(buf)
+      }
+    }
+
+    impl ::bitcoin_consensus_encoding::Decodable for $ty {
+      type Decoder = $crate::BufferDecoder<$ty, $crate::codec::DecodeError>;
+      fn decoder() -> Self::Decoder {
+        $crate::BufferDecoder::new(<$ty as $crate::codec::BaseCodec>::decode, $max)
+      }
+    }
+  };
 }

@@ -19,9 +19,6 @@ use dash_types::codec::NumCodec;
 
 use core::fmt;
 
-/// Maximum extra payload size over the wire (100 KB).
-pub const MAX_EXTRA_PAYLOAD_SIZE: usize = 100_000;
-
 /// A Dash transaction.
 ///
 /// The wire format packs `version` (i16) and `tx_type` (u16) into a single
@@ -324,7 +321,7 @@ impl encoding::Decoder for TransactionDecoder {
               inputs,
               outputs,
               lock_time,
-              dec: encoding::ByteVecDecoder::new_with_limit(MAX_EXTRA_PAYLOAD_SIZE),
+              dec: encoding::ByteVecDecoder::new_with_limit(crate::codec::MAX_SPTX_PAYLOAD_SIZE),
             };
           } else {
             self.state = TxDecoderState::Done(Transaction {
