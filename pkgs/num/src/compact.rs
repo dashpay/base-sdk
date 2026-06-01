@@ -8,6 +8,9 @@
 
 use crate::Arith256;
 
+use dash_types::codec::NumCodec;
+use dash_types::impl_num;
+
 use core::fmt;
 
 /// Compact difficulty target — a newtype around the consensus `nBits` u32.
@@ -26,6 +29,16 @@ pub struct DecodedTarget {
   pub negative: bool,
   /// Whether the encoded exponent exceeds the valid range.
   pub overflow: bool,
+}
+
+impl NumCodec<u32> for CompactTarget {
+  fn from_base(v: u32) -> Self {
+    Self(v)
+  }
+
+  fn to_base(&self) -> u32 {
+    self.0
+  }
 }
 
 impl CompactTarget {
@@ -136,16 +149,4 @@ impl bitcoin_consensus_encoding::Decoder for CompactTargetDecoder {
   }
 }
 
-#[cfg(feature = "serde")]
-impl serde::Serialize for CompactTarget {
-  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    self.0.serialize(serializer)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for CompactTarget {
-  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    u32::deserialize(deserializer).map(CompactTarget)
-  }
-}
+impl_num!(CompactTarget, u32);

@@ -8,12 +8,13 @@
 
 use bitcoin_consensus_encoding as encoding;
 use dash_num::Hash256;
+use dash_types::codec::NumCodec;
+use dash_types::impl_num;
 
 use core::fmt;
 
 /// Inventory object type.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum InvType {
   /// Error / not used.
   Error,
@@ -33,9 +34,8 @@ pub enum InvType {
   Unknown(u32),
 }
 
-impl InvType {
-  /// Converts from the on-wire `u32`.
-  pub const fn from_u32(v: u32) -> Self {
+impl NumCodec<u32> for InvType {
+  fn from_base(v: u32) -> Self {
     match v {
       0 => Self::Error,
       1 => Self::Tx,
@@ -48,8 +48,7 @@ impl InvType {
     }
   }
 
-  /// Returns the on-wire `u32` value.
-  pub const fn to_u32(self) -> u32 {
+  fn to_base(&self) -> u32 {
     match self {
       Self::Error => 0,
       Self::Tx => 1,
@@ -58,7 +57,7 @@ impl InvType {
       Self::CompactBlock => 4,
       Self::GovernanceObject => 17,
       Self::GovernanceObjectVote => 18,
-      Self::Unknown(v) => v,
+      Self::Unknown(v) => *v,
     }
   }
 }
@@ -77,6 +76,8 @@ impl fmt::Display for InvType {
     }
   }
 }
+
+impl_num!(InvType, u32);
 
 /// An inventory vector: a typed 32-byte hash.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -105,7 +106,7 @@ impl encoding::Encodable for Inventory {
   type Encoder<'e> = InventoryEncoder<'e>;
   fn encoder(&self) -> Self::Encoder<'_> {
     InventoryEncoder::new(encoding::Encoder2::new(
-      encoding::ArrayEncoder::without_length_prefix(self.inv_type.to_u32().to_le_bytes()),
+      encoding::ArrayEncoder::without_length_prefix(self.inv_type.to_base().to_le_bytes()),
       encoding::ArrayEncoder::without_length_prefix(self.hash.to_bytes()),
     ))
   }
@@ -137,7 +138,7 @@ impl encoding::Decoder for InventoryDecoder {
 
   fn end(self) -> Result<Self::Output, Self::Error> {
     let (ty, hash_bytes) = self.0.end().map_err(InventoryDecoderError)?;
-    let inv_type = InvType::from_u32(u32::from_le_bytes(ty));
+    let inv_type = InvType::from_base(u32::from_le_bytes(ty));
     let hash = Hash256::from_bytes(hash_bytes);
     Ok(Inventory { inv_type, hash })
   }
