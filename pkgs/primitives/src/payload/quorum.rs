@@ -9,7 +9,6 @@
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::support::{DynBitset, LlmqType};
-use crate::wire;
 use crate::{QuorumHash, QuorumVvecHash};
 
 use bitcoin_consensus_encoding as encoding;
@@ -69,8 +68,8 @@ impl BaseCodec for Commitment {
       None
     };
 
-    let signers = wire::read_dynbitset(data, 1024)?;
-    let valid_members = wire::read_dynbitset(data, 1024)?;
+    let signers = DynBitset::decode(data)?;
+    let valid_members = DynBitset::decode(data)?;
     let quorum_public_key = codec::read_type(data)?;
     let quorum_vvec_hash = QuorumVvecHash::decode(data)?;
     let quorum_sig = codec::read_type(data)?;

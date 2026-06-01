@@ -30,7 +30,7 @@ pub struct BufferDecoder<T, E> {
 impl<T, E> BufferDecoder<T, E> {
   /// Creates a new decoder with the given decode function and
   /// maximum buffer size.
-  pub fn new(decode_fn: fn(&mut &[u8]) -> Result<T, E>, limit: usize) -> Self {
+  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, E>, limit: usize) -> Self {
     Self {
       buf: Vec::new(),
       limit,
