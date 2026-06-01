@@ -82,6 +82,8 @@ impl NumCodec<u8> for LlmqType {
   }
 }
 
+impl_num!(LlmqType, u8);
+
 impl fmt::Display for LlmqType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -101,8 +103,6 @@ impl fmt::Display for LlmqType {
     }
   }
 }
-
-impl_num!(LlmqType, u8);
 
 /// Revocation reason for provider update revocation.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -141,6 +141,8 @@ impl NumCodec<u16> for RevocationReason {
   }
 }
 
+impl_num!(RevocationReason, u16);
+
 impl fmt::Display for RevocationReason {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -152,8 +154,6 @@ impl fmt::Display for RevocationReason {
     }
   }
 }
-
-impl_num!(RevocationReason, u16);
 
 /// Network address type (BIP155).
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -209,6 +209,8 @@ pub struct DynBitset {
   pub data: Vec<u8>,
 }
 
+impl_type!(DynBitset);
+
 /// Serde helper for [`DynBitset`] that validates on deserialisation.
 #[cfg(feature = "serde")]
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
@@ -216,6 +218,79 @@ struct DynBitsetSerde {
   num_bits: u64,
   #[serde(with = "dash_types::serialize::hex")]
   data: Vec<u8>,
+}
+
+impl BaseCodec for DynBitset {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let num_bits = codec::read_compact_u64(data)?;
+    let byte_len = usize::try_from(num_bits.div_ceil(8)).map_err(|_| DecodeError::CompactSizeExceedsLimit {
+      limit: usize::MAX,
+      value: num_bits,
+    })?;
+    let raw = codec::read_bytes(data, byte_len)?;
+    let remainder = (num_bits % 8) as u32;
+    if remainder != 0 {
+      let mask = !((1u8 << remainder) - 1);
+      if raw[byte_len - 1] & mask != 0 {
+        return Err(DecodeError::InvalidValue {
+          expected: 0,
+          actual: u64::from(raw[byte_len - 1] & mask),
+        });
+      }
+    }
+    Ok(Self {
+      num_bits,
+      data: raw.to_vec(),
+    })
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    codec::write_compact_u64(self.num_bits, buf);
+    let required = (self.num_bits as usize).div_ceil(8);
+    let src = &self.data;
+    let take = src.len().min(required);
+    buf.extend_from_slice(&src[..take]);
+    // Pad with zero bytes if data is shorter than required.
+    for _ in take..required {
+      buf.push(0);
+    }
+    // Clear padding bits in the final byte.
+    let remainder = (self.num_bits % 8) as u32;
+    if remainder != 0 && required > 0 {
+      let last = buf.len() - 1;
+      buf[last] &= (1u8 << remainder) - 1;
+    }
+  }
+}
+
+impl DynBitset {
+  /// Returns the bit at the given index.
+  pub fn get(&self, index: u64) -> Option<bool> {
+    if index >= self.num_bits {
+      return None;
+    }
+    let byte_idx = (index / 8) as usize;
+    let bit_idx = (index % 8) as u32;
+    self.data.get(byte_idx).map(|b| (b >> bit_idx) & 1 == 1)
+  }
+
+  /// Counts the number of set bits (respects [`num_bits`](Self::num_bits)).
+  pub fn count_ones(&self) -> u64 {
+    let byte_len = (self.num_bits as usize).div_ceil(8);
+    let relevant = &self.data[..byte_len.min(self.data.len())];
+    let remainder = (self.num_bits % 8) as u32;
+    if remainder == 0 || relevant.is_empty() {
+      return relevant.iter().map(|b| u64::from(b.count_ones())).sum();
+    }
+    let (full, last) = relevant.split_at(relevant.len() - 1);
+    let mask = (1u8 << remainder) - 1;
+    full.iter().map(|b| u64::from(b.count_ones())).sum::<u64>() + u64::from((last[0] & mask).count_ones())
+  }
+
+  /// Iterates over indices of set bits.
+  pub fn iter_set_bits(&self) -> DynBitsetIterator<'_> {
+    DynBitsetIterator { bitset: self, index: 0 }
+  }
 }
 
 #[cfg(feature = "serde")]
@@ -263,36 +338,6 @@ impl<'de> serde::Deserialize<'de> for DynBitset {
   }
 }
 
-impl DynBitset {
-  /// Returns the bit at the given index.
-  pub fn get(&self, index: u64) -> Option<bool> {
-    if index >= self.num_bits {
-      return None;
-    }
-    let byte_idx = (index / 8) as usize;
-    let bit_idx = (index % 8) as u32;
-    self.data.get(byte_idx).map(|b| (b >> bit_idx) & 1 == 1)
-  }
-
-  /// Counts the number of set bits (respects [`num_bits`](Self::num_bits)).
-  pub fn count_ones(&self) -> u64 {
-    let byte_len = (self.num_bits as usize).div_ceil(8);
-    let relevant = &self.data[..byte_len.min(self.data.len())];
-    let remainder = (self.num_bits % 8) as u32;
-    if remainder == 0 || relevant.is_empty() {
-      return relevant.iter().map(|b| u64::from(b.count_ones())).sum();
-    }
-    let (full, last) = relevant.split_at(relevant.len() - 1);
-    let mask = (1u8 << remainder) - 1;
-    full.iter().map(|b| u64::from(b.count_ones())).sum::<u64>() + u64::from((last[0] & mask).count_ones())
-  }
-
-  /// Iterates over indices of set bits.
-  pub fn iter_set_bits(&self) -> DynBitsetIterator<'_> {
-    DynBitsetIterator { bitset: self, index: 0 }
-  }
-}
-
 /// Iterator over set bit indices in a [`DynBitset`].
 #[derive(Clone, Debug)]
 pub struct DynBitsetIterator<'a> {
@@ -315,25 +360,6 @@ impl Iterator for DynBitsetIterator<'_> {
   }
 }
 
-impl BaseCodec for DynBitset {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let num_bits = codec::read_compact_u64(data)?;
-    let byte_len = num_bits.div_ceil(8) as usize;
-    let raw = codec::read_bytes(data, byte_len)?;
-    Ok(Self {
-      num_bits,
-      data: raw.to_vec(),
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    codec::write_compact_size(self.num_bits as usize, buf);
-    buf.extend_from_slice(&self.data);
-  }
-}
-
-impl_type!(DynBitset);
-
 /// Legacy CService network address (ADDRv1 format, 18 bytes).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -344,6 +370,8 @@ pub struct CService {
   /// Network port (big-endian on the wire).
   pub port: u16,
 }
+
+impl_type!(CService);
 
 impl BaseCodec for CService {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -359,7 +387,12 @@ impl BaseCodec for CService {
   }
 }
 
-impl_type!(CService);
+/// Maximum number of purpose groups.
+const MAX_PURPOSES: usize = 8;
+/// Maximum entries per purpose.
+const MAX_ENTRIES: usize = 8;
+/// Maximum domain name length.
+const MAX_DOMAIN: usize = 256;
 
 /// Purpose tag for an extended network info entry.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -394,6 +427,8 @@ impl NumCodec<u8> for NetInfoPurpose {
   }
 }
 
+impl_num!(NetInfoPurpose, u8);
+
 impl fmt::Display for NetInfoPurpose {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -404,8 +439,6 @@ impl fmt::Display for NetInfoPurpose {
     }
   }
 }
-
-impl_num!(NetInfoPurpose, u8);
 
 /// A single network info entry within a purpose group.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -437,20 +470,10 @@ pub struct ExtendedNetInfo {
   pub entries: Vec<(NetInfoPurpose, Vec<NetInfoEntry>)>,
 }
 
-/// Maximum number of purpose groups.
-const MAX_PURPOSES: usize = 8;
-/// Maximum entries per purpose.
-const MAX_ENTRIES: usize = 8;
-/// Maximum domain name length.
-const MAX_DOMAIN: usize = 256;
+impl_type!(ExtendedNetInfo);
 
-impl ExtendedNetInfo {
-  /// Decodes from a raw byte slice.
-  ///
-  /// # Errors
-  ///
-  /// Returns `DecodeError` if the data is malformed.
-  pub fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+impl BaseCodec for ExtendedNetInfo {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = codec::read_u8(data)?;
     let purpose_count = codec::read_compact_size(data, MAX_PURPOSES)?;
 
@@ -463,10 +486,7 @@ impl ExtendedNetInfo {
       for _ in 0..entry_count {
         let entry_type = codec::read_u8(data)?;
         let entry = match entry_type {
-          0x01 => NetInfoEntry::Service(CService {
-            addr: codec::take(data)?,
-            port: codec::read_u16_be(data)?,
-          }),
+          0x01 => NetInfoEntry::Service(CService::decode(data)?),
           0x02 => {
             let name = codec::read_blob(data, MAX_DOMAIN)?;
             let port = codec::read_u16_be(data)?;
@@ -481,5 +501,29 @@ impl ExtendedNetInfo {
     }
 
     Ok(Self { version, entries })
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    buf.push(self.version);
+    codec::write_compact_size(self.entries.len(), buf);
+    for (purpose, group) in &self.entries {
+      buf.push(purpose.to_base());
+      let valid_count = group.iter().filter(|e| !matches!(e, NetInfoEntry::Invalid)).count();
+      codec::write_compact_size(valid_count, buf);
+      for entry in group {
+        match entry {
+          NetInfoEntry::Service(svc) => {
+            buf.push(0x01);
+            svc.encode(buf);
+          }
+          NetInfoEntry::Domain { name, port } => {
+            buf.push(0x02);
+            codec::write_blob(name, buf);
+            buf.extend_from_slice(&port.to_be_bytes());
+          }
+          NetInfoEntry::Invalid => {}
+        }
+      }
+    }
   }
 }

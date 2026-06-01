@@ -211,6 +211,11 @@ pub fn read_compact_size(data: &mut &[u8], limit: usize) -> Result<usize, Decode
 
 /// Encodes a `usize` as a CompactSize integer.
 pub fn write_compact_size(value: usize, buf: &mut Vec<u8>) {
+  write_compact_u64(value as u64, buf);
+}
+
+/// Encodes a `u64` as a CompactSize integer.
+pub fn write_compact_u64(value: u64, buf: &mut Vec<u8>) {
   match value {
     0..=0xFC => buf.push(value as u8),
     0xFD..=0xFFFF => {
@@ -223,7 +228,7 @@ pub fn write_compact_size(value: usize, buf: &mut Vec<u8>) {
     }
     _ => {
       buf.push(0xFF);
-      buf.extend_from_slice(&(value as u64).to_le_bytes());
+      buf.extend_from_slice(&value.to_le_bytes());
     }
   }
 }

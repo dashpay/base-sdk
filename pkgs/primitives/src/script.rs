@@ -22,6 +22,18 @@ const MAX_SIZE: usize = 0x0200_0000;
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Script(#[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))] pub Vec<u8>);
 
+impl_type!(Script);
+
+impl BaseCodec for Script {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    codec::read_blob(data, MAX_SIZE).map(Self)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    codec::write_blob(&self.0, buf);
+  }
+}
+
 impl Script {
   /// Creates a new script from raw bytes.
   pub fn new(data: Vec<u8>) -> Self {
@@ -62,15 +74,3 @@ impl fmt::Display for Script {
     Ok(())
   }
 }
-
-impl BaseCodec for Script {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    codec::read_blob(data, MAX_SIZE).map(Self)
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    codec::write_blob(&self.0, buf);
-  }
-}
-
-impl_type!(Script);

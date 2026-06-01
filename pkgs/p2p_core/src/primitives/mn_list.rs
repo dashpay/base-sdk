@@ -9,7 +9,6 @@
 use crate::codec::impl_p2p;
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_primitives::payload::Commitment;
 use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash};
 use dash_script::KeyId;
@@ -145,6 +144,8 @@ impl BaseCodec for DeletedQuorum {
   }
 }
 
+impl_p2p!(DeletedQuorum);
+
 /// Chainlock signature entry in the MN list diff.
 ///
 /// Each entry maps a BLS signature to the indices (within
@@ -170,6 +171,8 @@ impl BaseCodec for QuorumClSig {
     codec::write_vec(&self.index_set, buf);
   }
 }
+
+impl_p2p!(QuorumClSig);
 
 /// Full masternode list diff payload.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -213,11 +216,7 @@ impl BaseCodec for MnListDiffPayload {
 
     let merkle_flags = codec::read_blob(data, MAX_MERKLE_FLAGS)?;
 
-    // Transaction uses encoding::Decodable. Decode from remaining bytes.
-    let cb_tx = encoding::decode_from_slice_unbounded::<Transaction>(data).map_err(|_| DecodeError::Eof {
-      needed: 1,
-      remaining: 0,
-    })?;
+    let cb_tx = Transaction::decode(data)?;
 
     let deleted_mns = codec::read_vec(data, MAX_DELETED_MNS)?;
 
@@ -254,8 +253,7 @@ impl BaseCodec for MnListDiffPayload {
 
     codec::write_blob(&self.merkle_flags, buf);
 
-    let tx_bytes = encoding::encode_to_vec(&self.cb_tx);
-    buf.extend_from_slice(&tx_bytes);
+    self.cb_tx.encode(buf);
 
     codec::write_vec(&self.deleted_mns, buf);
 

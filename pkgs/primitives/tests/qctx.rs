@@ -12,7 +12,7 @@ mod util;
 
 use dash_primitives::payload::FinalCommitment;
 use dash_primitives::{LlmqType, QuorumHash, QuorumVvecHash};
-use dash_types::codec::NumCodec;
+use dash_types::codec::{BaseCodec, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 use hex_conservative::FromHex;
 use rstest::rstest;

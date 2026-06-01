@@ -93,7 +93,7 @@ impl SpecialPayload {
   ///
   /// Returns `PayloadError` if a recognized type fails to decode.
   pub fn decode(tx_type: TxType, data: &mut &[u8]) -> Result<Self, PayloadError> {
-    use dash_types::codec::DecodeError;
+    use dash_types::codec::{BaseCodec, DecodeError};
 
     let err = |e: DecodeError| PayloadError {
       tx_type,

@@ -12,7 +12,7 @@ mod util;
 
 use dash_primitives::payload::ProUpRevTx;
 use dash_primitives::{InputsHash, RevocationReason, TxHash};
-use dash_types::codec::NumCodec;
+use dash_types::codec::{BaseCodec, NumCodec};
 use rstest::rstest;
 
 #[rstest]

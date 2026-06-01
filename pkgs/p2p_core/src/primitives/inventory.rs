@@ -6,9 +6,9 @@
 
 //! Inventory vector used by inv, getdata, and notfound messages.
 
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_num::Hash256;
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
 use dash_types::impl_num;
@@ -104,71 +104,10 @@ impl BaseCodec for Inventory {
   }
 }
 
+impl_p2p!(Inventory);
+
 impl fmt::Display for Inventory {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}:{}", self.inv_type, self.hash)
-  }
-}
-
-type InventoryInnerEncoder = encoding::Encoder2<encoding::ArrayEncoder<4>, encoding::ArrayEncoder<32>>;
-
-encoding::encoder_newtype_exact! {
-  /// Encoder for [`Inventory`].
-  pub struct InventoryEncoder<'e>(InventoryInnerEncoder);
-}
-
-impl encoding::Encodable for Inventory {
-  type Encoder<'e> = InventoryEncoder<'e>;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    InventoryEncoder::new(encoding::Encoder2::new(
-      encoding::ArrayEncoder::without_length_prefix(self.inv_type.to_base().to_le_bytes()),
-      encoding::ArrayEncoder::without_length_prefix(self.hash.to_bytes()),
-    ))
-  }
-}
-
-type InventoryInnerDecoder = encoding::Decoder2<encoding::ArrayDecoder<4>, encoding::ArrayDecoder<32>>;
-
-/// Decoder for [`Inventory`].
-#[derive(Clone, Debug)]
-pub struct InventoryDecoder(InventoryInnerDecoder);
-
-/// Decode error for [`Inventory`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InventoryDecoderError(<InventoryInnerDecoder as encoding::Decoder>::Error);
-
-impl fmt::Display for InventoryDecoderError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "inventory decode: {}", self.0)
-  }
-}
-
-impl encoding::Decoder for InventoryDecoder {
-  type Output = Inventory;
-  type Error = InventoryDecoderError;
-
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    self.0.push_bytes(bytes).map_err(InventoryDecoderError)
-  }
-
-  fn end(self) -> Result<Self::Output, Self::Error> {
-    let (ty, hash_bytes) = self.0.end().map_err(InventoryDecoderError)?;
-    let inv_type = InvType::from_base(u32::from_le_bytes(ty));
-    let hash = Hash256::from_bytes(hash_bytes);
-    Ok(Inventory { inv_type, hash })
-  }
-
-  fn read_limit(&self) -> usize {
-    self.0.read_limit()
-  }
-}
-
-impl encoding::Decodable for Inventory {
-  type Decoder = InventoryDecoder;
-  fn decoder() -> Self::Decoder {
-    InventoryDecoder(encoding::Decoder2::new(
-      encoding::ArrayDecoder::<4>::new(),
-      encoding::ArrayDecoder::<32>::new(),
-    ))
   }
 }
