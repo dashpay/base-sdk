@@ -96,10 +96,8 @@ impl BaseCodec for Commitment {
     if let Some(idx) = self.quorum_index {
       buf.extend_from_slice(&idx.to_le_bytes());
     }
-    codec::write_compact_size(self.signers.num_bits as usize, buf);
-    buf.extend_from_slice(&self.signers.data);
-    codec::write_compact_size(self.valid_members.num_bits as usize, buf);
-    buf.extend_from_slice(&self.valid_members.data);
+    self.signers.encode(buf);
+    self.valid_members.encode(buf);
     buf.extend_from_slice(&self.quorum_public_key.0);
     buf.extend_from_slice(self.quorum_vvec_hash.as_bytes());
     buf.extend_from_slice(&self.quorum_sig.0);
