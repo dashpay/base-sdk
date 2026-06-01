@@ -27,7 +27,6 @@ pub use primitives::{
   command::CommandString,
   compressed_header::CompressionState,
   filter_type::FilterType,
-  governance::{GovernanceObject, GovernanceVote, VoteOutcome, VoteSignal},
   inventory::{InvType, Inventory},
   magic::Magic,
   mn_list::{MnListDiffPayload, SimplifiedMnListEntry},

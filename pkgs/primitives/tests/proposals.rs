@@ -12,7 +12,7 @@ mod util;
 
 use dash_primitives::gov::{GovObject, GovObjectType, Proposal};
 use dash_primitives::TxHash;
-use dash_types::codec::BaseCodec;
+use dash_types::codec::{BaseCodec, NumCodec};
 use hex_conservative::FromHex;
 use rstest::rstest;
 
@@ -44,7 +44,7 @@ fn decode_and_hash() {
     );
     assert_eq!(
       obj.object_type,
-      GovObjectType::from_i32(util::json_u64(&d["object_type"]) as i32),
+      GovObjectType::from_base(util::json_u64(&d["object_type"]) as i32),
       "{obj_hash_hex} object_type",
     );
 

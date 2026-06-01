@@ -16,9 +16,7 @@ pub mod addr;
 pub mod cfcheckpt;
 pub mod cfheaders;
 pub mod cfilter;
-pub mod govobj;
-pub mod govobjvote;
-pub mod govsync;
+pub mod gov;
 pub mod headers;
 pub mod headers2;
 pub mod inv;
@@ -30,9 +28,7 @@ pub use addr::{Addr, AddrV2Msg};
 pub use cfcheckpt::{CFCheckpt, GetCFCheckpt};
 pub use cfheaders::{CFHeaders, GetCFHeaders};
 pub use cfilter::{CFilter, GetCFilters};
-pub use govobj::GovObj;
-pub use govobjvote::GovObjVote;
-pub use govsync::GovSync;
+pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
 pub use headers2::{GetHeaders2, Headers2};
 pub use inv::{GetData, Inv, NotFound};
@@ -203,9 +199,9 @@ define_network_messages! {
     /// Governance sync request.
     GovSync(GovSync) => GOVSYNC,
     /// Governance object.
-    GovObj(GovObj) => GOVOBJ,
+    GovObj(dash_primitives::gov::GovObject) => GOVOBJ,
     /// Governance vote.
-    GovObjVote(GovObjVote) => GOVOBJVOTE,
+    GovObjVote(dash_primitives::gov::GovVote) => GOVOBJVOTE,
     /// Request MN list diff.
     GetMnListDiff(GetMnListDiff) => GETMNLISTD,
     /// MN list diff.

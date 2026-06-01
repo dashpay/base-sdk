@@ -8,19 +8,26 @@
 
 use crate::outpoint::OutPoint;
 use crate::prelude::*;
-use crate::validation::{MAX_PROPOSAL_NAME_LEN, MIN_URL_LEN, PROPOSAL_NAME_CHARS};
 use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
-use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::impl_type;
+use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::{impl_num, impl_type};
 use hex_conservative::DisplayHex;
 
 use core::fmt;
 
+/// Maximum allowed name length for governance proposals.
+const MAX_PROPOSAL_NAME_LEN: usize = 40;
+
+/// Minimum URL length for governance proposals.
+const MIN_URL_LEN: usize = 4;
+
+/// Allowed characters in governance proposal names.
+const PROPOSAL_NAME_CHARS: &[u8] = b"-_abcdefghijklmnopqrstuvwxyz0123456789";
+
 /// Governance object type codes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum GovObjectType {
   /// Unknown or unrecognized type.
   Unknown,
@@ -30,18 +37,16 @@ pub enum GovObjectType {
   Trigger,
 }
 
-impl GovObjectType {
-  /// Converts from a raw `i32`.
-  pub const fn from_i32(val: i32) -> Self {
-    match val {
+impl NumCodec<i32> for GovObjectType {
+  fn from_base(v: i32) -> Self {
+    match v {
       1 => Self::Proposal,
       2 => Self::Trigger,
       _ => Self::Unknown,
     }
   }
 
-  /// Converts to a raw `i32`.
-  pub const fn to_i32(self) -> i32 {
+  fn to_base(&self) -> i32 {
     match self {
       Self::Unknown => 0,
       Self::Proposal => 1,
@@ -49,6 +54,8 @@ impl GovObjectType {
     }
   }
 }
+
+impl_num!(GovObjectType, i32);
 
 impl fmt::Display for GovObjectType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -163,7 +170,7 @@ impl BaseCodec for GovObject {
       time: i64::decode(data)?,
       collateral_hash: TxHash::decode(data)?,
       data: Vec::decode(data)?,
-      object_type: GovObjectType::from_i32(i32::decode(data)?),
+      object_type: GovObjectType::decode(data)?,
       masternode_outpoint: OutPoint::decode(data)?,
       sig: Vec::decode(data)?,
     })
@@ -175,7 +182,7 @@ impl BaseCodec for GovObject {
     self.time.encode(buf);
     self.collateral_hash.encode(buf);
     self.data.encode(buf);
-    self.object_type.to_i32().encode(buf);
+    self.object_type.encode(buf);
     self.masternode_outpoint.encode(buf);
     self.sig.encode(buf);
   }
@@ -220,11 +227,118 @@ impl GovObject {
   }
 }
 
+/// Governance vote outcome.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum VoteOutcome {
+  /// No vote cast.
+  None,
+  /// Vote in favour.
+  Yes,
+  /// Vote against.
+  No,
+  /// Abstention.
+  Abstain,
+  /// Unrecognised outcome.
+  Unknown(u32),
+}
+
+impl NumCodec<u32> for VoteOutcome {
+  fn from_base(v: u32) -> Self {
+    match v {
+      0 => Self::None,
+      1 => Self::Yes,
+      2 => Self::No,
+      3 => Self::Abstain,
+      other => Self::Unknown(other),
+    }
+  }
+
+  fn to_base(&self) -> u32 {
+    match self {
+      Self::None => 0,
+      Self::Yes => 1,
+      Self::No => 2,
+      Self::Abstain => 3,
+      Self::Unknown(v) => *v,
+    }
+  }
+}
+
+impl fmt::Display for VoteOutcome {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::None => f.write_str("none"),
+      Self::Yes => f.write_str("yes"),
+      Self::No => f.write_str("no"),
+      Self::Abstain => f.write_str("abstain"),
+      Self::Unknown(v) => write!(f, "unknown({v})"),
+    }
+  }
+}
+
+impl_num!(VoteOutcome, u32);
+
+/// Governance vote signal type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum VoteSignal {
+  /// No signal.
+  None,
+  /// Fund this object.
+  Funding,
+  /// Object checks out.
+  Valid,
+  /// Object should be deleted.
+  Delete,
+  /// Officially endorsed.
+  Endorsed,
+  /// Unrecognised signal.
+  Unknown(u32),
+}
+
+impl NumCodec<u32> for VoteSignal {
+  fn from_base(v: u32) -> Self {
+    match v {
+      0 => Self::None,
+      1 => Self::Funding,
+      2 => Self::Valid,
+      3 => Self::Delete,
+      4 => Self::Endorsed,
+      other => Self::Unknown(other),
+    }
+  }
+
+  fn to_base(&self) -> u32 {
+    match self {
+      Self::None => 0,
+      Self::Funding => 1,
+      Self::Valid => 2,
+      Self::Delete => 3,
+      Self::Endorsed => 4,
+      Self::Unknown(v) => *v,
+    }
+  }
+}
+
+impl fmt::Display for VoteSignal {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::None => f.write_str("none"),
+      Self::Funding => f.write_str("funding"),
+      Self::Valid => f.write_str("valid"),
+      Self::Delete => f.write_str("delete"),
+      Self::Endorsed => f.write_str("endorsed"),
+      Self::Unknown(v) => write!(f, "unknown({v})"),
+    }
+  }
+}
+
+impl_num!(VoteSignal, u32);
+
 /// A governance vote.
 ///
 /// ```text
 /// masternode_outpoint(36) || parent_hash(32)
-/// || outcome(i32) || signal(i32) || time(i64)
+/// || outcome(u32) || signal(u32) || time(i64)
 /// || sig(CompactSize + bytes)
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -234,10 +348,10 @@ pub struct GovVote {
   pub masternode_outpoint: OutPoint,
   /// Hash of the governance object being voted on.
   pub parent_hash: TxHash,
-  /// Vote outcome (yes/no/abstain).
-  pub outcome: i32,
-  /// Vote signal (funding/valid/delete/endorsed).
-  pub signal: i32,
+  /// Vote outcome.
+  pub outcome: VoteOutcome,
+  /// Vote signal type.
+  pub signal: VoteSignal,
   /// Vote timestamp.
   pub time: i64,
   /// Signature bytes.
@@ -249,8 +363,8 @@ impl BaseCodec for GovVote {
     Ok(Self {
       masternode_outpoint: OutPoint::decode(data)?,
       parent_hash: TxHash::decode(data)?,
-      outcome: i32::decode(data)?,
-      signal: i32::decode(data)?,
+      outcome: VoteOutcome::decode(data)?,
+      signal: VoteSignal::decode(data)?,
       time: i64::decode(data)?,
       sig: Vec::decode(data)?,
     })
@@ -279,8 +393,8 @@ impl GovVote {
     buf.push(0x00);
     buf.extend_from_slice(&0xFFFF_FFFFu32.to_le_bytes());
     buf.extend_from_slice(self.parent_hash.as_bytes());
-    buf.extend_from_slice(&self.signal.to_le_bytes());
-    buf.extend_from_slice(&self.outcome.to_le_bytes());
+    buf.extend_from_slice(&self.signal.to_base().to_le_bytes());
+    buf.extend_from_slice(&self.outcome.to_base().to_le_bytes());
     buf.extend_from_slice(&self.time.to_le_bytes());
 
     TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())

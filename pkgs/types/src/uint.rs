@@ -10,9 +10,13 @@
 /// that already implements `NumCodec<$uint>`.
 #[macro_export]
 macro_rules! impl_num {
+  ($name:tt, i8)  => { $crate::impl_num!(@codec $name, i8, 1); };
   ($name:tt, u8)  => { $crate::impl_num!(@codec $name, u8, 1); };
+  ($name:tt, i16) => { $crate::impl_num!(@codec $name, i16, 2); };
   ($name:tt, u16) => { $crate::impl_num!(@codec $name, u16, 2); };
+  ($name:tt, i32) => { $crate::impl_num!(@codec $name, i32, 4); };
   ($name:tt, u32) => { $crate::impl_num!(@codec $name, u32, 4); };
+  ($name:tt, i64) => { $crate::impl_num!(@codec $name, i64, 8); };
   ($name:tt, u64) => { $crate::impl_num!(@codec $name, u64, 8); };
   (@codec $name:ty, $uint:ty, $n:literal) => {
     impl $crate::codec::BaseCodec for $name {

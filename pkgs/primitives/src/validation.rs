@@ -33,15 +33,6 @@ pub(crate) const MAX_COINBASE_SCRIPT_SIZE: usize = 100;
 /// Maximum operator reward in basis points.
 pub(crate) const MAX_OPERATOR_REWARD: u16 = 10_000;
 
-/// Maximum allowed name length for governance proposals.
-pub(crate) const MAX_PROPOSAL_NAME_LEN: usize = 40;
-
-/// Minimum URL length for governance proposals.
-pub(crate) const MIN_URL_LEN: usize = 4;
-
-/// Allowed characters in governance proposal names.
-pub(crate) const PROPOSAL_NAME_CHARS: &[u8] = b"-_abcdefghijklmnopqrstuvwxyz0123456789";
-
 /// ProTx version: legacy BLS operator keys (v1).
 pub(crate) const PROTX_VERSION_LEGACY_BLS: u16 = 1;
 
