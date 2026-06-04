@@ -139,11 +139,7 @@ def main() -> int:
   queries = _discover_queries(query_dir)
 
   if not queries:
-    print(
-      "error: no .ql queries found in contrib/codeql/",
-      file=sys.stderr,
-    )
-    return RETCODE_ERR
+    raise FileNotFoundError("no .ql queries found in contrib/codeql/")
 
   # Generate source-line data for queries that need raw text.
   _generate_source_lines(repo_root / "pkgs", query_dir)
@@ -171,22 +167,17 @@ def main() -> int:
       return RETCODE_ERR
 
   # Install CodeQL pack dependencies.
-  result = subprocess.run(  # noqa: S603
+  subprocess.run(  # noqa: S603
     [codeql_bin, "pack", "install", "--no-strict-mode", str(query_dir)],
-    check=False,
+    check=True,
   )
-  if result.returncode != 0:
-    print(
-      "error: codeql pack install failed", file=sys.stderr,
-    )
-    return RETCODE_ERR
 
   # Create database in a temporary directory.
   with tempfile.TemporaryDirectory() as tmp_dir:
     db_path = Path(tmp_dir) / "db"
 
     db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
-    result = subprocess.run(  # noqa: S603
+    subprocess.run(  # noqa: S603
       [
         codeql_bin,
         "database",
@@ -199,21 +190,15 @@ def main() -> int:
         "--command=cargo check --features full,_internal",
       ],
       env=db_env,
-      check=False,
+      check=True,
     )
-    if result.returncode != 0:
-      print(
-        "error: codeql database create failed",
-        file=sys.stderr,
-      )
-      return RETCODE_ERR
 
     # Run each query and collect diagnostics.
     results_dir = query_dir / ".cache" / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     results_path = results_dir / "results.csv"
 
-    result = subprocess.run(  # noqa: S603
+    subprocess.run(  # noqa: S603
       [
         codeql_bin,
         "database",
@@ -225,11 +210,8 @@ def main() -> int:
         f"--threads={max(1, (os.cpu_count() or 2) - 1)}",
         "--ram=12288",
       ],
-      check=False,
+      check=True,
     )
-    if result.returncode != RETCODE_PASS:
-      print("error: codeql analyze failed")
-      return RETCODE_ERR
 
     total_findings = _print_csv_diagnostics(results_path)
 
