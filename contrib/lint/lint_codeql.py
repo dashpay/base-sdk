@@ -20,18 +20,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-
-def _find_workspace_root(start: Path) -> Path:
-  """Walk upward from *start* until a workspace Cargo.toml is found."""
-  for directory in (start, *start.parents):
-    cargo = directory / "Cargo.toml"
-    if (
-      cargo.is_file()
-      and "[workspace]" in cargo.read_text()
-      and (directory / "pkgs").is_dir()
-    ):
-      return directory
-  raise FileNotFoundError("workspace Cargo.toml not found")
+from common import (
+  RETCODE_ERR,
+  RETCODE_PASS,
+  RETCODE_SKIP,
+  find_up,
+  is_workspace_root,
+)
 
 
 def _discover_queries(query_dir: Path) -> list[Path]:
@@ -132,9 +127,13 @@ def main() -> int:
   codeql_bin = shutil.which("codeql")
   if codeql_bin is None:
     print("codeql not found in PATH, skipping", file=sys.stderr)
-    return 77
+    return RETCODE_SKIP
 
-  repo_root = _find_workspace_root(Path(__file__).resolve().parent)
+  repo_root = find_up(
+    Path(__file__).resolve().parent,
+    is_workspace_root,
+    "workspace Cargo.toml",
+  )
   query_dir = repo_root / "contrib" / "codeql"
   queries = _discover_queries(query_dir)
 
@@ -143,7 +142,7 @@ def main() -> int:
       "error: no .ql queries found in contrib/codeql/",
       file=sys.stderr,
     )
-    return 1
+    return RETCODE_ERR
 
   # Generate source-line data for queries that need raw text.
   _generate_source_lines(repo_root / "pkgs", query_dir)
@@ -168,7 +167,7 @@ def main() -> int:
         "'codeql query format -i' to fix",
         file=sys.stderr,
       )
-      return 1
+      return RETCODE_ERR
 
   # Install CodeQL pack dependencies.
   result = subprocess.run(  # noqa: S603
@@ -179,7 +178,7 @@ def main() -> int:
     print(
       "error: codeql pack install failed", file=sys.stderr,
     )
-    return 1
+    return RETCODE_ERR
 
   # Create database in a temporary directory.
   with tempfile.TemporaryDirectory() as tmp_dir:
@@ -206,7 +205,7 @@ def main() -> int:
         "error: codeql database create failed",
         file=sys.stderr,
       )
-      return 1
+      return RETCODE_ERR
 
     # Run each query and collect diagnostics.
     results_dir = query_dir / ".cache" / "results"
@@ -227,13 +226,13 @@ def main() -> int:
       ],
       check=False,
     )
-    if result.returncode != 0:
+    if result.returncode != RETCODE_PASS:
       print("error: codeql analyze failed")
-      return 1
+      return RETCODE_ERR
 
     total_findings = _print_csv_diagnostics(results_path)
 
-    return 1 if total_findings > 0 else 0
+    return RETCODE_ERR if total_findings > 0 else RETCODE_PASS
 
 
 if __name__ == "__main__":
