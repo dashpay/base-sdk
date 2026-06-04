@@ -6,6 +6,7 @@
  * @description Rule-specific policy predicates for type classification.
  */
 
+import lib.files
 import rust
 
 /** Holds if `t` holds secret or security-sensitive material. */
@@ -14,4 +15,11 @@ predicate isSecretType(TypeItem t) {
   // Exclude types whose name contains "Shared" (e.g. SharedState),
   // which match the Share substring but are not secret holders.
   not t.getName().getText().regexpMatch(".*Shared.*")
+}
+
+/** Holds if `u` imports directly from `alloc` outside `prelude.rs`. */
+predicate directAllocImport(Use u) {
+  usePrefix(u) = "alloc" and
+  not fileOf(u).getBaseName() = "prelude.rs" and
+  not fileOf(u).getAbsolutePath().matches("%/prelude/mod.rs")
 }
