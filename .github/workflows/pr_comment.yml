@@ -2,6 +2,7 @@ name: Comment on PRs
 
 on:
   push:
+    branches: [develop]
   pull_request_target:
     types: [synchronize, opened, reopened, closed]
 
