@@ -8,6 +8,7 @@
 
 import lib.files
 import lib.filters
+import lib.source_lines
 import lib.traits
 import rust
 
@@ -96,6 +97,9 @@ predicate isSerdeInternalType(TypeItem t) { t.getName().getText().matches("\\_\\
 /** Gets a required trait name. */
 string requiredTrait() { result = ["Clone", "Debug", "Eq", "Hash", "PartialEq"] }
 
+/** Gets a required serde trait name. */
+string requiredSerdeTrait() { result = ["Serialize", "Deserialize"] }
+
 /** Holds if `t` is codec infrastructure (decoder or encoder wrappers). */
 predicate isCodecType(TypeItem t) {
   t.getName().getText().matches("%Decoder%") or
@@ -109,6 +113,38 @@ predicate isCheckableType(TypeItem t) {
   not isCodecType(t) and
   not isSecretType(t) and
   not isIteratorType(t)
+}
+
+/** Holds if `t` lives in a crate that does not have a `serde` feature. */
+predicate isNonSerdeCrate(TypeItem t) {
+  exists(string path |
+    path = fileOf(t).getAbsolutePath() and
+    (path.matches("%/pkgs/params/%") or path.matches("%/pkgs/pow/%"))
+  )
+}
+
+/** Materialises the regex capture for file-relative paths. */
+pragma[nomagic]
+private predicate fileRelPath(File f, string relPath) {
+  relPath = f.getAbsolutePath().regexpCapture(".*/pkgs/(.*)", 1)
+}
+
+/**
+ * Holds if `t` implements a serde trait via crate-qualified impl
+ * or a cfg_attr/cfg gate that mentions serde.
+ */
+bindingset[traitName]
+predicate implementsSerdeTrait(TypeItem t, string traitName) {
+  implementsTraitInCrate(t, traitName, "serde")
+  or
+  exists(Attr a, int serdeLine, string relPath |
+    a = t.getAnAttr() and
+    a.getMeta().getPath().getSegment().getIdentifier().getText() = ["cfg_attr", "cfg"] and
+    fileRelPath(fileOf(t), relPath) and
+    hasSerdeMention(relPath, serdeLine, traitName) and
+    serdeLine >= a.getLocation().getStartLine() and
+    serdeLine <= a.getLocation().getEndLine()
+  )
 }
 
 /**
@@ -126,6 +162,27 @@ predicate isSuppressed(TypeItem t, string trait) {
   or
   // Opaque types: suppress Hash
   isOpaqueType(t) and trait = "Hash"
+}
+
+/** Holds if `t` is exempt from serde derivation requirements. */
+predicate isSerdeExempt(TypeItem t) {
+  isNonSerdeCrate(t)
+  or
+  isNotEncodable(t)
+  or
+  isCodecType(t)
+  or
+  isErrorType(t)
+  or
+  isDispatchType(t)
+  or
+  isOpaqueType(t)
+  or
+  hasLifetime(t)
+  or
+  // Single-field wrappers without PartialEq are exempt.
+  isSingleTupleField(t) and
+  not implementsTrait(t, "PartialEq")
 }
 
 /** Holds if `u` imports directly from `alloc` outside `prelude.rs`. */

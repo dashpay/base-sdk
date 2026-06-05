@@ -32,8 +32,27 @@ string missingTraits(TypeItem t) {
   result != ""
 }
 
-from TypeItem t, string missing
+from TypeItem t, string message
 where
   isCheckableType(t) and
-  missing = missingTraits(t)
-select t, fmt("missing required derivations: {0}", missing)
+  (
+    exists(string missing |
+      missing = missingTraits(t) and
+      message = fmt("missing required derivations: {0}", missing)
+    )
+    or
+    // Serde: every non-exempt type must derive Serialize + Deserialize.
+    not isSerdeExempt(t) and
+    exists(string missing |
+      missing =
+        concat(string trait |
+          trait = requiredSerdeTrait() and
+          not implementsSerdeTrait(t, trait)
+        |
+          trait, ", " order by trait
+        ) and
+      missing != "" and
+      message = fmt("missing serde derivations: {0}", missing)
+    )
+  )
+select t, message

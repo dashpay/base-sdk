@@ -9,10 +9,23 @@
 import lib.files
 import rust
 
-/** Gets the trait name from an impl block's trait reference. */
-string implTraitName(Impl i) {
-  result = i.getTrait().(PathTypeRepr).getPath().getSegment().getIdentifier().getText()
+/** Gets the path from an impl block's trait reference. */
+private Path implTraitPath(Impl i) { result = i.getTrait().(PathTypeRepr).getPath() }
+
+/**
+ * Holds if `i` implements `traitName` qualified under `crate`
+ * (i.e. the trait path is `<crate>::<traitName>`).
+ */
+private predicate implTraitHasCrate(Impl i, string traitName, string crate) {
+  exists(Path p |
+    p = implTraitPath(i) and
+    p.getSegment().getIdentifier().getText() = traitName and
+    p.getQualifier().getSegment().getIdentifier().getText() = crate
+  )
 }
+
+/** Gets the trait name from an impl block's trait reference. */
+string implTraitName(Impl i) { result = implTraitPath(i).getSegment().getIdentifier().getText() }
 
 /** Gets the type name from an impl block's self type. */
 string implSelfName(Impl i) {
@@ -28,24 +41,34 @@ predicate hasDerivedImpl(TypeItem t, string traitName) {
   )
 }
 
+/** Materialises manual impl metadata for join efficiency. */
+pragma[nomagic]
+private predicate manualImplInfo(Impl i, File f, string selfName, string traitName) {
+  f = fileOf(i) and
+  selfName = implSelfName(i) and
+  traitName = implTraitName(i) and
+  not exists(MacroItems m | i = m.getItem(_))
+}
+
 /** Holds if `t` has a manual impl for `traitName`. */
 predicate hasManualImpl(TypeItem t, string traitName) {
-  exists(Impl i |
-    fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
-    implTraitName(i) = traitName and
-    not exists(MacroItems m | i = m.getItem(_))
-  )
+  exists(Impl i | manualImplInfo(i, fileOf(t), t.getName().getText(), traitName))
+}
+
+/** Materialises macro impl metadata for join efficiency. */
+pragma[nomagic]
+private predicate macroImplInfo(MacroItems m, Impl i, File f, string selfName, string traitName) {
+  i = m.getItem(_) and
+  f = fileOf(i) and
+  selfName = implSelfName(i) and
+  traitName = implTraitName(i)
 }
 
 /** Holds if `t` has a macro-generated (non-derive) impl for `traitName`. */
 predicate hasMacroImpl(TypeItem t, string traitName) {
   exists(MacroItems m, Impl i |
-    i = m.getItem(_) and
-    not m = t.getADeriveMacroExpansion() and
-    fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
-    implTraitName(i) = traitName
+    macroImplInfo(m, i, fileOf(t), t.getName().getText(), traitName) and
+    not m = t.getADeriveMacroExpansion()
   )
 }
 
@@ -54,4 +77,53 @@ predicate implementsTrait(TypeItem t, string traitName) {
   hasDerivedImpl(t, traitName) or
   hasManualImpl(t, traitName) or
   hasMacroImpl(t, traitName)
+}
+
+/**
+ * Holds if `t` has a derived impl for `traitName` under `crate`
+ * (i.e. the trait path is `::<crate>::<traitName>`).
+ */
+predicate hasDerivedImplInCrate(TypeItem t, string traitName, string crate) {
+  exists(MacroItems expansion, Impl i |
+    expansion = t.getADeriveMacroExpansion() and
+    i = expansion.getItem(_) and
+    implTraitHasCrate(i, traitName, crate)
+  )
+}
+
+/**
+ * Holds if `t` has a manual impl for `traitName` under `crate`
+ * (i.e. the trait path is `<crate>::<traitName>`).
+ */
+predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
+  exists(Impl i |
+    fileOf(i) = fileOf(t) and
+    implSelfName(i) = t.getName().getText() and
+    not exists(MacroItems m | i = m.getItem(_)) and
+    implTraitHasCrate(i, traitName, crate)
+  )
+}
+
+/**
+ * Holds if `t` has a macro-generated (non-derive) impl for `traitName`
+ * under `crate` (e.g. from `impl_num!`).
+ */
+predicate hasMacroImplInCrate(TypeItem t, string traitName, string crate) {
+  exists(MacroItems m, Impl i |
+    i = m.getItem(_) and
+    not m = t.getADeriveMacroExpansion() and
+    fileOf(i) = fileOf(t) and
+    implSelfName(i) = t.getName().getText() and
+    implTraitHasCrate(i, traitName, crate)
+  )
+}
+
+/**
+ * Holds if `t` implements `traitName` under `crate` via derive,
+ * manual impl, or non-derive macro expansion.
+ */
+predicate implementsTraitInCrate(TypeItem t, string traitName, string crate) {
+  hasDerivedImplInCrate(t, traitName, crate) or
+  hasManualImplInCrate(t, traitName, crate) or
+  hasMacroImplInCrate(t, traitName, crate)
 }

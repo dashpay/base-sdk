@@ -64,6 +64,11 @@ predicate isSourceType(TypeItem t) {
 /** Holds if struct `s` has exactly one unnamed (tuple) field. */
 predicate isSingleTupleField(Struct s) { count(s.getFieldList().(TupleFieldList).getField(_)) = 1 }
 
+/** Holds if `t` has a lifetime parameter in its generic params. */
+predicate hasLifetime(TypeItem t) {
+  exists(t.getGenericParamList().getAGenericParam().(LifetimeParam))
+}
+
 /** Gets the crate directory prefix for a source type. */
 string cratePrefix(TypeItem t) {
   exists(string path |
