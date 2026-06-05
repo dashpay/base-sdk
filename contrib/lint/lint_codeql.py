@@ -16,7 +16,6 @@ import datetime
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from common import (
@@ -130,6 +129,15 @@ def main() -> int:
     print(f"{e}, skipping", file=sys.stderr)
     return RETCODE_SKIP
 
+  try:
+    require_bin("rustc")
+  except FileNotFoundError:
+    print(
+      "error: rust compiler unavailable, skipping",
+      file=sys.stderr,
+    )
+    return RETCODE_SKIP
+
   repo_root = find_up(
     Path(__file__).resolve().parent,
     is_workspace_root,
@@ -172,10 +180,11 @@ def main() -> int:
     check=True,
   )
 
-  # Create database in a temporary directory.
-  with tempfile.TemporaryDirectory() as tmp_dir:
-    db_path = Path(tmp_dir) / "db"
+  db_path = query_dir / ".cache" / "db"
+  results_dir = query_dir / ".cache" / "results"
 
+  if not db_path.is_dir():
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
     subprocess.run(  # noqa: S603
       [
@@ -189,33 +198,33 @@ def main() -> int:
         f"-j{max(1, (os.cpu_count() or 2) - 1)}",
         "--command=cargo check --features full,_internal",
       ],
+      cwd=str(repo_root),
       env=db_env,
       check=True,
     )
 
-    # Run each query and collect diagnostics.
-    results_dir = query_dir / ".cache" / "results"
-    results_dir.mkdir(parents=True, exist_ok=True)
-    results_path = results_dir / "results.csv"
+  # Run each query and collect diagnostics.
+  results_dir.mkdir(parents=True, exist_ok=True)
+  results_path = results_dir / "results.csv"
 
-    subprocess.run(  # noqa: S603
-      [
-        codeql_bin,
-        "database",
-        "analyze",
-        str(db_path),
-        *[str(q) for q in queries],
-        "--format=csv",
-        f"--output={results_path}",
-        f"--threads={max(1, (os.cpu_count() or 2) - 1)}",
-        "--ram=12288",
-      ],
-      check=True,
-    )
+  subprocess.run(  # noqa: S603
+    [
+      codeql_bin,
+      "database",
+      "analyze",
+      str(db_path),
+      *[str(q) for q in queries],
+      "--format=csv",
+      f"--output={results_path}",
+      f"--threads={max(1, (os.cpu_count() or 2) - 1)}",
+      "--ram=12288",
+    ],
+    check=True,
+  )
 
-    total_findings = _print_csv_diagnostics(results_path)
+  total_findings = _print_csv_diagnostics(results_path)
 
-    return RETCODE_ERR if total_findings > 0 else RETCODE_PASS
+  return RETCODE_ERR if total_findings > 0 else RETCODE_PASS
 
 
 if __name__ == "__main__":
