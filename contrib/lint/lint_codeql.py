@@ -11,13 +11,20 @@
 
 from __future__ import annotations
 
+import argparse
+import contextlib
 import csv
 import datetime
 import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from collections.abc import Iterator
 
 from common import (
   RETCODE_ERR,
@@ -123,7 +130,54 @@ def _print_csv_diagnostics(results_path: Path) -> int:
   return count
 
 
-def main() -> int:
+@contextlib.contextmanager
+def _workspace_dirs(
+  cache_dir: Path,
+  *,
+  cache: bool,
+) -> Iterator[tuple[Path, Path]]:
+  """Yield ``(db_path, results_dir)`` for analysis.
+
+  When *cache* is false a temporary directory is used for both
+  the database and the results so no persistent cache is created
+  or modified.
+  """
+  if not cache:
+    tmp = Path(tempfile.mkdtemp(prefix="codeql-"))
+    try:
+      results = tmp / "results"
+      results.mkdir()
+      yield tmp / "db", results
+    finally:
+      try:
+        shutil.rmtree(tmp)
+      except OSError as exc:
+        print(
+          f"warning: failed to remove {tmp}: {exc}",
+          file=sys.stderr,
+        )
+  else:
+    results = cache_dir / "results"
+    results.mkdir(parents=True, exist_ok=True)
+    yield cache_dir / "db", results
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+  parser = argparse.ArgumentParser(
+    description="Run CodeQL queries against the workspace.",
+  )
+  parser.add_argument(
+    "-c",
+    "--cache",
+    action="store_true",
+    help="persist the database for faster reruns",
+  )
+  return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+  args = _parse_args(argv if argv is not None else sys.argv[1:])
+
   try:
     codeql_bin = require_bin("codeql")
   except FileNotFoundError as e:
@@ -181,57 +235,59 @@ def main() -> int:
     check=True,
   )
 
-  db_path = query_dir / ".cache" / "db"
-  results_dir = query_dir / ".cache" / "results"
+  cache_dir = query_dir / ".cache"
 
-  db_yml = db_path / "codeql-database.yml"
-  if not db_yml.is_file():
-    # Remove stale artifacts left behind by a previous failed run.
-    if db_path.exists():
-      shutil.rmtree(db_path)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
-    result = subprocess.run(  # noqa: S603
+  with _workspace_dirs(cache_dir, cache=args.cache) as (
+    active_db,
+    results_dir,
+  ):
+    db_yml = active_db / "codeql-database.yml"
+    if not db_yml.is_file():
+      # Remove stale artifacts left behind by a previous failed run.
+      if active_db.exists():
+        shutil.rmtree(active_db)
+      active_db.parent.mkdir(parents=True, exist_ok=True)
+      db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
+      result = subprocess.run(  # noqa: S603
+        [
+          codeql_bin,
+          "database",
+          "create",
+          str(active_db),
+          "--language=rust",
+          f"--source-root={repo_root / 'pkgs'}",
+          f"-j{max(1, (os.cpu_count() or 2) - 1)}",
+          "--command=cargo check --features full,_internal",
+        ],
+        cwd=str(repo_root),
+        env=db_env,
+        check=False,
+      )
+      if result.returncode != RETCODE_PASS or not db_yml.is_file():
+        raise RuntimeError(
+          f"codeql database create failed (exit {result.returncode}); database"
+          f" manifest {db_yml} was not produced",
+        )
+
+    # Run each query and collect diagnostics.
+    results_path = results_dir / "results.csv"
+
+    subprocess.run(  # noqa: S603
       [
         codeql_bin,
         "database",
-        "create",
-        str(db_path),
-        "--language=rust",
-        f"--source-root={repo_root / 'pkgs'}",
-        f"-j{max(1, (os.cpu_count() or 2) - 1)}",
-        "--command=cargo check --features full,_internal",
+        "analyze",
+        str(active_db),
+        *[str(q) for q in queries],
+        "--format=csv",
+        f"--output={results_path}",
+        f"--threads={max(1, (os.cpu_count() or 2) - 1)}",
+        "--ram=12288",
       ],
-      cwd=str(repo_root),
-      env=db_env,
-      check=False,
+      check=True,
     )
-    if result.returncode != RETCODE_PASS or not db_yml.is_file():
-      raise RuntimeError(
-        f"codeql database create failed (exit {result.returncode}); database"
-        f" manifest {db_yml} was not produced",
-      )
 
-  # Run each query and collect diagnostics.
-  results_dir.mkdir(parents=True, exist_ok=True)
-  results_path = results_dir / "results.csv"
-
-  subprocess.run(  # noqa: S603
-    [
-      codeql_bin,
-      "database",
-      "analyze",
-      str(db_path),
-      *[str(q) for q in queries],
-      "--format=csv",
-      f"--output={results_path}",
-      f"--threads={max(1, (os.cpu_count() or 2) - 1)}",
-      "--ram=12288",
-    ],
-    check=True,
-  )
-
-  total_findings = _print_csv_diagnostics(results_path)
+    total_findings = _print_csv_diagnostics(results_path)
 
   return RETCODE_ERR if total_findings > 0 else RETCODE_PASS
 
