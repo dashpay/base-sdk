@@ -122,10 +122,14 @@ def _print_csv_diagnostics(results_path: Path) -> int:
   """Print CSV results to stderr. Returns the finding count."""
   count = 0
   with results_path.open(newline="") as f:
-    for row in csv.DictReader(f):
-      uri = row.get("path", "?")
-      line = row.get("startline", "0")
-      msg = row.get("message", "")
+    for row in csv.reader(f):
+      if not row:
+        continue
+      if len(row) < 6:
+        raise ValueError(f"malformed CodeQL CSV row: {row!r}")
+      uri = Path("pkgs") / row[4].lstrip("/")
+      line = row[5]
+      msg = row[3].replace("\n", " ")
       print(f"{uri}:{line}: {msg}", file=sys.stderr)
       count += 1
   return count
