@@ -32,6 +32,7 @@ from common import (
   RETCODE_SKIP,
   require_bin,
   root_dir,
+  usable_mem,
   usable_threads,
 )
 
@@ -278,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
         "--format=csv",
         f"--output={results_path}",
         f"--threads={usable_threads()}",
-        "--ram=12288",
+        f"--ram={usable_mem()}",
       ],
       check=True,
     )

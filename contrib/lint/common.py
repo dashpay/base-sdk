@@ -13,11 +13,13 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from collections.abc import Callable
-  from pathlib import Path
 
 RETCODE_ERR = 1
 RETCODE_PASS = 0
@@ -69,3 +71,57 @@ def root_dir() -> Path:
 def usable_threads() -> int:
   """Return a conservative thread count (total CPUs minus one)."""
   return max(1, (os.cpu_count() or 2) - 1)
+
+
+def usable_mem() -> int:
+  """Return half the physical RAM in MiB.
+
+  Raises RuntimeError when physical RAM cannot be determined.
+  """
+  total = _physical_ram_bytes()
+  return total // (2 * 1024 * 1024)
+
+
+def _physical_ram_bytes() -> int:
+  """Return total physical RAM in bytes."""
+  if sys.platform.startswith("linux"):
+    for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
+      if line.startswith("MemTotal:"):
+        return int(line.split()[1]) * 1024
+    raise RuntimeError("MemTotal not found in /proc/meminfo")
+  if sys.platform == "darwin":
+    try:
+      out = subprocess.check_output(
+        ["sysctl", "-n", "hw.memsize"],  # noqa: S607
+      )
+      return int(out.strip())
+    except (
+      FileNotFoundError, subprocess.CalledProcessError, ValueError,
+    ) as exc:
+      raise RuntimeError(
+        "could not determine physical RAM on macOS",
+      ) from exc
+  if sys.platform == "win32":
+    try:
+      out = subprocess.check_output(
+        ["powershell", "-NoProfile", "-Command",  # noqa: S607
+         "(Get-CimInstance Win32_ComputerSystem)"
+         ".TotalPhysicalMemory"],
+      ).decode()
+      value = out.strip()
+      if value.isdigit():
+        return int(value)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+      pass
+    try:
+      out = subprocess.check_output(
+        ["wmic", "computersystem", "get",  # noqa: S607
+         "TotalPhysicalMemory", "/value"],
+      ).decode()
+      for line in out.splitlines():
+        if line.startswith("TotalPhysicalMemory="):
+          return int(line.split("=", 1)[1].strip())
+    except (FileNotFoundError, subprocess.CalledProcessError, ValueError):
+      pass
+    raise RuntimeError("could not determine physical RAM on Windows")
+  raise RuntimeError(f"unsupported platform: {sys.platform}")
