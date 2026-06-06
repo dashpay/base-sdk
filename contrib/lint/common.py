@@ -55,3 +55,17 @@ def require_bin(name: str, path: str | None = None) -> str:
     where = "in expected path" if path else "in PATH"
     raise FileNotFoundError(f"error: {name} binary not found {where}")
   return result
+
+
+def root_dir() -> Path:
+  """Return the workspace root (directory containing Cargo.toml)."""
+  return find_up(
+    Path(__file__).resolve().parent,
+    is_workspace_root,
+    "workspace Cargo.toml",
+  )
+
+
+def usable_threads() -> int:
+  """Return a conservative thread count (total CPUs minus one)."""
+  return max(1, (os.cpu_count() or 2) - 1)

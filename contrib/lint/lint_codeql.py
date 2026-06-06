@@ -30,9 +30,9 @@ from common import (
   RETCODE_ERR,
   RETCODE_PASS,
   RETCODE_SKIP,
-  find_up,
-  is_workspace_root,
   require_bin,
+  root_dir,
+  usable_threads,
 )
 
 
@@ -193,11 +193,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     return RETCODE_SKIP
 
-  repo_root = find_up(
-    Path(__file__).resolve().parent,
-    is_workspace_root,
-    "workspace Cargo.toml",
-  )
+  repo_root = root_dir()
   query_dir = repo_root / "contrib" / "codeql"
   queries = _discover_queries(query_dir)
 
@@ -256,7 +252,7 @@ def main(argv: list[str] | None = None) -> int:
           str(active_db),
           "--language=rust",
           f"--source-root={repo_root / 'pkgs'}",
-          f"-j{max(1, (os.cpu_count() or 2) - 1)}",
+          f"-j{usable_threads()}",
           "--command=cargo check --features full,_internal",
         ],
         cwd=str(repo_root),
@@ -281,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         *[str(q) for q in queries],
         "--format=csv",
         f"--output={results_path}",
-        f"--threads={max(1, (os.cpu_count() or 2) - 1)}",
+        f"--threads={usable_threads()}",
         "--ram=12288",
       ],
       check=True,

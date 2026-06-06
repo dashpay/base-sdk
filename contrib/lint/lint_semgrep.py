@@ -13,25 +13,19 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from pathlib import Path
 
 from common import (
   RETCODE_ERR,
   RETCODE_PASS,
-  find_up,
-  is_workspace_root,
   require_bin,
+  root_dir,
 )
 
 
 def main() -> int:
   semgrep_bin = require_bin("semgrep")
 
-  repo_root = find_up(
-    Path(__file__).resolve().parent,
-    is_workspace_root,
-    "workspace Cargo.toml",
-  )
+  repo_root = root_dir()
   config_dir = repo_root / "contrib" / "semgrep"
   target_dir = repo_root / "pkgs"
 
