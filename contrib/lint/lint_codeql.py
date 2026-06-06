@@ -14,6 +14,7 @@ from __future__ import annotations
 import csv
 import datetime
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -183,10 +184,14 @@ def main() -> int:
   db_path = query_dir / ".cache" / "db"
   results_dir = query_dir / ".cache" / "results"
 
-  if not db_path.is_dir():
+  db_yml = db_path / "codeql-database.yml"
+  if not db_yml.is_file():
+    # Remove stale artifacts left behind by a previous failed run.
+    if db_path.exists():
+      shutil.rmtree(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
-    subprocess.run(  # noqa: S603
+    result = subprocess.run(  # noqa: S603
       [
         codeql_bin,
         "database",
@@ -194,14 +199,18 @@ def main() -> int:
         str(db_path),
         "--language=rust",
         f"--source-root={repo_root / 'pkgs'}",
-        "--overwrite",
         f"-j{max(1, (os.cpu_count() or 2) - 1)}",
         "--command=cargo check --features full,_internal",
       ],
       cwd=str(repo_root),
       env=db_env,
-      check=True,
+      check=False,
     )
+    if result.returncode != RETCODE_PASS or not db_yml.is_file():
+      raise RuntimeError(
+        f"codeql database create failed (exit {result.returncode}); database"
+        f" manifest {db_yml} was not produced",
+      )
 
   # Run each query and collect diagnostics.
   results_dir.mkdir(parents=True, exist_ok=True)
