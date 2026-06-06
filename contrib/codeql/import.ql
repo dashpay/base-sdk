@@ -22,9 +22,10 @@ import rust
 /** Materialises the file-to-cfg-line mapping. */
 pragma[nomagic]
 private predicate fileCfgLines(File f, int cfgLine) {
-  exists(string relPath |
+  exists(string relPath, string content |
     relPath = f.getAbsolutePath().regexpCapture(".*/pkgs/(.*)", 1) and
-    hasCfgLine(relPath, cfgLine)
+    sourceLineContent(relPath, cfgLine, content) and
+    content.matches("#[cfg%")
   )
 }
 

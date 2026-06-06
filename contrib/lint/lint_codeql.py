@@ -49,20 +49,23 @@ def _discover_ql_sources(query_dir: Path) -> list[Path]:
   )
 
 
+_SOURCE_KEYWORDS = ("Serialize", "Deserialize", "#[cfg")
+
+
 def _generate_source_lines(
   source_root: Path,
   query_dir: Path,
 ) -> Path:
-  """Scan source files and generate a .qll with cfg line data.
+  """Emit a raw source-line predicate for CodeQL queries.
 
   TODO(github/codeql#20771): the Rust extractor does not expand cfg_attr
   token-tree content. This function compensates by pre-scanning sources and
-  emitting a predicate listing every source line starting with a ``#[cfg``
-  attribute. Remove once the extractor supports token-tree extraction.
+  emitting lines that match broad keywords.
+
+  Remove once the extractor supports token-tree extraction.
   """
   out = query_dir / "lib" / "source_lines.qll"
-  serde_rows: list[str] = []
-  cfg_rows: list[str] = []
+  rows: list[str] = []
   for rs_file in sorted(source_root.rglob("*.rs")):
     rel = str(rs_file.relative_to(source_root))
     try:
@@ -70,24 +73,14 @@ def _generate_source_lines(
     except OSError:
       continue
     for lineno, line in enumerate(text.splitlines(), 1):
-      stripped = line.lstrip()
-      if "Serialize" in line:
-        serde_rows.append(
-          f'  file = "{rel}" and line = {lineno}'
-          f' and trait = "Serialize"',
-        )
-      if "Deserialize" in line:
-        serde_rows.append(
-          f'  file = "{rel}" and line = {lineno}'
-          f' and trait = "Deserialize"',
-        )
-      if stripped.startswith("#[cfg"):
-        cfg_rows.append(
-          f'  file = "{rel}" and line = {lineno}',
-        )
+      if not any(kw in line for kw in _SOURCE_KEYWORDS):
+        continue
+      escaped = line.strip().replace("\\", "\\\\").replace('"', '\\"')
+      rows.append(
+        f'  file = "{rel}" and line = {lineno} and content = "{escaped}"',
+      )
 
-  serde_body = "\n  or\n".join(serde_rows) if serde_rows else "  none()"
-  cfg_body = "\n  or\n".join(cfg_rows) if cfg_rows else "  none()"
+  body = "\n  or\n".join(rows) if rows else "  none()"
   timestamp = datetime.datetime.now(datetime.UTC).strftime(
     "%Y-%m-%dT%H:%M:%SZ",
   )
@@ -96,22 +89,13 @@ def _generate_source_lines(
     f" Do not edit. */\n"
     "\n"
     "/**\n"
-    " * Holds if line `line` in `file` mentions the serde\n"
-    " * `trait` (``Serialize`` or ``Deserialize``).\n"
-    " *\n"
+    " * Holds if `line` in `file` contains look-out keywords.\n"
+    " * `content` is the trimmed source text.\n"
     " * File paths are relative to ``pkgs/``.\n"
     " */\n"
-    "predicate hasSerdeMention(string file, int line, string trait) {\n"
-    f"{serde_body}\n"
-    "}\n"
-    "\n"
-    "/**\n"
-    " * Holds if line `line` in `file` starts with a ``#[cfg`` attribute.\n"
-    " *\n"
-    " * File paths are relative to ``pkgs/``.\n"
-    " */\n"
-    "predicate hasCfgLine(string file, int line) {\n"
-    f"{cfg_body}\n"
+    "predicate sourceLineContent"
+    "(string file, int line, string content) {\n"
+    f"{body}\n"
     "}\n"
   )
   out.write_text(content, encoding="latin-1")
@@ -206,7 +190,11 @@ def main(argv: list[str] | None = None) -> int:
     raise FileNotFoundError("no .ql queries found in contrib/codeql/")
 
   # Generate source-line data for queries that need raw text.
-  _generate_source_lines(repo_root / "pkgs", query_dir)
+  generated = _generate_source_lines(repo_root / "pkgs", query_dir)
+  subprocess.run(  # noqa: S603
+    [codeql_bin, "query", "format", "-i", str(generated)],
+    check=True,
+  )
 
   # Check QL formatting before doing any heavy lifting.
   ql_sources = _discover_ql_sources(query_dir)

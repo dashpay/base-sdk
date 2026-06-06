@@ -131,19 +131,30 @@ private predicate fileRelPath(File f, string relPath) {
 
 /**
  * Holds if `t` implements a serde trait via crate-qualified impl
- * or a cfg_attr/cfg gate that mentions serde.
+ * or source-scanned match.
  */
 bindingset[traitName]
 predicate implementsSerdeTrait(TypeItem t, string traitName) {
   implementsTraitInCrate(t, traitName, "serde")
   or
-  exists(Attr a, int serdeLine, string relPath |
+  // Derive mention inside an attribute range (cfg_attr, cfg, or derive).
+  exists(Attr a, int srcLine, string relPath, string content |
     a = t.getAnAttr() and
-    a.getMeta().getPath().getSegment().getIdentifier().getText() = ["cfg_attr", "cfg"] and
     fileRelPath(fileOf(t), relPath) and
-    hasSerdeMention(relPath, serdeLine, traitName) and
-    serdeLine >= a.getLocation().getStartLine() and
-    serdeLine <= a.getLocation().getEndLine()
+    sourceLineContent(relPath, srcLine, content) and
+    content.regexpMatch(".*\\b" + traitName + "\\b.*") and
+    srcLine >= a.getLocation().getStartLine() and
+    srcLine <= a.getLocation().getEndLine()
+  )
+  or
+  // Manual impl behind #[cfg(feature = "serde")] that the
+  // extractor cannot see.
+  exists(string relPath, string content |
+    fileRelPath(fileOf(t), relPath) and
+    sourceLineContent(relPath, _, content) and
+    content
+        .regexpMatch("impl\\b.*\\bserde::" + traitName + "\\b.*\\bfor\\s+" + t.getName().getText() +
+            "\\b.*")
   )
 }
 
