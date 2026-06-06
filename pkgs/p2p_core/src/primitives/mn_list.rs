@@ -9,14 +9,14 @@
 use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
 use crate::prelude::*;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_primitives::payload::Commitment;
 use dash_primitives::wire;
 use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash};
 use dash_script::KeyId;
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, PlatformNodeId};
+
+use core::fmt;
 
 /// Maximum number of entries in a single MN list diff.
 const MAX_MN_LIST: usize = 10_000;
@@ -30,8 +30,8 @@ const MAX_MERKLE: usize = 100_000;
 const MAX_MERKLE_FLAGS: usize = 100_000;
 
 /// A single entry in the simplified masternode list.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct SimplifiedMnListEntry {
   /// Entry serialisation version.
   pub version: u16,
@@ -124,8 +124,8 @@ impl fmt::Display for SimplifiedMnListEntry {
 }
 
 /// Deleted quorum identifier (type + hash).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct DeletedQuorum {
   /// LLMQ type.
   #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::uint::w8"))]
@@ -138,8 +138,8 @@ pub struct DeletedQuorum {
 ///
 /// Each entry maps a BLS signature to the indices (within
 /// `new_quorums`) of the quorums it covers.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct QuorumClSig {
   /// BLS signature.
   pub sig: BlsSignatureBytes,
@@ -148,8 +148,8 @@ pub struct QuorumClSig {
 }
 
 /// Full masternode list diff payload.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct MnListDiffPayload {
   /// Serialisation version.
   pub version: u16,
@@ -197,7 +197,7 @@ impl MnListDiffPayload {
 
     // Transaction uses encoding::Decodable. Decode from remaining bytes.
     let cb_tx = encoding::decode_from_slice_unbounded::<Transaction>(sl)
-      .map_err(|e| WireDecodeError(alloc::format!("transaction decode: {e}")))?;
+      .map_err(|e| WireDecodeError(format!("transaction decode: {e}")))?;
 
     let del_count = wire::read_compact_size(sl, MAX_DELETED_MNS)?;
     let mut deleted_mns = Vec::with_capacity(del_count);
@@ -222,8 +222,7 @@ impl MnListDiffPayload {
     let nq_count = wire::read_compact_size(sl, MAX_QUORUMS)?;
     let mut new_quorums = Vec::with_capacity(nq_count);
     for _ in 0..nq_count {
-      let commitment =
-        Commitment::decode_inner(sl).map_err(|e| WireDecodeError(alloc::format!("commitment decode: {e}")))?;
+      let commitment = Commitment::decode_inner(sl).map_err(|e| WireDecodeError(format!("commitment decode: {e}")))?;
       new_quorums.push(commitment);
     }
 

@@ -11,13 +11,14 @@ use crate::validation::DeploymentContext;
 use crate::wire;
 use crate::QuorumHash;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_types::BlsSignatureBytes;
 
+use core::fmt;
+
 /// AssetUnlock: Platform-to-L1 (type 9).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AssetUnlock {
   /// Payload version.
   pub version: u8,
@@ -74,7 +75,7 @@ impl encoding::Decodable for AssetUnlock {
 }
 
 /// Asset unlock validation failure.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AssetUnlockInvalid {
   /// `bad-assetunlocktx-version`
   BadVersion { version: u8 },

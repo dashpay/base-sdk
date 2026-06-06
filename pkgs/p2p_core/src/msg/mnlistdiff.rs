@@ -9,13 +9,14 @@
 use crate::encode::{BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
 use crate::primitives::mn_list::MnListDiffPayload;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_primitives::BlockHash;
 
+use core::fmt;
+
 /// Requests a masternode list diff between two blocks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetMnListDiff {
   /// Base block hash (beginning of range).
   pub base_block_hash: BlockHash,
@@ -43,7 +44,7 @@ impl encoding::Encodable for GetMnListDiff {
 type GetMnListDiffInnerDecoder = encoding::Decoder2<encoding::ArrayDecoder<32>, encoding::ArrayDecoder<32>>;
 
 /// Decoder for [`GetMnListDiff`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GetMnListDiffDecoder(GetMnListDiffInnerDecoder);
 
 /// Decode error for [`GetMnListDiff`].
@@ -88,7 +89,8 @@ impl encoding::Decodable for GetMnListDiff {
 }
 
 /// Response carrying the masternode list diff.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct MnListDiff {
   /// The full diff payload.
   pub payload: MnListDiffPayload,

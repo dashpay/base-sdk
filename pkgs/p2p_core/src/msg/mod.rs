@@ -45,7 +45,7 @@ fn decode_msg<T: encoding::Decodable>(payload: &[u8]) -> Result<T, crate::P2pDec
 where
   <T::Decoder as encoding::Decoder>::Error: core::fmt::Display,
 {
-  encoding::decode_from_slice(payload).map_err(|e| crate::P2pDecodeError::Consensus(alloc::format!("{e}")))
+  encoding::decode_from_slice(payload).map_err(|e| crate::P2pDecodeError::Consensus(format!("{e}")))
 }
 
 /// Generates `DashNetworkMessage`, its `command()`, `short_id()`,
@@ -89,7 +89,8 @@ macro_rules! define_network_messages {
     /// not-yet-implemented messages use `Vec<u8>` to hold the raw
     /// payload so callers can identify *what* was received (for
     /// logging) without needing a full decoder.
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     pub enum DashNetworkMessage {
       $( $(#[$p_doc])* $p_variant($p_type), )*
       $( $(#[$pe_doc])* $pe_variant, )*

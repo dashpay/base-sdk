@@ -11,18 +11,19 @@ use crate::validation::DeploymentContext;
 use crate::wire;
 use crate::MerkleRoot;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use bitcoin_units::BlockHeight;
 use dash_types::BlsSignatureBytes;
+
+use core::fmt;
 
 /// CoinbaseCommitment -- coinbase commitment payload.
 ///
 /// - v1: base fields (version, height, merkle_root_mn_list)
 /// - v2: adds merkle_root_quorums
 /// - v3: adds ChainLock proof and credit pool balance
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CoinbaseCommitment {
   /// Payload version (1, 2, or 3).
   pub version: u16,
@@ -94,7 +95,7 @@ impl encoding::Decodable for CoinbaseCommitment {
 }
 
 /// Coinbase commitment validation failure.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CbTxInvalid {
   /// `bad-cbtx-version`
   BadVersion { version: u16 },

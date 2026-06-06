@@ -8,14 +8,14 @@
 
 use crate::script::{Script, ScriptDecoder, ScriptDecoderError, ScriptEncoder};
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use bitcoin_units::Amount;
 
+use core::fmt;
+
 /// A transaction output.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct TxOut {
   /// Output value in duffs.
   #[cfg_attr(feature = "serde", serde(with = "crate::serialize::amount"))]
@@ -49,7 +49,7 @@ impl encoding::Encodable for TxOut {
 }
 
 /// Decoder for [`TxOut`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TxOutDecoder(encoding::Decoder2<encoding::ArrayDecoder<8>, ScriptDecoder>);
 
 impl TxOutDecoder {
@@ -69,7 +69,7 @@ impl Default for TxOutDecoder {
 }
 
 /// Decode error for [`TxOut`].
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TxOutDecoderError {
   /// Failed to decode the value field.
   Value(encoding::UnexpectedEofError),

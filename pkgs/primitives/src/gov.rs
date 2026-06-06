@@ -13,13 +13,14 @@ use crate::validation::{MAX_PROPOSAL_NAME_LEN, MIN_URL_LEN, PROPOSAL_NAME_CHARS}
 use crate::wire;
 use crate::TxHash;
 
-use core::fmt;
-
 use bitcoin_hashes::sha256d;
 use hex_conservative::DisplayHex;
 
+use core::fmt;
+
 /// Governance object type codes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum GovObjectType {
   /// Unknown or unrecognized type.
   Unknown,
@@ -72,16 +73,17 @@ impl fmt::Display for GovObjectType {
 ///   "end_epoch": 1703000000
 /// }
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Proposal {
   /// Short name (max 40 chars, lowercase alphanum + `-_`).
-  pub name: alloc::string::String,
+  pub name: String,
   /// Proposal URL.
-  pub url: alloc::string::String,
+  pub url: String,
   /// Dash address receiving payment.
-  pub payment_address: alloc::string::String,
+  pub payment_address: String,
   /// Payment amount in DASH as a decimal string.
-  pub payment_amount: alloc::string::String,
+  pub payment_amount: String,
   /// Unix timestamp when payments begin.
   pub start_epoch: i64,
   /// Unix timestamp when payments end.
@@ -99,20 +101,22 @@ pub struct Proposal {
 ///   "proposal_hashes": "hash1|hash2"
 /// }
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Trigger {
   /// Block height at which payments occur.
   pub event_block_height: i32,
   /// Pipe-delimited payment addresses.
-  pub payment_addresses: alloc::string::String,
+  pub payment_addresses: String,
   /// Pipe-delimited payment amounts.
-  pub payment_amounts: alloc::string::String,
+  pub payment_amounts: String,
   /// Pipe-delimited proposal hashes.
-  pub proposal_hashes: alloc::string::String,
+  pub proposal_hashes: String,
 }
 
 /// Decoded governance object data payload.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum GovData {
   /// Budget proposal.
   Proposal(Proposal),
@@ -130,7 +134,8 @@ pub enum GovData {
 /// || type(i32) || masternode_outpoint(36)
 /// || sig(CompactSize + bytes)
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GovObject {
   /// Parent object hash (zero for root).
   pub hash_parent: TxHash,
@@ -217,7 +222,7 @@ impl GovObject {
   }
 
   /// Returns the data as a hex string.
-  pub fn data_as_hex(&self) -> alloc::string::String {
+  pub fn data_as_hex(&self) -> String {
     self.data.to_lower_hex_string()
   }
 }
@@ -229,7 +234,8 @@ impl GovObject {
 /// || outcome(i32) || signal(i32) || time(i64)
 /// || sig(CompactSize + bytes)
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GovVote {
   /// Voting masternode outpoint.
   pub masternode_outpoint: OutPoint,
@@ -294,7 +300,7 @@ impl GovVote {
 }
 
 /// Governance proposal validation failure.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ProposalInvalid {
   /// Name is empty.
   NameEmpty,

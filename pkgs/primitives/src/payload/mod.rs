@@ -19,6 +19,11 @@ mod prouprevtx;
 mod proupservtx;
 mod quorum;
 
+use crate::prelude::*;
+use crate::tx_types::TxType;
+
+use core::fmt;
+
 pub use assetlock::AssetLock;
 pub use assetunlock::AssetUnlock;
 pub use cbtx::CoinbaseCommitment;
@@ -29,16 +34,12 @@ pub use prouprevtx::ProUpRevTx;
 pub use proupservtx::ProUpServTx;
 pub use quorum::{Commitment, FinalCommitment};
 
-use crate::prelude::*;
-use crate::tx_types::TxType;
-
-use core::fmt;
-
 /// A decoded special transaction payload.
 ///
 /// Provides a unified dispatch over all Dash special transaction types. Unknown
 /// or future types are stored as opaque bytes for forward compatibility.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum SpecialPayload {
   /// Masternode registration (type 1).
   ProviderRegister(ProRegTx),
@@ -68,12 +69,12 @@ pub enum SpecialPayload {
 }
 
 /// Error decoding a special payload.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct PayloadError {
   /// Which transaction type was being decoded.
   pub tx_type: TxType,
   /// Human-readable description.
-  pub message: alloc::string::String,
+  pub message: String,
 }
 
 impl fmt::Display for PayloadError {
@@ -94,12 +95,12 @@ impl SpecialPayload {
   pub fn decode(tx_type: TxType, data: &[u8]) -> Result<Self, PayloadError> {
     let err = |e: crate::error::DecodeError| PayloadError {
       tx_type,
-      message: alloc::format!("{e}"),
+      message: format!("{e}"),
     };
     match tx_type {
       TxType::Spend => Err(PayloadError {
         tx_type,
-        message: alloc::string::String::from("spend transactions have no payload"),
+        message: String::from("spend transactions have no payload"),
       }),
       TxType::ProviderRegister => ProRegTx::decode(data).map(Self::ProviderRegister).map_err(err),
       TxType::ProviderUpdateService => ProUpServTx::decode(data).map(Self::ProviderUpdateService).map_err(err),

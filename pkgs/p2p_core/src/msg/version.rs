@@ -24,7 +24,8 @@ const MAX_USER_AGENT: usize = 256;
 ///
 /// Dash extends the Bitcoin version message with two additional
 /// fields for masternode authentication.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Version {
   /// Sender's protocol version.
   pub protocol_version: ProtocolVersion,
@@ -74,7 +75,7 @@ impl Version {
     // user agent
     let ua_len = wire::read_compact_size(sl, MAX_USER_AGENT)?;
     let ua_bytes = wire::read_bytes(sl, ua_len)?.to_vec();
-    let user_agent = UserAgent::new(ua_bytes).map_err(|e| WireDecodeError(alloc::format!("{e}")))?;
+    let user_agent = UserAgent::new(ua_bytes).map_err(|e| WireDecodeError(format!("{e}")))?;
     let start_height = wire::read_i32_le(sl)?;
     let relay = wire::read_bool(sl)?;
     let mnauth_challenge = Hash256::from_bytes(wire::read_array(sl)?);

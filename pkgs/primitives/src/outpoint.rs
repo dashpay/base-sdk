@@ -8,14 +8,14 @@
 
 use crate::TxHash;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use bitcoin_internals::array::ArrayExt as _;
 
+use core::fmt;
+
 /// A reference to a previous transaction output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct OutPoint {
   /// Transaction hash of the referenced output.
   pub hash: TxHash,
@@ -48,7 +48,7 @@ impl encoding::Encodable for OutPoint {
 }
 
 /// Decoder for [`OutPoint`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct OutPointDecoder(encoding::ArrayDecoder<36>);
 
 impl OutPointDecoder {
@@ -65,7 +65,7 @@ impl Default for OutPointDecoder {
 }
 
 /// Decode error for [`OutPoint`].
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutPointDecoderError(encoding::UnexpectedEofError);
 
 impl fmt::Display for OutPointDecoderError {

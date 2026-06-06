@@ -107,7 +107,8 @@ static DASH_IDS: [&str; DASH_COUNT] = [
 ];
 
 /// A resolved V2 short ID.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ShortId(pub u8);
 
 impl ShortId {

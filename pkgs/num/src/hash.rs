@@ -52,8 +52,8 @@ pub trait HashBlob:
 macro_rules! define_hash {
   ($name:ident, $n:literal, $serde_with:literal) => {
     /// Fixed-size opaque hash blob stored in little-endian byte order.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Clone, Copy, Eq, Hash, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(transparent))]
     pub struct $name(#[cfg_attr(feature = "serde", serde(with = $serde_with))] [u8; $n]);
 

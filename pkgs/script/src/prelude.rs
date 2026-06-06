@@ -1,0 +1,12 @@
+//
+// Copyright (c) 2026-present, The Dash Core developers
+// SPDX-License-Identifier: MIT
+// See the accompanying file LICENSE or https://opensource.org/license/MIT
+//
+
+//! Re-exports for no_std compatibility.
+
+pub(crate) use alloc::borrow::ToOwned;
+pub(crate) use alloc::string::String;
+pub(crate) use alloc::string::ToString;
+pub(crate) use alloc::vec::Vec;

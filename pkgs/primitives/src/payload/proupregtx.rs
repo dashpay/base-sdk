@@ -7,6 +7,7 @@
 //! ProUpRegTx registrar-update payload (type 3).
 
 use crate::error::DecodeError;
+use crate::prelude::*;
 use crate::script::Script;
 use crate::validation::{
   check_operator_key_not_null, check_protx_version, max_protx_version_no_ext, DeploymentContext, ProTxInvalid,
@@ -27,7 +28,8 @@ const MAX_VCH_SIG_SIZE: usize = 256;
 ///
 /// - v1: LegacyBLS
 /// - v2: BasicBLS
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ProUpRegTx {
   /// 1=LegacyBLS, 2=BasicBLS.
   pub version: u16,
@@ -44,7 +46,7 @@ pub struct ProUpRegTx {
   /// Hash of all inputs.
   pub inputs_hash: InputsHash,
   /// Owner ECDSA signature (variable-length).
-  pub vch_sig: crate::prelude::Vec<u8>,
+  pub vch_sig: Vec<u8>,
 }
 
 impl fmt::Display for ProUpRegTx {

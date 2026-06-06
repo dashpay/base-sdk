@@ -23,7 +23,8 @@ macro_rules! define_opcodes {
     /// Every variant corresponds to exactly one byte value on the wire. Bytes `0x01..=0x4b` are
     /// direct data pushes (the byte *is* the push length); use [`Opcode::is_direct_push`] to
     /// test for them.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Eq, Hash, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     #[repr(u8)]
     pub enum Opcode {
       $(
@@ -385,7 +386,7 @@ mod tests {
 
   #[test]
   fn display_formatting() {
-    use alloc::string::ToString as _;
+    use crate::prelude::*;
 
     assert_eq!(Opcode::Dup.to_string(), "OP_DUP");
     assert_eq!(Opcode::Return.to_string(), "OP_RETURN");

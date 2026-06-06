@@ -9,22 +9,22 @@
 #![no_std]
 
 extern crate alloc;
-
 #[cfg(feature = "std")]
 extern crate std;
+
+#[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
+mod prelude;
+
+use crate::opcode::Opcode as Op;
+use crate::prelude::*;
+
+use bitcoin_hashes::{hash160, sha256};
 
 pub mod key_id;
 pub mod opcode;
 
-use alloc::string::String;
-use alloc::vec::Vec;
-
-use bitcoin_hashes::{hash160, sha256};
-
 pub use key_id::KeyId;
 pub use opcode::Opcode;
-
-use Opcode as Op;
 
 /// RIPEMD-160(SHA-256) output length in bytes.
 const HASH160_LEN: usize = 20;
@@ -48,7 +48,8 @@ const P2PK_COMPRESSED_KEY_LEN: usize = 33;
 const P2PK_UNCOMPRESSED_KEY_LEN: usize = 65;
 
 /// Known output script patterns.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum ScriptKind {
   /// Pay-to-public-key-hash.
   P2pkh,
@@ -229,11 +230,9 @@ pub fn legacy_sigop_count(script: &[u8]) -> usize {
 
 #[cfg(test)]
 mod tests {
-  use alloc::borrow::ToOwned as _;
+  use super::*;
 
   use hex_literal::hex;
-
-  use super::*;
 
   #[test]
   fn p2pkh_valid() {

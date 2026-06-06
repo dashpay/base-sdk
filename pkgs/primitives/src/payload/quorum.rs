@@ -12,10 +12,10 @@ use crate::support::{DynBitset, LlmqType};
 use crate::wire;
 use crate::{QuorumHash, QuorumVvecHash};
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
+
+use core::fmt;
 
 /// DKG session output for one LLMQ.
 ///
@@ -23,8 +23,8 @@ use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 /// - v2: legacy + indexed (quorum_index)
 /// - v3: basic
 /// - v4: basic + indexed (quorum_index)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Commitment {
   /// 1=legacy, 2=+indexed, 3=basic, 4=basic+idx.
   pub version: u16,
@@ -124,7 +124,8 @@ impl fmt::Display for Commitment {
 }
 
 /// Tx-level wrapper for Commitment (type 6).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct FinalCommitment {
   /// Payload version.
   pub version: u16,

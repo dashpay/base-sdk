@@ -10,17 +10,18 @@ use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeEr
 use crate::prelude::*;
 use crate::primitives::service_flags::ServiceFlags;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_primitives::wire;
 use dash_primitives::CService;
 use dash_primitives::NetworkType;
 
+use core::fmt;
+
 /// Network address with service flags (used inside the version message).
 ///
 /// Wire format: `u64 services` + `[u8; 16] addr` + `u16 BE port`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct NetAddr {
   /// Advertised services.
   pub services: ServiceFlags,
@@ -66,7 +67,8 @@ impl fmt::Display for NetAddr {
 }
 
 /// Timestamped v1 address entry used in `addr` messages.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct TimestampedAddr {
   /// Seconds since Unix epoch.
   pub time: u32,
@@ -110,7 +112,8 @@ impl encoding::Decodable for TimestampedAddr {
 }
 
 /// BIP155 v2 network address supporting multiple transport types.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AddrV2 {
   /// Network transport type.
   pub network: NetworkType,
@@ -139,7 +142,7 @@ impl AddrV2 {
     let addr = wire::read_bytes(sl, len)?.to_vec();
     if let Some(expected) = Self::expected_len(network) {
       if addr.len() != expected {
-        return Err(WireDecodeError(alloc::format!(
+        return Err(WireDecodeError(format!(
           "addrv2: expected {expected} bytes for network {:?}, got {}",
           network,
           addr.len()
@@ -173,7 +176,8 @@ impl encoding::Decodable for AddrV2 {
 }
 
 /// BIP155 timestamped v2 address entry used in `addrv2` messages.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AddrV2Entry {
   /// Seconds since Unix epoch.
   pub time: u32,
@@ -197,7 +201,7 @@ impl AddrV2Entry {
     let addr_bytes = wire::read_bytes(sl, len)?.to_vec();
     if let Some(expected) = AddrV2::expected_len(network) {
       if addr_bytes.len() != expected {
-        return Err(WireDecodeError(alloc::format!(
+        return Err(WireDecodeError(format!(
           "addrv2 entry: expected {expected} bytes for network {:?}, got {}",
           network,
           addr_bytes.len()

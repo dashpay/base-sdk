@@ -6,13 +6,14 @@
 
 //! Dash service flag bitfield.
 
+use bitcoin_consensus_encoding as encoding;
+
 use core::fmt;
 use core::ops;
 
-use bitcoin_consensus_encoding as encoding;
-
 /// Bitfield advertised in `version` messages describing node capabilities.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, Copy, Default, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ServiceFlags(pub u64);
 
 impl ServiceFlags {
@@ -87,7 +88,7 @@ impl encoding::Encodable for ServiceFlags {
 }
 
 /// Decoder for [`ServiceFlags`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ServiceFlagsDecoder(encoding::ArrayDecoder<8>);
 
 impl ServiceFlagsDecoder {

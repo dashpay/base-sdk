@@ -6,13 +6,14 @@
 
 //! Dash network magic bytes.
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_params::types::MessageStart;
 
+use core::fmt;
+
 /// Four-byte network identifier prepended to every V1 message.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Magic(pub [u8; 4]);
 
 impl Magic {
@@ -77,7 +78,7 @@ impl encoding::Encodable for Magic {
 }
 
 /// Decoder for [`Magic`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MagicDecoder(encoding::ArrayDecoder<4>);
 
 impl MagicDecoder {

@@ -9,16 +9,17 @@
 use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
 use crate::prelude::*;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_num::Hash256;
 use dash_primitives::wire;
 use dash_primitives::OutPoint;
 use dash_types::BlsSignatureBytes;
 
+use core::fmt;
+
 /// Governance vote outcome.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum VoteOutcome {
   /// No vote cast.
   None,
@@ -85,7 +86,8 @@ impl dash_types::TryFromUint<u32> for VoteOutcome {
 }
 
 /// Governance vote signal type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum VoteSignal {
   /// No signal.
   None,
@@ -157,8 +159,8 @@ impl dash_types::TryFromUint<u32> for VoteSignal {
 }
 
 /// A governance object (proposal or superblock trigger).
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GovernanceObject {
   /// Parent object hash (zero for root objects).
   pub parent_hash: Hash256,
@@ -234,8 +236,8 @@ impl encoding::Decodable for GovernanceObject {
 }
 
 /// A masternode vote on a governance object.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GovernanceVote {
   /// Masternode outpoint casting the vote.
   pub mn_outpoint: OutPoint,

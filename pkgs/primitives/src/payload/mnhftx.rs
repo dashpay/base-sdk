@@ -11,13 +11,14 @@ use crate::validation::{DeploymentContext, VERSIONBITS_NUM_BITS};
 use crate::wire;
 use crate::QuorumHash;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_types::BlsSignatureBytes;
 
+use core::fmt;
+
 /// MnHardFork -- hard-fork signal (type 7).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct MnHardFork {
   /// Payload version.
   pub version: u8,
@@ -66,7 +67,7 @@ impl encoding::Decodable for MnHardFork {
 }
 
 /// MNHF signal validation failure.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MnHardForkInvalid {
   /// `bad-mnhf-version`
   BadVersion { version: u8 },

@@ -17,17 +17,18 @@ use crate::validation::{
 use crate::wire;
 use crate::{InputsHash, TxHash};
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_types::{BlsSignatureBytes, PlatformNodeId};
+
+use core::fmt;
 
 /// ProUpServTx -- update MN service addr (type 2).
 ///
 /// - v1: LegacyBLS (no mn_type field)
 /// - v2: BasicBLS (adds mn_type)
 /// - v3: ExtAddr (extended network info)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ProUpServTx {
   /// 1=LegacyBLS, 2=BasicBLS, 3=ExtAddr.
   pub version: u16,

@@ -15,8 +15,8 @@ macro_rules! make_bytes {
     $name:ident, $n:literal, $serde_with:literal
   ) => {
     $(#[$attr])*
-    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Clone, Copy, Eq, Hash, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(transparent))]
     pub struct $name(
       #[cfg_attr(feature = "serde", serde(with = $serde_with))]
@@ -111,8 +111,7 @@ macro_rules! make_bytes {
 /// (e.g. `hex::w16` for `[u8; 16]`).
 #[cfg(feature = "serde")]
 pub mod serde {
-  use alloc::string::String;
-  use alloc::vec::Vec;
+  use crate::prelude::*;
 
   use hex_conservative::{DisplayHex, FromHex};
 
@@ -156,7 +155,7 @@ pub mod serde {
 }
 
 /// Generic decoder for fixed-size byte newtypes.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ByteTypeDecoder<T, const N: usize>(
   bitcoin_consensus_encoding::ArrayDecoder<N>,
   core::marker::PhantomData<T>,
@@ -179,7 +178,7 @@ impl<T, const N: usize> Default for ByteTypeDecoder<T, N> {
 }
 
 /// Decode error for fixed-size byte newtypes.
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ByteTypeDecoderError(pub bitcoin_consensus_encoding::UnexpectedEofError);
 
 impl core::fmt::Display for ByteTypeDecoderError {

@@ -12,16 +12,17 @@ use crate::validation::{check_protx_version, max_protx_version_no_ext, Deploymen
 use crate::wire;
 use crate::{InputsHash, TxHash};
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_types::BlsSignatureBytes;
+
+use core::fmt;
 
 /// ProUpRevTx -- revoke a masternode (type 4).
 ///
 /// - v1: LegacyBLS
 /// - v2: BasicBLS
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ProUpRevTx {
   /// 1=LegacyBLS, 2=BasicBLS.
   pub version: u16,

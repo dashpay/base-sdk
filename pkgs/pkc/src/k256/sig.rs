@@ -6,13 +6,13 @@
 
 //! ECDSA signature and recovery id.
 
-use k256::ecdsa;
-
 use super::error::Error;
 
+use k256::ecdsa;
+
 /// An ECDSA signature (64-byte compact r||s).
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
   serde(
@@ -77,8 +77,8 @@ impl TryFrom<dash_types::EcdsaSignatureBytes> for Signature {
 }
 
 /// Recovery id (0..3) used to recover a public key from an ECDSA signature.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "u8", try_from = "u8"))]
 pub struct RecoveryId(ecdsa::RecoveryId);
 

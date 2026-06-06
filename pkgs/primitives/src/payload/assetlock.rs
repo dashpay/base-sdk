@@ -7,21 +7,23 @@
 //! AssetLock (type 8): L1 to Platform.
 
 use crate::error::DecodeError;
+use crate::prelude::*;
 use crate::tx_out::TxOut;
 use crate::validation::DeploymentContext;
 use crate::wire;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 
+use core::fmt;
+
 /// AssetLock: L1-to-Platform (type 8).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AssetLock {
   /// Payload version.
   pub version: u8,
   /// Platform credit allocations.
-  pub credit_outputs: crate::prelude::Vec<TxOut>,
+  pub credit_outputs: Vec<TxOut>,
 }
 
 impl fmt::Display for AssetLock {
@@ -48,7 +50,7 @@ impl AssetLock {
 
     let count = wire::read_compact_size(sl, 100)?;
 
-    let mut credit_outputs = crate::prelude::Vec::with_capacity(count);
+    let mut credit_outputs = Vec::with_capacity(count);
     for _ in 0..count {
       let raw = wire::read_u64_le(sl)?;
       let value = bitcoin_units::Amount::from_sat(raw)
@@ -72,7 +74,7 @@ impl encoding::Decodable for AssetLock {
 }
 
 /// Asset lock validation failure.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AssetLockInvalid {
   /// `bad-assetlocktx-version`
   BadVersion { version: u8 },

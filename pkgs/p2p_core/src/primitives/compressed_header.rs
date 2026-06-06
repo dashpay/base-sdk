@@ -31,7 +31,8 @@ const MAX_VERSION_CACHE: usize = 7;
 /// delta-encoded against its predecessor and a shared MRU version
 /// cache. Create one `CompressionState` per `headers2` message and
 /// feed headers through it in order.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CompressionState {
   /// MRU version cache (front = most recently used).
   pub version_cache: Vec<i32>,
@@ -85,7 +86,7 @@ impl CompressionState {
     } else {
       let pos = (version_offset - 1) as usize;
       if pos >= self.version_cache.len() {
-        return Err(WireDecodeError(alloc::format!("version offset {pos} out of range")));
+        return Err(WireDecodeError(format!("version offset {pos} out of range")));
       }
       let v = self.version_cache[pos];
       self.mark_version_mru(pos);

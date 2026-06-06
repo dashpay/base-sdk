@@ -9,9 +9,9 @@
 use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
 use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
-use bitcoin_units::BlockHeight;
 
 use bitcoin_consensus_encoding as encoding;
+use bitcoin_units::BlockHeight;
 use dash_primitives::wire;
 use dash_primitives::BlockHash;
 
@@ -19,7 +19,8 @@ use dash_primitives::BlockHash;
 const MAX_FILTER_DATA: usize = 256 * 1024;
 
 /// Requests compact filters for a range of blocks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetCFilters {
   /// Filter type (0 = basic).
   pub filter_type: FilterType,
@@ -66,7 +67,8 @@ impl encoding::Decodable for GetCFilters {
 }
 
 /// A single compact block filter.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CFilter {
   /// Filter type.
   pub filter_type: FilterType,

@@ -9,16 +9,17 @@
 use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
 use crate::prelude::*;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_primitives::wire;
+
+use core::fmt;
 
 /// Maximum user agent (subversion) length in bytes.
 const MAX_USER_AGENT: usize = 256;
 
 /// CompactSize-prefixed user agent bytestring.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct UserAgent(Vec<u8>);
 
 /// The user agent exceeds the 256-byte limit.

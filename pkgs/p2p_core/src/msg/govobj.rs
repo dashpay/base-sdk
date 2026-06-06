@@ -12,7 +12,8 @@ use crate::primitives::governance::GovernanceObject;
 use bitcoin_consensus_encoding as encoding;
 
 /// A governance object broadcast or response.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GovObj {
   /// The governance object.
   pub object: GovernanceObject,

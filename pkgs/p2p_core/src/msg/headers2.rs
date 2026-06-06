@@ -21,7 +21,8 @@ const MAX_LOCATOR: usize = 101;
 const MAX_HEADERS: usize = 2_000;
 
 /// Requests compressed block headers starting from a locator.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetHeaders2 {
   /// Protocol version.
   pub version: ProtocolVersion,
@@ -75,7 +76,8 @@ impl encoding::Decodable for GetHeaders2 {
 }
 
 /// Response carrying DIP-0025 delta-compressed block headers.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Headers2 {
   /// Fully resolved block headers (decompressed).
   pub headers: Vec<dash_primitives::BlockHeader>,

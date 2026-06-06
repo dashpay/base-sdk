@@ -9,9 +9,9 @@
 
 use crate::prelude::*;
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
+
+use core::fmt;
 
 /// A decoder that buffers all input and decodes in `end()`.
 ///
@@ -30,6 +30,16 @@ impl<T, E> fmt::Debug for BufferDecoder<T, E> {
       .field("buf_len", &self.buf.len())
       .field("limit", &self.limit)
       .finish()
+  }
+}
+
+impl<T, E> Clone for BufferDecoder<T, E> {
+  fn clone(&self) -> Self {
+    Self {
+      buf: self.buf.clone(),
+      limit: self.limit,
+      decode_fn: self.decode_fn,
+    }
   }
 }
 
@@ -67,7 +77,7 @@ impl<T, E> encoding::Decoder for BufferDecoder<T, E> {
 }
 
 /// An encoder that wraps a pre-built byte vector.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct VecEncoder {
   data: Vec<u8>,
   done: bool,
@@ -102,7 +112,7 @@ impl encoding::Encoder for VecEncoder {
 /// Decode error for cursor-based types exposed through ecosystem traits.
 ///
 /// Wraps `crate::error::DecodeError` so it can be used as a `Decoder::Error`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DecodeError(crate::error::DecodeError);
 
 impl From<crate::error::DecodeError> for DecodeError {

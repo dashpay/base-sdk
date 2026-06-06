@@ -7,6 +7,7 @@
 //! ProRegTx registration payload (type 1).
 
 use crate::error::DecodeError;
+use crate::prelude::*;
 use crate::script::Script;
 use crate::support::CService;
 use crate::tx_types::MnType;
@@ -17,17 +18,18 @@ use crate::validation::{
 use crate::wire;
 use crate::{InputsHash, TxHash};
 
-use core::fmt;
-
 use bitcoin_consensus_encoding as encoding;
 use dash_script::KeyId;
 use dash_types::{BlsPublicKeyBytes, PlatformNodeId};
+
+use core::fmt;
 
 /// Maximum owner ECDSA signature size.
 const MAX_VCH_SIG_SIZE: usize = 256;
 
 /// Masternode network info: legacy CService or structured extended format.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum NetInfo {
   /// ADDRv1 CService (18 bytes).
   Legacy(CService),
@@ -40,7 +42,8 @@ pub enum NetInfo {
 /// - v1: LegacyBLS
 /// - v2: BasicBLS
 /// - v3: ExtAddr (extended network info)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ProRegTx {
   /// 1=LegacyBLS, 2=BasicBLS, 3=ExtAddr.
   pub version: u16,
@@ -73,7 +76,7 @@ pub struct ProRegTx {
   /// Platform HTTP port (Evo + version < 3 only).
   pub platform_http_port: Option<u16>,
   /// Owner ECDSA signature (variable-length).
-  pub vch_sig: crate::prelude::Vec<u8>,
+  pub vch_sig: Vec<u8>,
 }
 
 impl fmt::Display for ProRegTx {
