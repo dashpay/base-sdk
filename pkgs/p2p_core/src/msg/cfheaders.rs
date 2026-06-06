@@ -6,7 +6,7 @@
 
 //! BIP157 compact filter header messages: getcfheaders, cfheaders.
 
-use crate::codec::impl_p2p;
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
 
@@ -26,6 +26,8 @@ pub struct GetCFHeaders {
   pub stop_hash: BlockHash,
 }
 
+impl_p2p!(GetCFHeaders);
+
 impl BaseCodec for GetCFHeaders {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
@@ -42,8 +44,6 @@ impl BaseCodec for GetCFHeaders {
   }
 }
 
-impl_p2p!(GetCFHeaders);
-
 /// Response carrying filter headers and their hashes.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -58,22 +58,9 @@ pub struct CFHeaders {
   pub filter_hashes: Vec<BlockHash>,
 }
 
-impl BaseCodec for CFHeaders {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      filter_type: FilterType(u8::decode(data)?),
-      stop_hash: BlockHash::decode(data)?,
-      previous_filter_header: BlockHash::decode(data)?,
-      filter_hashes: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.filter_type.0.encode(buf);
-    self.stop_hash.encode(buf);
-    self.previous_filter_header.encode(buf);
-    self.filter_hashes.encode(buf);
-  }
-}
-
-impl_p2p!(CFHeaders);
+codec_p2p!(CFHeaders {
+  filter_type,
+  stop_hash,
+  previous_filter_header,
+  filter_hashes,
+});

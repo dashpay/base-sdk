@@ -6,12 +6,10 @@
 
 //! MnHardFork hard-fork signal (type 7).
 
-use crate::codec::impl_payload;
-use crate::prelude::*;
+use crate::codec::codec_payload;
 use crate::validation::{DeploymentContext, VERSIONBITS_NUM_BITS};
 use crate::QuorumHash;
 
-use dash_types::codec::{BaseCodec, DecodeError};
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -30,31 +28,12 @@ pub struct MnHardFork {
   pub sig: BlsSignatureBytes,
 }
 
-impl BaseCodec for MnHardFork {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: u8::decode(data)?,
-      version_bit: u8::decode(data)?,
-      quorum_hash: QuorumHash::decode(data)?,
-      sig: BlsSignatureBytes::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.encode(buf);
-    self.version_bit.encode(buf);
-    self.quorum_hash.encode(buf);
-    self.sig.encode(buf);
-  }
-}
-
-impl_payload!(MnHardFork);
-
-impl fmt::Display for MnHardFork {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "MnHardFork {{ v{}, bit: {} }}", self.version, self.version_bit,)
-  }
-}
+codec_payload!(MnHardFork {
+  version,
+  version_bit,
+  quorum_hash,
+  sig,
+});
 
 /// MNHF signal validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -90,5 +69,11 @@ impl MnHardFork {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for MnHardFork {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "MnHardFork {{ v{}, bit: {} }}", self.version, self.version_bit,)
   }
 }

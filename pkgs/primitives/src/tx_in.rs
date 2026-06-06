@@ -6,12 +6,9 @@
 
 //! Transaction input.
 
+use crate::codec_type;
 use crate::outpoint::OutPoint;
-use crate::prelude::*;
 use crate::script::Script;
-
-use dash_types::codec::{BaseCodec, DecodeError};
-use dash_types::impl_type;
 
 use core::fmt;
 
@@ -27,23 +24,11 @@ pub struct TxIn {
   pub sequence: u32,
 }
 
-impl BaseCodec for TxIn {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      prevout: OutPoint::decode(data)?,
-      script_sig: Script::decode(data)?,
-      sequence: u32::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.prevout.encode(buf);
-    self.script_sig.encode(buf);
-    self.sequence.encode(buf);
-  }
-}
-
-impl_type!(TxIn);
+codec_type!(TxIn {
+  prevout,
+  script_sig,
+  sequence
+});
 
 impl fmt::Display for TxIn {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

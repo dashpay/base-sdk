@@ -6,12 +6,10 @@
 
 //! Masternode list diff messages: getmnlistd, mnlistdiff.
 
-use crate::codec::impl_p2p;
-use crate::prelude::*;
+use crate::codec::codec_p2p;
 use crate::primitives::mn_list::MnListDiffPayload;
 
 use dash_primitives::BlockHash;
-use dash_types::codec::{BaseCodec, DecodeError};
 
 /// Requests a masternode list diff between two blocks.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -23,21 +21,10 @@ pub struct GetMnListDiff {
   pub block_hash: BlockHash,
 }
 
-impl BaseCodec for GetMnListDiff {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      base_block_hash: BlockHash::decode(data)?,
-      block_hash: BlockHash::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.base_block_hash.encode(buf);
-    self.block_hash.encode(buf);
-  }
-}
-
-impl_p2p!(GetMnListDiff);
+codec_p2p!(GetMnListDiff {
+  base_block_hash,
+  block_hash
+});
 
 /// Response carrying the masternode list diff.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -47,14 +34,4 @@ pub struct MnListDiff {
   pub payload: MnListDiffPayload,
 }
 
-impl BaseCodec for MnListDiff {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    MnListDiffPayload::decode(data).map(|payload| Self { payload })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.payload.encode(buf);
-  }
-}
-
-impl_p2p!(MnListDiff);
+codec_p2p!(MnListDiff { payload });

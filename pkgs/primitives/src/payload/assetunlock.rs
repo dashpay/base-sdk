@@ -6,12 +6,10 @@
 
 //! AssetUnlock (type 9): Platform to L1.
 
-use crate::codec::impl_payload;
-use crate::prelude::*;
+use crate::codec::codec_payload;
 use crate::validation::DeploymentContext;
 use crate::QuorumHash;
 
-use dash_types::codec::{BaseCodec, DecodeError};
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -34,35 +32,14 @@ pub struct AssetUnlock {
   pub quorum_sig: BlsSignatureBytes,
 }
 
-impl BaseCodec for AssetUnlock {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: u8::decode(data)?,
-      index: u64::decode(data)?,
-      fee: u32::decode(data)?,
-      requested_height: u32::decode(data)?,
-      quorum_hash: QuorumHash::decode(data)?,
-      quorum_sig: BlsSignatureBytes::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.encode(buf);
-    self.index.encode(buf);
-    self.fee.encode(buf);
-    self.requested_height.encode(buf);
-    self.quorum_hash.encode(buf);
-    self.quorum_sig.encode(buf);
-  }
-}
-
-impl_payload!(AssetUnlock);
-
-impl fmt::Display for AssetUnlock {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "AssetUnlock {{ v{}, index: {} }}", self.version, self.index,)
-  }
-}
+codec_payload!(AssetUnlock {
+  version,
+  index,
+  fee,
+  requested_height,
+  quorum_hash,
+  quorum_sig,
+});
 
 /// Asset unlock validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -98,5 +75,11 @@ impl AssetUnlock {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for AssetUnlock {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "AssetUnlock {{ v{}, index: {} }}", self.version, self.index,)
   }
 }

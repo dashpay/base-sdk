@@ -6,13 +6,14 @@
 
 //! Governance object and vote types as defined by the Dash protocol.
 
+use crate::codec_type;
 use crate::outpoint::OutPoint;
 use crate::prelude::*;
 use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
-use dash_types::{impl_num, impl_type};
+use dash_types::codec::{self, BaseCodec, NumCodec};
+use dash_types::impl_num;
 use hex_conservative::DisplayHex;
 
 use core::fmt;
@@ -162,33 +163,16 @@ pub struct GovObject {
   pub sig: Vec<u8>,
 }
 
-impl BaseCodec for GovObject {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      hash_parent: TxHash::decode(data)?,
-      revision: i32::decode(data)?,
-      time: i64::decode(data)?,
-      collateral_hash: TxHash::decode(data)?,
-      data: Vec::decode(data)?,
-      object_type: GovObjectType::decode(data)?,
-      masternode_outpoint: OutPoint::decode(data)?,
-      sig: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.hash_parent.encode(buf);
-    self.revision.encode(buf);
-    self.time.encode(buf);
-    self.collateral_hash.encode(buf);
-    self.data.encode(buf);
-    self.object_type.encode(buf);
-    self.masternode_outpoint.encode(buf);
-    self.sig.encode(buf);
-  }
-}
-
-impl_type!(GovObject);
+codec_type!(GovObject {
+  hash_parent,
+  revision,
+  time,
+  collateral_hash,
+  data,
+  object_type,
+  masternode_outpoint,
+  sig,
+});
 
 impl GovObject {
   /// Computes the canonical governance object hash.
@@ -264,6 +248,8 @@ impl NumCodec<u32> for VoteOutcome {
   }
 }
 
+impl_num!(VoteOutcome, u32);
+
 impl fmt::Display for VoteOutcome {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -275,8 +261,6 @@ impl fmt::Display for VoteOutcome {
     }
   }
 }
-
-impl_num!(VoteOutcome, u32);
 
 /// Governance vote signal type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -319,6 +303,8 @@ impl NumCodec<u32> for VoteSignal {
   }
 }
 
+impl_num!(VoteSignal, u32);
+
 impl fmt::Display for VoteSignal {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -331,8 +317,6 @@ impl fmt::Display for VoteSignal {
     }
   }
 }
-
-impl_num!(VoteSignal, u32);
 
 /// A governance vote.
 ///
@@ -358,29 +342,14 @@ pub struct GovVote {
   pub sig: Vec<u8>,
 }
 
-impl BaseCodec for GovVote {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      masternode_outpoint: OutPoint::decode(data)?,
-      parent_hash: TxHash::decode(data)?,
-      outcome: VoteOutcome::decode(data)?,
-      signal: VoteSignal::decode(data)?,
-      time: i64::decode(data)?,
-      sig: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.masternode_outpoint.encode(buf);
-    self.parent_hash.encode(buf);
-    self.outcome.encode(buf);
-    self.signal.encode(buf);
-    self.time.encode(buf);
-    self.sig.encode(buf);
-  }
-}
-
-impl_type!(GovVote);
+codec_type!(GovVote {
+  masternode_outpoint,
+  parent_hash,
+  outcome,
+  signal,
+  time,
+  sig,
+});
 
 impl GovVote {
   /// Computes the canonical vote hash, including dummy padding after the

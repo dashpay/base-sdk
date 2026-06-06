@@ -6,7 +6,7 @@
 
 //! ProUpRegTx registrar-update payload (type 3).
 
-use crate::codec::impl_payload;
+use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::script::Script;
 use crate::validation::{
@@ -14,7 +14,6 @@ use crate::validation::{
 };
 use crate::{InputsHash, TxHash};
 
-use dash_types::codec::{BaseCodec, DecodeError};
 use dash_types::{BlsPublicKeyBytes, KeyId};
 
 use core::fmt;
@@ -44,39 +43,16 @@ pub struct ProUpRegTx {
   pub vch_sig: Vec<u8>,
 }
 
-impl BaseCodec for ProUpRegTx {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: u16::decode(data)?,
-      pro_tx_hash: TxHash::decode(data)?,
-      mode: u16::decode(data)?,
-      pub_key_operator: BlsPublicKeyBytes::decode(data)?,
-      key_id_voting: KeyId::decode(data)?,
-      script_payout: Script::decode(data)?,
-      inputs_hash: InputsHash::decode(data)?,
-      vch_sig: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.encode(buf);
-    self.pro_tx_hash.encode(buf);
-    self.mode.encode(buf);
-    self.pub_key_operator.encode(buf);
-    self.key_id_voting.encode(buf);
-    self.script_payout.encode(buf);
-    self.inputs_hash.encode(buf);
-    self.vch_sig.encode(buf);
-  }
-}
-
-impl_payload!(ProUpRegTx);
-
-impl fmt::Display for ProUpRegTx {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "ProUpRegTx {{ v{} }}", self.version)
-  }
-}
+codec_payload!(ProUpRegTx {
+  version,
+  pro_tx_hash,
+  mode,
+  pub_key_operator,
+  key_id_voting,
+  script_payout,
+  inputs_hash,
+  vch_sig,
+});
 
 impl ProUpRegTx {
   /// Validates structural invariants without chain context.
@@ -102,5 +78,11 @@ impl ProUpRegTx {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for ProUpRegTx {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "ProUpRegTx {{ v{} }}", self.version)
   }
 }

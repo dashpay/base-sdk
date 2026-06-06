@@ -14,6 +14,10 @@ extern crate std;
 
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
+#[doc(hidden)]
+pub mod __private {
+  pub use dash_types;
+}
 
 pub mod block;
 pub mod block_header;

@@ -6,11 +6,10 @@
 
 //! Inventory vector used by inv, getdata, and notfound messages.
 
-use crate::codec::impl_p2p;
-use crate::prelude::*;
+use crate::codec::codec_p2p;
 
 use dash_num::Hash256;
-use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::NumCodec;
 use dash_types::impl_num;
 
 use core::fmt;
@@ -64,6 +63,8 @@ impl NumCodec<u32> for InvType {
   }
 }
 
+impl_num!(InvType, u32);
+
 impl fmt::Display for InvType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -79,8 +80,6 @@ impl fmt::Display for InvType {
   }
 }
 
-impl_num!(InvType, u32);
-
 /// An inventory vector: a typed 32-byte hash.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -91,20 +90,7 @@ pub struct Inventory {
   pub hash: Hash256,
 }
 
-impl BaseCodec for Inventory {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let inv_type = InvType::from_base(u32::decode(data)?);
-    let hash = Hash256::decode(data)?;
-    Ok(Self { inv_type, hash })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.inv_type.to_base().encode(buf);
-    self.hash.encode(buf);
-  }
-}
-
-impl_p2p!(Inventory);
+codec_p2p!(Inventory { inv_type, hash });
 
 impl fmt::Display for Inventory {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

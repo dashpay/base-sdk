@@ -6,11 +6,8 @@
 
 //! Transaction outpoint (36 bytes).
 
-use crate::prelude::*;
+use crate::codec_type;
 use crate::TxHash;
-
-use dash_types::codec::{BaseCodec, DecodeError};
-use dash_types::impl_type;
 
 use core::fmt;
 
@@ -24,21 +21,7 @@ pub struct OutPoint {
   pub index: u32,
 }
 
-impl BaseCodec for OutPoint {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      hash: TxHash::decode(data)?,
-      index: u32::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.hash.encode(buf);
-    self.index.encode(buf);
-  }
-}
-
-impl_type!(OutPoint);
+codec_type!(OutPoint { hash, index });
 
 impl fmt::Display for OutPoint {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

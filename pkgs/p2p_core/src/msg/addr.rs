@@ -6,11 +6,9 @@
 
 //! Address messages: addr, addrv2 (getaddr and sendaddrv2 are empty).
 
-use crate::codec::impl_p2p;
+use crate::codec::codec_p2p;
 use crate::prelude::*;
 use crate::primitives::net_addr::{AddrV2Entry, TimestampedAddr};
-
-use dash_types::codec::{BaseCodec, DecodeError};
 
 /// V1 address announcement carrying timestamped addresses.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -20,19 +18,7 @@ pub struct Addr {
   pub addrs: Vec<TimestampedAddr>,
 }
 
-impl BaseCodec for Addr {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      addrs: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.addrs.encode(buf);
-  }
-}
-
-impl_p2p!(Addr);
+codec_p2p!(Addr { addrs });
 
 /// BIP155 v2 address announcement.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -42,16 +28,4 @@ pub struct AddrV2Msg {
   pub addrs: Vec<AddrV2Entry>,
 }
 
-impl BaseCodec for AddrV2Msg {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      addrs: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.addrs.encode(buf);
-  }
-}
-
-impl_p2p!(AddrV2Msg);
+codec_p2p!(AddrV2Msg { addrs });

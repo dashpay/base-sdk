@@ -6,7 +6,7 @@
 
 //! BIP157 compact filter messages: getcfilters, cfilter.
 
-use crate::codec::impl_p2p;
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
 
@@ -26,6 +26,8 @@ pub struct GetCFilters {
   pub stop_hash: BlockHash,
 }
 
+impl_p2p!(GetCFilters);
+
 impl BaseCodec for GetCFilters {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
@@ -42,8 +44,6 @@ impl BaseCodec for GetCFilters {
   }
 }
 
-impl_p2p!(GetCFilters);
-
 /// A single compact block filter.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -56,20 +56,8 @@ pub struct CFilter {
   pub filter_data: Vec<u8>,
 }
 
-impl BaseCodec for CFilter {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      filter_type: FilterType(u8::decode(data)?),
-      block_hash: BlockHash::decode(data)?,
-      filter_data: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.filter_type.0.encode(buf);
-    self.block_hash.encode(buf);
-    self.filter_data.encode(buf);
-  }
-}
-
-impl_p2p!(CFilter);
+codec_p2p!(CFilter {
+  filter_type,
+  block_hash,
+  filter_data
+});

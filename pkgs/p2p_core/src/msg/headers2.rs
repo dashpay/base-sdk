@@ -6,7 +6,7 @@
 
 //! Compressed header messages: getheaders2, headers2, sendheaders2.
 
-use crate::codec::impl_p2p;
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::compressed_header::CompressionState;
 use crate::primitives::protocol_version::ProtocolVersion;
@@ -29,23 +29,11 @@ pub struct GetHeaders2 {
   pub hash_stop: BlockHash,
 }
 
-impl BaseCodec for GetHeaders2 {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: ProtocolVersion(u32::decode(data)?),
-      locator_hashes: Vec::decode(data)?,
-      hash_stop: BlockHash::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.0.encode(buf);
-    self.locator_hashes.encode(buf);
-    self.hash_stop.encode(buf);
-  }
-}
-
-impl_p2p!(GetHeaders2);
+codec_p2p!(GetHeaders2 {
+  version,
+  locator_hashes,
+  hash_stop
+});
 
 /// Response carrying DIP-0025 delta-compressed block headers.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -54,6 +42,8 @@ pub struct Headers2 {
   /// Fully resolved block headers (decompressed).
   pub headers: Vec<dash_primitives::BlockHeader>,
 }
+
+impl_p2p!(Headers2);
 
 impl BaseCodec for Headers2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -74,5 +64,3 @@ impl BaseCodec for Headers2 {
     }
   }
 }
-
-impl_p2p!(Headers2);

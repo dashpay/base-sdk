@@ -6,7 +6,7 @@
 
 //! Network address types for P2P messages.
 
-use crate::codec::impl_p2p;
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::service_flags::ServiceFlags;
 
@@ -28,21 +28,7 @@ pub struct NetAddr {
   pub addr: CService,
 }
 
-impl BaseCodec for NetAddr {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      services: ServiceFlags(u64::decode(data)?),
-      addr: CService::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.services.0.encode(buf);
-    self.addr.encode(buf);
-  }
-}
-
-impl_p2p!(NetAddr);
+codec_p2p!(NetAddr { services, addr });
 
 impl fmt::Display for NetAddr {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -62,23 +48,7 @@ pub struct TimestampedAddr {
   pub addr: CService,
 }
 
-impl BaseCodec for TimestampedAddr {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      time: u32::decode(data)?,
-      services: ServiceFlags(u64::decode(data)?),
-      addr: CService::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.time.encode(buf);
-    self.services.0.encode(buf);
-    self.addr.encode(buf);
-  }
-}
-
-impl_p2p!(TimestampedAddr);
+codec_p2p!(TimestampedAddr { time, services, addr });
 
 /// Maximum serialized address size in ADDRv2 (BIP155).
 const MAX_ADDRV2_SIZE: usize = 512;

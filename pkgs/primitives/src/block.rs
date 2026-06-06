@@ -7,12 +7,10 @@
 //! Dash block (header + transactions).
 
 use crate::block_header::BlockHeader;
+use crate::codec_type;
 use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
 use crate::validation::{DeploymentContext, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE};
-
-use dash_types::codec::{BaseCodec, DecodeError};
-use dash_types::impl_type;
 
 use core::fmt;
 
@@ -26,54 +24,7 @@ pub struct Block {
   pub transactions: Vec<Transaction>,
 }
 
-impl BaseCodec for Block {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      header: BlockHeader::decode(data)?,
-      transactions: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.header.encode(buf);
-    self.transactions.encode(buf);
-  }
-}
-
-impl_type!(Block);
-
-impl fmt::Display for Block {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "Block {{ txs: {} }}", self.transactions.len())
-  }
-}
-
-/// Block validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum BlockInvalid {
-  /// `bad-blk-length`
-  BadBlockLength { size: usize },
-  /// `bad-cb-missing`
-  MissingCoinbase,
-  /// `bad-cb-multiple`
-  MultipleCoinbases { index: usize },
-  /// `bad-blk-sigops`
-  TooManySigops { count: usize, limit: usize },
-  /// A contained transaction failed validation.
-  Transaction { index: usize, error: TxInvalid },
-}
-
-impl fmt::Display for BlockInvalid {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::BadBlockLength { size } => write!(f, "bad-blk-length: {size} bytes"),
-      Self::MissingCoinbase => write!(f, "bad-cb-missing"),
-      Self::MultipleCoinbases { index } => write!(f, "bad-cb-multiple: tx {index}"),
-      Self::TooManySigops { count, limit } => write!(f, "bad-blk-sigops: {count} > {limit}"),
-      Self::Transaction { index, error } => write!(f, "tx {index}: {error}"),
-    }
-  }
-}
+codec_type!(Block { header, transactions });
 
 impl Block {
   /// Validates block structure without chain context.
@@ -127,5 +78,38 @@ impl Block {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for Block {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Block {{ txs: {} }}", self.transactions.len())
+  }
+}
+
+/// Block validation failure.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum BlockInvalid {
+  /// `bad-blk-length`
+  BadBlockLength { size: usize },
+  /// `bad-cb-missing`
+  MissingCoinbase,
+  /// `bad-cb-multiple`
+  MultipleCoinbases { index: usize },
+  /// `bad-blk-sigops`
+  TooManySigops { count: usize, limit: usize },
+  /// A contained transaction failed validation.
+  Transaction { index: usize, error: TxInvalid },
+}
+
+impl fmt::Display for BlockInvalid {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::BadBlockLength { size } => write!(f, "bad-blk-length: {size} bytes"),
+      Self::MissingCoinbase => write!(f, "bad-cb-missing"),
+      Self::MultipleCoinbases { index } => write!(f, "bad-cb-multiple: tx {index}"),
+      Self::TooManySigops { count, limit } => write!(f, "bad-blk-sigops: {count} > {limit}"),
+      Self::Transaction { index, error } => write!(f, "tx {index}: {error}"),
+    }
   }
 }

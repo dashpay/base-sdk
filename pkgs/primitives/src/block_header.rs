@@ -6,11 +6,8 @@
 
 //! Dash block header (80 bytes).
 
-use crate::prelude::*;
+use crate::codec_type;
 use crate::{BlockHash, MerkleRoot};
-
-use dash_types::codec::{BaseCodec, DecodeError};
-use dash_types::impl_type;
 
 use core::fmt;
 
@@ -32,29 +29,14 @@ pub struct BlockHeader {
   pub nonce: u32,
 }
 
-impl BaseCodec for BlockHeader {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: i32::decode(data)?,
-      prev_hash: BlockHash::decode(data)?,
-      merkle_root: MerkleRoot::decode(data)?,
-      time: u32::decode(data)?,
-      bits: u32::decode(data)?,
-      nonce: u32::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.encode(buf);
-    self.prev_hash.encode(buf);
-    self.merkle_root.encode(buf);
-    self.time.encode(buf);
-    self.bits.encode(buf);
-    self.nonce.encode(buf);
-  }
-}
-
-impl_type!(BlockHeader);
+codec_type!(BlockHeader {
+  version,
+  prev_hash,
+  merkle_root,
+  time,
+  bits,
+  nonce,
+});
 
 impl fmt::Display for BlockHeader {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

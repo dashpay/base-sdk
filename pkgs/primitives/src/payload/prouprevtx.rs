@@ -6,13 +6,11 @@
 
 //! ProUpRevTx revocation payload (type 4).
 
-use crate::codec::impl_payload;
-use crate::prelude::*;
+use crate::codec::codec_payload;
 use crate::support::RevocationReason;
 use crate::validation::{check_protx_version, max_protx_version_no_ext, DeploymentContext, ProTxInvalid};
 use crate::{InputsHash, TxHash};
 
-use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -36,33 +34,13 @@ pub struct ProUpRevTx {
   pub sig: BlsSignatureBytes,
 }
 
-impl BaseCodec for ProUpRevTx {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: u16::decode(data)?,
-      pro_tx_hash: TxHash::decode(data)?,
-      reason: RevocationReason::from_base(u16::decode(data)?),
-      inputs_hash: InputsHash::decode(data)?,
-      sig: BlsSignatureBytes::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.encode(buf);
-    self.pro_tx_hash.encode(buf);
-    self.reason.to_base().encode(buf);
-    self.inputs_hash.encode(buf);
-    self.sig.encode(buf);
-  }
-}
-
-impl_payload!(ProUpRevTx);
-
-impl fmt::Display for ProUpRevTx {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "ProUpRevTx {{ v{} }}", self.version)
-  }
-}
+codec_payload!(ProUpRevTx {
+  version,
+  pro_tx_hash,
+  reason,
+  inputs_hash,
+  sig,
+});
 
 impl ProUpRevTx {
   /// Validates structural invariants without chain context.
@@ -78,5 +56,11 @@ impl ProUpRevTx {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for ProUpRevTx {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "ProUpRevTx {{ v{} }}", self.version)
   }
 }

@@ -6,11 +6,9 @@
 
 //! Inventory messages: inv, getdata, notfound.
 
-use crate::codec::impl_p2p;
+use crate::codec::codec_p2p;
 use crate::prelude::*;
 use crate::primitives::inventory::Inventory;
-
-use dash_types::codec::{BaseCodec, DecodeError};
 
 /// Announces available inventory to a peer.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -20,19 +18,7 @@ pub struct Inv {
   pub inventory: Vec<Inventory>,
 }
 
-impl BaseCodec for Inv {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      inventory: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.inventory.encode(buf);
-  }
-}
-
-impl_p2p!(Inv);
+codec_p2p!(Inv { inventory });
 
 /// Requests specific inventory items from a peer.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -42,19 +28,7 @@ pub struct GetData {
   pub inventory: Vec<Inventory>,
 }
 
-impl BaseCodec for GetData {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      inventory: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.inventory.encode(buf);
-  }
-}
-
-impl_p2p!(GetData);
+codec_p2p!(GetData { inventory });
 
 /// Indicates requested inventory items were not found.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -64,16 +38,4 @@ pub struct NotFound {
   pub inventory: Vec<Inventory>,
 }
 
-impl BaseCodec for NotFound {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      inventory: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.inventory.encode(buf);
-  }
-}
-
-impl_p2p!(NotFound);
+codec_p2p!(NotFound { inventory });

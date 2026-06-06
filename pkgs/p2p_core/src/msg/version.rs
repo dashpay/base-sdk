@@ -6,15 +6,13 @@
 
 //! Version handshake message (Dash-extended).
 
-use crate::codec::impl_p2p;
-use crate::prelude::*;
+use crate::codec::codec_p2p;
 use crate::primitives::net_addr::NetAddr;
 use crate::primitives::protocol_version::ProtocolVersion;
 use crate::primitives::service_flags::ServiceFlags;
 use crate::primitives::user_agent::UserAgent;
 
 use dash_num::Hash256;
-use dash_types::codec::{BaseCodec, DecodeError};
 
 /// The `version` message initiates the P2P handshake.
 ///
@@ -47,36 +45,16 @@ pub struct Version {
   pub mn_connection: bool,
 }
 
-impl BaseCodec for Version {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      protocol_version: ProtocolVersion(u32::decode(data)?),
-      services: ServiceFlags(u64::decode(data)?),
-      timestamp: i64::decode(data)?,
-      addr_recv: NetAddr::decode(data)?,
-      addr_send: NetAddr::decode(data)?,
-      nonce: u64::decode(data)?,
-      user_agent: UserAgent::decode(data)?,
-      start_height: i32::decode(data)?,
-      relay: bool::decode(data)?,
-      mnauth_challenge: Hash256::decode(data)?,
-      mn_connection: bool::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.protocol_version.0.encode(buf);
-    self.services.0.encode(buf);
-    self.timestamp.encode(buf);
-    self.addr_recv.encode(buf);
-    self.addr_send.encode(buf);
-    self.nonce.encode(buf);
-    self.user_agent.encode(buf);
-    self.start_height.encode(buf);
-    self.relay.encode(buf);
-    self.mnauth_challenge.encode(buf);
-    self.mn_connection.encode(buf);
-  }
-}
-
-impl_p2p!(Version);
+codec_p2p!(Version {
+  protocol_version,
+  services,
+  timestamp,
+  addr_recv,
+  addr_send,
+  nonce,
+  user_agent,
+  start_height,
+  relay,
+  mnauth_challenge,
+  mn_connection,
+});

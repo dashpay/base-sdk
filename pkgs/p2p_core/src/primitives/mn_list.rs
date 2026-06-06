@@ -6,7 +6,7 @@
 
 //! Simplified masternode list types for `getmnlistd`/`mnlistdiff`.
 
-use crate::codec::impl_p2p;
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
 use dash_primitives::payload::Commitment;
@@ -41,6 +41,8 @@ pub struct SimplifiedMnListEntry {
   /// Platform node ID (Evo masternodes only).
   pub platform_node_id: Option<PlatformNodeId>,
 }
+
+impl_p2p!(SimplifiedMnListEntry);
 
 impl BaseCodec for SimplifiedMnListEntry {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -98,8 +100,6 @@ impl BaseCodec for SimplifiedMnListEntry {
   }
 }
 
-impl_p2p!(SimplifiedMnListEntry);
-
 impl fmt::Display for SimplifiedMnListEntry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.pro_reg_tx_hash)
@@ -116,21 +116,7 @@ pub struct DeletedQuorum {
   pub hash: BlockHash,
 }
 
-impl BaseCodec for DeletedQuorum {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      llmq_type: LlmqType::from_base(u8::decode(data)?),
-      hash: BlockHash::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.llmq_type.to_base().encode(buf);
-    self.hash.encode(buf);
-  }
-}
-
-impl_p2p!(DeletedQuorum);
+codec_p2p!(DeletedQuorum { llmq_type, hash });
 
 /// Chainlock signature entry in the MN list diff.
 ///
@@ -145,21 +131,7 @@ pub struct QuorumClSig {
   pub index_set: Vec<u16>,
 }
 
-impl BaseCodec for QuorumClSig {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      sig: BlsSignatureBytes::decode(data)?,
-      index_set: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.sig.encode(buf);
-    self.index_set.encode(buf);
-  }
-}
-
-impl_p2p!(QuorumClSig);
+codec_p2p!(QuorumClSig { sig, index_set });
 
 /// Full masternode list diff payload.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -192,42 +164,20 @@ pub struct MnListDiffPayload {
   pub quorum_cl_sigs: Vec<QuorumClSig>,
 }
 
-impl BaseCodec for MnListDiffPayload {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: u16::decode(data)?,
-      base_block_hash: BlockHash::decode(data)?,
-      block_hash: BlockHash::decode(data)?,
-      total_transactions: u32::decode(data)?,
-      merkle_hashes: Vec::decode(data)?,
-      merkle_flags: Vec::decode(data)?,
-      cb_tx: Transaction::decode(data)?,
-      deleted_mns: Vec::decode(data)?,
-      mn_list: Vec::decode(data)?,
-      deleted_quorums: Vec::decode(data)?,
-      new_quorums: Vec::decode(data)?,
-      // Chainlock signatures (protocol >= 70230).
-      quorum_cl_sigs: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.encode(buf);
-    self.base_block_hash.encode(buf);
-    self.block_hash.encode(buf);
-    self.total_transactions.encode(buf);
-    self.merkle_hashes.encode(buf);
-    self.merkle_flags.encode(buf);
-    self.cb_tx.encode(buf);
-    self.deleted_mns.encode(buf);
-    self.mn_list.encode(buf);
-    self.deleted_quorums.encode(buf);
-    self.new_quorums.encode(buf);
-    self.quorum_cl_sigs.encode(buf);
-  }
-}
-
-impl_p2p!(MnListDiffPayload);
+codec_p2p!(MnListDiffPayload {
+  version,
+  base_block_hash,
+  block_hash,
+  total_transactions,
+  merkle_hashes,
+  merkle_flags,
+  cb_tx,
+  deleted_mns,
+  mn_list,
+  deleted_quorums,
+  new_quorums,
+  quorum_cl_sigs,
+});
 
 impl fmt::Display for MnListDiffPayload {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

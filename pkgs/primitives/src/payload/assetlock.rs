@@ -6,12 +6,10 @@
 
 //! AssetLock (type 8): L1 to Platform.
 
-use crate::codec::impl_payload;
+use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::tx_out::TxOut;
 use crate::validation::DeploymentContext;
-
-use dash_types::codec::{BaseCodec, DecodeError};
 
 use core::fmt;
 
@@ -25,32 +23,10 @@ pub struct AssetLock {
   pub credit_outputs: Vec<TxOut>,
 }
 
-impl BaseCodec for AssetLock {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: u8::decode(data)?,
-      credit_outputs: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.encode(buf);
-    self.credit_outputs.encode(buf);
-  }
-}
-
-impl_payload!(AssetLock);
-
-impl fmt::Display for AssetLock {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "AssetLock {{ v{}, outputs: {} }}",
-      self.version,
-      self.credit_outputs.len(),
-    )
-  }
-}
+codec_payload!(AssetLock {
+  version,
+  credit_outputs
+});
 
 /// Asset lock validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -108,5 +84,16 @@ impl AssetLock {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for AssetLock {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "AssetLock {{ v{}, outputs: {} }}",
+      self.version,
+      self.credit_outputs.len(),
+    )
   }
 }

@@ -6,11 +6,10 @@
 
 //! Governance sync request message.
 
-use crate::codec::impl_p2p;
+use crate::codec::codec_p2p;
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use dash_types::codec::{BaseCodec, DecodeError};
 
 /// Requests governance objects and votes from a peer.
 ///
@@ -26,18 +25,4 @@ pub struct GovSync {
   pub bloom_filter: Vec<u8>,
 }
 
-impl BaseCodec for GovSync {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      hash: Hash256::decode(data)?,
-      bloom_filter: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.hash.encode(buf);
-    self.bloom_filter.encode(buf);
-  }
-}
-
-impl_p2p!(GovSync);
+codec_p2p!(GovSync { hash, bloom_filter });

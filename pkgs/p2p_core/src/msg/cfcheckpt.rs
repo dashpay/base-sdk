@@ -6,12 +6,11 @@
 
 //! BIP157 compact filter checkpoint messages: getcfcheckpt, cfcheckpt.
 
-use crate::codec::impl_p2p;
+use crate::codec::codec_p2p;
 use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
 
 use dash_primitives::BlockHash;
-use dash_types::codec::{BaseCodec, DecodeError};
 
 /// Requests evenly-spaced compact filter checkpoints.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -23,21 +22,7 @@ pub struct GetCFCheckpt {
   pub stop_hash: BlockHash,
 }
 
-impl BaseCodec for GetCFCheckpt {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      filter_type: FilterType(u8::decode(data)?),
-      stop_hash: BlockHash::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.filter_type.0.encode(buf);
-    self.stop_hash.encode(buf);
-  }
-}
-
-impl_p2p!(GetCFCheckpt);
+codec_p2p!(GetCFCheckpt { filter_type, stop_hash });
 
 /// Response carrying filter header checkpoints at 1000-block intervals.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -51,20 +36,8 @@ pub struct CFCheckpt {
   pub filter_headers: Vec<BlockHash>,
 }
 
-impl BaseCodec for CFCheckpt {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      filter_type: FilterType(u8::decode(data)?),
-      stop_hash: BlockHash::decode(data)?,
-      filter_headers: Vec::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.filter_type.0.encode(buf);
-    self.stop_hash.encode(buf);
-    self.filter_headers.encode(buf);
-  }
-}
-
-impl_p2p!(CFCheckpt);
+codec_p2p!(CFCheckpt {
+  filter_type,
+  stop_hash,
+  filter_headers
+});

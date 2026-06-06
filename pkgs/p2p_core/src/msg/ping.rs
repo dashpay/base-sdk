@@ -6,10 +6,7 @@
 
 //! Ping and Pong keepalive messages.
 
-use crate::codec::impl_p2p;
-use crate::prelude::*;
-
-use dash_types::codec::{BaseCodec, DecodeError};
+use crate::codec::codec_p2p;
 
 /// Keepalive request carrying a random nonce.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -19,19 +16,7 @@ pub struct Ping {
   pub nonce: u64,
 }
 
-impl BaseCodec for Ping {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      nonce: u64::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.nonce.encode(buf);
-  }
-}
-
-impl_p2p!(Ping);
+codec_p2p!(Ping { nonce });
 
 /// Keepalive response echoing the nonce from a `Ping`.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -41,16 +26,4 @@ pub struct Pong {
   pub nonce: u64,
 }
 
-impl BaseCodec for Pong {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      nonce: u64::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.nonce.encode(buf);
-  }
-}
-
-impl_p2p!(Pong);
+codec_p2p!(Pong { nonce });

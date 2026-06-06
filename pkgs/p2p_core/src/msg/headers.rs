@@ -6,7 +6,7 @@
 
 //! Block header messages: getheaders, headers, sendheaders.
 
-use crate::codec::impl_p2p;
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::protocol_version::ProtocolVersion;
 
@@ -28,23 +28,11 @@ pub struct GetHeaders {
   pub hash_stop: BlockHash,
 }
 
-impl BaseCodec for GetHeaders {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(Self {
-      version: ProtocolVersion(u32::decode(data)?),
-      locator_hashes: Vec::decode(data)?,
-      hash_stop: BlockHash::decode(data)?,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    self.version.0.encode(buf);
-    self.locator_hashes.encode(buf);
-    self.hash_stop.encode(buf);
-  }
-}
-
-impl_p2p!(GetHeaders);
+codec_p2p!(GetHeaders {
+  version,
+  locator_hashes,
+  hash_stop
+});
 
 /// Response carrying block headers.
 ///
@@ -56,6 +44,8 @@ pub struct Headers {
   /// Block headers.
   pub headers: Vec<BlockHeader>,
 }
+
+impl_p2p!(Headers);
 
 impl BaseCodec for Headers {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -89,5 +79,3 @@ impl BaseCodec for Headers {
     }
   }
 }
-
-impl_p2p!(Headers);
