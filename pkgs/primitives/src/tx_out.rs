@@ -35,12 +35,14 @@ impl BaseCodec for TxOut {
       expected: Amount::MAX_MONEY.to_sat(),
       actual: raw,
     })?;
-    let script_pubkey = Script::decode(data)?;
-    Ok(Self { value, script_pubkey })
+    Ok(Self {
+      value,
+      script_pubkey: Script::decode(data)?,
+    })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.value.to_sat().to_le_bytes());
+    self.value.to_sat().encode(buf);
     self.script_pubkey.encode(buf);
   }
 }

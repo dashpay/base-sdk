@@ -22,8 +22,9 @@ pub struct GovObjVote {
 
 impl BaseCodec for GovObjVote {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let vote = GovernanceVote::decode(data)?;
-    Ok(Self { vote })
+    Ok(Self {
+      vote: GovernanceVote::decode(data)?,
+    })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {

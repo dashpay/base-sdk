@@ -10,7 +10,7 @@ use crate::codec::impl_p2p;
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::impl_num;
 
 use core::fmt;
@@ -93,14 +93,14 @@ pub struct Inventory {
 
 impl BaseCodec for Inventory {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let inv_type = InvType::from_base(codec::read_u32_le(data)?);
+    let inv_type = InvType::from_base(u32::decode(data)?);
     let hash = Hash256::decode(data)?;
     Ok(Self { inv_type, hash })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.inv_type.to_base().to_le_bytes());
-    buf.extend_from_slice(&self.hash.to_bytes());
+    self.inv_type.to_base().encode(buf);
+    self.hash.encode(buf);
   }
 }
 

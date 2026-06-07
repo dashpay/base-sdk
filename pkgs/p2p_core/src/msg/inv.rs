@@ -25,8 +25,9 @@ pub struct Inv {
 
 impl BaseCodec for Inv {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let inventory = codec::read_vec(data, MAX_INV_ITEMS)?;
-    Ok(Self { inventory })
+    Ok(Self {
+      inventory: codec::read_vec(data, MAX_INV_ITEMS)?,
+    })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
@@ -46,8 +47,9 @@ pub struct GetData {
 
 impl BaseCodec for GetData {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let inventory = codec::read_vec(data, MAX_INV_ITEMS)?;
-    Ok(Self { inventory })
+    Ok(Self {
+      inventory: codec::read_vec(data, MAX_INV_ITEMS)?,
+    })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
@@ -67,8 +69,9 @@ pub struct NotFound {
 
 impl BaseCodec for NotFound {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let inventory = codec::read_vec(data, MAX_INV_ITEMS)?;
-    Ok(Self { inventory })
+    Ok(Self {
+      inventory: codec::read_vec(data, MAX_INV_ITEMS)?,
+    })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {

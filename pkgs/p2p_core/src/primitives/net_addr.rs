@@ -30,15 +30,15 @@ pub struct NetAddr {
 
 impl BaseCodec for NetAddr {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let services = ServiceFlags(codec::read_u64_le(data)?);
-    let addr = CService::decode(data)?;
-    Ok(Self { services, addr })
+    Ok(Self {
+      services: ServiceFlags(u64::decode(data)?),
+      addr: CService::decode(data)?,
+    })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.services.0.to_le_bytes());
-    buf.extend_from_slice(&self.addr.addr);
-    buf.extend_from_slice(&self.addr.port.to_be_bytes());
+    self.services.0.encode(buf);
+    self.addr.encode(buf);
   }
 }
 
@@ -64,17 +64,17 @@ pub struct TimestampedAddr {
 
 impl BaseCodec for TimestampedAddr {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let time = codec::read_u32_le(data)?;
-    let services = ServiceFlags(codec::read_u64_le(data)?);
-    let addr = CService::decode(data)?;
-    Ok(Self { time, services, addr })
+    Ok(Self {
+      time: u32::decode(data)?,
+      services: ServiceFlags(u64::decode(data)?),
+      addr: CService::decode(data)?,
+    })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.time.to_le_bytes());
-    buf.extend_from_slice(&self.services.0.to_le_bytes());
-    buf.extend_from_slice(&self.addr.addr);
-    buf.extend_from_slice(&self.addr.port.to_be_bytes());
+    self.time.encode(buf);
+    self.services.0.encode(buf);
+    self.addr.encode(buf);
   }
 }
 
@@ -106,7 +106,7 @@ impl AddrV2 {
 
 impl BaseCodec for AddrV2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let net_byte = codec::read_u8(data)?;
+    let net_byte = u8::decode(data)?;
     let network = NetworkType::from_base(net_byte);
     let addr = codec::read_blob(data, 512)?;
     if let Some(expected) = Self::expected_len(network) {
@@ -121,7 +121,7 @@ impl BaseCodec for AddrV2 {
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.push(self.network.to_base());
+    self.network.to_base().encode(buf);
     codec::write_blob(&self.addr, buf);
   }
 }
@@ -144,9 +144,9 @@ pub struct AddrV2Entry {
 
 impl BaseCodec for AddrV2Entry {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let time = codec::read_u32_le(data)?;
+    let time = u32::decode(data)?;
     let services = ServiceFlags(codec::read_compact_u64(data)?);
-    let net_byte = codec::read_u8(data)?;
+    let net_byte = u8::decode(data)?;
     let network = NetworkType::from_base(net_byte);
     let addr = codec::read_blob(data, 512)?;
     if let Some(expected) = AddrV2::expected_len(network) {
@@ -168,9 +168,9 @@ impl BaseCodec for AddrV2Entry {
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.time.to_le_bytes());
+    self.time.encode(buf);
     codec::write_compact_size(self.services.0 as usize, buf);
-    buf.push(self.addr.network.to_base());
+    self.addr.network.to_base().encode(buf);
     codec::write_blob(&self.addr.addr, buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
   }

@@ -15,6 +15,8 @@ use core::fmt;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CommandString([u8; 12]);
 
+impl_bytes!(12, CommandString);
+
 impl CommandString {
   /// Builds a command string from a static `&str` at compile time.
   ///
@@ -215,5 +217,3 @@ impl fmt::Display for CommandString {
     f.write_str(self.as_str())
   }
 }
-
-impl_bytes!(12, CommandString);

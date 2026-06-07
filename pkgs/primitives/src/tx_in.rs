@@ -10,7 +10,7 @@ use crate::outpoint::OutPoint;
 use crate::prelude::*;
 use crate::script::Script;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError};
 use dash_types::impl_type;
 
 use core::fmt;
@@ -29,20 +29,17 @@ pub struct TxIn {
 
 impl BaseCodec for TxIn {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let prevout = OutPoint::decode(data)?;
-    let script_sig = Script::decode(data)?;
-    let sequence = codec::read_u32_le(data)?;
     Ok(Self {
-      prevout,
-      script_sig,
-      sequence,
+      prevout: OutPoint::decode(data)?,
+      script_sig: Script::decode(data)?,
+      sequence: u32::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
     self.prevout.encode(buf);
     self.script_sig.encode(buf);
-    buf.extend_from_slice(&self.sequence.to_le_bytes());
+    self.sequence.encode(buf);
   }
 }
 

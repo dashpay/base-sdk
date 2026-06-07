@@ -9,7 +9,7 @@
 use crate::codec::impl_p2p;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError};
 
 /// Keepalive request carrying a random nonce.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -22,12 +22,12 @@ pub struct Ping {
 impl BaseCodec for Ping {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
-      nonce: codec::read_u64_le(data)?,
+      nonce: u64::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.nonce.to_le_bytes());
+    self.nonce.encode(buf);
   }
 }
 
@@ -44,12 +44,12 @@ pub struct Pong {
 impl BaseCodec for Pong {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
-      nonce: codec::read_u64_le(data)?,
+      nonce: u64::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.nonce.to_le_bytes());
+    self.nonce.encode(buf);
   }
 }
 

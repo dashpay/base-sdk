@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::validation::{DeploymentContext, VERSIONBITS_NUM_BITS};
 use crate::QuorumHash;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError};
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -32,24 +32,19 @@ pub struct MnHardFork {
 
 impl BaseCodec for MnHardFork {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let version = codec::read_u8(data)?;
-    let version_bit = codec::read_u8(data)?;
-    let quorum_hash = QuorumHash::decode(data)?;
-    let sig = codec::read_type(data)?;
-
     Ok(Self {
-      version,
-      version_bit,
-      quorum_hash,
-      sig,
+      version: u8::decode(data)?,
+      version_bit: u8::decode(data)?,
+      quorum_hash: QuorumHash::decode(data)?,
+      sig: BlsSignatureBytes::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.push(self.version);
-    buf.push(self.version_bit);
-    buf.extend_from_slice(self.quorum_hash.as_bytes());
-    buf.extend_from_slice(&self.sig.0);
+    self.version.encode(buf);
+    self.version_bit.encode(buf);
+    self.quorum_hash.encode(buf);
+    self.sig.encode(buf);
   }
 }
 

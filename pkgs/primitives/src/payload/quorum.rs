@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::support::{DynBitset, LlmqType};
 use crate::{QuorumHash, QuorumVvecHash};
 
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 
 use core::fmt;
@@ -47,6 +47,49 @@ pub struct Commitment {
   pub members_sig: BlsSignatureBytes,
 }
 
+impl_payload!(Commitment);
+
+impl BaseCodec for Commitment {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let version = u16::decode(data)?;
+    let llmq_type = LlmqType::from_base(u8::decode(data)?);
+    let quorum_hash = QuorumHash::decode(data)?;
+    let quorum_index = if version == 2 || version == 4 {
+      Some(i16::decode(data)?)
+    } else {
+      None
+    };
+
+    Ok(Self {
+      version,
+      llmq_type,
+      quorum_hash,
+      quorum_index,
+      signers: DynBitset::decode(data)?,
+      valid_members: DynBitset::decode(data)?,
+      quorum_public_key: BlsPublicKeyBytes::decode(data)?,
+      quorum_vvec_hash: QuorumVvecHash::decode(data)?,
+      quorum_sig: BlsSignatureBytes::decode(data)?,
+      members_sig: BlsSignatureBytes::decode(data)?,
+    })
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.version.encode(buf);
+    self.llmq_type.to_base().encode(buf);
+    self.quorum_hash.encode(buf);
+    if let Some(idx) = self.quorum_index {
+      idx.encode(buf);
+    }
+    self.signers.encode(buf);
+    self.valid_members.encode(buf);
+    self.quorum_public_key.encode(buf);
+    self.quorum_vvec_hash.encode(buf);
+    self.quorum_sig.encode(buf);
+    self.members_sig.encode(buf);
+  }
+}
+
 impl Commitment {
   /// Returns true if this is an indexed commitment (version 2 or 4).
   #[inline]
@@ -54,57 +97,6 @@ impl Commitment {
     self.version == 2 || self.version == 4
   }
 }
-
-impl BaseCodec for Commitment {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let version = codec::read_u16_le(data)?;
-    let llmq_type = LlmqType::from_base(codec::read_u8(data)?);
-    let quorum_hash = QuorumHash::decode(data)?;
-
-    let quorum_index = if version == 2 || version == 4 {
-      Some(codec::read_i16_le(data)?)
-    } else {
-      None
-    };
-
-    let signers = DynBitset::decode(data)?;
-    let valid_members = DynBitset::decode(data)?;
-    let quorum_public_key = codec::read_type(data)?;
-    let quorum_vvec_hash = QuorumVvecHash::decode(data)?;
-    let quorum_sig = codec::read_type(data)?;
-    let members_sig = codec::read_type(data)?;
-
-    Ok(Self {
-      version,
-      llmq_type,
-      quorum_hash,
-      quorum_index,
-      signers,
-      valid_members,
-      quorum_public_key,
-      quorum_vvec_hash,
-      quorum_sig,
-      members_sig,
-    })
-  }
-
-  fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.version.to_le_bytes());
-    buf.push(self.llmq_type.to_base());
-    buf.extend_from_slice(self.quorum_hash.as_bytes());
-    if let Some(idx) = self.quorum_index {
-      buf.extend_from_slice(&idx.to_le_bytes());
-    }
-    self.signers.encode(buf);
-    self.valid_members.encode(buf);
-    buf.extend_from_slice(&self.quorum_public_key.0);
-    buf.extend_from_slice(self.quorum_vvec_hash.as_bytes());
-    buf.extend_from_slice(&self.quorum_sig.0);
-    buf.extend_from_slice(&self.members_sig.0);
-  }
-}
-
-impl_payload!(Commitment);
 
 impl fmt::Display for Commitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -124,26 +116,23 @@ pub struct FinalCommitment {
   pub commitment: Commitment,
 }
 
+impl_payload!(FinalCommitment);
+
 impl BaseCodec for FinalCommitment {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let version = codec::read_u16_le(data)?;
-    let height = bitcoin_units::BlockHeight::from_u32(codec::read_u32_le(data)?);
-    let commitment = Commitment::decode(data)?;
     Ok(Self {
-      version,
-      height,
-      commitment,
+      version: u16::decode(data)?,
+      height: bitcoin_units::BlockHeight::from_u32(u32::decode(data)?),
+      commitment: Commitment::decode(data)?,
     })
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.version.to_le_bytes());
-    buf.extend_from_slice(&self.height.to_u32().to_le_bytes());
+    self.version.encode(buf);
+    self.height.to_u32().encode(buf);
     self.commitment.encode(buf);
   }
 }
-
-impl_payload!(FinalCommitment);
 
 impl fmt::Display for FinalCommitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
