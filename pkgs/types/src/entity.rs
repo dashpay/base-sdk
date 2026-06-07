@@ -7,6 +7,7 @@
 //! Bridge utilities for `BaseCodec` types to `bitcoin_consensus_encoding`
 //! traits.
 
+use crate::codec::DecodeError;
 use crate::prelude::*;
 
 use bitcoin_consensus_encoding as encoding;
@@ -21,16 +22,16 @@ pub const MAX_SER_SIZE: usize = 0x0200_0000;
 /// Wraps types with complex sequential decode logic (conditional fields,
 /// version branching) that cannot be expressed as a composable push-decoder
 /// without excessive boilerplate.
-pub struct BufferDecoder<T, E> {
+pub struct BufferDecoder<T> {
   buf: Vec<u8>,
   limit: usize,
-  decode_fn: fn(&mut &[u8]) -> Result<T, E>,
+  decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError>,
 }
 
-impl<T, E> BufferDecoder<T, E> {
+impl<T> BufferDecoder<T> {
   /// Creates a new decoder with the given decode function and
   /// maximum buffer size.
-  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, E>, limit: usize) -> Self {
+  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError>, limit: usize) -> Self {
     Self {
       buf: Vec::new(),
       limit,
@@ -39,7 +40,7 @@ impl<T, E> BufferDecoder<T, E> {
   }
 }
 
-impl<T, E> fmt::Debug for BufferDecoder<T, E> {
+impl<T> fmt::Debug for BufferDecoder<T> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("BufferDecoder")
       .field("buf_len", &self.buf.len())
@@ -48,7 +49,7 @@ impl<T, E> fmt::Debug for BufferDecoder<T, E> {
   }
 }
 
-impl<T, E> Clone for BufferDecoder<T, E> {
+impl<T> Clone for BufferDecoder<T> {
   fn clone(&self) -> Self {
     Self {
       buf: self.buf.clone(),
@@ -58,9 +59,9 @@ impl<T, E> Clone for BufferDecoder<T, E> {
   }
 }
 
-impl<T, E> encoding::Decoder for BufferDecoder<T, E> {
+impl<T> encoding::Decoder for BufferDecoder<T> {
   type Output = T;
-  type Error = E;
+  type Error = DecodeError;
 
   fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
     let remaining = self.limit.saturating_sub(self.buf.len());
@@ -74,7 +75,14 @@ impl<T, E> encoding::Decoder for BufferDecoder<T, E> {
   }
 
   fn end(self) -> Result<Self::Output, Self::Error> {
-    (self.decode_fn)(&mut &self.buf[..])
+    let mut cursor = &self.buf[..];
+    let result = (self.decode_fn)(&mut cursor)?;
+    if !cursor.is_empty() {
+      return Err(DecodeError::TrailingBytes {
+        remaining: cursor.len(),
+      });
+    }
+    Ok(result)
   }
 
   fn read_limit(&self) -> usize {
@@ -132,7 +140,7 @@ macro_rules! impl_type {
     }
 
     impl ::bitcoin_consensus_encoding::Decodable for $ty {
-      type Decoder = $crate::BufferDecoder<$ty, $crate::codec::DecodeError>;
+      type Decoder = $crate::BufferDecoder<$ty>;
       fn decoder() -> Self::Decoder {
         $crate::BufferDecoder::new(<$ty as $crate::codec::BaseCodec>::decode, $max)
       }

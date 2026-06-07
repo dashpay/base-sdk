@@ -104,10 +104,17 @@ impl Transaction {
     if !self.has_extra_payload() {
       return None;
     }
-    Some(crate::payload::SpecialPayload::decode(
-      self.tx_type,
-      &mut &self.extra_payload[..],
-    ))
+    let mut cursor = &self.extra_payload[..];
+    let result = crate::payload::SpecialPayload::decode(self.tx_type, &mut cursor);
+    Some(result.and_then(|payload| {
+      if !cursor.is_empty() {
+        return Err(crate::payload::PayloadError {
+          tx_type: self.tx_type,
+          message: format!("trailing bytes: {} remaining", cursor.len()),
+        });
+      }
+      Ok(payload)
+    }))
   }
 
   /// Validates structural invariants without chain context.

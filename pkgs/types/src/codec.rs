@@ -42,6 +42,11 @@ pub enum DecodeError {
     /// The value that was decoded.
     actual: u64,
   },
+  /// Unconsumed bytes remain after decoding.
+  TrailingBytes {
+    /// Number of bytes left over.
+    remaining: usize,
+  },
 }
 
 impl fmt::Display for DecodeError {
@@ -58,6 +63,9 @@ impl fmt::Display for DecodeError {
       }
       Self::InvalidValue { expected, actual } => {
         write!(f, "invalid value: expected {expected}, got {actual}")
+      }
+      Self::TrailingBytes { remaining } => {
+        write!(f, "{remaining} trailing bytes after decode")
       }
     }
   }
