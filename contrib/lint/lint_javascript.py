@@ -11,9 +11,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from pathlib import Path
 
-from common import RETCODE_ERR, find_up, require_bin
+from common import RETCODE_ERR, require_bin, root_dir
 
 ESLINT_VERSION = "9.39.3"
 
@@ -23,11 +22,7 @@ DEFAULT_TARGETS: tuple[str, ...] = (".github/scripts",)
 def main() -> int:
   npx_bin = require_bin("npx")
 
-  repo_root = find_up(
-    Path(__file__).resolve().parent,
-    lambda d: (d / "pyproject.toml").is_file(),
-    "pyproject.toml",
-  )
+  repo_root = root_dir()
   config_path = repo_root / "contrib" / "js" / "eslint.config.mjs"
 
   if not config_path.is_file():

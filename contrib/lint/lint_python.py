@@ -11,19 +11,14 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from pathlib import Path
 
-from common import RETCODE_ERR, find_up, require_bin
+from common import RETCODE_ERR, require_bin, root_dir
 
 
 def main() -> int:
   ruff_bin = require_bin("ruff")
 
-  repo_root = find_up(
-    Path(__file__).resolve().parent,
-    lambda d: (d / "pyproject.toml").is_file(),
-    "pyproject.toml",
-  )
+  repo_root = root_dir()
   result = subprocess.run(  # noqa: S603
     [ruff_bin, "check", str(repo_root)],
     check=False,

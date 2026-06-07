@@ -11,20 +11,29 @@
 
 from __future__ import annotations
 
+import argparse
+import contextlib
 import csv
 import datetime
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from collections.abc import Iterator
 
 from common import (
   RETCODE_ERR,
   RETCODE_PASS,
   RETCODE_SKIP,
-  find_up,
-  is_workspace_root,
   require_bin,
+  root_dir,
+  usable_mem,
+  usable_threads,
 )
 
 
@@ -40,20 +49,23 @@ def _discover_ql_sources(query_dir: Path) -> list[Path]:
   )
 
 
+_SOURCE_KEYWORDS = ("Serialize", "Deserialize", "#[cfg")
+
+
 def _generate_source_lines(
   source_root: Path,
   query_dir: Path,
 ) -> Path:
-  """Scan source files and generate a .qll with cfg line data.
+  """Emit a raw source-line predicate for CodeQL queries.
 
   TODO(github/codeql#20771): the Rust extractor does not expand cfg_attr
   token-tree content. This function compensates by pre-scanning sources and
-  emitting a predicate listing every source line starting with a ``#[cfg``
-  attribute. Remove once the extractor supports token-tree extraction.
+  emitting lines that match broad keywords.
+
+  Remove once the extractor supports token-tree extraction.
   """
   out = query_dir / "lib" / "source_lines.qll"
-  serde_rows: list[str] = []
-  cfg_rows: list[str] = []
+  rows: list[str] = []
   for rs_file in sorted(source_root.rglob("*.rs")):
     rel = str(rs_file.relative_to(source_root))
     try:
@@ -61,24 +73,14 @@ def _generate_source_lines(
     except OSError:
       continue
     for lineno, line in enumerate(text.splitlines(), 1):
-      stripped = line.lstrip()
-      if "Serialize" in line:
-        serde_rows.append(
-          f'  file = "{rel}" and line = {lineno}'
-          f' and trait = "Serialize"',
-        )
-      if "Deserialize" in line:
-        serde_rows.append(
-          f'  file = "{rel}" and line = {lineno}'
-          f' and trait = "Deserialize"',
-        )
-      if stripped.startswith("#[cfg"):
-        cfg_rows.append(
-          f'  file = "{rel}" and line = {lineno}',
-        )
+      if not any(kw in line for kw in _SOURCE_KEYWORDS):
+        continue
+      escaped = line.strip().replace("\\", "\\\\").replace('"', '\\"')
+      rows.append(
+        f'  file = "{rel}" and line = {lineno} and content = "{escaped}"',
+      )
 
-  serde_body = "\n  or\n".join(serde_rows) if serde_rows else "  none()"
-  cfg_body = "\n  or\n".join(cfg_rows) if cfg_rows else "  none()"
+  body = "\n  or\n".join(rows) if rows else "  none()"
   timestamp = datetime.datetime.now(datetime.UTC).strftime(
     "%Y-%m-%dT%H:%M:%SZ",
   )
@@ -87,22 +89,13 @@ def _generate_source_lines(
     f" Do not edit. */\n"
     "\n"
     "/**\n"
-    " * Holds if line `line` in `file` mentions the serde\n"
-    " * `trait` (``Serialize`` or ``Deserialize``).\n"
-    " *\n"
+    " * Holds if `line` in `file` contains look-out keywords.\n"
+    " * `content` is the trimmed source text.\n"
     " * File paths are relative to ``pkgs/``.\n"
     " */\n"
-    "predicate hasSerdeMention(string file, int line, string trait) {\n"
-    f"{serde_body}\n"
-    "}\n"
-    "\n"
-    "/**\n"
-    " * Holds if line `line` in `file` starts with a ``#[cfg`` attribute.\n"
-    " *\n"
-    " * File paths are relative to ``pkgs/``.\n"
-    " */\n"
-    "predicate hasCfgLine(string file, int line) {\n"
-    f"{cfg_body}\n"
+    "predicate sourceLineContent"
+    "(string file, int line, string content) {\n"
+    f"{body}\n"
     "}\n"
   )
   out.write_text(content, encoding="latin-1")
@@ -113,16 +106,67 @@ def _print_csv_diagnostics(results_path: Path) -> int:
   """Print CSV results to stderr. Returns the finding count."""
   count = 0
   with results_path.open(newline="") as f:
-    for row in csv.DictReader(f):
-      uri = row.get("path", "?")
-      line = row.get("startline", "0")
-      msg = row.get("message", "")
+    for row in csv.reader(f):
+      if not row:
+        continue
+      if len(row) < 6:
+        raise ValueError(f"malformed CodeQL CSV row: {row!r}")
+      uri = Path("pkgs") / row[4].lstrip("/")
+      line = row[5]
+      msg = row[3].replace("\n", " ")
       print(f"{uri}:{line}: {msg}", file=sys.stderr)
       count += 1
   return count
 
 
-def main() -> int:
+@contextlib.contextmanager
+def _workspace_dirs(
+  cache_dir: Path,
+  *,
+  cache: bool,
+) -> Iterator[tuple[Path, Path]]:
+  """Yield ``(db_path, results_dir)`` for analysis.
+
+  When *cache* is false a temporary directory is used for both
+  the database and the results so no persistent cache is created
+  or modified.
+  """
+  if not cache:
+    tmp = Path(tempfile.mkdtemp(prefix="codeql-"))
+    try:
+      results = tmp / "results"
+      results.mkdir()
+      yield tmp / "db", results
+    finally:
+      try:
+        shutil.rmtree(tmp)
+      except OSError as exc:
+        print(
+          f"warning: failed to remove {tmp}: {exc}",
+          file=sys.stderr,
+        )
+  else:
+    results = cache_dir / "results"
+    results.mkdir(parents=True, exist_ok=True)
+    yield cache_dir / "db", results
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+  parser = argparse.ArgumentParser(
+    description="Run CodeQL queries against the workspace.",
+  )
+  parser.add_argument(
+    "-c",
+    "--cache",
+    action="store_true",
+    help="persist the database for faster reruns",
+  )
+  return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+  args = _parse_args(argv if argv is not None else sys.argv[1:])
+
   try:
     codeql_bin = require_bin("codeql")
   except FileNotFoundError as e:
@@ -138,11 +182,7 @@ def main() -> int:
     )
     return RETCODE_SKIP
 
-  repo_root = find_up(
-    Path(__file__).resolve().parent,
-    is_workspace_root,
-    "workspace Cargo.toml",
-  )
+  repo_root = root_dir()
   query_dir = repo_root / "contrib" / "codeql"
   queries = _discover_queries(query_dir)
 
@@ -150,7 +190,11 @@ def main() -> int:
     raise FileNotFoundError("no .ql queries found in contrib/codeql/")
 
   # Generate source-line data for queries that need raw text.
-  _generate_source_lines(repo_root / "pkgs", query_dir)
+  generated = _generate_source_lines(repo_root / "pkgs", query_dir)
+  subprocess.run(  # noqa: S603
+    [codeql_bin, "query", "format", "-i", str(generated)],
+    check=True,
+  )
 
   # Check QL formatting before doing any heavy lifting.
   ql_sources = _discover_ql_sources(query_dir)
@@ -180,49 +224,59 @@ def main() -> int:
     check=True,
   )
 
-  db_path = query_dir / ".cache" / "db"
-  results_dir = query_dir / ".cache" / "results"
+  cache_dir = query_dir / ".cache"
 
-  if not db_path.is_dir():
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
+  with _workspace_dirs(cache_dir, cache=args.cache) as (
+    active_db,
+    results_dir,
+  ):
+    db_yml = active_db / "codeql-database.yml"
+    if not db_yml.is_file():
+      # Remove stale artifacts left behind by a previous failed run.
+      if active_db.exists():
+        shutil.rmtree(active_db)
+      active_db.parent.mkdir(parents=True, exist_ok=True)
+      db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
+      result = subprocess.run(  # noqa: S603
+        [
+          codeql_bin,
+          "database",
+          "create",
+          str(active_db),
+          "--language=rust",
+          f"--source-root={repo_root / 'pkgs'}",
+          f"-j{usable_threads()}",
+          "--command=cargo check --features full,_internal",
+        ],
+        cwd=str(repo_root),
+        env=db_env,
+        check=False,
+      )
+      if result.returncode != RETCODE_PASS or not db_yml.is_file():
+        raise RuntimeError(
+          f"codeql database create failed (exit {result.returncode}); database"
+          f" manifest {db_yml} was not produced",
+        )
+
+    # Run each query and collect diagnostics.
+    results_path = results_dir / "results.csv"
+
     subprocess.run(  # noqa: S603
       [
         codeql_bin,
         "database",
-        "create",
-        str(db_path),
-        "--language=rust",
-        f"--source-root={repo_root / 'pkgs'}",
-        "--overwrite",
-        f"-j{max(1, (os.cpu_count() or 2) - 1)}",
-        "--command=cargo check --features full,_internal",
+        "analyze",
+        str(active_db),
+        *[str(q) for q in queries],
+        "--format=csv",
+        f"--output={results_path}",
+        f"--threads={usable_threads()}",
+        f"--ram={usable_mem()}",
       ],
-      cwd=str(repo_root),
-      env=db_env,
       check=True,
     )
 
-  # Run each query and collect diagnostics.
-  results_dir.mkdir(parents=True, exist_ok=True)
-  results_path = results_dir / "results.csv"
-
-  subprocess.run(  # noqa: S603
-    [
-      codeql_bin,
-      "database",
-      "analyze",
-      str(db_path),
-      *[str(q) for q in queries],
-      "--format=csv",
-      f"--output={results_path}",
-      f"--threads={max(1, (os.cpu_count() or 2) - 1)}",
-      "--ram=12288",
-    ],
-    check=True,
-  )
-
-  total_findings = _print_csv_diagnostics(results_path)
+    total_findings = _print_csv_diagnostics(results_path)
 
   return RETCODE_ERR if total_findings > 0 else RETCODE_PASS
 
