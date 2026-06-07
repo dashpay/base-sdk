@@ -312,7 +312,15 @@ impl BaseCodec for i64 {
 
 impl BaseCodec for bool {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    Ok(take::<1>(data)?[0] != 0)
+    let byte = take::<1>(data)?[0];
+    match byte {
+      0 => Ok(false),
+      1 => Ok(true),
+      _ => Err(DecodeError::InvalidValue {
+        expected: 1,
+        actual: u64::from(byte),
+      }),
+    }
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
