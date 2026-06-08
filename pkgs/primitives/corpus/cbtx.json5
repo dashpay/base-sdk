@@ -6,11 +6,11 @@
       "details": {
         "version": 3,
         "height": 2453177,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "225d46f33d115958fd8a6f6577bd9073a63e9f4e3b96ae368dc802bcc4105702",
-        "bestCLHeightDiff": 1,
-        "bestCLSignature": "b44fd959d78fed51dc97bca23a3eb3de8c446ab61ed17a7b42e6b90db1e5ae0a9921b56ebfb297663c4fda1642ae59000bb0f9a32b80e8cdb87d636bf1b0c12e0945f467c54b25f474045ef66dba3e56f731eb198462b8caf86283e348edc0da",
-        "creditPoolBalance": 22812.80549793
+        "bestClHeightDiff": 1,
+        "bestClSignature": "b44fd959d78fed51dc97bca23a3eb3de8c446ab61ed17a7b42e6b90db1e5ae0a9921b56ebfb297663c4fda1642ae59000bb0f9a32b80e8cdb87d636bf1b0c12e0945f467c54b25f474045ef66dba3e56f731eb198462b8caf86283e348edc0da",
+        "creditPoolBalance": 2281280549793
       }
     },
     // Block 00000000000000420905d5fb2718d91b1fd8e1a393a5dc3435be11ee15fa0a87
@@ -19,11 +19,11 @@
       "details": {
         "version": 3,
         "height": 2453176,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "225d46f33d115958fd8a6f6577bd9073a63e9f4e3b96ae368dc802bcc4105702",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "b44fd959d78fed51dc97bca23a3eb3de8c446ab61ed17a7b42e6b90db1e5ae0a9921b56ebfb297663c4fda1642ae59000bb0f9a32b80e8cdb87d636bf1b0c12e0945f467c54b25f474045ef66dba3e56f731eb198462b8caf86283e348edc0da",
-        "creditPoolBalance": 22812.30762214
+        "bestClHeightDiff": 0,
+        "bestClSignature": "b44fd959d78fed51dc97bca23a3eb3de8c446ab61ed17a7b42e6b90db1e5ae0a9921b56ebfb297663c4fda1642ae59000bb0f9a32b80e8cdb87d636bf1b0c12e0945f467c54b25f474045ef66dba3e56f731eb198462b8caf86283e348edc0da",
+        "creditPoolBalance": 2281230762214
       }
     },
     // Block 000000000000000b492f79bdc13280f1c7e208b47b89e3383b5f507d4015a9c2
@@ -32,11 +32,11 @@
       "details": {
         "version": 3,
         "height": 2453175,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "225d46f33d115958fd8a6f6577bd9073a63e9f4e3b96ae368dc802bcc4105702",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "92da17b28468116fbb55d6609b61bafeb3ca253228339bb1fcdcb015aac7de86d8a04ccec936f3570e8a9373b252b8b5170fda83039db3f0dbe5e3f67d01fc67868b97d7ef63bc742d477e3cb285c619935c2644f7e3e48f1c6e58d7e006b912",
-        "creditPoolBalance": 22811.80974635
+        "bestClHeightDiff": 0,
+        "bestClSignature": "92da17b28468116fbb55d6609b61bafeb3ca253228339bb1fcdcb015aac7de86d8a04ccec936f3570e8a9373b252b8b5170fda83039db3f0dbe5e3f67d01fc67868b97d7ef63bc742d477e3cb285c619935c2644f7e3e48f1c6e58d7e006b912",
+        "creditPoolBalance": 2281180974635
       }
     },
     // Block 000000000000000c9f20f16cca2186d6826346342b926e0f89474b5c1e87fc46
@@ -45,11 +45,11 @@
       "details": {
         "version": 3,
         "height": 2453174,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "225d46f33d115958fd8a6f6577bd9073a63e9f4e3b96ae368dc802bcc4105702",
-        "bestCLHeightDiff": 1,
-        "bestCLSignature": "85d431b786bbee67c382249516b7ab44afb7ca9e7c3d7ff04574f774dfe77b8c970e99dfbc4da5b2f9092bdc81ca777509d6b43192f3d83765733d85d31749bef0f7fdab3ce92ed932ae467b79d7a8a34e35cfd5f122c9c8b53fd176eb6c560d",
-        "creditPoolBalance": 22811.31187056
+        "bestClHeightDiff": 1,
+        "bestClSignature": "85d431b786bbee67c382249516b7ab44afb7ca9e7c3d7ff04574f774dfe77b8c970e99dfbc4da5b2f9092bdc81ca777509d6b43192f3d83765733d85d31749bef0f7fdab3ce92ed932ae467b79d7a8a34e35cfd5f122c9c8b53fd176eb6c560d",
+        "creditPoolBalance": 2281131187056
       }
     },
     // Block 000000000000003871b7def530f0edcb1ce888c0bd8e5c35d0af6ba35638a6c2
@@ -58,11 +58,11 @@
       "details": {
         "version": 3,
         "height": 2453173,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "225d46f33d115958fd8a6f6577bd9073a63e9f4e3b96ae368dc802bcc4105702",
-        "bestCLHeightDiff": 1,
-        "bestCLSignature": "b47d6ad310ae278b05e92d39b13e0d546974b8a3b9593e7b2dd6484e1b11e5196d88133eacfcafdb5a4eb416f1d8199913740c887ef6d2358ff27fa43fc0dcca79feb45273bb613b7062475260390dd80907553b33066d595fc3c421c72db645",
-        "creditPoolBalance": 22810.81399477
+        "bestClHeightDiff": 1,
+        "bestClSignature": "b47d6ad310ae278b05e92d39b13e0d546974b8a3b9593e7b2dd6484e1b11e5196d88133eacfcafdb5a4eb416f1d8199913740c887ef6d2358ff27fa43fc0dcca79feb45273bb613b7062475260390dd80907553b33066d595fc3c421c72db645",
+        "creditPoolBalance": 2281081399477
       }
     },
     // Block 000000000000001c4eb751754743378557c25799b1e69b8a2ff462fbf09eb197
@@ -71,11 +71,11 @@
       "details": {
         "version": 3,
         "height": 2453172,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "225d46f33d115958fd8a6f6577bd9073a63e9f4e3b96ae368dc802bcc4105702",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "b47d6ad310ae278b05e92d39b13e0d546974b8a3b9593e7b2dd6484e1b11e5196d88133eacfcafdb5a4eb416f1d8199913740c887ef6d2358ff27fa43fc0dcca79feb45273bb613b7062475260390dd80907553b33066d595fc3c421c72db645",
-        "creditPoolBalance": 22810.31611898
+        "bestClHeightDiff": 0,
+        "bestClSignature": "b47d6ad310ae278b05e92d39b13e0d546974b8a3b9593e7b2dd6484e1b11e5196d88133eacfcafdb5a4eb416f1d8199913740c887ef6d2358ff27fa43fc0dcca79feb45273bb613b7062475260390dd80907553b33066d595fc3c421c72db645",
+        "creditPoolBalance": 2281031611898
       }
     },
     // Block 0000000000000002f484c80468f24d7f20fba5235841926eb9e4a273e4d2f1e7
@@ -84,11 +84,11 @@
       "details": {
         "version": 3,
         "height": 2453171,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "225d46f33d115958fd8a6f6577bd9073a63e9f4e3b96ae368dc802bcc4105702",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "a31d2b692b53bef44fe9d55d82cb0e70ec52d9a0d2df4053e62fee95d7e9ca72d4fb3d4aced198d23bfe9ed1a6d25f4e0df7828268dbf1a982d7395247e4315b8c85272996fbe0f2fa1cb5ef73e4bff8f67f57b870345e02bf7feb297d76d736",
-        "creditPoolBalance": 22809.81824319
+        "bestClHeightDiff": 0,
+        "bestClSignature": "a31d2b692b53bef44fe9d55d82cb0e70ec52d9a0d2df4053e62fee95d7e9ca72d4fb3d4aced198d23bfe9ed1a6d25f4e0df7828268dbf1a982d7395247e4315b8c85272996fbe0f2fa1cb5ef73e4bff8f67f57b870345e02bf7feb297d76d736",
+        "creditPoolBalance": 2280981824319
       }
     },
     // Block 000000000000004058ee9e1e2b849ef63aceefba493965dadc4a5ca444b47ba7
@@ -97,11 +97,11 @@
       "details": {
         "version": 3,
         "height": 2453170,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "99509b89b6f0afb4088e9938898258c0e6c32c8b57185c18c183ea44440536affea9b3fe7ec1d803dbc6bafe3bfc52bd12558bc9ffba9ceef53b89a01519970f56f0ba6231b695040da40641ac70f7ab73943881a7765249e05cffc4b83bea0c",
-        "creditPoolBalance": 22809.32036740
+        "bestClHeightDiff": 0,
+        "bestClSignature": "99509b89b6f0afb4088e9938898258c0e6c32c8b57185c18c183ea44440536affea9b3fe7ec1d803dbc6bafe3bfc52bd12558bc9ffba9ceef53b89a01519970f56f0ba6231b695040da40641ac70f7ab73943881a7765249e05cffc4b83bea0c",
+        "creditPoolBalance": 2280932036740
       }
     },
     // Block 000000000000002aad93c3373fecbcbf34425b02785def1399747b47c4fece59
@@ -110,11 +110,11 @@
       "details": {
         "version": 3,
         "height": 2453169,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "ab0037f2e57622cd0a48f544acf476aa1091d16c796657f643b0941b085285e833a51d2bad186620f6760b20d5c65117005f7be98eb70eda1e9d3e20a08d7e0ba3dedf9064d5bd75e03d979eb78ec46b0e9193360d672fc223b2d7c9e1c93b6b",
-        "creditPoolBalance": 22808.82249161
+        "bestClHeightDiff": 0,
+        "bestClSignature": "ab0037f2e57622cd0a48f544acf476aa1091d16c796657f643b0941b085285e833a51d2bad186620f6760b20d5c65117005f7be98eb70eda1e9d3e20a08d7e0ba3dedf9064d5bd75e03d979eb78ec46b0e9193360d672fc223b2d7c9e1c93b6b",
+        "creditPoolBalance": 2280882249161
       }
     },
     // Block 000000000000001e20c3121399c0ece6c9734ed463ce11812af779b1ec354272
@@ -123,11 +123,11 @@
       "details": {
         "version": 3,
         "height": 2453168,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "897d84dd1492333714ac846a1a20ea655af9f61e89d0313ad2846bfd0b8415a1bbab85ecd0aa3dcaeafdfb021a6d6e0d15421ae78c88d0dabcbf8a08e10b8825113d0d03388c9b69a587e3455f4c43678ee775c7f4e54285763d0011613dca04",
-        "creditPoolBalance": 22808.32461582
+        "bestClHeightDiff": 0,
+        "bestClSignature": "897d84dd1492333714ac846a1a20ea655af9f61e89d0313ad2846bfd0b8415a1bbab85ecd0aa3dcaeafdfb021a6d6e0d15421ae78c88d0dabcbf8a08e10b8825113d0d03388c9b69a587e3455f4c43678ee775c7f4e54285763d0011613dca04",
+        "creditPoolBalance": 2280832461582
       }
     },
     // Block 0000000000000002cac9e317c6c561215d32b1709477865f0518b9539918be08
@@ -136,11 +136,11 @@
       "details": {
         "version": 3,
         "height": 2453167,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "b5d79776f60f03fb9fd56de20463db1a6de17f8fb15768d3b73913f45c4d198bbf4c6963e8ec6e9a29d4b97ec9c3931f123574ca3bd6a95cdc07fb30111505d65bec6178d3cd662479d7aa5ec1073d88e921b971edeaa0eec2563fcbb206a1f3",
-        "creditPoolBalance": 22807.82674003
+        "bestClHeightDiff": 0,
+        "bestClSignature": "b5d79776f60f03fb9fd56de20463db1a6de17f8fb15768d3b73913f45c4d198bbf4c6963e8ec6e9a29d4b97ec9c3931f123574ca3bd6a95cdc07fb30111505d65bec6178d3cd662479d7aa5ec1073d88e921b971edeaa0eec2563fcbb206a1f3",
+        "creditPoolBalance": 2280782674003
       }
     },
     // Block 000000000000001d34d9b48fcc7570106ec674aca8c73fc01b0363646520d6c6
@@ -149,11 +149,11 @@
       "details": {
         "version": 3,
         "height": 2453166,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "a90278f22a833003272c46c188613f293ce3c541c89532ea3d809044f70ac8fb0ab7d47602e20a4c86374ad7c6e1e90007ccf6a1461acf060b4672c3d40e3ea0612d2729953d20051076598296f11252537dc8d78d23f3d02fa72093503454cf",
-        "creditPoolBalance": 22807.32886424
+        "bestClHeightDiff": 0,
+        "bestClSignature": "a90278f22a833003272c46c188613f293ce3c541c89532ea3d809044f70ac8fb0ab7d47602e20a4c86374ad7c6e1e90007ccf6a1461acf060b4672c3d40e3ea0612d2729953d20051076598296f11252537dc8d78d23f3d02fa72093503454cf",
+        "creditPoolBalance": 2280732886424
       }
     },
     // Block 0000000000000015ab2862251803b67eb039e7f9437d7338c23e22f53436093b
@@ -162,11 +162,11 @@
       "details": {
         "version": 3,
         "height": 2453165,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "afe3854ba6d5437fb987262d2778882db3e39e26ab56b1ac1beceef3e33a406e6f351f01a5c5f40712593a4e58e6c1af15c92edb96753c865db76aab085eef9c55d53359dae2f2da9895e8e6c443336bb190337feaffe6fcebe2e9a3fac43788",
-        "creditPoolBalance": 22815.21099035
+        "bestClHeightDiff": 0,
+        "bestClSignature": "afe3854ba6d5437fb987262d2778882db3e39e26ab56b1ac1beceef3e33a406e6f351f01a5c5f40712593a4e58e6c1af15c92edb96753c865db76aab085eef9c55d53359dae2f2da9895e8e6c443336bb190337feaffe6fcebe2e9a3fac43788",
+        "creditPoolBalance": 2281521099035
       }
     },
     // Block 0000000000000029defcf6b3649ef1315e4b71cd3f86a6313653c5f571671f1f
@@ -175,11 +175,11 @@
       "details": {
         "version": 3,
         "height": 2453164,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "99ab115dea25d9e98ef4bdebfe2896f2e3c44cb4006c676544d900098400cd887de984d1842a849489c74e08888e03d519c6a905cccd1f32937db55bb45d1c3c938c996a28e986d92de84bc5af4bf4603e030a3f675437f72c8d4a61ecca934d",
-        "creditPoolBalance": 22814.71311456
+        "bestClHeightDiff": 0,
+        "bestClSignature": "99ab115dea25d9e98ef4bdebfe2896f2e3c44cb4006c676544d900098400cd887de984d1842a849489c74e08888e03d519c6a905cccd1f32937db55bb45d1c3c938c996a28e986d92de84bc5af4bf4603e030a3f675437f72c8d4a61ecca934d",
+        "creditPoolBalance": 2281471311456
       }
     },
     // Block 000000000000000fa6bbf67c771aac44193b3f5d8c64896932a1686e67d556a3
@@ -188,11 +188,11 @@
       "details": {
         "version": 3,
         "height": 2453163,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "a52697b278b94035458dbcb08365d5dad07887d74b73e902519e28be0fd5a27eb5e81bfea386a650ff3834cf487a683e17c350d6e781c86b79f09c974ec52fb50b95afcab6c48d5854acc8249a55ac09c6b18c30218d9c5016cc824b1719ba65",
-        "creditPoolBalance": 22814.21523877
+        "bestClHeightDiff": 0,
+        "bestClSignature": "a52697b278b94035458dbcb08365d5dad07887d74b73e902519e28be0fd5a27eb5e81bfea386a650ff3834cf487a683e17c350d6e781c86b79f09c974ec52fb50b95afcab6c48d5854acc8249a55ac09c6b18c30218d9c5016cc824b1719ba65",
+        "creditPoolBalance": 2281421523877
       }
     },
     // Block 000000000000001b9a85ffc8d096d089c333d78f11b605b002b5b906cd339767
@@ -201,11 +201,11 @@
       "details": {
         "version": 3,
         "height": 2453162,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "a5bd2a235ca709b46033980bdaaa1ea154d871c78e8a8a5f93224193ed436bb64be7bcf40344d6cfea04a62de13498ec04a64b9e586104e5e1ab118bdbd84079ca82717a54516f69a260913e8ff46b0a67a2a95a24c62057e7d1d8bf31e361dd",
-        "creditPoolBalance": 22813.71736298
+        "bestClHeightDiff": 0,
+        "bestClSignature": "a5bd2a235ca709b46033980bdaaa1ea154d871c78e8a8a5f93224193ed436bb64be7bcf40344d6cfea04a62de13498ec04a64b9e586104e5e1ab118bdbd84079ca82717a54516f69a260913e8ff46b0a67a2a95a24c62057e7d1d8bf31e361dd",
+        "creditPoolBalance": 2281371736298
       }
     },
     // Block 000000000000000b5e3533348aed4711afe35ed9e615169c772cee4f3b7e4cba
@@ -214,11 +214,11 @@
       "details": {
         "version": 3,
         "height": 2453161,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "a7a50de68e5e4842b4775a6d392c15feb21c589af1f1061b414f2a3b1aafeb5c5edcd10f1c43d324a0e7dc2ff15a1fcd0039cd495901b0be3b8cec92955d60cc2f1fd12e331b41fb7c93480d764a341f3187101d278d74686b2cdf4027945c80",
-        "creditPoolBalance": 22813.21948719
+        "bestClHeightDiff": 0,
+        "bestClSignature": "a7a50de68e5e4842b4775a6d392c15feb21c589af1f1061b414f2a3b1aafeb5c5edcd10f1c43d324a0e7dc2ff15a1fcd0039cd495901b0be3b8cec92955d60cc2f1fd12e331b41fb7c93480d764a341f3187101d278d74686b2cdf4027945c80",
+        "creditPoolBalance": 2281321948719
       }
     },
     // Block 000000000000002c8d67e33dee633c27135733d941413f316d5988f8559f8cbb
@@ -227,11 +227,11 @@
       "details": {
         "version": 3,
         "height": 2453160,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 0,
-        "bestCLSignature": "b445f8fe1160ece5bc099ae3115aed1be2bdb209142d809b7d3605b95f1ec4f5d2015a99b5f111c41d763725ebff9cf4180ce290dda85c35bf4d4552863d4364b1c8886fa09c90951f8aee032759d2eb3ea6ff40e162fdb79b31cd3e2274b1fb",
-        "creditPoolBalance": 22812.72161140
+        "bestClHeightDiff": 0,
+        "bestClSignature": "b445f8fe1160ece5bc099ae3115aed1be2bdb209142d809b7d3605b95f1ec4f5d2015a99b5f111c41d763725ebff9cf4180ce290dda85c35bf4d4552863d4364b1c8886fa09c90951f8aee032759d2eb3ea6ff40e162fdb79b31cd3e2274b1fb",
+        "creditPoolBalance": 2281272161140
       }
     },
     // Block 000000000000001c4d0b02bb753ed5b9d4c996ecf446e515bfb73434fb68b473
@@ -240,11 +240,11 @@
       "details": {
         "version": 3,
         "height": 2453159,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 1,
-        "bestCLSignature": "a3916b5ba942efb67af4fca90f782936f59d818523b4ba5b4e9213d23e697e45d16b3c19c436d19323f05bb0b5ef9ad400c8c8b6affc7eeafb699f5f6b80d5ec704900328b1fbfce25b2e4f410bd928a1d62eb67ec9f2c5a5a52a77bc5d7c14c",
-        "creditPoolBalance": 22812.22373561
+        "bestClHeightDiff": 1,
+        "bestClSignature": "a3916b5ba942efb67af4fca90f782936f59d818523b4ba5b4e9213d23e697e45d16b3c19c436d19323f05bb0b5ef9ad400c8c8b6affc7eeafb699f5f6b80d5ec704900328b1fbfce25b2e4f410bd928a1d62eb67ec9f2c5a5a52a77bc5d7c14c",
+        "creditPoolBalance": 2281222373561
       }
     },
     // Block 000000000000001cb0a85333afb5fc996d853ad72a713850ba0cd00b61aa57a5
@@ -253,11 +253,11 @@
       "details": {
         "version": 3,
         "height": 2453158,
-        "merkleRootMNList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
+        "merkleRootMnList": "b909eb79c775ad3be8676dc59327bb7419fe10a1f8090cc1825c10f649a09f61",
         "merkleRootQuorums": "e61b4a0bf945cd3ec38d2406dc905e3376834df6e53c86e89a190bb3408900bb",
-        "bestCLHeightDiff": 1,
-        "bestCLSignature": "adddaee9c81bc8a4bd3c99b473a3816bee00f3140f387ee73dc20be1d06081a9eaefecdaf6750ce298856d9e499540c4110ad48bbf55a4c5d51a943c7619041b2e9d5d254b5d27464acd6a673b734b325b11ae9c2d35ce198c6d9895aa15657f",
-        "creditPoolBalance": 22811.72585982
+        "bestClHeightDiff": 1,
+        "bestClSignature": "adddaee9c81bc8a4bd3c99b473a3816bee00f3140f387ee73dc20be1d06081a9eaefecdaf6750ce298856d9e499540c4110ad48bbf55a4c5d51a943c7619041b2e9d5d254b5d27464acd6a673b734b325b11ae9c2d35ce198c6d9895aa15657f",
+        "creditPoolBalance": 2281172585982
       }
     }
   }
