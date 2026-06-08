@@ -59,3 +59,18 @@ codec_p2p!(Version {
   mnauth_challenge,
   mn_connection,
 });
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_version() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "version");
+    let items = read_corpus::<Version>(&text, "version", check_wire);
+    assert_serde_rt("version", &items);
+  }
+}
