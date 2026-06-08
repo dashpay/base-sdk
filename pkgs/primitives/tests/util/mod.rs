@@ -17,6 +17,7 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 
 pub mod block;
+pub mod payload;
 pub mod transaction;
 
 /// A typed corpus entry where `details` is deserialized as `T`.

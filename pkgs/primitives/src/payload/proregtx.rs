@@ -24,6 +24,7 @@ use core::fmt;
 /// Masternode network info: legacy CService or structured extended format.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfo {
   /// ADDRv1 CService (18 bytes).
   Legacy(CService),
@@ -38,6 +39,7 @@ pub enum NetInfo {
 /// - v3: ExtAddr (extended network info)
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProRegTx {
   /// 1=LegacyBLS, 2=BasicBLS, 3=ExtAddr.
   pub version: u16,
@@ -66,10 +68,13 @@ pub struct ProRegTx {
   /// Platform node id (Evo only).
   pub platform_node_id: Option<PlatformNodeId>,
   /// Platform P2P port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformP2PPort"))]
   pub platform_p2p_port: Option<u16>,
   /// Platform HTTP port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformHTTPPort"))]
   pub platform_http_port: Option<u16>,
   /// Owner ECDSA signature (variable-length).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub vch_sig: Vec<u8>,
 }
 
