@@ -5,29 +5,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff170340420f127d518da3d27415c76202000000002f4e614effffffff025141f909000000001976a91408b6841935f55cb830d14ecc863ea93fb969c63c88ac3e41f909000000001976a914b2f8637c6b13d0e6c506ffad53f8d1266eb0df4088ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 142,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0340420f127d518da3d27415c76202000000002f4e614e",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0340420f127d518da3d27415c76202000000002f4e614e",
             "sequence": 4294967295
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67330129,
-            "valueSat": 167330129,
-            "n": 0,
+            "value": 167330129,
             "scriptPubKey": "76a91408b6841935f55cb830d14ecc863ea93fb969c63c88ac"
           },
           {
-            "value": 1.6733011,
-            "valueSat": 167330110,
-            "n": 1,
+            "value": 167330110,
             "scriptPubKey": "76a914b2f8637c6b13d0e6c506ffad53f8d1266eb0df4088ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000004938f58e52d616a27e8d841fc854e6c7fd68620c112ef2ec14
@@ -35,29 +35,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff17033f420f1232c179df779412bc3801000000002f4e614effffffff02997df809000000001976a9146a341485a9444b35dc9cb90d24e7483de7d37e0088ac957df809000000001976a914a1f4065db6e405221e019639e6dc48d2b542676a88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 142,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "033f420f1232c179df779412bc3801000000002f4e614e",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "033f420f1232c179df779412bc3801000000002f4e614e",
             "sequence": 4294967295
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67280025,
-            "valueSat": 167280025,
-            "n": 0,
+            "value": 167280025,
             "scriptPubKey": "76a9146a341485a9444b35dc9cb90d24e7483de7d37e0088ac"
           },
           {
-            "value": 1.67280021,
-            "valueSat": 167280021,
-            "n": 1,
+            "value": 167280021,
             "scriptPubKey": "76a914a1f4065db6e405221e019639e6dc48d2b542676a88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 00000000000000481468e20471ab62ccaf6763792ecd3ad51d599e15bf918136
@@ -65,29 +65,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff17033e420f127d518da3d27434c70b00000000002f4e614effffffff02359cf909000000001976a91408b6841935f55cb830d14ecc863ea93fb969c63c88ac2c9cf909000000001976a914e816b54293f6740f2dd3139617911ab1c1ca08ba88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 142,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "033e420f127d518da3d27434c70b00000000002f4e614e",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "033e420f127d518da3d27434c70b00000000002f4e614e",
             "sequence": 4294967295
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67353397,
-            "valueSat": 167353397,
-            "n": 0,
+            "value": 167353397,
             "scriptPubKey": "76a91408b6841935f55cb830d14ecc863ea93fb969c63c88ac"
           },
           {
-            "value": 1.67353388,
-            "valueSat": 167353388,
-            "n": 1,
+            "value": 167353388,
             "scriptPubKey": "76a914e816b54293f6740f2dd3139617911ab1c1ca08ba88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000004640c4eb8bcd83c7fb767bdd200ae4aad9d70564042b8fa92c
@@ -95,29 +95,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff20033d420f044f73325c0839990ef9e42d02000d2f6e6f64655374726174756d2f00000000024f09fd09000000001976a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac4709fd09000000001976a914392abeff83d511c1597262751582b8fc49e8bdd688ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 151,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "033d420f044f73325c0839990ef9e42d02000d2f6e6f64655374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "033d420f044f73325c0839990ef9e42d02000d2f6e6f64655374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67577935,
-            "valueSat": 167577935,
-            "n": 0,
+            "value": 167577935,
             "scriptPubKey": "76a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac"
           },
           {
-            "value": 1.67577927,
-            "valueSat": 167577927,
-            "n": 1,
+            "value": 167577927,
             "scriptPubKey": "76a914392abeff83d511c1597262751582b8fc49e8bdd688ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000004ac1a5497608bc74bd39888ffa6604ca1d5f939bb8c2abf8a8
@@ -125,29 +125,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff17033c420f127d518da3d2743bc60402000000002f4e614effffffff020c3efa09000000001976a91408b6841935f55cb830d14ecc863ea93fb969c63c88ac053efa09000000001976a91487d9778724c236259a13faeb867c20318ba64b0588ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 142,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "033c420f127d518da3d2743bc60402000000002f4e614e",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "033c420f127d518da3d2743bc60402000000002f4e614e",
             "sequence": 4294967295
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67394828,
-            "valueSat": 167394828,
-            "n": 0,
+            "value": 167394828,
             "scriptPubKey": "76a91408b6841935f55cb830d14ecc863ea93fb969c63c88ac"
           },
           {
-            "value": 1.67394821,
-            "valueSat": 167394821,
-            "n": 1,
+            "value": 167394821,
             "scriptPubKey": "76a91487d9778724c236259a13faeb867c20318ba64b0588ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000002a52139148786be04be5c76038b534948606c524f2792cc0a5
@@ -155,29 +155,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff17033b420f1232c179df779415bb3216000000002f4e614effffffff021c110c0a000000001976a9146a341485a9444b35dc9cb90d24e7483de7d37e0088ac13110c0a000000001976a914c6a1f477392303f5af01533b3bec5aabe50b251388ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 142,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "033b420f1232c179df779415bb3216000000002f4e614e",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "033b420f1232c179df779415bb3216000000002f4e614e",
             "sequence": 4294967295
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.68562972,
-            "valueSat": 168562972,
-            "n": 0,
+            "value": 168562972,
             "scriptPubKey": "76a9146a341485a9444b35dc9cb90d24e7483de7d37e0088ac"
           },
           {
-            "value": 1.68562963,
-            "valueSat": 168562963,
-            "n": 1,
+            "value": 168562963,
             "scriptPubKey": "76a914c6a1f477392303f5af01533b3bec5aabe50b251388ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 00000000000000286a100e642cfcb0712ce21ab0c493baa979cfbff8466d165a
@@ -185,29 +185,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1c033a420f04c571325c0808037b2152720100092f7374726174756d2f0000000002307ef809000000001976a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac277ef809000000001976a9142226d16ad65b053c7462acb7c3602fe3eb04767c88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 147,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "033a420f04c571325c0808037b2152720100092f7374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "033a420f04c571325c0808037b2152720100092f7374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67280176,
-            "valueSat": 167280176,
-            "n": 0,
+            "value": 167280176,
             "scriptPubKey": "76a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac"
           },
           {
-            "value": 1.67280167,
-            "valueSat": 167280167,
-            "n": 1,
+            "value": 167280167,
             "scriptPubKey": "76a9142226d16ad65b053c7462acb7c3602fe3eb04767c88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000003c6888e638ab9af93bd4a21d13fa0edc6dc3f45d6a7eb0b574
@@ -215,29 +215,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1f0339420f04a771325c087cf96c6cae0000000c2f436f696e4d696e65504c2f000000000280aef809000000001976a914ee5c2e032d02f6f7b08fcc21e0025f0baeb056b088ac71aef809000000001976a914a0b0c12d4203958a477de38206b007a66db3f51b88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 150,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0339420f04a771325c087cf96c6cae0000000c2f436f696e4d696e65504c2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0339420f04a771325c087cf96c6cae0000000c2f436f696e4d696e65504c2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67292544,
-            "valueSat": 167292544,
-            "n": 0,
+            "value": 167292544,
             "scriptPubKey": "76a914ee5c2e032d02f6f7b08fcc21e0025f0baeb056b088ac"
           },
           {
-            "value": 1.67292529,
-            "valueSat": 167292529,
-            "n": 1,
+            "value": 167292529,
             "scriptPubKey": "76a914a0b0c12d4203958a477de38206b007a66db3f51b88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000003309bee47bd83773183b0f70a2cce1ada7479f38b35089dee3
@@ -245,29 +245,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff200338420f047e71325c0839990ee368ec01000d2f6e6f64655374726174756d2f00000000022a7df809000000001976a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac237df809000000001976a9149aad35122520f0682346347402a80807a37f2e8d88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 151,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0338420f047e71325c0839990ee368ec01000d2f6e6f64655374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0338420f047e71325c0839990ee368ec01000d2f6e6f64655374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67279914,
-            "valueSat": 167279914,
-            "n": 0,
+            "value": 167279914,
             "scriptPubKey": "76a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac"
           },
           {
-            "value": 1.67279907,
-            "valueSat": 167279907,
-            "n": 1,
+            "value": 167279907,
             "scriptPubKey": "76a9149aad35122520f0682346347402a80807a37f2e8d88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000005164217f616ef4ff5486870b5b8aee6842091809ebc85d9a4b
@@ -275,29 +275,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff270337420f046f71325c0800002bd95b0000000fe4b883e5bda9e7a59ee4bb99e9b1bc04f09f909fd9abd99a02f7b7f809000000001976a914a997109642410f03f5ef864d5a93df32382f1cfd88acffb7f809000000001976a9147c086eada12bdb10a265c16c08a7ae87366bd48188ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 158,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0337420f046f71325c0800002bd95b0000000fe4b883e5bda9e7a59ee4bb99e9b1bc04f09f909f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0337420f046f71325c0800002bd95b0000000fe4b883e5bda9e7a59ee4bb99e9b1bc04f09f909f",
             "sequence": 2597956569
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67294967,
-            "valueSat": 167294967,
-            "n": 0,
+            "value": 167294967,
             "scriptPubKey": "76a914a997109642410f03f5ef864d5a93df32382f1cfd88ac"
           },
           {
-            "value": 1.67294975,
-            "valueSat": 167294975,
-            "n": 1,
+            "value": 167294975,
             "scriptPubKey": "76a9147c086eada12bdb10a265c16c08a7ae87366bd48188ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 00000000000000158c287218d6d6ab1e20175708c7ebe355228895671e165bce
@@ -305,29 +305,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff200336420f045771325c0835aef676301e01000d2f6e6f64655374726174756d2f0000000002e940f909000000001976a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ace540f909000000001976a914e913c978014b27097fe82a99c531991e26ffe50188ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 151,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0336420f045771325c0835aef676301e01000d2f6e6f64655374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0336420f045771325c0835aef676301e01000d2f6e6f64655374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67330025,
-            "valueSat": 167330025,
-            "n": 0,
+            "value": 167330025,
             "scriptPubKey": "76a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac"
           },
           {
-            "value": 1.67330021,
-            "valueSat": 167330021,
-            "n": 1,
+            "value": 167330021,
             "scriptPubKey": "76a914e913c978014b27097fe82a99c531991e26ffe50188ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000002fdb273f273f3a50f7de5c9526fa2a4e289151cb6a88bca1b5
@@ -335,29 +335,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff200335420f043371325c0810a71564b3325c020d2f6e6f64655374726174756d2f00000000023af9070a000000001976a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac33f9070a000000001976a914bcdfc1d9197d79f8e67fbc5202f275ad65548c9f88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 151,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0335420f043371325c0810a71564b3325c020d2f6e6f64655374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0335420f043371325c0810a71564b3325c020d2f6e6f64655374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.68294714,
-            "valueSat": 168294714,
-            "n": 0,
+            "value": 168294714,
             "scriptPubKey": "76a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac"
           },
           {
-            "value": 1.68294707,
-            "valueSat": 168294707,
-            "n": 1,
+            "value": 168294707,
             "scriptPubKey": "76a914bcdfc1d9197d79f8e67fbc5202f275ad65548c9f88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 0000000000000005a8e62c84c3b41f091bf346227a0338a10aaa28b5404afd6b
@@ -365,29 +365,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff170334420f1232c179df779413bb262c000000002f4e614effffffff02fc790e0a000000001976a9146a341485a9444b35dc9cb90d24e7483de7d37e0088acf3790e0a000000001976a914b2ccfabff28c3bedcef370ad729d3ab35e92569288ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 142,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0334420f1232c179df779413bb262c000000002f4e614e",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0334420f1232c179df779413bb262c000000002f4e614e",
             "sequence": 4294967295
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.68720892,
-            "valueSat": 168720892,
-            "n": 0,
+            "value": 168720892,
             "scriptPubKey": "76a9146a341485a9444b35dc9cb90d24e7483de7d37e0088ac"
           },
           {
-            "value": 1.68720883,
-            "valueSat": 168720883,
-            "n": 1,
+            "value": 168720883,
             "scriptPubKey": "76a914b2ccfabff28c3bedcef370ad729d3ab35e92569288ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000001d842e371ea92b8ecaf293800af097462cadd8898fa1ecb584
@@ -395,29 +395,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1c0333420f04896e325c0808020fd9fa9d3001092f7374726174756d2f00000000027197f809000000001976a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac6497f809000000001976a914c1b2b7c9dd52242192aa9d7572b3715fc062a32d88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 147,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0333420f04896e325c0808020fd9fa9d3001092f7374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0333420f04896e325c0808020fd9fa9d3001092f7374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67286641,
-            "valueSat": 167286641,
-            "n": 0,
+            "value": 167286641,
             "scriptPubKey": "76a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac"
           },
           {
-            "value": 1.67286628,
-            "valueSat": 167286628,
-            "n": 1,
+            "value": 167286628,
             "scriptPubKey": "76a914c1b2b7c9dd52242192aa9d7572b3715fc062a32d88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000001a4b1ca374fe57f5232313ab31defb70ace2a3a324636176bb
@@ -425,29 +425,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1c0332420f049c6d325c080803793cf2930000092f7374726174756d2f00000000021c7ff809000000001976a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac137ff809000000001976a91487ba88a40fbce666e3fbc65f3bf848cf3fb917cd88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 147,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0332420f049c6d325c080803793cf2930000092f7374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0332420f049c6d325c080803793cf2930000092f7374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67280412,
-            "valueSat": 167280412,
-            "n": 0,
+            "value": 167280412,
             "scriptPubKey": "76a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac"
           },
           {
-            "value": 1.67280403,
-            "valueSat": 167280403,
-            "n": 1,
+            "value": 167280403,
             "scriptPubKey": "76a91487ba88a40fbce666e3fbc65f3bf848cf3fb917cd88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000000d5549828762d48525b8c8cc95003ad99cba52df271b43d675
@@ -455,29 +455,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff310331420f1b2f5669614254432f4d696e6564206279207875626569303036382f105e21660085bd56b22fff2fcd2f000000ffffffff0241e70d0a000000001976a914bc89d6071dabc5b4494d303af761a052a5c70d5788ac3ae70d0a000000001976a914a7df50cb742019df67933341794e129ccd15724088ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 168,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0331420f1b2f5669614254432f4d696e6564206279207875626569303036382f105e21660085bd56b22fff2fcd2f000000",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0331420f1b2f5669614254432f4d696e6564206279207875626569303036382f105e21660085bd56b22fff2fcd2f000000",
             "sequence": 4294967295
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.68683329,
-            "valueSat": 168683329,
-            "n": 0,
+            "value": 168683329,
             "scriptPubKey": "76a914bc89d6071dabc5b4494d303af761a052a5c70d5788ac"
           },
           {
-            "value": 1.68683322,
-            "valueSat": 168683322,
-            "n": 1,
+            "value": 168683322,
             "scriptPubKey": "76a914a7df50cb742019df67933341794e129ccd15724088ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000000be3c4c5a17a5c6bd844323944443310be374dab9fc68a74ed
@@ -485,29 +485,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff200330420f04476d325c084a20098f7fba05000d2f6e6f64655374726174756d2f00000000020b90f809000000001976a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac0590f809000000001976a914a6857b61bbb3cdac6987b5888960ad4f99aea0d488ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 151,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "0330420f04476d325c084a20098f7fba05000d2f6e6f64655374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "0330420f04476d325c084a20098f7fba05000d2f6e6f64655374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67284747,
-            "valueSat": 167284747,
-            "n": 0,
+            "value": 167284747,
             "scriptPubKey": "76a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac"
           },
           {
-            "value": 1.67284741,
-            "valueSat": 167284741,
-            "n": 1,
+            "value": 167284741,
             "scriptPubKey": "76a914a6857b61bbb3cdac6987b5888960ad4f99aea0d488ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 0000000000000032018fcb6b6358c7d48b9c2e926498bbc79847cf3bacd977bd
@@ -515,29 +515,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff20032f420f04376d325c083999ea20696300000d2f6e6f64655374726174756d2f00000000024e92f809000000001976a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac4992f809000000001976a9141f299a50c7532e257b2497101d3bafa3b4cd6d0388ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 151,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "032f420f04376d325c083999ea20696300000d2f6e6f64655374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "032f420f04376d325c083999ea20696300000d2f6e6f64655374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67285326,
-            "valueSat": 167285326,
-            "n": 0,
+            "value": 167285326,
             "scriptPubKey": "76a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac"
           },
           {
-            "value": 1.67285321,
-            "valueSat": 167285321,
-            "n": 1,
+            "value": 167285321,
             "scriptPubKey": "76a9141f299a50c7532e257b2497101d3bafa3b4cd6d0388ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 000000000000002f478c774230746bfe12e03cd7f1bc6de76c509dedc2093220
@@ -545,29 +545,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff20032e420f04d96c325c0851820f3bd6f90b000d2f6e6f64655374726174756d2f00000000020a39010a000000001976a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac0039010a000000001976a91489ee05452dd54caf8817cac62e78cc9930afe52e88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 151,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "032e420f04d96c325c0851820f3bd6f90b000d2f6e6f64655374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "032e420f04d96c325c0851820f3bd6f90b000d2f6e6f64655374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.67852298,
-            "valueSat": 167852298,
-            "n": 0,
+            "value": 167852298,
             "scriptPubKey": "76a9148136fbc145a04a88d04d844ae9a1101b54feae9b88ac"
           },
           {
-            "value": 1.67852288,
-            "valueSat": 167852288,
-            "n": 1,
+            "value": 167852288,
             "scriptPubKey": "76a91489ee05452dd54caf8817cac62e78cc9930afe52e88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     },
     // Block 00000000000000554098d984d3648449907705311f0e3e5d80f6dfea2424a46d
@@ -575,29 +575,29 @@
       "raw": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1c032d420f04836c325c080803792048420000092f7374726174756d2f00000000025635160a000000001976a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac5135160a000000001976a914a81359ab3d7747f3c2411761b0d1ab5d34488b5d88ac00000000",
       "details": {
         "version": 1,
-        "type": 0,
-        "size": 147,
-        "locktime": 0,
-        "vin": [
+        "txType": 0,
+        "inputs": [
           {
-            "coinbase": "032d420f04836c325c080803792048420000092f7374726174756d2f",
+            "prevout": {
+              "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "index": 4294967295
+            },
+            "scriptSig": "032d420f04836c325c080803792048420000092f7374726174756d2f",
             "sequence": 0
           }
         ],
-        "vout": [
+        "outputs": [
           {
-            "value": 1.69227606,
-            "valueSat": 169227606,
-            "n": 0,
+            "value": 169227606,
             "scriptPubKey": "76a91452b954c4d6e6bdde10aa6c9c36fbea75682e641088ac"
           },
           {
-            "value": 1.69227601,
-            "valueSat": 169227601,
-            "n": 1,
+            "value": 169227601,
             "scriptPubKey": "76a914a81359ab3d7747f3c2411761b0d1ab5d34488b5d88ac"
           }
-        ]
+        ],
+        "lockTime": 0,
+        "extraPayload": ""
       }
     }
   }
