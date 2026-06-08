@@ -7,8 +7,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914ac6283ce641f9b77a68faa69bf8c5e067ebd1eb788ac"
           }
         ]
@@ -21,8 +20,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.01,
-            "valueSat": 1000000,
+            "value": 1000000,
             "scriptPubKey": "76a9144934a3d2577bc3302e3dc54b8cbfa56b321acb5688ac"
           }
         ]
@@ -35,8 +33,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914e8d704f277f138821878c312eb17a6b78c2ecc7e88ac"
           }
         ]
@@ -49,8 +46,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914f8bd980970cdf1e72e66fee539b75c8fb855bebb88ac"
           }
         ]
@@ -63,8 +59,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914b1acbf5dc3896e2b889389fa3c339ef2c216579b88ac"
           }
         ]
@@ -77,8 +72,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914fa3b06e0861f388cd4a86bbd40578ff2c99800ac88ac"
           }
         ]
@@ -91,8 +85,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a9149464f6264d653881fa18325052d7f7ddb73f729788ac"
           }
         ]
@@ -105,8 +98,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914dc570d6de8bb92a52c3909138fcc78ce78ede1c588ac"
           }
         ]
@@ -119,8 +111,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.25,
-            "valueSat": 25000000,
+            "value": 25000000,
             "scriptPubKey": "76a9148b1c20e93f5fa68fbd8af660154ca56c9e4dc9c288ac"
           }
         ]
@@ -133,8 +124,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.25,
-            "valueSat": 25000000,
+            "value": 25000000,
             "scriptPubKey": "76a914bb67669cc4db00c24308872ccf02b06ec2f89b8188ac"
           }
         ]
@@ -147,8 +137,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a91439699ed8e58ad26f802480ab60edc48d50e4dad188ac"
           }
         ]
@@ -161,8 +150,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914164e4173292cbb067368a8a31ac87b9e70194b3f88ac"
           }
         ]
@@ -175,8 +163,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a9144045c9e3c2feae7ca46b4a3ff3e36795a585c63888ac"
           }
         ]
@@ -189,8 +176,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a91475ad61f3150ff0a0f3921cfdbf979864f33470be88ac"
           }
         ]
@@ -203,8 +189,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a9141390f5dc820188ec17ca3a0c7b0229f685d9673d88ac"
           }
         ]
@@ -217,8 +202,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914844dfd02eca3e0dcd5ee74c91d425d7ea019f44088ac"
           }
         ]
@@ -231,8 +215,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a9145548a17e03c6ad7ad6d8f6f8d2be4399b572ba3788ac"
           }
         ]
@@ -245,8 +228,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914ab36d1eea9cbeb58669d89504ddb582f800bbda488ac"
           }
         ]
@@ -259,8 +241,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a9140202b426562cc8ba1fa398c884c6d81ed523a05f88ac"
           }
         ]
@@ -273,8 +254,7 @@
         "version": 1,
         "creditOutputs": [
           {
-            "value": 0.03,
-            "valueSat": 3000000,
+            "value": 3000000,
             "scriptPubKey": "76a914ceca002875306a910a2132286450d24ae0de0a0788ac"
           }
         ]

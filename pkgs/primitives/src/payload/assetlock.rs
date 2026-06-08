@@ -17,6 +17,7 @@ use core::fmt;
 /// AssetLock: L1-to-Platform (type 8).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct AssetLock {
   /// Payload version.
   pub version: u8,
