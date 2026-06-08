@@ -28,6 +28,7 @@ use core::fmt;
 /// decoded separately by payload-specific decoders.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Transaction {
   /// Transaction version (lower 16 bits of the wire i32).
   pub version: i16,

@@ -18,11 +18,13 @@ use core::fmt;
 /// A transaction output.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct TxOut {
   /// Output value in duffs.
   #[cfg_attr(feature = "serde", serde(with = "crate::serialize::amount"))]
   pub value: Amount,
   /// Locking script.
+  #[cfg_attr(feature = "serde", serde(rename = "scriptPubKey"))]
   pub script_pubkey: Script,
 }
 

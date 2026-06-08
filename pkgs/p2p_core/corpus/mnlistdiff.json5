@@ -18,33 +18,33 @@
         "merkle_flags": "1f00",
         "cb_tx": {
           "version": 3,
-          "tx_type": 5,
+          "txType": 5,
           "inputs": [
             {
               "prevout": {
                 "hash": "0000000000000000000000000000000000000000000000000000000000000000",
                 "index": 4294967295
               },
-              "script_sig": "0300992504d13ef46908000013b46fcb03000fe4b883e5bda9e7a59ee4bb99e9b1bc04f09f909f",
+              "scriptSig": "0300992504d13ef46908000013b46fcb03000fe4b883e5bda9e7a59ee4bb99e9b1bc04f09f909f",
               "sequence": 3095565236
             }
           ],
           "outputs": [
             {
               "value": 44261103,
-              "script_pubkey": "76a91464d4d4127bbce4b888bb4af080fa4de863b02b3f88ac"
+              "scriptPubKey": "76a91464d4d4127bbce4b888bb4af080fa4de863b02b3f88ac"
             },
             {
               "value": 49787579,
-              "script_pubkey": "6a"
+              "scriptPubKey": "6a"
             },
             {
               "value": 82995728,
-              "script_pubkey": "76a91461ba0f43e13c1cdf5bc81db6bc46fdaf162f038c88ac"
+              "scriptPubKey": "76a91461ba0f43e13c1cdf5bc81db6bc46fdaf162f038c88ac"
             }
           ],
-          "lock_time": 561009360,
-          "extra_payload": "030000992500f2fcaa7264228035bf83d081b8cb330d7bb7b6e331a931a4bf1dff9e18253a4bad7e95c77f968b6b9f9bfcae534a1f5f97581e955e79fff39f4571c8a31c84b200a1e81160c7a2ed123a35bd81e0728855f3a586084edcbc05cf18538e413fc5738eccc34a6ae89e851d5be17a2348a1d4007a974060d8da60e7e51d7807aa976905d2db3f6c5e55d965275ac8f398c3c0b079f745ade640fef865fa104b4dd4c518aab6c939020000"
+          "lockTime": 561009360,
+          "extraPayload": "030000992500f2fcaa7264228035bf83d081b8cb330d7bb7b6e331a931a4bf1dff9e18253a4bad7e95c77f968b6b9f9bfcae534a1f5f97581e955e79fff39f4571c8a31c84b200a1e81160c7a2ed123a35bd81e0728855f3a586084edcbc05cf18538e413fc5738eccc34a6ae89e851d5be17a2348a1d4007a974060d8da60e7e51d7807aa976905d2db3f6c5e55d965275ac8f398c3c0b079f745ade640fef865fa104b4dd4c518aab6c939020000"
         },
         "deleted_mns": [],
         "mn_list": [

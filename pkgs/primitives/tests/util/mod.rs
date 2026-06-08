@@ -6,14 +6,34 @@
 
 //! Shared test utilities for corpus-driven KAT tests.
 
-#![allow(dead_code)]
+#![expect(dead_code, reason = "code used by different test binaries")]
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec};
 use dash_primitives::{Transaction, TxHash};
 use hex_conservative::FromHex;
+use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
 use std::collections::BTreeMap;
+
+pub mod transaction;
+
+/// A typed corpus entry where `details` is deserialized as `T`.
+#[derive(Debug, Deserialize)]
+pub struct CorpusEntry<T> {
+  pub raw: String,
+  pub details: T,
+}
+
+/// Loads a named section from a corpus file with typed details.
+///
+/// The JSON5 file has shape `{ "<section>": { "<key>": { raw, details } } }`.
+pub fn load_section<T: DeserializeOwned>(file: &str, section: &str) -> BTreeMap<String, CorpusEntry<T>> {
+  let path = format!("{}/corpus/{file}.json5", env!("CARGO_MANIFEST_DIR"));
+  let text = std::fs::read_to_string(&path).unwrap();
+  let mut outer: BTreeMap<String, BTreeMap<String, CorpusEntry<T>>> = json5::from_str(&text).unwrap();
+  outer.remove(section).unwrap()
+}
 
 /// A single entry from a transaction corpus JSON5 file.
 #[derive(Debug, Deserialize)]
