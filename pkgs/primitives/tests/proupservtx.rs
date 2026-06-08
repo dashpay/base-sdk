@@ -11,42 +11,9 @@
 mod util;
 
 use dash_primitives::payload::ProUpServTx;
-use dash_primitives::{InputsHash, TxHash};
-use dash_types::codec::{BaseCodec, Checkable};
 use rstest::rstest;
 
 #[rstest]
-fn decode_fields() {
-  let corpus = util::load_transactions("proupservtx");
-  for (txid, entry) in &corpus {
-    util::assert_txid(&entry.raw, txid);
-    let tx = util::decode_tx(&entry.raw);
-    assert!(tx.check().is_none());
-    assert!(!tx.extra_payload.is_empty(), "{txid}");
-
-    let payload = ProUpServTx::decode(&mut &tx.extra_payload[..]).unwrap();
-    assert!(payload.check().is_none());
-    let d = &entry.details;
-
-    assert_eq!(payload.version, util::json_u64(&d["version"]) as u16, "{txid}",);
-    assert_eq!(
-      payload.pro_tx_hash,
-      TxHash::from_hex(util::json_str(&d["proTxHash"])).unwrap(),
-      "{txid} proTxHash",
-    );
-    assert_eq!(
-      payload.inputs_hash,
-      InputsHash::from_hex(util::json_str(&d["inputsHash"])).unwrap(),
-      "{txid} inputsHash",
-    );
-  }
-}
-
-#[rstest]
-fn round_trip() {
-  let corpus = util::load_transactions("proupservtx");
-  for (txid, entry) in &corpus {
-    let tx = util::decode_tx(&entry.raw);
-    util::assert_round_trip(&entry.raw, &tx, txid);
-  }
+fn corpus() {
+  util::payload::check::<ProUpServTx>("proupservtx", "proupservtx");
 }

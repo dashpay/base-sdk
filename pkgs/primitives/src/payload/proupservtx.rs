@@ -27,6 +27,7 @@ use core::fmt;
 /// - v3: ExtAddr (extended network info)
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProUpServTx {
   /// 1=LegacyBLS, 2=BasicBLS, 3=ExtAddr.
   pub version: u16,
@@ -43,8 +44,10 @@ pub struct ProUpServTx {
   /// Platform node id (Evo only).
   pub platform_node_id: Option<PlatformNodeId>,
   /// Platform P2P port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformP2PPort"))]
   pub platform_p2p_port: Option<u16>,
   /// Platform HTTP port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformHTTPPort"))]
   pub platform_http_port: Option<u16>,
   /// Operator BLS signature.
   pub sig: BlsSignatureBytes,
