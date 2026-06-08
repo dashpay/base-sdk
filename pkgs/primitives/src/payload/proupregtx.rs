@@ -23,6 +23,7 @@ use core::fmt;
 /// - v2: BasicBLS
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProUpRegTx {
   /// 1=LegacyBLS, 2=BasicBLS.
   pub version: u16,
@@ -39,6 +40,7 @@ pub struct ProUpRegTx {
   /// Hash of all inputs.
   pub inputs_hash: InputsHash,
   /// Owner ECDSA signature (variable-length).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub vch_sig: Vec<u8>,
 }
 
