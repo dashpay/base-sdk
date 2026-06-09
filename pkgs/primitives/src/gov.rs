@@ -113,6 +113,7 @@ pub struct Proposal {
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Trigger {
   /// Block height at which payments occur.
   pub event_block_height: i32,
@@ -146,6 +147,7 @@ pub enum GovData {
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovObject {
   /// Parent object hash (zero for root).
   pub hash_parent: TxHash,
@@ -156,12 +158,14 @@ pub struct GovObject {
   /// Collateral transaction hash.
   pub collateral_hash: TxHash,
   /// Raw data bytes (JSON when decoded as string).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub data: Vec<u8>,
   /// Object type code.
   pub object_type: GovObjectType,
   /// Signing masternode outpoint.
   pub masternode_outpoint: OutPoint,
   /// BLS or ECDSA signature.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub sig: Vec<u8>,
 }
 
@@ -329,6 +333,7 @@ impl fmt::Display for VoteSignal {
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovVote {
   /// Voting masternode outpoint.
   pub masternode_outpoint: OutPoint,
@@ -341,6 +346,7 @@ pub struct GovVote {
   /// Vote timestamp.
   pub time: i64,
   /// Signature bytes.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub sig: Vec<u8>,
 }
 
