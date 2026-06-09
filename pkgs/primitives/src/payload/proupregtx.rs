@@ -88,3 +88,18 @@ impl fmt::Display for ProUpRegTx {
     write!(f, "ProUpRegTx {{ v{} }}", self.version)
   }
 }
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_proupregtx() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "proupregtx");
+    let items = read_corpus::<ProUpRegTx>(&text, "proupregtx", check_sptx);
+    assert_serde_rt("proupregtx", &items);
+  }
+}

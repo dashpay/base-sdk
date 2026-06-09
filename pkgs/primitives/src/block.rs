@@ -104,3 +104,27 @@ impl fmt::Display for BlockInvalid {
     }
   }
 }
+
+#[cfg(all(test, feature = "serde"))]
+#[expect(clippy::panic, clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_block() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "blocks");
+    let items = read_corpus::<Block>(&text, "blocks", |raw, details, label| {
+      check_wire(raw, details, label);
+      if let Some(e) = details.check() {
+        panic!("{label}: check: {e}");
+      }
+      let pow_hash = crate::BlockHash::from(dash_pow::hash(&raw[..80]));
+      let expected = crate::BlockHash::from_hex(label).unwrap();
+      assert_eq!(pow_hash, expected, "{label}: pow hash");
+    });
+    assert_serde_rt("blocks", &items);
+  }
+}

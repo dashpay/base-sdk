@@ -324,7 +324,6 @@ dependencies = [
 name = "dash-primitives"
 version = "0.0.0"
 dependencies = [
- "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin-internals",
  "bitcoin-units",
@@ -335,8 +334,6 @@ dependencies = [
  "dash-script",
  "dash-types",
  "hex-conservative",
- "hex-literal",
- "json5",
  "rstest",
  "serde",
  "serde_json",

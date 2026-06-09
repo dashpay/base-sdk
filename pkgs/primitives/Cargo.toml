@@ -41,11 +41,8 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 
 [dev-dependencies]
-base58ck = "0.4"
-dash-dev = { version = "0.0.0", path = "../dev", features = ["std"] }
+dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 dash-pow = { version = "0.0.0", path = "../pow" }
-hex-literal = "0.4"
-json5 = "0.4"
 rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

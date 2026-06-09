@@ -258,3 +258,21 @@ impl OutPoint {
     self.hash.is_null() && self.index == u32::MAX
   }
 }
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_tx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  #[case("spend")]
+  #[case("coinbase")]
+  #[case("data")]
+  fn corpus_tx(#[case] section: &str) {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), section);
+    let items = read_corpus::<Transaction>(&text, section, check_tx);
+    assert_serde_rt(section, &items);
+  }
+}

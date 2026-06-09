@@ -264,3 +264,18 @@ impl fmt::Display for ProRegTx {
     write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
   }
 }
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_proregtx() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "proregtx");
+    let items = read_corpus::<ProRegTx>(&text, "proregtx", check_sptx);
+    assert_serde_rt("proregtx", &items);
+  }
+}
