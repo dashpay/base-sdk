@@ -95,6 +95,9 @@ impl Checkable for Transaction {
       return Some(TxInvalid::EmptyOutputs);
     }
 
+    if !self.has_extra_payload() && !self.extra_payload.is_empty() {
+      return Some(TxInvalid::PayloadNotAllowed);
+    }
     if self.extra_payload.len() > MAX_TX_EXTRA_PAYLOAD {
       return Some(TxInvalid::PayloadOversize {
         size: self.extra_payload.len(),
@@ -227,6 +230,8 @@ pub enum TxInvalid {
   BadCoinbaseScriptLength { len: usize },
   /// `bad-txns-prevout-null`
   NullPrevout { index: usize },
+  /// `bad-txns-payload-not-allowed`
+  PayloadNotAllowed,
 }
 
 impl fmt::Display for TxInvalid {
@@ -241,6 +246,7 @@ impl fmt::Display for TxInvalid {
       Self::DuplicateInputs { outpoint } => write!(f, "bad-txns-inputs-duplicate: {outpoint}"),
       Self::BadCoinbaseScriptLength { len } => write!(f, "bad-cb-length: {len}"),
       Self::NullPrevout { index } => write!(f, "bad-txns-prevout-null: input {index}"),
+      Self::PayloadNotAllowed => write!(f, "bad-txns-payload-not-allowed"),
     }
   }
 }
