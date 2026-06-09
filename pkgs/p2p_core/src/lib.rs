@@ -12,10 +12,10 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+mod codec;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
-pub mod encode;
 pub mod error;
 pub mod msg;
 pub mod primitives;
@@ -27,7 +27,6 @@ pub use primitives::{
   command::CommandString,
   compressed_header::CompressionState,
   filter_type::FilterType,
-  governance::{GovernanceObject, GovernanceVote, VoteOutcome, VoteSignal},
   inventory::{InvType, Inventory},
   magic::Magic,
   mn_list::{MnListDiffPayload, SimplifiedMnListEntry},

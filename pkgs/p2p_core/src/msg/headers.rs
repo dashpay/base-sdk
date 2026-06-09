@@ -6,16 +6,13 @@
 
 //! Block header messages: getheaders, headers, sendheaders.
 
-use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::protocol_version::ProtocolVersion;
 
-use bitcoin_consensus_encoding as encoding;
-use dash_primitives::wire;
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
+use dash_types::codec::{self, BaseCodec, DecodeError};
 
-/// Maximum block locator hashes.
-const MAX_LOCATOR: usize = 101;
 /// Maximum headers per message.
 const MAX_HEADERS: usize = 2_000;
 
@@ -31,48 +28,11 @@ pub struct GetHeaders {
   pub hash_stop: BlockHash,
 }
 
-impl GetHeaders {
-  fn decode_from_slice(data: &[u8]) -> Result<Self, WireDecodeError> {
-    let sl = &mut &data[..];
-    let version = ProtocolVersion(wire::read_u32_le(sl)?);
-    let count = wire::read_compact_size(sl, MAX_LOCATOR)?;
-    let mut locator_hashes = Vec::with_capacity(count);
-    for _ in 0..count {
-      locator_hashes.push(BlockHash::from_bytes(wire::read_array(sl)?));
-    }
-    let hash_stop = BlockHash::from_bytes(wire::read_array(sl)?);
-    Ok(Self {
-      version,
-      locator_hashes,
-      hash_stop,
-    })
-  }
-
-  fn encode_to_vec(&self) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.extend_from_slice(&self.version.0.to_le_bytes());
-    encode_compact_size(self.locator_hashes.len(), &mut buf);
-    for h in &self.locator_hashes {
-      buf.extend_from_slice(&h.to_bytes());
-    }
-    buf.extend_from_slice(&self.hash_stop.to_bytes());
-    buf
-  }
-}
-
-impl encoding::Encodable for GetHeaders {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    VecEncoder::new(self.encode_to_vec())
-  }
-}
-
-impl encoding::Decodable for GetHeaders {
-  type Decoder = BufferDecoder<GetHeaders, WireDecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(GetHeaders::decode_from_slice, MAX_P2P_PAYLOAD)
-  }
-}
+codec_p2p!(GetHeaders {
+  version,
+  locator_hashes,
+  hash_stop
+});
 
 /// Response carrying block headers.
 ///
@@ -85,58 +45,37 @@ pub struct Headers {
   pub headers: Vec<BlockHeader>,
 }
 
-impl Headers {
-  fn decode_from_slice(data: &[u8]) -> Result<Self, WireDecodeError> {
-    let sl = &mut &data[..];
-    let count = wire::read_compact_size(sl, MAX_HEADERS)?;
+impl_p2p!(Headers);
+
+impl BaseCodec for Headers {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let count = codec::read_compact_size(data, MAX_HEADERS)?;
     let mut headers = Vec::with_capacity(count);
     for _ in 0..count {
-      let version = wire::read_i32_le(sl)?;
-      let prev_hash = BlockHash::from_bytes(wire::read_array(sl)?);
-      let merkle_root = MerkleRoot::from_bytes(wire::read_array(sl)?);
-      let time = wire::read_u32_le(sl)?;
-      let bits = wire::read_u32_le(sl)?;
-      let nonce = wire::read_u32_le(sl)?;
-      // Consume the trailing tx_count (always 0).
-      let _tx_count = wire::read_compact_size(sl, 0)?;
       headers.push(BlockHeader {
-        version,
-        prev_hash,
-        merkle_root,
-        time,
-        bits,
-        nonce,
+        version: i32::decode(data)?,
+        prev_hash: BlockHash::decode(data)?,
+        merkle_root: MerkleRoot::decode(data)?,
+        time: u32::decode(data)?,
+        bits: u32::decode(data)?,
+        nonce: u32::decode(data)?,
       });
+      // Consume the trailing tx_count (always 0).
+      codec::read_compact_size(data, 0)?;
     }
     Ok(Self { headers })
   }
 
-  fn encode_to_vec(&self) -> Vec<u8> {
-    let mut buf = Vec::new();
-    encode_compact_size(self.headers.len(), &mut buf);
+  fn encode(&self, buf: &mut Vec<u8>) {
+    codec::write_compact_size(self.headers.len(), buf);
     for h in &self.headers {
-      buf.extend_from_slice(&h.version.to_le_bytes());
-      buf.extend_from_slice(&h.prev_hash.to_bytes());
-      buf.extend_from_slice(&h.merkle_root.to_bytes());
-      buf.extend_from_slice(&h.time.to_le_bytes());
-      buf.extend_from_slice(&h.bits.to_le_bytes());
-      buf.extend_from_slice(&h.nonce.to_le_bytes());
-      buf.push(0); // tx_count = 0
+      h.version.encode(buf);
+      h.prev_hash.encode(buf);
+      h.merkle_root.encode(buf);
+      h.time.encode(buf);
+      h.bits.encode(buf);
+      h.nonce.encode(buf);
+      0u8.encode(buf); // tx_count = 0
     }
-    buf
-  }
-}
-
-impl encoding::Encodable for Headers {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    VecEncoder::new(self.encode_to_vec())
-  }
-}
-
-impl encoding::Decodable for Headers {
-  type Decoder = BufferDecoder<Headers, WireDecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(Headers::decode_from_slice, MAX_P2P_PAYLOAD)
   }
 }

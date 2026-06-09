@@ -12,6 +12,7 @@ mod util;
 
 use dash_primitives::gov::{GovObject, GovObjectType, Proposal};
 use dash_primitives::TxHash;
+use dash_types::codec::{BaseCodec, NumCodec};
 use hex_conservative::FromHex;
 use rstest::rstest;
 
@@ -20,7 +21,7 @@ fn decode_and_hash() {
   let corpus = util::load_proposals();
   for (obj_hash_hex, entry) in &corpus {
     let raw = Vec::<u8>::from_hex(&entry.raw).unwrap();
-    let obj = GovObject::decode(&raw).unwrap();
+    let obj = GovObject::decode(&mut &raw[..]).unwrap();
     let d = &entry.details;
     let payload = &d["payload"];
 
@@ -43,7 +44,7 @@ fn decode_and_hash() {
     );
     assert_eq!(
       obj.object_type,
-      GovObjectType::from_i32(util::json_u64(&d["object_type"]) as i32),
+      GovObjectType::from_base(util::json_u64(&d["object_type"]) as i32),
       "{obj_hash_hex} object_type",
     );
 

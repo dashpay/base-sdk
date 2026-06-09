@@ -6,17 +6,13 @@
 
 //! BIP157 compact filter header messages: getcfheaders, cfheaders.
 
-use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::filter_type::FilterType;
 
-use bitcoin_consensus_encoding as encoding;
 use bitcoin_units::BlockHeight;
-use dash_primitives::wire;
 use dash_primitives::BlockHash;
-
-/// Maximum filter hashes per message.
-const MAX_CFHEADERS: usize = 2_000;
+use dash_types::codec::{BaseCodec, DecodeError};
 
 /// Requests compact filter headers for a range of blocks.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -30,39 +26,21 @@ pub struct GetCFHeaders {
   pub stop_hash: BlockHash,
 }
 
-impl GetCFHeaders {
-  fn decode_from_slice(data: &[u8]) -> Result<Self, WireDecodeError> {
-    let sl = &mut &data[..];
-    let filter_type = FilterType(wire::read_u8(sl)?);
-    let start_height = BlockHeight::from_u32(wire::read_u32_le(sl)?);
-    let stop_hash = BlockHash::from_bytes(wire::read_array(sl)?);
+impl_p2p!(GetCFHeaders);
+
+impl BaseCodec for GetCFHeaders {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
-      filter_type,
-      start_height,
-      stop_hash,
+      filter_type: FilterType(u8::decode(data)?),
+      start_height: BlockHeight::from_u32(u32::decode(data)?),
+      stop_hash: BlockHash::decode(data)?,
     })
   }
 
-  fn encode_to_vec(&self) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.push(self.filter_type.0);
-    buf.extend_from_slice(&self.start_height.to_u32().to_le_bytes());
-    buf.extend_from_slice(&self.stop_hash.to_bytes());
-    buf
-  }
-}
-
-impl encoding::Encodable for GetCFHeaders {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    VecEncoder::new(self.encode_to_vec())
-  }
-}
-
-impl encoding::Decodable for GetCFHeaders {
-  type Decoder = BufferDecoder<GetCFHeaders, WireDecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(GetCFHeaders::decode_from_slice, MAX_P2P_PAYLOAD)
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.filter_type.0.encode(buf);
+    self.start_height.to_u32().encode(buf);
+    self.stop_hash.encode(buf);
   }
 }
 
@@ -80,48 +58,9 @@ pub struct CFHeaders {
   pub filter_hashes: Vec<BlockHash>,
 }
 
-impl CFHeaders {
-  fn decode_from_slice(data: &[u8]) -> Result<Self, WireDecodeError> {
-    let sl = &mut &data[..];
-    let filter_type = FilterType(wire::read_u8(sl)?);
-    let stop_hash = BlockHash::from_bytes(wire::read_array(sl)?);
-    let previous_filter_header = BlockHash::from_bytes(wire::read_array(sl)?);
-    let count = wire::read_compact_size(sl, MAX_CFHEADERS)?;
-    let mut filter_hashes = Vec::with_capacity(count);
-    for _ in 0..count {
-      filter_hashes.push(BlockHash::from_bytes(wire::read_array(sl)?));
-    }
-    Ok(Self {
-      filter_type,
-      stop_hash,
-      previous_filter_header,
-      filter_hashes,
-    })
-  }
-
-  fn encode_to_vec(&self) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.push(self.filter_type.0);
-    buf.extend_from_slice(&self.stop_hash.to_bytes());
-    buf.extend_from_slice(&self.previous_filter_header.to_bytes());
-    encode_compact_size(self.filter_hashes.len(), &mut buf);
-    for h in &self.filter_hashes {
-      buf.extend_from_slice(&h.to_bytes());
-    }
-    buf
-  }
-}
-
-impl encoding::Encodable for CFHeaders {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    VecEncoder::new(self.encode_to_vec())
-  }
-}
-
-impl encoding::Decodable for CFHeaders {
-  type Decoder = BufferDecoder<CFHeaders, WireDecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(CFHeaders::decode_from_slice, MAX_P2P_PAYLOAD)
-  }
-}
+codec_p2p!(CFHeaders {
+  filter_type,
+  stop_hash,
+  previous_filter_header,
+  filter_hashes,
+});

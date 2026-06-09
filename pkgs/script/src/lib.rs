@@ -19,11 +19,10 @@ use crate::opcode::Opcode as Op;
 use crate::prelude::*;
 
 use bitcoin_hashes::{hash160, sha256};
+use dash_types::KeyId;
 
-pub mod key_id;
 pub mod opcode;
 
-pub use key_id::KeyId;
 pub use opcode::Opcode;
 
 /// RIPEMD-160(SHA-256) output length in bytes.

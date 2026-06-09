@@ -6,7 +6,7 @@
 
 //! Twelve-byte null-padded command string for P2P message dispatch.
 
-use bitcoin_consensus_encoding as encoding;
+use dash_types::impl_bytes;
 
 use core::fmt;
 
@@ -14,6 +14,8 @@ use core::fmt;
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CommandString([u8; 12]);
+
+impl_bytes!(12, CommandString);
 
 impl CommandString {
   /// Builds a command string from a static `&str` at compile time.
@@ -213,69 +215,5 @@ impl fmt::Debug for CommandString {
 impl fmt::Display for CommandString {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str(self.as_str())
-  }
-}
-
-encoding::encoder_newtype_exact! {
-  /// Encoder for [`CommandString`].
-  pub struct CommandStringEncoder<'e>(encoding::ArrayEncoder<12>);
-}
-
-impl encoding::Encodable for CommandString {
-  type Encoder<'e> = CommandStringEncoder<'e>;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    CommandStringEncoder::new(encoding::ArrayEncoder::without_length_prefix(*self.as_bytes()))
-  }
-}
-
-/// Decoder for [`CommandString`].
-#[derive(Clone, Debug)]
-pub struct CommandStringDecoder(encoding::ArrayDecoder<12>);
-
-impl CommandStringDecoder {
-  /// Creates a new decoder.
-  pub const fn new() -> Self {
-    Self(encoding::ArrayDecoder::new())
-  }
-}
-
-impl Default for CommandStringDecoder {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
-/// Decode error for [`CommandString`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CommandStringDecoderError(encoding::UnexpectedEofError);
-
-impl fmt::Display for CommandStringDecoderError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "command string decode: {}", self.0)
-  }
-}
-
-impl encoding::Decoder for CommandStringDecoder {
-  type Output = CommandString;
-  type Error = CommandStringDecoderError;
-
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    self.0.push_bytes(bytes).map_err(CommandStringDecoderError)
-  }
-
-  fn end(self) -> Result<Self::Output, Self::Error> {
-    let buf = self.0.end().map_err(CommandStringDecoderError)?;
-    Ok(CommandString::from_bytes(buf))
-  }
-
-  fn read_limit(&self) -> usize {
-    self.0.read_limit()
-  }
-}
-
-impl encoding::Decodable for CommandString {
-  type Decoder = CommandStringDecoder;
-  fn decoder() -> Self::Decoder {
-    CommandStringDecoder::new()
   }
 }

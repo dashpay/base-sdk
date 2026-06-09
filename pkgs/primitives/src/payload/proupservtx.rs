@@ -7,17 +7,18 @@
 //! ProUpServTx service-update payload (type 2).
 
 use super::proregtx::NetInfo;
-use crate::error::DecodeError;
+use crate::codec::impl_payload;
+use crate::prelude::*;
 use crate::script::Script;
+use crate::support::CService;
 use crate::tx_types::MnType;
 use crate::validation::{
   check_net_info_trivially_valid, check_protx_version, max_protx_version, DeploymentContext, ProTxInvalid,
   PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
 };
-use crate::wire;
 use crate::{InputsHash, TxHash};
 
-use bitcoin_consensus_encoding as encoding;
+use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::{BlsSignatureBytes, PlatformNodeId};
 
 use core::fmt;
@@ -52,56 +53,37 @@ pub struct ProUpServTx {
   pub sig: BlsSignatureBytes,
 }
 
-impl fmt::Display for ProUpServTx {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "ProUpServTx {{ v{}, mn_type: {} }}", self.version, self.mn_type,)
-  }
-}
+impl_payload!(ProUpServTx);
 
-impl ProUpServTx {
-  fn decode_for_codec(data: &[u8]) -> Result<Self, crate::codec::DecodeError> {
-    Self::decode(data).map_err(Into::into)
-  }
-
-  /// Decodes from the extra_payload byte slice.
-  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
-    let sl = &mut &data[..];
-
-    let version = wire::read_u16_le(sl)?;
+impl BaseCodec for ProUpServTx {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let version = u16::decode(data)?;
 
     let mn_type = if version >= 2 {
-      let raw = wire::read_u16_le(sl)?;
-      MnType::from_u16(raw)
+      MnType::from_base(u16::decode(data)?)
     } else {
       MnType::Regular
     };
 
-    let pro_tx_hash = wire::read_hash(sl)?.into();
-
+    let pro_tx_hash = TxHash::decode(data)?;
     let net_info = if version >= 3 {
-      let raw = wire::read_vec(sl, 1024)?;
-      NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&raw)?)
+      let raw: Vec<u8> = Vec::decode(data)?;
+      NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&mut &raw[..])?)
     } else {
-      NetInfo::Legacy(wire::read_cservice(sl)?)
+      NetInfo::Legacy(CService::decode(data)?)
     };
-
-    let script_operator_payout = wire::read_script(sl, 10_000)?;
-    let inputs_hash = wire::read_hash(sl)?.into();
-
+    let script_operator_payout = Script::decode(data)?;
+    let inputs_hash = InputsHash::decode(data)?;
     let (platform_node_id, platform_p2p_port, platform_http_port) = if mn_type == MnType::Evo {
-      let node_id = wire::read_type(sl)?;
+      let node_id = PlatformNodeId::decode(data)?;
       if version < 3 {
-        let p2p = wire::read_u16_le(sl)?;
-        let http = wire::read_u16_le(sl)?;
-        (Some(node_id), Some(p2p), Some(http))
+        (Some(node_id), Some(u16::decode(data)?), Some(u16::decode(data)?))
       } else {
         (Some(node_id), None, None)
       }
     } else {
       (None, None, None)
     };
-
-    let sig = wire::read_type(sl)?;
 
     Ok(Self {
       version,
@@ -113,15 +95,37 @@ impl ProUpServTx {
       platform_node_id,
       platform_p2p_port,
       platform_http_port,
-      sig,
+      sig: BlsSignatureBytes::decode(data)?,
     })
   }
-}
 
-impl encoding::Decodable for ProUpServTx {
-  type Decoder = crate::codec::BufferDecoder<Self, crate::codec::DecodeError>;
-  fn decoder() -> Self::Decoder {
-    crate::codec::BufferDecoder::new(Self::decode_for_codec, crate::MAX_EXTRA_PAYLOAD_SIZE)
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.version.encode(buf);
+    if self.version >= 2 {
+      self.mn_type.to_base().encode(buf);
+    }
+    self.pro_tx_hash.encode(buf);
+    // Branch on version to match the decode path. Validation
+    // guarantees the variant matches the version.
+    if self.version >= 3 {
+      if let NetInfo::Extended(ext) = &self.net_info {
+        let mut inner = Vec::new();
+        ext.encode(&mut inner);
+        inner.encode(buf);
+      }
+    } else if let NetInfo::Legacy(svc) = &self.net_info {
+      svc.encode(buf);
+    }
+    self.script_operator_payout.encode(buf);
+    self.inputs_hash.encode(buf);
+    if self.mn_type == MnType::Evo {
+      self.platform_node_id.unwrap_or_default().encode(buf);
+      if self.version < 3 {
+        self.platform_p2p_port.unwrap_or(0).encode(buf);
+        self.platform_http_port.unwrap_or(0).encode(buf);
+      }
+    }
+    self.sig.encode(buf);
   }
 }
 
@@ -151,12 +155,18 @@ impl ProUpServTx {
         check_net_info_trivially_valid(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR)?;
       }
       NetInfo::Legacy(svc) => {
-        if svc.addr == [0u8; 16] && svc.port == 0 {
+        if svc.addr.is_null() && svc.port == 0 {
           return Err(ProTxInvalid::NetInfoEmpty);
         }
       }
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for ProUpServTx {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "ProUpServTx {{ v{}, mn_type: {} }}", self.version, self.mn_type,)
   }
 }

@@ -6,12 +6,10 @@
 
 //! AssetUnlock (type 9): Platform to L1.
 
-use crate::error::DecodeError;
+use crate::codec::codec_payload;
 use crate::validation::DeploymentContext;
-use crate::wire;
 use crate::QuorumHash;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -34,45 +32,14 @@ pub struct AssetUnlock {
   pub quorum_sig: BlsSignatureBytes,
 }
 
-impl fmt::Display for AssetUnlock {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "AssetUnlock {{ v{}, index: {} }}", self.version, self.index,)
-  }
-}
-
-impl AssetUnlock {
-  fn decode_for_codec(data: &[u8]) -> Result<Self, crate::codec::DecodeError> {
-    Self::decode(data).map_err(Into::into)
-  }
-
-  /// Decodes from the extra_payload byte slice.
-  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
-    let sl = &mut &data[..];
-
-    let version = wire::read_u8(sl)?;
-    let index = wire::read_u64_le(sl)?;
-    let fee = wire::read_u32_le(sl)?;
-    let requested_height = wire::read_u32_le(sl)?;
-    let quorum_hash = wire::read_hash(sl)?.into();
-    let quorum_sig = wire::read_type(sl)?;
-
-    Ok(Self {
-      version,
-      index,
-      fee,
-      requested_height,
-      quorum_hash,
-      quorum_sig,
-    })
-  }
-}
-
-impl encoding::Decodable for AssetUnlock {
-  type Decoder = crate::codec::BufferDecoder<Self, crate::codec::DecodeError>;
-  fn decoder() -> Self::Decoder {
-    crate::codec::BufferDecoder::new(Self::decode_for_codec, crate::MAX_EXTRA_PAYLOAD_SIZE)
-  }
-}
+codec_payload!(AssetUnlock {
+  version,
+  index,
+  fee,
+  requested_height,
+  quorum_hash,
+  quorum_sig,
+});
 
 /// Asset unlock validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -108,5 +75,11 @@ impl AssetUnlock {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for AssetUnlock {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "AssetUnlock {{ v{}, index: {} }}", self.version, self.index,)
   }
 }

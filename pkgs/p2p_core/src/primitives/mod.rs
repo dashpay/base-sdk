@@ -9,7 +9,6 @@
 pub mod command;
 pub mod compressed_header;
 pub mod filter_type;
-pub mod governance;
 pub mod inventory;
 pub mod magic;
 pub mod mn_list;

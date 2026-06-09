@@ -4,125 +4,47 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Bridge utilities for wrapping cursor-based decode/encode logic behind the
-//! `bitcoin_consensus_encoding` ecosystem traits.
+//! Codec helpers for primitives payload types.
 
-use crate::prelude::*;
+/// Maximum special-transaction payload size over the wire (10 KiB).
+pub const MAX_SPTX_PAYLOAD_SIZE: usize = 10_240;
 
-use bitcoin_consensus_encoding as encoding;
-
-use core::fmt;
-
-/// A decoder that buffers all input and decodes in `end()`.
-///
-/// Wraps types with complex sequential decode logic (conditional fields,
-/// version branching) that cannot be expressed as a composable push-decoder
-/// without excessive boilerplate.
-pub struct BufferDecoder<T, E> {
-  buf: Vec<u8>,
-  limit: usize,
-  decode_fn: fn(&[u8]) -> Result<T, E>,
+/// Generates `Encodable` + `Decodable` with payload size limit.
+macro_rules! impl_payload {
+  ($ty:ty) => {
+    ::dash_types::impl_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE);
+  };
 }
+pub(crate) use impl_payload;
 
-impl<T, E> fmt::Debug for BufferDecoder<T, E> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("BufferDecoder")
-      .field("buf_len", &self.buf.len())
-      .field("limit", &self.limit)
-      .finish()
-  }
-}
+/// Generates `BaseCodec` + `Encodable` + `Decodable` for flat structs.
+#[macro_export]
+macro_rules! codec_type {
+  ($ty:ty { $($field:ident),+ $(,)? }) => {
+    $crate::codec_type!($ty, $crate::__private::dash_types::MAX_SER_SIZE, { $($field),+ });
+  };
+  ($ty:ty, $max:expr, { $($field:ident),+ $(,)? }) => {
+    impl $crate::__private::dash_types::codec::BaseCodec for $ty {
+      fn decode(data: &mut &[u8]) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
+        Ok(Self {
+          $($field: $crate::__private::dash_types::codec::BaseCodec::decode(data)?),+
+        })
+      }
 
-impl<T, E> Clone for BufferDecoder<T, E> {
-  fn clone(&self) -> Self {
-    Self {
-      buf: self.buf.clone(),
-      limit: self.limit,
-      decode_fn: self.decode_fn,
+      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+        $($crate::__private::dash_types::codec::BaseCodec::encode(&self.$field, buf);)+
+      }
     }
-  }
+
+    $crate::__private::dash_types::impl_type!($ty, $max);
+  };
 }
 
-impl<T, E> BufferDecoder<T, E> {
-  /// Creates a new decoder with the given decode function and
-  /// maximum buffer size.
-  pub fn new(decode_fn: fn(&[u8]) -> Result<T, E>, limit: usize) -> Self {
-    Self {
-      buf: Vec::new(),
-      limit,
-      decode_fn,
-    }
-  }
+/// Generates `BaseCodec` + `Encodable` + `Decodable` for flat structs
+/// with payload size limit.
+macro_rules! codec_payload {
+  ($ty:ty { $($field:ident),+ $(,)? }) => {
+    $crate::codec_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE, { $($field),+ });
+  };
 }
-
-impl<T, E> encoding::Decoder for BufferDecoder<T, E> {
-  type Output = T;
-  type Error = E;
-
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    let remaining = self.limit.saturating_sub(self.buf.len());
-    let take = bytes.len().min(remaining);
-    self.buf.extend_from_slice(&bytes[..take]);
-    *bytes = &bytes[take..];
-    Ok(true)
-  }
-
-  fn end(self) -> Result<Self::Output, Self::Error> {
-    (self.decode_fn)(&self.buf)
-  }
-
-  fn read_limit(&self) -> usize {
-    self.limit.saturating_sub(self.buf.len())
-  }
-}
-
-/// An encoder that wraps a pre-built byte vector.
-#[derive(Clone, Debug)]
-pub struct VecEncoder {
-  data: Vec<u8>,
-  done: bool,
-}
-
-impl VecEncoder {
-  /// Creates a new encoder wrapping the given bytes.
-  pub fn new(data: Vec<u8>) -> Self {
-    Self { data, done: false }
-  }
-}
-
-impl encoding::Encoder for VecEncoder {
-  fn current_chunk(&self) -> &[u8] {
-    if self.done {
-      &[]
-    } else {
-      &self.data
-    }
-  }
-
-  fn advance(&mut self) -> bool {
-    if self.done {
-      false
-    } else {
-      self.done = true;
-      false
-    }
-  }
-}
-
-/// Decode error for cursor-based types exposed through ecosystem traits.
-///
-/// Wraps `crate::error::DecodeError` so it can be used as a `Decoder::Error`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DecodeError(crate::error::DecodeError);
-
-impl From<crate::error::DecodeError> for DecodeError {
-  fn from(e: crate::error::DecodeError) -> Self {
-    Self(e)
-  }
-}
-
-impl fmt::Display for DecodeError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
-  }
-}
+pub(crate) use codec_payload;

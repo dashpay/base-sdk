@@ -50,12 +50,10 @@ pub trait HashBlob:
 }
 
 macro_rules! define_hash {
-  ($name:ident, $n:literal, $serde_with:literal) => {
+  ($name:ident, $n:literal) => {
     /// Fixed-size opaque hash blob stored in little-endian byte order.
-    #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-    #[cfg_attr(feature = "serde", serde(transparent))]
-    pub struct $name(#[cfg_attr(feature = "serde", serde(with = $serde_with))] [u8; $n]);
+    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct $name([u8; $n]);
 
     impl $name {
       /// The all-zeros (null) hash.
@@ -277,26 +275,38 @@ macro_rules! define_hash {
       }
     }
 
-    impl bitcoin_consensus_encoding::Encodable for $name {
-      type Encoder<'e> = bitcoin_consensus_encoding::ArrayRefEncoder<'e, $n>;
+    impl dash_types::codec::BaseCodec for $name {
+      fn decode(data: &mut &[u8]) -> Result<Self, dash_types::codec::DecodeError> {
+        dash_types::codec::take::<$n>(data).map(Self::from_bytes)
+      }
 
-      fn encoder(&self) -> Self::Encoder<'_> {
-        bitcoin_consensus_encoding::ArrayRefEncoder::without_length_prefix(&self.0)
+      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+        buf.extend_from_slice(&self.0);
       }
     }
 
-    impl bitcoin_consensus_encoding::Decodable for $name {
-      type Decoder = $crate::HashTypeDecoder<$name, $n>;
-      fn decoder() -> Self::Decoder {
-        $crate::HashTypeDecoder::new()
+    dash_types::impl_type!($name);
+
+    #[cfg(feature = "serde")]
+    impl ::serde::Serialize for $name {
+      fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&::alloc::format!("{}", self))
+      }
+    }
+
+    #[cfg(feature = "serde")]
+    impl<'de> ::serde::Deserialize<'de> for $name {
+      fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
+        Self::from_hex(&s).map_err(::serde::de::Error::custom)
       }
     }
   };
 }
 
-define_hash!(Hash160, 20, "crate::serialize::hex_blob::w20");
-define_hash!(Hash256, 32, "crate::serialize::hex_blob::w32");
-define_hash!(Hash512, 64, "crate::serialize::hex_blob::w64");
+define_hash!(Hash160, 20);
+define_hash!(Hash256, 32);
+define_hash!(Hash512, 64);
 
 impl Hash512 {
   /// Truncate to 256 bits by taking the first 32 bytes (low half in LE).

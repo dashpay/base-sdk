@@ -6,11 +6,10 @@
 
 //! User agent string exchanged in version messages.
 
-use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
+use crate::codec::impl_p2p;
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
-use dash_primitives::wire;
+use dash_types::codec::{self, BaseCodec, DecodeError};
 
 use core::fmt;
 
@@ -22,6 +21,8 @@ const MAX_USER_AGENT: usize = 256;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct UserAgent(Vec<u8>);
 
+impl_p2p!(UserAgent);
+
 /// The user agent exceeds the 256-byte limit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserAgentTooLong {
@@ -32,6 +33,18 @@ pub struct UserAgentTooLong {
 impl fmt::Display for UserAgentTooLong {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "user agent too long: {} bytes, max {MAX_USER_AGENT}", self.len)
+  }
+}
+
+impl BaseCodec for UserAgent {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let len = codec::read_compact_size(data, MAX_USER_AGENT)?;
+    let raw = codec::read_bytes(data, len)?;
+    Ok(Self(raw.to_vec()))
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.0.encode(buf);
   }
 }
 
@@ -67,20 +80,6 @@ impl UserAgent {
   pub fn is_empty(&self) -> bool {
     self.0.is_empty()
   }
-
-  fn decode_from_slice(data: &[u8]) -> Result<Self, WireDecodeError> {
-    let sl = &mut &data[..];
-    let len = wire::read_compact_size(sl, MAX_USER_AGENT)?;
-    let bytes = wire::read_bytes(sl, len)?;
-    Ok(Self(bytes.to_vec()))
-  }
-
-  fn encode_to_vec(&self) -> Vec<u8> {
-    let mut buf = Vec::new();
-    encode_compact_size(self.0.len(), &mut buf);
-    buf.extend_from_slice(&self.0);
-    buf
-  }
 }
 
 impl fmt::Display for UserAgent {
@@ -89,19 +88,5 @@ impl fmt::Display for UserAgent {
       Some(s) => f.write_str(s),
       None => write!(f, "<{} bytes>", self.0.len()),
     }
-  }
-}
-
-impl encoding::Encodable for UserAgent {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    VecEncoder::new(self.encode_to_vec())
-  }
-}
-
-impl encoding::Decodable for UserAgent {
-  type Decoder = BufferDecoder<UserAgent, WireDecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(UserAgent::decode_from_slice, MAX_P2P_PAYLOAD)
   }
 }

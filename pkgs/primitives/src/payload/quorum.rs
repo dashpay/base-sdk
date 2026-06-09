@@ -6,13 +6,12 @@
 
 //! LLMQ final commitment payload (type 6).
 
-use crate::error::DecodeError;
+use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::support::{DynBitset, LlmqType};
-use crate::wire;
 use crate::{QuorumHash, QuorumVvecHash};
 
-use bitcoin_consensus_encoding as encoding;
+use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 
 use core::fmt;
@@ -29,7 +28,6 @@ pub struct Commitment {
   /// 1=legacy, 2=+indexed, 3=basic, 4=basic+idx.
   pub version: u16,
   /// LLMQ type.
-  #[cfg_attr(feature = "serde", serde(with = "crate::serialize::uint::w8"))]
   pub llmq_type: LlmqType,
   /// Quorum block hash.
   pub quorum_hash: QuorumHash,
@@ -49,71 +47,54 @@ pub struct Commitment {
   pub members_sig: BlsSignatureBytes,
 }
 
-impl Commitment {
-  /// Returns true if this is an indexed commitment (version 2 or 4).
-  #[inline]
-  pub fn is_indexed(&self) -> bool {
-    self.version == 2 || self.version == 4
-  }
+impl_payload!(Commitment);
 
-  fn decode_for_codec(data: &[u8]) -> Result<Self, crate::codec::DecodeError> {
-    Self::decode(data).map_err(Into::into)
-  }
-
-  /// Decodes from a byte slice.
-  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
-    Self::decode_inner(&mut &data[..])
-  }
-
-  /// Decodes from a slice positioned mid-stream.
-  pub fn decode_inner(sl: &mut &[u8]) -> Result<Self, DecodeError> {
-    let version = wire::read_u16_le(sl)?;
-    let llmq_type = LlmqType::from_u8(wire::read_u8(sl)?);
-    let quorum_hash = wire::read_hash(sl)?.into();
-
+impl BaseCodec for Commitment {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let version = u16::decode(data)?;
+    let llmq_type = LlmqType::from_base(u8::decode(data)?);
+    let quorum_hash = QuorumHash::decode(data)?;
     let quorum_index = if version == 2 || version == 4 {
-      Some(wire::read_i16_le(sl)?)
+      Some(i16::decode(data)?)
     } else {
       None
     };
-
-    let signers = wire::read_dynbitset(sl, 1024)?;
-    let valid_members = wire::read_dynbitset(sl, 1024)?;
-    let quorum_public_key = wire::read_type(sl)?;
-    let quorum_vvec_hash = wire::read_hash(sl)?.into();
-    let quorum_sig = wire::read_type(sl)?;
-    let members_sig = wire::read_type(sl)?;
 
     Ok(Self {
       version,
       llmq_type,
       quorum_hash,
       quorum_index,
-      signers,
-      valid_members,
-      quorum_public_key,
-      quorum_vvec_hash,
-      quorum_sig,
-      members_sig,
+      signers: DynBitset::decode(data)?,
+      valid_members: DynBitset::decode(data)?,
+      quorum_public_key: BlsPublicKeyBytes::decode(data)?,
+      quorum_vvec_hash: QuorumVvecHash::decode(data)?,
+      quorum_sig: BlsSignatureBytes::decode(data)?,
+      members_sig: BlsSignatureBytes::decode(data)?,
     })
   }
 
-  /// Encodes into a byte buffer.
-  pub fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.version.to_le_bytes());
-    buf.push(self.llmq_type.to_u8());
-    buf.extend_from_slice(self.quorum_hash.as_bytes());
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.version.encode(buf);
+    self.llmq_type.to_base().encode(buf);
+    self.quorum_hash.encode(buf);
     if let Some(idx) = self.quorum_index {
-      buf.extend_from_slice(&idx.to_le_bytes());
+      idx.encode(buf);
     }
-    crate::script::encode_compact_size(self.signers.num_bits as usize, buf);
-    buf.extend_from_slice(&self.signers.data);
-    crate::script::encode_compact_size(self.valid_members.num_bits as usize, buf);
-    buf.extend_from_slice(&self.valid_members.data);
-    buf.extend_from_slice(&self.quorum_public_key.0);
-    buf.extend_from_slice(self.quorum_vvec_hash.as_bytes());
-    buf.extend_from_slice(&self.quorum_sig.0);
-    buf.extend_from_slice(&self.members_sig.0);
+    self.signers.encode(buf);
+    self.valid_members.encode(buf);
+    self.quorum_public_key.encode(buf);
+    self.quorum_vvec_hash.encode(buf);
+    self.quorum_sig.encode(buf);
+    self.members_sig.encode(buf);
+  }
+}
+
+impl Commitment {
+  /// Returns true if this is an indexed commitment (version 2 or 4).
+  #[inline]
+  pub fn is_indexed(&self) -> bool {
+    self.version == 2 || self.version == 4
   }
 }
 
@@ -135,52 +116,26 @@ pub struct FinalCommitment {
   pub commitment: Commitment,
 }
 
+impl_payload!(FinalCommitment);
+
+impl BaseCodec for FinalCommitment {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    Ok(Self {
+      version: u16::decode(data)?,
+      height: bitcoin_units::BlockHeight::from_u32(u32::decode(data)?),
+      commitment: Commitment::decode(data)?,
+    })
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.version.encode(buf);
+    self.height.to_u32().encode(buf);
+    self.commitment.encode(buf);
+  }
+}
+
 impl fmt::Display for FinalCommitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "FinalCommitment {{ v{}, height: {} }}", self.version, self.height,)
-  }
-}
-
-impl FinalCommitment {
-  fn decode_for_codec(data: &[u8]) -> Result<Self, crate::codec::DecodeError> {
-    Self::decode(data).map_err(Into::into)
-  }
-
-  /// Decodes from the extra_payload byte slice.
-  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
-    let sl = &mut &data[..];
-
-    let version = wire::read_u16_le(sl)?;
-    let height = bitcoin_units::BlockHeight::from_u32(wire::read_u32_le(sl)?);
-    let commitment = Commitment::decode_inner(sl)?;
-
-    Ok(Self {
-      version,
-      height,
-      commitment,
-    })
-  }
-}
-
-impl encoding::Decodable for Commitment {
-  type Decoder = crate::codec::BufferDecoder<Self, crate::codec::DecodeError>;
-  fn decoder() -> Self::Decoder {
-    crate::codec::BufferDecoder::new(Self::decode_for_codec, crate::MAX_EXTRA_PAYLOAD_SIZE)
-  }
-}
-
-impl encoding::Encodable for Commitment {
-  type Encoder<'e> = crate::codec::VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    let mut buf = Vec::new();
-    self.encode(&mut buf);
-    crate::codec::VecEncoder::new(buf)
-  }
-}
-
-impl encoding::Decodable for FinalCommitment {
-  type Decoder = crate::codec::BufferDecoder<Self, crate::codec::DecodeError>;
-  fn decoder() -> Self::Decoder {
-    crate::codec::BufferDecoder::new(Self::decode_for_codec, crate::MAX_EXTRA_PAYLOAD_SIZE)
   }
 }

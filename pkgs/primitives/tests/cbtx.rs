@@ -12,6 +12,7 @@ mod util;
 
 use dash_primitives::payload::CoinbaseCommitment;
 use dash_primitives::MerkleRoot;
+use dash_types::codec::BaseCodec;
 use dash_types::BlsSignatureBytes;
 use hex_conservative::FromHex;
 use rstest::rstest;
@@ -25,7 +26,7 @@ fn decode_fields() {
     assert!(tx.validate(&Default::default()).is_ok());
     assert!(!tx.extra_payload.is_empty(), "{txid}");
 
-    let cbtx = CoinbaseCommitment::decode(&tx.extra_payload).unwrap();
+    let cbtx = CoinbaseCommitment::decode(&mut &tx.extra_payload[..]).unwrap();
     assert!(cbtx.validate(&Default::default()).is_ok());
     let d = &entry.details;
 

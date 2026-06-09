@@ -43,16 +43,19 @@ predicate hasDerivedImpl(TypeItem t, string traitName) {
 
 /** Materialises manual impl metadata for join efficiency. */
 pragma[nomagic]
-private predicate manualImplInfo(Impl i, File f, string selfName, string traitName) {
+private predicate manualImplInfo(Impl i, File f, string selfName, string traitName, AstNode scope) {
   f = fileOf(i) and
   selfName = implSelfName(i) and
   traitName = implTraitName(i) and
-  not exists(MacroItems m | i = m.getItem(_))
+  not exists(MacroItems m | i = m.getItem(_)) and
+  scope = i.(AstNode).getParentNode()
 }
 
 /** Holds if `t` has a manual impl for `traitName`. */
 predicate hasManualImpl(TypeItem t, string traitName) {
-  exists(Impl i | manualImplInfo(i, fileOf(t), t.getName().getText(), traitName))
+  exists(Impl i |
+    manualImplInfo(i, fileOf(t), t.getName().getText(), traitName, t.(AstNode).getParentNode())
+  )
 }
 
 /** Materialises macro impl metadata for join efficiency. */
@@ -100,7 +103,8 @@ predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
     fileOf(i) = fileOf(t) and
     implSelfName(i) = t.getName().getText() and
     not exists(MacroItems m | i = m.getItem(_)) and
-    implTraitHasCrate(i, traitName, crate)
+    implTraitHasCrate(i, traitName, crate) and
+    i.(AstNode).getParentNode() = t.(AstNode).getParentNode()
   )
 }
 
@@ -126,4 +130,37 @@ predicate implementsTraitInCrate(TypeItem t, string traitName, string crate) {
   hasDerivedImplInCrate(t, traitName, crate) or
   hasManualImplInCrate(t, traitName, crate) or
   hasMacroImplInCrate(t, traitName, crate)
+}
+
+/**
+ * Binds a hand-written `impl Trait for t` that is not from a
+ * cfg_attr-gated derive (which escapes MacroItems wrapping but
+ * always falls inside the type definition span).
+ */
+pragma[nomagic]
+predicate manualTraitImpl(TypeItem t, string trait, Impl i, int line) {
+  manualImplInfo(i, fileOf(t), t.getName().getText(), trait, t.(AstNode).getParentNode()) and
+  line = startLine(i) and
+  not (line >= startLine(t) and line <= endLine(t))
+}
+
+/** Binds a macro-generated (non-derive) `impl Trait for t`. */
+pragma[nomagic]
+predicate macroTraitImpl(TypeItem t, string trait, Impl i, int line) {
+  exists(MacroItems m |
+    macroImplInfo(m, i, fileOf(t), t.getName().getText(), trait) and
+    not m = t.getADeriveMacroExpansion() and
+    line = startLine(i)
+  )
+}
+
+/** Binds an inherent impl (no trait) for `t`. */
+pragma[nomagic]
+predicate inherentImpl(TypeItem t, Impl i, int line) {
+  not exists(MacroItems m | i = m.getItem(_)) and
+  fileOf(i) = fileOf(t) and
+  implSelfName(i) = t.getName().getText() and
+  not exists(implTraitName(i)) and
+  i.(AstNode).getParentNode() = t.(AstNode).getParentNode() and
+  line = startLine(i)
 }

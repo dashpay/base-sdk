@@ -6,12 +6,10 @@
 
 //! MnHardFork hard-fork signal (type 7).
 
-use crate::error::DecodeError;
+use crate::codec::codec_payload;
 use crate::validation::{DeploymentContext, VERSIONBITS_NUM_BITS};
-use crate::wire;
 use crate::QuorumHash;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -30,41 +28,12 @@ pub struct MnHardFork {
   pub sig: BlsSignatureBytes,
 }
 
-impl fmt::Display for MnHardFork {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "MnHardFork {{ v{}, bit: {} }}", self.version, self.version_bit,)
-  }
-}
-
-impl MnHardFork {
-  fn decode_for_codec(data: &[u8]) -> Result<Self, crate::codec::DecodeError> {
-    Self::decode(data).map_err(Into::into)
-  }
-
-  /// Decodes from the extra_payload byte slice.
-  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
-    let sl = &mut &data[..];
-
-    let version = wire::read_u8(sl)?;
-    let version_bit = wire::read_u8(sl)?;
-    let quorum_hash = wire::read_hash(sl)?.into();
-    let sig = wire::read_type(sl)?;
-
-    Ok(Self {
-      version,
-      version_bit,
-      quorum_hash,
-      sig,
-    })
-  }
-}
-
-impl encoding::Decodable for MnHardFork {
-  type Decoder = crate::codec::BufferDecoder<Self, crate::codec::DecodeError>;
-  fn decoder() -> Self::Decoder {
-    crate::codec::BufferDecoder::new(Self::decode_for_codec, crate::MAX_EXTRA_PAYLOAD_SIZE)
-  }
-}
+codec_payload!(MnHardFork {
+  version,
+  version_bit,
+  quorum_hash,
+  sig,
+});
 
 /// MNHF signal validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -100,5 +69,11 @@ impl MnHardFork {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for MnHardFork {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "MnHardFork {{ v{}, bit: {} }}", self.version, self.version_bit,)
   }
 }

@@ -8,14 +8,13 @@
 
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
-use bitcoin_internals::array::ArrayExt as _;
+use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::{impl_num, impl_type, AddrV1};
 
 use core::fmt;
 
 /// LLMQ type (quorum size/threshold configuration).
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum LlmqType {
   /// 50 members, 60% threshold.
   Llmq50_60,
@@ -45,9 +44,8 @@ pub enum LlmqType {
   Unknown(u8),
 }
 
-impl LlmqType {
-  /// Converts a raw byte to an `LlmqType`.
-  pub const fn from_u8(val: u8) -> Self {
+impl NumCodec<u8> for LlmqType {
+  fn from_base(val: u8) -> Self {
     match val {
       1 => Self::Llmq50_60,
       2 => Self::Llmq400_60,
@@ -65,8 +63,7 @@ impl LlmqType {
     }
   }
 
-  /// Converts to raw byte value.
-  pub const fn to_u8(self) -> u8 {
+  fn to_base(&self) -> u8 {
     match self {
       Self::Llmq50_60 => 1,
       Self::Llmq400_60 => 2,
@@ -80,10 +77,12 @@ impl LlmqType {
       Self::LlmqTestInstantsend => 104,
       Self::LlmqTestPlatform => 106,
       Self::LlmqDevnetPlatform => 107,
-      Self::Unknown(v) => v,
+      Self::Unknown(v) => *v,
     }
   }
 }
+
+impl_num!(LlmqType, u8);
 
 impl fmt::Display for LlmqType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -107,7 +106,6 @@ impl fmt::Display for LlmqType {
 
 /// Revocation reason for provider update revocation.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum RevocationReason {
   /// No specific reason.
   NotSpecified,
@@ -121,9 +119,8 @@ pub enum RevocationReason {
   Unknown(u16),
 }
 
-impl RevocationReason {
-  /// Converts a raw `u16`.
-  pub const fn from_u16(val: u16) -> Self {
+impl NumCodec<u16> for RevocationReason {
+  fn from_base(val: u16) -> Self {
     match val {
       0 => Self::NotSpecified,
       1 => Self::KeyCompromise,
@@ -133,17 +130,18 @@ impl RevocationReason {
     }
   }
 
-  /// Converts to raw `u16`.
-  pub const fn to_u16(self) -> u16 {
+  fn to_base(&self) -> u16 {
     match self {
       Self::NotSpecified => 0,
       Self::KeyCompromise => 1,
       Self::ChangeOfKeys => 2,
       Self::ViolationOfService => 3,
-      Self::Unknown(v) => v,
+      Self::Unknown(v) => *v,
     }
   }
 }
+
+impl_num!(RevocationReason, u16);
 
 impl fmt::Display for RevocationReason {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -159,7 +157,6 @@ impl fmt::Display for RevocationReason {
 
 /// Network address type (BIP155).
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum NetworkType {
   /// IPv4.
   Ipv4,
@@ -175,9 +172,8 @@ pub enum NetworkType {
   Unknown(u8),
 }
 
-impl NetworkType {
-  /// Converts a raw byte.
-  pub const fn from_u8(val: u8) -> Self {
+impl NumCodec<u8> for NetworkType {
+  fn from_base(val: u8) -> Self {
     match val {
       1 => Self::Ipv4,
       2 => Self::Ipv6,
@@ -188,18 +184,19 @@ impl NetworkType {
     }
   }
 
-  /// Converts to raw byte.
-  pub const fn to_u8(self) -> u8 {
+  fn to_base(&self) -> u8 {
     match self {
       Self::Ipv4 => 1,
       Self::Ipv6 => 2,
       Self::TorV3 => 4,
       Self::I2P => 5,
       Self::Cjdns => 6,
-      Self::Unknown(v) => v,
+      Self::Unknown(v) => *v,
     }
   }
 }
+
+impl_num!(NetworkType, u8);
 
 /// LSB-first dynamic bitset.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -212,6 +209,8 @@ pub struct DynBitset {
   pub data: Vec<u8>,
 }
 
+impl_type!(DynBitset);
+
 /// Serde helper for [`DynBitset`] that validates on deserialisation.
 #[cfg(feature = "serde")]
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
@@ -219,6 +218,79 @@ struct DynBitsetSerde {
   num_bits: u64,
   #[serde(with = "dash_types::serialize::hex")]
   data: Vec<u8>,
+}
+
+impl BaseCodec for DynBitset {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let num_bits = codec::read_compact_u64(data)?;
+    let byte_len = usize::try_from(num_bits.div_ceil(8)).map_err(|_| DecodeError::CompactSizeExceedsLimit {
+      limit: usize::MAX,
+      value: num_bits,
+    })?;
+    let raw = codec::read_bytes(data, byte_len)?;
+    let remainder = (num_bits % 8) as u32;
+    if remainder != 0 {
+      let mask = !((1u8 << remainder) - 1);
+      if raw[byte_len - 1] & mask != 0 {
+        return Err(DecodeError::InvalidValue {
+          expected: 0,
+          actual: u64::from(raw[byte_len - 1] & mask),
+        });
+      }
+    }
+    Ok(Self {
+      num_bits,
+      data: raw.to_vec(),
+    })
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    codec::write_compact_u64(self.num_bits, buf);
+    let required = (self.num_bits as usize).div_ceil(8);
+    let src = &self.data;
+    let take = src.len().min(required);
+    buf.extend_from_slice(&src[..take]);
+    // Pad with zero bytes if data is shorter than required.
+    for _ in take..required {
+      buf.push(0);
+    }
+    // Clear padding bits in the final byte.
+    let remainder = (self.num_bits % 8) as u32;
+    if remainder != 0 && required > 0 {
+      let last = buf.len() - 1;
+      buf[last] &= (1u8 << remainder) - 1;
+    }
+  }
+}
+
+impl DynBitset {
+  /// Returns the bit at the given index.
+  pub fn get(&self, index: u64) -> Option<bool> {
+    if index >= self.num_bits {
+      return None;
+    }
+    let byte_idx = (index / 8) as usize;
+    let bit_idx = (index % 8) as u32;
+    self.data.get(byte_idx).map(|b| (b >> bit_idx) & 1 == 1)
+  }
+
+  /// Counts the number of set bits (respects [`num_bits`](Self::num_bits)).
+  pub fn count_ones(&self) -> u64 {
+    let byte_len = (self.num_bits as usize).div_ceil(8);
+    let relevant = &self.data[..byte_len.min(self.data.len())];
+    let remainder = (self.num_bits % 8) as u32;
+    if remainder == 0 || relevant.is_empty() {
+      return relevant.iter().map(|b| u64::from(b.count_ones())).sum();
+    }
+    let (full, last) = relevant.split_at(relevant.len() - 1);
+    let mask = (1u8 << remainder) - 1;
+    full.iter().map(|b| u64::from(b.count_ones())).sum::<u64>() + u64::from((last[0] & mask).count_ones())
+  }
+
+  /// Iterates over indices of set bits.
+  pub fn iter_set_bits(&self) -> DynBitsetIterator<'_> {
+    DynBitsetIterator { bitset: self, index: 0 }
+  }
 }
 
 #[cfg(feature = "serde")]
@@ -266,28 +338,6 @@ impl<'de> serde::Deserialize<'de> for DynBitset {
   }
 }
 
-impl DynBitset {
-  /// Returns the bit at the given index.
-  pub fn get(&self, index: u64) -> Option<bool> {
-    if index >= self.num_bits {
-      return None;
-    }
-    let byte_idx = (index / 8) as usize;
-    let bit_idx = (index % 8) as u32;
-    self.data.get(byte_idx).map(|b| (b >> bit_idx) & 1 == 1)
-  }
-
-  /// Counts the number of set bits.
-  pub fn count_ones(&self) -> u64 {
-    self.data.iter().map(|b| u64::from(b.count_ones())).sum()
-  }
-
-  /// Iterates over indices of set bits.
-  pub fn iter_set_bits(&self) -> DynBitsetIterator<'_> {
-    DynBitsetIterator { bitset: self, index: 0 }
-  }
-}
-
 /// Iterator over set bit indices in a [`DynBitset`].
 #[derive(Clone, Debug)]
 pub struct DynBitsetIterator<'a> {
@@ -310,122 +360,38 @@ impl Iterator for DynBitsetIterator<'_> {
   }
 }
 
-// Ecosystem encoding traits for DynBitset.
-
-encoding::encoder_newtype! {
-  /// Encoder for [`DynBitset`].
-  pub struct DynBitsetEncoder<'e>(
-    encoding::Encoder2<
-      encoding::CompactSizeEncoder,
-      encoding::BytesEncoder<'e>,
-    >
-  );
-}
-
-impl encoding::Encodable for DynBitset {
-  type Encoder<'e> = DynBitsetEncoder<'e>;
-
-  fn encoder(&self) -> Self::Encoder<'_> {
-    DynBitsetEncoder::new(encoding::Encoder2::new(
-      encoding::CompactSizeEncoder::new_u64(self.num_bits),
-      encoding::BytesEncoder::without_length_prefix(&self.data),
-    ))
-  }
-}
-
 /// Legacy CService network address (ADDRv1 format, 18 bytes).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CService {
   /// 16-byte address (IPv4-mapped IPv6 or native IPv6).
-  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex::w16"))]
-  pub addr: [u8; 16],
+  pub addr: AddrV1,
   /// Network port (big-endian on the wire).
   pub port: u16,
 }
 
-// Ecosystem encoding traits for CService.
+impl_type!(CService);
 
-encoding::encoder_newtype_exact! {
-  /// Encoder for [`CService`].
-  pub struct CServiceEncoder<'e>(
-    encoding::Encoder2<encoding::BytesEncoder<'e>, encoding::ArrayEncoder<2>>
-  );
-}
-
-impl encoding::Encodable for CService {
-  type Encoder<'e> = CServiceEncoder<'e>;
-
-  fn encoder(&self) -> Self::Encoder<'_> {
-    CServiceEncoder::new(encoding::Encoder2::new(
-      encoding::BytesEncoder::without_length_prefix(&self.addr),
-      encoding::ArrayEncoder::without_length_prefix(self.port.to_be_bytes()),
-    ))
-  }
-}
-
-/// Decoder for [`CService`].
-#[derive(Clone, Debug)]
-pub struct CServiceDecoder(encoding::ArrayDecoder<18>);
-
-impl CServiceDecoder {
-  /// Constructs a new decoder.
-  pub const fn new() -> Self {
-    Self(encoding::ArrayDecoder::new())
-  }
-}
-
-impl Default for CServiceDecoder {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
-/// Decode error for [`CService`].
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CServiceDecoderError(encoding::UnexpectedEofError);
-
-impl fmt::Display for CServiceDecoderError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "cservice decode: {}", self.0)
-  }
-}
-
-impl encoding::Decoder for CServiceDecoder {
-  type Output = CService;
-  type Error = CServiceDecoderError;
-
-  #[inline]
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    self.0.push_bytes(bytes).map_err(CServiceDecoderError)
-  }
-
-  #[inline]
-  fn end(self) -> Result<Self::Output, Self::Error> {
-    let buf = self.0.end().map_err(CServiceDecoderError)?;
-    let (addr_buf, port_buf) = buf.split_array::<16, 2>();
-    Ok(CService {
-      addr: *addr_buf,
-      port: u16::from_be_bytes(*port_buf),
+impl BaseCodec for CService {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    Ok(Self {
+      addr: AddrV1::decode(data)?,
+      port: codec::read_u16_be(data)?,
     })
   }
 
-  #[inline]
-  fn read_limit(&self) -> usize {
-    self.0.read_limit()
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.addr.encode(buf);
+    buf.extend_from_slice(&self.port.to_be_bytes());
   }
 }
 
-impl encoding::Decodable for CService {
-  type Decoder = CServiceDecoder;
-  fn decoder() -> Self::Decoder {
-    CServiceDecoder::new()
-  }
-}
-
+/// Maximum number of purpose groups.
+const MAX_PURPOSES: usize = 8;
+/// Maximum entries per purpose.
+const MAX_ENTRIES: usize = 8;
 /// Purpose tag for an extended network info entry.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum NetInfoPurpose {
   /// Core P2P port.
   CoreP2p,
@@ -437,9 +403,8 @@ pub enum NetInfoPurpose {
   Unknown(u8),
 }
 
-impl NetInfoPurpose {
-  /// Converts from a raw byte.
-  pub const fn from_u8(val: u8) -> Self {
+impl NumCodec<u8> for NetInfoPurpose {
+  fn from_base(val: u8) -> Self {
     match val {
       0 => Self::CoreP2p,
       1 => Self::PlatformP2p,
@@ -448,16 +413,17 @@ impl NetInfoPurpose {
     }
   }
 
-  /// Converts to a raw byte.
-  pub const fn to_u8(self) -> u8 {
+  fn to_base(&self) -> u8 {
     match self {
       Self::CoreP2p => 0,
       Self::PlatformP2p => 1,
       Self::PlatformHttps => 2,
-      Self::Unknown(v) => v,
+      Self::Unknown(v) => *v,
     }
   }
 }
+
+impl_num!(NetInfoPurpose, u8);
 
 impl fmt::Display for NetInfoPurpose {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -500,53 +466,56 @@ pub struct ExtendedNetInfo {
   pub entries: Vec<(NetInfoPurpose, Vec<NetInfoEntry>)>,
 }
 
-/// Maximum number of purpose groups.
-const MAX_PURPOSES: usize = 8;
-/// Maximum entries per purpose.
-const MAX_ENTRIES: usize = 8;
-/// Maximum domain name length.
-const MAX_DOMAIN: usize = 256;
+impl_type!(ExtendedNetInfo);
 
-impl ExtendedNetInfo {
-  /// Decodes from a raw byte slice.
-  ///
-  /// # Errors
-  ///
-  /// Returns `DecodeError` if the data is malformed.
-  pub fn decode(data: &[u8]) -> Result<Self, crate::error::DecodeError> {
-    use crate::wire;
-
-    let sl = &mut &data[..];
-    let version = wire::read_u8(sl)?;
-    let purpose_count = wire::read_compact_size(sl, MAX_PURPOSES)?;
-
+impl BaseCodec for ExtendedNetInfo {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let version = u8::decode(data)?;
+    let purpose_count = codec::read_compact_size(data, MAX_PURPOSES)?;
     let mut entries = Vec::with_capacity(purpose_count);
     for _ in 0..purpose_count {
-      let purpose = NetInfoPurpose::from_u8(wire::read_u8(sl)?);
-      let entry_count = wire::read_compact_size(sl, MAX_ENTRIES)?;
+      let purpose = NetInfoPurpose::from_base(u8::decode(data)?);
+      let entry_count = codec::read_compact_size(data, MAX_ENTRIES)?;
       let mut group = Vec::with_capacity(entry_count);
-
       for _ in 0..entry_count {
-        let entry_type = wire::read_u8(sl)?;
+        let entry_type = u8::decode(data)?;
         let entry = match entry_type {
-          0x01 => NetInfoEntry::Service(CService {
-            addr: wire::read_array(sl)?,
-            port: wire::read_u16_be(sl)?,
-          }),
+          0x01 => NetInfoEntry::Service(CService::decode(data)?),
           0x02 => {
-            let name_len = wire::read_compact_size(sl, MAX_DOMAIN)?;
-            let name = wire::read_bytes(sl, name_len)?.to_vec();
-            let port = wire::read_u16_be(sl)?;
+            let name: Vec<u8> = Vec::decode(data)?;
+            let port = codec::read_u16_be(data)?;
             NetInfoEntry::Domain { name, port }
           }
           _ => NetInfoEntry::Invalid,
         };
         group.push(entry);
       }
-
       entries.push((purpose, group));
     }
-
     Ok(Self { version, entries })
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.version.encode(buf);
+    codec::write_compact_size(self.entries.len(), buf);
+    for (purpose, group) in &self.entries {
+      purpose.to_base().encode(buf);
+      let valid_count = group.iter().filter(|e| !matches!(e, NetInfoEntry::Invalid)).count();
+      codec::write_compact_size(valid_count, buf);
+      for entry in group {
+        match entry {
+          NetInfoEntry::Service(svc) => {
+            0x01u8.encode(buf);
+            svc.encode(buf);
+          }
+          NetInfoEntry::Domain { name, port } => {
+            0x02u8.encode(buf);
+            name.encode(buf);
+            buf.extend_from_slice(&port.to_be_bytes());
+          }
+          NetInfoEntry::Invalid => {}
+        }
+      }
+    }
   }
 }

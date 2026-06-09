@@ -8,6 +8,9 @@
 
 use crate::Arith256;
 
+use dash_types::codec::NumCodec;
+use dash_types::impl_num;
+
 use core::fmt;
 
 /// Compact difficulty target — a newtype around the consensus `nBits` u32.
@@ -26,6 +29,16 @@ pub struct DecodedTarget {
   pub negative: bool,
   /// Whether the encoded exponent exceeds the valid range.
   pub overflow: bool,
+}
+
+impl NumCodec<u32> for CompactTarget {
+  fn from_base(v: u32) -> Self {
+    Self(v)
+  }
+
+  fn to_base(&self) -> u32 {
+    self.0
+  }
 }
 
 impl CompactTarget {
@@ -95,57 +108,4 @@ impl Arith256 {
   }
 }
 
-impl bitcoin_consensus_encoding::Encodable for CompactTarget {
-  type Encoder<'e> = bitcoin_consensus_encoding::ArrayEncoder<4>;
-
-  fn encoder(&self) -> Self::Encoder<'_> {
-    bitcoin_consensus_encoding::ArrayEncoder::without_length_prefix(self.0.to_le_bytes())
-  }
-}
-
-impl bitcoin_consensus_encoding::Decodable for CompactTarget {
-  type Decoder = CompactTargetDecoder;
-
-  fn decoder() -> Self::Decoder {
-    CompactTargetDecoder(bitcoin_consensus_encoding::ArrayDecoder::new())
-  }
-}
-
-/// Decoder for [`CompactTarget`].
-#[derive(Clone, Debug)]
-pub struct CompactTargetDecoder(bitcoin_consensus_encoding::ArrayDecoder<4>);
-
-impl bitcoin_consensus_encoding::Decoder for CompactTargetDecoder {
-  type Output = CompactTarget;
-  type Error = crate::HashDecoderError;
-
-  #[inline]
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    self.0.push_bytes(bytes).map_err(crate::HashDecoderError)
-  }
-
-  #[inline]
-  fn end(self) -> Result<Self::Output, Self::Error> {
-    let bytes = self.0.end().map_err(crate::HashDecoderError)?;
-    Ok(CompactTarget(u32::from_le_bytes(bytes)))
-  }
-
-  #[inline]
-  fn read_limit(&self) -> usize {
-    self.0.read_limit()
-  }
-}
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for CompactTarget {
-  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    self.0.serialize(serializer)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for CompactTarget {
-  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    u32::deserialize(deserializer).map(CompactTarget)
-  }
-}
+impl_num!(CompactTarget, u32);

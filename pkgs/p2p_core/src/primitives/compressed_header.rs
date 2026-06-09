@@ -6,11 +6,10 @@
 
 //! DIP-0025 compressed block header (headers2 format).
 
-use crate::encode::WireDecodeError;
 use crate::prelude::*;
 
-use dash_primitives::wire;
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
+use dash_types::codec::{BaseCodec, DecodeError};
 
 // Bitfield layout (1 byte):
 //   bits 0-2: version offset (0 = full version present, 1-7 = MRU cache index)
@@ -38,12 +37,6 @@ pub struct CompressionState {
   pub version_cache: Vec<i32>,
   /// Previous fully-resolved header.
   pub prev_header: Option<BlockHeader>,
-}
-
-impl Default for CompressionState {
-  fn default() -> Self {
-    Self::new()
-  }
 }
 
 impl CompressionState {
@@ -75,18 +68,21 @@ impl CompressionState {
   }
 
   /// Decodes one compressed header, advancing the slice and state.
-  pub(crate) fn decode_header(&mut self, sl: &mut &[u8]) -> Result<BlockHeader, WireDecodeError> {
-    let flags = wire::read_u8(sl)?;
+  pub(crate) fn decode_header(&mut self, sl: &mut &[u8]) -> Result<BlockHeader, DecodeError> {
+    let flags = u8::decode(sl)?;
     let version_offset = flags & VERSION_OFFSET_MASK;
 
     let version = if version_offset == 0 {
-      let v = wire::read_i32_le(sl)?;
+      let v = i32::decode(sl)?;
       self.save_version_mru(v);
       v
     } else {
       let pos = (version_offset - 1) as usize;
       if pos >= self.version_cache.len() {
-        return Err(WireDecodeError(format!("version offset {pos} out of range")));
+        return Err(DecodeError::InvalidValue {
+          expected: self.version_cache.len() as u64,
+          actual: pos as u64,
+        });
       }
       let v = self.version_cache[pos];
       self.mark_version_mru(pos);
@@ -94,7 +90,7 @@ impl CompressionState {
     };
 
     let prev_hash = if flags & FLAG_PREV_HASH != 0 {
-      BlockHash::from_bytes(wire::read_array(sl)?)
+      BlockHash::decode(sl)?
     } else {
       match &self.prev_header {
         Some(prev) => prev.prev_hash,
@@ -102,12 +98,12 @@ impl CompressionState {
       }
     };
 
-    let merkle_root = MerkleRoot::from_bytes(wire::read_array(sl)?);
+    let merkle_root = MerkleRoot::decode(sl)?;
 
     let time = if flags & FLAG_TIMESTAMP_FULL != 0 {
-      wire::read_u32_le(sl)?
+      u32::decode(sl)?
     } else {
-      let delta = wire::read_i16_le(sl)?;
+      let delta = i16::decode(sl)?;
       match &self.prev_header {
         Some(prev) => (prev.time as i64 + delta as i64) as u32,
         None => delta as u32,
@@ -115,7 +111,7 @@ impl CompressionState {
     };
 
     let bits = if flags & FLAG_NBITS != 0 {
-      wire::read_u32_le(sl)?
+      u32::decode(sl)?
     } else {
       match &self.prev_header {
         Some(prev) => prev.bits,
@@ -123,7 +119,7 @@ impl CompressionState {
       }
     };
 
-    let nonce = wire::read_u32_le(sl)?;
+    let nonce = u32::decode(sl)?;
 
     let header = BlockHeader {
       version,
@@ -205,5 +201,11 @@ impl CompressionState {
 
     buf.extend_from_slice(&header.nonce.to_le_bytes());
     self.prev_header = Some(*header);
+  }
+}
+
+impl Default for CompressionState {
+  fn default() -> Self {
+    Self::new()
   }
 }

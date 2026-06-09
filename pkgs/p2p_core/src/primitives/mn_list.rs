@@ -6,28 +6,15 @@
 
 //! Simplified masternode list types for `getmnlistd`/`mnlistdiff`.
 
-use crate::encode::{encode_compact_size, BufferDecoder, VecEncoder, WireDecodeError, MAX_P2P_PAYLOAD};
+use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
 use dash_primitives::payload::Commitment;
-use dash_primitives::wire;
 use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash};
-use dash_script::KeyId;
-use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, PlatformNodeId};
+use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
+use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, KeyId, PlatformNodeId};
 
 use core::fmt;
-
-/// Maximum number of entries in a single MN list diff.
-const MAX_MN_LIST: usize = 10_000;
-/// Maximum number of deleted MN hashes.
-const MAX_DELETED_MNS: usize = 10_000;
-/// Maximum number of quorum entries.
-const MAX_QUORUMS: usize = 1_000;
-/// Maximum number of merkle hashes.
-const MAX_MERKLE: usize = 100_000;
-/// Maximum merkle flag bytes.
-const MAX_MERKLE_FLAGS: usize = 100_000;
 
 /// A single entry in the simplified masternode list.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -48,7 +35,6 @@ pub struct SimplifiedMnListEntry {
   /// Whether this masternode is currently valid.
   pub is_valid: bool,
   /// Masternode type (Regular or Evo).
-  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::uint::w16"))]
   pub mn_type: MnType,
   /// Platform HTTP port (Evo masternodes only).
   pub platform_http_port: Option<u16>,
@@ -56,28 +42,27 @@ pub struct SimplifiedMnListEntry {
   pub platform_node_id: Option<PlatformNodeId>,
 }
 
-impl SimplifiedMnListEntry {
-  /// Decodes an entry from the wire format.
-  pub(crate) fn decode(sl: &mut &[u8]) -> Result<Self, WireDecodeError> {
-    let version = wire::read_u16_le(sl)?;
-    let pro_reg_tx_hash = TxHash::from_bytes(wire::read_array(sl)?);
-    let confirmed_hash = BlockHash::from_bytes(wire::read_array(sl)?);
-    let service = wire::read_cservice(sl)?;
-    let operator_key = BlsPublicKeyBytes(wire::read_array(sl)?);
-    let voting_key_id = KeyId(wire::read_array(sl)?);
-    let is_valid = wire::read_bool(sl)?;
+impl_p2p!(SimplifiedMnListEntry);
+
+impl BaseCodec for SimplifiedMnListEntry {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let version = u16::decode(data)?;
+    let pro_reg_tx_hash = TxHash::decode(data)?;
+    let confirmed_hash = BlockHash::decode(data)?;
+    let service = CService::decode(data)?;
+    let operator_key = BlsPublicKeyBytes::decode(data)?;
+    let voting_key_id = KeyId::decode(data)?;
+    let is_valid = bool::decode(data)?;
 
     // nType is gated by the entry's version
     let mn_type = if version >= 2 {
-      MnType::from_u16(wire::read_u16_le(sl)?)
+      MnType::from_base(u16::decode(data)?)
     } else {
       MnType::Regular
     };
 
     let (platform_http_port, platform_node_id) = if mn_type == MnType::Evo {
-      let port = wire::read_u16_le(sl)?;
-      let node_id = PlatformNodeId(wire::read_array(sl)?);
-      (Some(port), Some(node_id))
+      (Some(u16::decode(data)?), Some(PlatformNodeId::decode(data)?))
     } else {
       (None, None)
     };
@@ -96,22 +81,20 @@ impl SimplifiedMnListEntry {
     })
   }
 
-  /// Encodes this entry to the wire format.
-  pub(crate) fn encode(&self, buf: &mut Vec<u8>) {
-    buf.extend_from_slice(&self.version.to_le_bytes());
-    buf.extend_from_slice(&self.pro_reg_tx_hash.to_bytes());
-    buf.extend_from_slice(&self.confirmed_hash.to_bytes());
-    buf.extend_from_slice(&self.service.addr);
-    buf.extend_from_slice(&self.service.port.to_be_bytes());
-    buf.extend_from_slice(&self.operator_key.0);
-    buf.extend_from_slice(&self.voting_key_id.0);
-    buf.push(u8::from(self.is_valid));
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.version.encode(buf);
+    self.pro_reg_tx_hash.encode(buf);
+    self.confirmed_hash.encode(buf);
+    self.service.encode(buf);
+    self.operator_key.encode(buf);
+    self.voting_key_id.encode(buf);
+    self.is_valid.encode(buf);
     // nType and platform fields are gated by the entry's version
     if self.version >= 2 {
-      buf.extend_from_slice(&self.mn_type.to_u16().to_le_bytes());
+      self.mn_type.to_base().encode(buf);
       if self.mn_type == MnType::Evo {
-        buf.extend_from_slice(&self.platform_http_port.unwrap_or(0).to_le_bytes());
-        buf.extend_from_slice(self.platform_node_id.as_ref().map_or(&[0u8; 20], |n| &n.0));
+        self.platform_http_port.unwrap_or(0).encode(buf);
+        self.platform_node_id.unwrap_or_default().encode(buf);
       }
     }
   }
@@ -128,11 +111,12 @@ impl fmt::Display for SimplifiedMnListEntry {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct DeletedQuorum {
   /// LLMQ type.
-  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::uint::w8"))]
   pub llmq_type: LlmqType,
   /// Quorum hash.
   pub hash: BlockHash,
 }
+
+codec_p2p!(DeletedQuorum { llmq_type, hash });
 
 /// Chainlock signature entry in the MN list diff.
 ///
@@ -146,6 +130,8 @@ pub struct QuorumClSig {
   /// Indices into the `new_quorums` vector.
   pub index_set: Vec<u16>,
 }
+
+codec_p2p!(QuorumClSig { sig, index_set });
 
 /// Full masternode list diff payload.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -178,148 +164,20 @@ pub struct MnListDiffPayload {
   pub quorum_cl_sigs: Vec<QuorumClSig>,
 }
 
-impl MnListDiffPayload {
-  pub(crate) fn decode_from_slice(data: &[u8]) -> Result<Self, WireDecodeError> {
-    let sl = &mut &data[..];
-    let version = wire::read_u16_le(sl)?;
-    let base_block_hash = BlockHash::from_bytes(wire::read_array(sl)?);
-    let block_hash = BlockHash::from_bytes(wire::read_array(sl)?);
-    let total_transactions = wire::read_u32_le(sl)?;
-
-    let mh_count = wire::read_compact_size(sl, MAX_MERKLE)?;
-    let mut merkle_hashes = Vec::with_capacity(mh_count);
-    for _ in 0..mh_count {
-      merkle_hashes.push(TxHash::from_bytes(wire::read_array(sl)?));
-    }
-
-    let mf_count = wire::read_compact_size(sl, MAX_MERKLE_FLAGS)?;
-    let merkle_flags = wire::read_bytes(sl, mf_count)?.to_vec();
-
-    // Transaction uses encoding::Decodable. Decode from remaining bytes.
-    let cb_tx = encoding::decode_from_slice_unbounded::<Transaction>(sl)
-      .map_err(|e| WireDecodeError(format!("transaction decode: {e}")))?;
-
-    let del_count = wire::read_compact_size(sl, MAX_DELETED_MNS)?;
-    let mut deleted_mns = Vec::with_capacity(del_count);
-    for _ in 0..del_count {
-      deleted_mns.push(TxHash::from_bytes(wire::read_array(sl)?));
-    }
-
-    let mn_count = wire::read_compact_size(sl, MAX_MN_LIST)?;
-    let mut mn_list = Vec::with_capacity(mn_count);
-    for _ in 0..mn_count {
-      mn_list.push(SimplifiedMnListEntry::decode(sl)?);
-    }
-
-    let dq_count = wire::read_compact_size(sl, MAX_QUORUMS)?;
-    let mut deleted_quorums = Vec::with_capacity(dq_count);
-    for _ in 0..dq_count {
-      let llmq_type = LlmqType::from_u8(wire::read_u8(sl)?);
-      let hash = BlockHash::from_bytes(wire::read_array(sl)?);
-      deleted_quorums.push(DeletedQuorum { llmq_type, hash });
-    }
-
-    let nq_count = wire::read_compact_size(sl, MAX_QUORUMS)?;
-    let mut new_quorums = Vec::with_capacity(nq_count);
-    for _ in 0..nq_count {
-      let commitment = Commitment::decode_inner(sl).map_err(|e| WireDecodeError(format!("commitment decode: {e}")))?;
-      new_quorums.push(commitment);
-    }
-
-    // Chainlock signatures (protocol >= 70230).
-    let cl_count = wire::read_compact_size(sl, MAX_QUORUMS)?;
-    let mut quorum_cl_sigs = Vec::with_capacity(cl_count);
-    for _ in 0..cl_count {
-      let sig = BlsSignatureBytes(wire::read_array(sl)?);
-      let idx_count = wire::read_compact_size(sl, MAX_QUORUMS)?;
-      let mut index_set = Vec::with_capacity(idx_count);
-      for _ in 0..idx_count {
-        index_set.push(wire::read_u16_le(sl)?);
-      }
-      quorum_cl_sigs.push(QuorumClSig { sig, index_set });
-    }
-
-    Ok(Self {
-      version,
-      base_block_hash,
-      block_hash,
-      total_transactions,
-      merkle_hashes,
-      merkle_flags,
-      cb_tx,
-      deleted_mns,
-      mn_list,
-      deleted_quorums,
-      new_quorums,
-      quorum_cl_sigs,
-    })
-  }
-
-  fn encode_to_vec_buf(&self) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.extend_from_slice(&self.version.to_le_bytes());
-    buf.extend_from_slice(&self.base_block_hash.to_bytes());
-    buf.extend_from_slice(&self.block_hash.to_bytes());
-    buf.extend_from_slice(&self.total_transactions.to_le_bytes());
-
-    encode_compact_size(self.merkle_hashes.len(), &mut buf);
-    for h in &self.merkle_hashes {
-      buf.extend_from_slice(&h.to_bytes());
-    }
-
-    encode_compact_size(self.merkle_flags.len(), &mut buf);
-    buf.extend_from_slice(&self.merkle_flags);
-
-    let tx_bytes = encoding::encode_to_vec(&self.cb_tx);
-    buf.extend_from_slice(&tx_bytes);
-
-    encode_compact_size(self.deleted_mns.len(), &mut buf);
-    for h in &self.deleted_mns {
-      buf.extend_from_slice(&h.to_bytes());
-    }
-
-    encode_compact_size(self.mn_list.len(), &mut buf);
-    for entry in &self.mn_list {
-      entry.encode(&mut buf);
-    }
-
-    encode_compact_size(self.deleted_quorums.len(), &mut buf);
-    for dq in &self.deleted_quorums {
-      buf.push(dq.llmq_type.to_u8());
-      buf.extend_from_slice(&dq.hash.to_bytes());
-    }
-
-    encode_compact_size(self.new_quorums.len(), &mut buf);
-    for q in &self.new_quorums {
-      q.encode(&mut buf);
-    }
-
-    encode_compact_size(self.quorum_cl_sigs.len(), &mut buf);
-    for cl in &self.quorum_cl_sigs {
-      buf.extend_from_slice(&cl.sig.0);
-      encode_compact_size(cl.index_set.len(), &mut buf);
-      for &idx in &cl.index_set {
-        buf.extend_from_slice(&idx.to_le_bytes());
-      }
-    }
-
-    buf
-  }
-}
-
-impl encoding::Encodable for MnListDiffPayload {
-  type Encoder<'e> = VecEncoder;
-  fn encoder(&self) -> Self::Encoder<'_> {
-    VecEncoder::new(self.encode_to_vec_buf())
-  }
-}
-
-impl encoding::Decodable for MnListDiffPayload {
-  type Decoder = BufferDecoder<MnListDiffPayload, WireDecodeError>;
-  fn decoder() -> Self::Decoder {
-    BufferDecoder::new(MnListDiffPayload::decode_from_slice, MAX_P2P_PAYLOAD)
-  }
-}
+codec_p2p!(MnListDiffPayload {
+  version,
+  base_block_hash,
+  block_hash,
+  total_transactions,
+  merkle_hashes,
+  merkle_flags,
+  cb_tx,
+  deleted_mns,
+  mn_list,
+  deleted_quorums,
+  new_quorums,
+  quorum_cl_sigs,
+});
 
 impl fmt::Display for MnListDiffPayload {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

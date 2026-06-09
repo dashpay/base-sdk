@@ -12,8 +12,8 @@ mod util;
 
 use dash_primitives::payload::ProUpRegTx;
 use dash_primitives::{InputsHash, TxHash};
-use dash_script::KeyId;
-use dash_types::BlsPublicKeyBytes;
+use dash_types::codec::BaseCodec;
+use dash_types::{BlsPublicKeyBytes, KeyId};
 use hex_conservative::FromHex;
 use rstest::rstest;
 
@@ -26,7 +26,7 @@ fn decode_fields() {
     assert!(tx.validate(&Default::default()).is_ok());
     assert!(!tx.extra_payload.is_empty(), "{txid}");
 
-    let payload = ProUpRegTx::decode(&tx.extra_payload).unwrap();
+    let payload = ProUpRegTx::decode(&mut &tx.extra_payload[..]).unwrap();
     assert!(payload.validate(&Default::default()).is_ok());
     let d = &entry.details;
 

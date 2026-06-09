@@ -6,13 +6,10 @@
 
 //! AssetLock (type 8): L1 to Platform.
 
-use crate::error::DecodeError;
+use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::tx_out::TxOut;
 use crate::validation::DeploymentContext;
-use crate::wire;
-
-use bitcoin_consensus_encoding as encoding;
 
 use core::fmt;
 
@@ -26,52 +23,10 @@ pub struct AssetLock {
   pub credit_outputs: Vec<TxOut>,
 }
 
-impl fmt::Display for AssetLock {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "AssetLock {{ v{}, outputs: {} }}",
-      self.version,
-      self.credit_outputs.len(),
-    )
-  }
-}
-
-impl AssetLock {
-  fn decode_for_codec(data: &[u8]) -> Result<Self, crate::codec::DecodeError> {
-    Self::decode(data).map_err(Into::into)
-  }
-
-  /// Decodes from the extra_payload byte slice.
-  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
-    let sl = &mut &data[..];
-
-    let version = wire::read_u8(sl)?;
-
-    let count = wire::read_compact_size(sl, 100)?;
-
-    let mut credit_outputs = Vec::with_capacity(count);
-    for _ in 0..count {
-      let raw = wire::read_u64_le(sl)?;
-      let value = bitcoin_units::Amount::from_sat(raw)
-        .map_err(|_| DecodeError::CompactSizeExceedsLimit { limit: 0, value: raw })?;
-      let script_pubkey = wire::read_script(sl, 10_000)?;
-      credit_outputs.push(TxOut { value, script_pubkey });
-    }
-
-    Ok(Self {
-      version,
-      credit_outputs,
-    })
-  }
-}
-
-impl encoding::Decodable for AssetLock {
-  type Decoder = crate::codec::BufferDecoder<Self, crate::codec::DecodeError>;
-  fn decoder() -> Self::Decoder {
-    crate::codec::BufferDecoder::new(Self::decode_for_codec, crate::MAX_EXTRA_PAYLOAD_SIZE)
-  }
-}
+codec_payload!(AssetLock {
+  version,
+  credit_outputs
+});
 
 /// Asset lock validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -129,5 +84,16 @@ impl AssetLock {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for AssetLock {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "AssetLock {{ v{}, outputs: {} }}",
+      self.version,
+      self.credit_outputs.len(),
+    )
   }
 }

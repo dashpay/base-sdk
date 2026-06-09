@@ -6,13 +6,13 @@
 
 //! CoinbaseCommitment coinbase commitment payload (type 5).
 
-use crate::error::DecodeError;
+use crate::codec::impl_payload;
+use crate::prelude::*;
 use crate::validation::DeploymentContext;
-use crate::wire;
 use crate::MerkleRoot;
 
-use bitcoin_consensus_encoding as encoding;
 use bitcoin_units::BlockHeight;
+use dash_types::codec::{self, BaseCodec, DecodeError};
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -41,36 +41,24 @@ pub struct CoinbaseCommitment {
   pub credit_pool_balance: Option<i64>,
 }
 
-impl fmt::Display for CoinbaseCommitment {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "CoinbaseCommitment {{ v{}, height: {} }}", self.version, self.height)
-  }
-}
+impl_payload!(CoinbaseCommitment);
 
-impl CoinbaseCommitment {
-  fn decode_for_codec(data: &[u8]) -> Result<Self, crate::codec::DecodeError> {
-    Self::decode(data).map_err(Into::into)
-  }
-
-  /// Decodes from the extra_payload byte slice.
-  pub fn decode(data: &[u8]) -> Result<Self, DecodeError> {
-    let sl = &mut &data[..];
-
-    let version = wire::read_u16_le(sl)?;
-    let height = BlockHeight::from_u32(wire::read_u32_le(sl)?);
-    let merkle_root_mn_list = wire::read_hash(sl)?.into();
-
+impl BaseCodec for CoinbaseCommitment {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let version = u16::decode(data)?;
+    let height = BlockHeight::from_u32(u32::decode(data)?);
+    let merkle_root_mn_list = MerkleRoot::decode(data)?;
     let merkle_root_quorums = if version >= 2 {
-      Some(wire::read_hash(sl)?.into())
+      Some(MerkleRoot::decode(data)?)
     } else {
       None
     };
-
     let (best_cl_height_diff, best_cl_signature, credit_pool_balance) = if version >= 3 {
-      let diff = wire::read_compact_u64(sl)?;
-      let sig = wire::read_type(sl)?;
-      let balance = wire::read_i64_le(sl)?;
-      (Some(diff), Some(sig), Some(balance))
+      (
+        Some(codec::read_compact_u64(data)?),
+        Some(BlsSignatureBytes::decode(data)?),
+        Some(i64::decode(data)?),
+      )
     } else {
       (None, None, None)
     };
@@ -85,12 +73,19 @@ impl CoinbaseCommitment {
       credit_pool_balance,
     })
   }
-}
 
-impl encoding::Decodable for CoinbaseCommitment {
-  type Decoder = crate::codec::BufferDecoder<Self, crate::codec::DecodeError>;
-  fn decoder() -> Self::Decoder {
-    crate::codec::BufferDecoder::new(Self::decode_for_codec, crate::MAX_EXTRA_PAYLOAD_SIZE)
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.version.encode(buf);
+    self.height.to_u32().encode(buf);
+    self.merkle_root_mn_list.encode(buf);
+    if self.version >= 2 {
+      self.merkle_root_quorums.unwrap_or_default().encode(buf);
+    }
+    if self.version >= 3 {
+      codec::write_compact_u64(self.best_cl_height_diff.unwrap_or(0), buf);
+      self.best_cl_signature.unwrap_or_default().encode(buf);
+      self.credit_pool_balance.unwrap_or(0).encode(buf);
+    }
   }
 }
 
@@ -133,5 +128,11 @@ impl CoinbaseCommitment {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Display for CoinbaseCommitment {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "CoinbaseCommitment {{ v{}, height: {} }}", self.version, self.height)
   }
 }

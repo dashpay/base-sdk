@@ -52,6 +52,18 @@ predicate isTestCode(TypeItem t) {
   )
 }
 
+/**
+ * Holds if `t` has a derive attribute but no expansions, indicating
+ * the extractor could not semantically process the containing file.
+ */
+predicate hasUnexpandedDerive(TypeItem t) {
+  exists(Attr a |
+    a = t.getAnAttr() and
+    a.getMeta().getPath().getSegment().getIdentifier().getText() = "derive"
+  ) and
+  not exists(t.getADeriveMacroExpansion())
+}
+
 /** Holds if `t` is a source type eligible for any check. */
 predicate isSourceType(TypeItem t) {
   (t instanceof Struct or t instanceof Enum or t instanceof Union) and
