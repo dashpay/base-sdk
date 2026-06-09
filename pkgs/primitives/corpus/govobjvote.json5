@@ -1,0 +1,96 @@
+{
+  "govobjvote": {
+    // All votes use ECDSA compact signatures (65 bytes)
+
+    // Mainnet vote: yes:funding
+    "d24afcb87854024743d43d2ecaeb9ec8ddec70b30467b792e224f991034e99e8": {
+      "raw": "5c5e590a3d4e57411a2507ff7d85fe087871b2c801e2778402b30ae35763d0ec0100000028b088e28a6a79599896b552f3472f8c70a784b12966f93d3fe933659584aeee010000000100000079e3ed6900000000411f751130ef3c15dffb9cb7fd953f9493d64f2bf128e5c2b3b50e498bed3f5345ec4f64d63eb51d1493504d3a50d391b69585ce93b3dd305f3e7fead07fa96ced8a",
+      "details": {
+        "masternodeOutpoint": {
+          "hash": "ecd06357e30ab3028477e201c8b2717808fe857dff07251a41574e3d0a595e5c",
+          "index": 1
+        },
+        "outcome": 1,
+        "parentHash": "eeae84956533e93f3df96629b184a7708c2f47f352b5969859796a8ae288b028",
+        "sig": "1f751130ef3c15dffb9cb7fd953f9493d64f2bf128e5c2b3b50e498bed3f5345ec4f64d63eb51d1493504d3a50d391b69585ce93b3dd305f3e7fead07fa96ced8a",
+        "signal": 1,
+        "time": 1777197945
+      }
+    },
+    // Mainnet vote: yes:funding
+    "b4924729685e4f696546d683a674c4b180c83da234cfd33c79f1619b09d43e8a": {
+      "raw": "abd6b013c5cee3906bbec180aa30a5cba2539acb455868726636d1aed4f68f5600000000bca3c56727a314ef853c09f6078fe5c110bd7b6db25a25abbd56e8b7d4aef26001000000010000006b01fb6900000000411f16719cdc10fdab6b7954aad9d26b3c5c81acca24505c14bdad3003f4f2cc717e0dce25f2000a0a44db218a7f3c8101721f9ded991e7287d4ecd3abf0957c0d28",
+      "details": {
+        "masternodeOutpoint": {
+          "hash": "568ff6d4aed1366672685845cb9a53a2cba530aa80c1be6b90e3cec513b0d6ab",
+          "index": 0
+        },
+        "outcome": 1,
+        "parentHash": "60f2aed4b7e856bdab255ab26d7bbd10c1e58f07f6093c85ef14a32767c5a3bc",
+        "sig": "1f16719cdc10fdab6b7954aad9d26b3c5c81acca24505c14bdad3003f4f2cc717e0dce25f2000a0a44db218a7f3c8101721f9ded991e7287d4ecd3abf0957c0d28",
+        "signal": 1,
+        "time": 1778057579
+      }
+    },
+    // Mainnet vote: yes:funding
+    "9a1e3e4f7a9f5e6b4719aad54ec8f232632e7c83653ddc313a8518625c24c0e8": {
+      "raw": "3536d80f4f5577575b77ef65b4dbf0311fe6a87ff3529e4440dc6aade16a21a900000000bca3c56727a314ef853c09f6078fe5c110bd7b6db25a25abbd56e8b7d4aef260010000000100000098f8fa6900000000411f0462dd8fb1b8edf8db82c8ff94c1a330bced21bd79766059aec804a75c5ee2f504e7a9b9f9cbf1800bac6c2d0036d0edbc7511efbba9040a36de89434511e8d7",
+      "details": {
+        "masternodeOutpoint": {
+          "hash": "a9216ae1ad6adc40449e52f37fa8e61f31f0dbb465ef775b5777554f0fd83635",
+          "index": 0
+        },
+        "outcome": 1,
+        "parentHash": "60f2aed4b7e856bdab255ab26d7bbd10c1e58f07f6093c85ef14a32767c5a3bc",
+        "sig": "1f0462dd8fb1b8edf8db82c8ff94c1a330bced21bd79766059aec804a75c5ee2f504e7a9b9f9cbf1800bac6c2d0036d0edbc7511efbba9040a36de89434511e8d7",
+        "signal": 1,
+        "time": 1778055320
+      }
+    },
+    // Mainnet vote: yes:funding
+    "22799ec74495f2d4e1f5c9e95be578fe2650d62d91587214ff29f4ebadd6c7f6": {
+      "raw": "66b09a032b2590c5c63960f1cad15cc0064a45fe46e59ebb02809553b2864f4d00000000bca3c56727a314ef853c09f6078fe5c110bd7b6db25a25abbd56e8b7d4aef260010000000100000067f6fa6900000000411f772cafc16ea3b1b395eeba6ddcb7f20ed5ef7c1c38d35ff9608e9585e41d649e09ed300b26d1936f914347882be9476769be93cbce4a076f9484ac5a53f941c3",
+      "details": {
+        "masternodeOutpoint": {
+          "hash": "4d4f86b253958002bb9ee546fe454a06c05cd1caf16039c6c590252b039ab066",
+          "index": 0
+        },
+        "outcome": 1,
+        "parentHash": "60f2aed4b7e856bdab255ab26d7bbd10c1e58f07f6093c85ef14a32767c5a3bc",
+        "sig": "1f772cafc16ea3b1b395eeba6ddcb7f20ed5ef7c1c38d35ff9608e9585e41d649e09ed300b26d1936f914347882be9476769be93cbce4a076f9484ac5a53f941c3",
+        "signal": 1,
+        "time": 1778054759
+      }
+    },
+    // Mainnet vote: yes:funding
+    "548fe41465c596026844362eb2e4dea55ab3995016607fa08540c35ad2e3457b": {
+      "raw": "3e69ddbcb4716d7e6dc131203cc951ad4018432790bbc533594d56c93147499f00000000bca3c56727a314ef853c09f6078fe5c110bd7b6db25a25abbd56e8b7d4aef2600100000001000000a7f7fa6900000000411faea57f30b6f55d0db073bea40f97eeca25b236c096fcdf95cd45a3a74a8e634d7d362b69aa1707b8f92e85e082401e47216643069edb069ce31ea6deae9532dc",
+      "details": {
+        "masternodeOutpoint": {
+          "hash": "9f494731c9564d5933c5bb9027431840ad51c93c2031c16d7e6d71b4bcdd693e",
+          "index": 0
+        },
+        "outcome": 1,
+        "parentHash": "60f2aed4b7e856bdab255ab26d7bbd10c1e58f07f6093c85ef14a32767c5a3bc",
+        "sig": "1faea57f30b6f55d0db073bea40f97eeca25b236c096fcdf95cd45a3a74a8e634d7d362b69aa1707b8f92e85e082401e47216643069edb069ce31ea6deae9532dc",
+        "signal": 1,
+        "time": 1778055079
+      }
+    },
+    // Mainnet vote: yes:funding
+    "76fcd5594897f0042ead2bd4ac865fac91d2790b3f9dbe87baf7af58aa369061": {
+      "raw": "149f19ad6a02d37d4dea8b52efed89f9081c37c2b907f6c860cb262aebfa88d700000000bca3c56727a314ef853c09f6078fe5c110bd7b6db25a25abbd56e8b7d4aef2600100000001000000ac04f96900000000411f6008fec56992a9930364c9548a9a26a3608db1daecb817d0bdfd9115a9a5fff77ee81d1d34f343e57ceada57548dcd2a960ace853a39bdb39bfea0a76531da93",
+      "details": {
+        "masternodeOutpoint": {
+          "hash": "d788faeb2a26cb60c8f607b9c2371c08f989edef528bea4d7dd3026aad199f14",
+          "index": 0
+        },
+        "outcome": 1,
+        "parentHash": "60f2aed4b7e856bdab255ab26d7bbd10c1e58f07f6093c85ef14a32767c5a3bc",
+        "sig": "1f6008fec56992a9930364c9548a9a26a3608db1daecb817d0bdfd9115a9a5fff77ee81d1d34f343e57ceada57548dcd2a960ace853a39bdb39bfea0a76531da93",
+        "signal": 1,
+        "time": 1777927340
+      }
+    },
+  }
+}

@@ -447,3 +447,30 @@ impl Checkable for Proposal {
     None
   }
 }
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_govobjvote() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "govobjvote");
+    let items = read_corpus::<GovVote>(&text, "govobjvote", check_wire);
+    assert_serde_rt("govobjvote", &items);
+  }
+
+  #[rstest]
+  fn corpus_govobj_wire() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "govobj");
+    read_corpus::<serde_json::Value>(&text, "govobj", |raw, _, label| {
+      let decoded = GovObject::decode(&mut &raw[..]).unwrap();
+      let mut encoded = Vec::new();
+      decoded.encode(&mut encoded);
+      assert_eq!(encoded, raw, "{label}: encode");
+    });
+  }
+}
