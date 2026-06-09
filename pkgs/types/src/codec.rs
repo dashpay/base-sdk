@@ -332,3 +332,13 @@ impl<T: BaseCodec> BaseCodec for Vec<T> {
     }
   }
 }
+
+/// Consensus types that have internal consistency checks.
+pub trait Checkable {
+  /// The error type returned on failure.
+  type Error;
+
+  /// Checks structural invariants, returning the first violation.
+  #[must_use]
+  fn check(&self) -> Option<Self::Error>;
+}
