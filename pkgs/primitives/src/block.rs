@@ -10,7 +10,7 @@ use crate::block_header::BlockHeader;
 use crate::codec_type;
 use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
-use crate::validation::{DeploymentContext, MAX_DIP0001_BLOCK_SIZE};
+use crate::validation::MAX_DIP0001_BLOCK_SIZE;
 
 use core::fmt;
 
@@ -35,7 +35,7 @@ impl Block {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), BlockInvalid> {
+  pub fn validate(&self) -> Result<(), BlockInvalid> {
     if self.transactions.is_empty() {
       return Err(BlockInvalid::BadBlockLength { size: 0 });
     }
@@ -50,7 +50,7 @@ impl Block {
     }
 
     for (i, tx) in self.transactions.iter().enumerate() {
-      tx.validate(ctx)
+      tx.validate()
         .map_err(|e| BlockInvalid::Transaction { index: i, error: e })?;
     }
 

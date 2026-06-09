@@ -4,10 +4,10 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Shared validation context and helpers.
+//! Shared validation helpers.
 //!
 //! Type-specific validation lives in each type's own module. This module
-//! provides the deployment context and helpers shared across multiple modules.
+//! provides helpers shared across multiple modules.
 
 use crate::prelude::*;
 use crate::support::{NetInfoEntry, NetInfoPurpose};
@@ -43,28 +43,6 @@ pub(crate) const PROTX_VERSION_BASIC_BLS: u16 = 2;
 
 /// ProTx version: extended network addresses (v3).
 pub(crate) const PROTX_VERSION_EXT_ADDR: u16 = 3;
-
-/// Deployment activation state for fork-gated validation.
-///
-/// Each field is tri-state: `Some(true)` means the fork is active,
-/// `Some(false)` means it is not yet active, and `None` means the caller does
-/// not know and the corresponding checks should be skipped.
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct DeploymentContext {
-  /// DIP0001 (2 MB blocks, relaxed sigops).
-  pub dip0001_active: Option<bool>,
-  /// DIP0003 (special transactions).
-  pub dip0003_active: Option<bool>,
-  /// DIP0008 (merkle root quorums in CbTx).
-  pub dip0008_active: Option<bool>,
-  /// V19 (BasicBLS operator keys).
-  pub basic_bls_active: Option<bool>,
-  /// V20 (ChainLock signature + credit pool in CbTx).
-  pub v20_active: Option<bool>,
-  /// V24 (extended network addresses).
-  pub ext_addr_active: Option<bool>,
-}
 
 /// Provider transaction validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

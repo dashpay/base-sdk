@@ -7,7 +7,7 @@
 //! MnHardFork hard-fork signal (type 7).
 
 use crate::codec::codec_payload;
-use crate::validation::{DeploymentContext, VERSIONBITS_NUM_BITS};
+use crate::validation::VERSIONBITS_NUM_BITS;
 use crate::QuorumHash;
 
 use dash_types::BlsSignatureBytes;
@@ -59,7 +59,7 @@ impl MnHardFork {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), MnHardForkInvalid> {
+  pub fn validate(&self) -> Result<(), MnHardForkInvalid> {
     if self.version == 0 || self.version > 1 {
       return Err(MnHardForkInvalid::BadVersion { version: self.version });
     }

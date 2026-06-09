@@ -12,9 +12,7 @@ use crate::prelude::*;
 use crate::script::Script;
 use crate::support::CService;
 use crate::tx_types::MnType;
-use crate::validation::{
-  check_sptx_netinfo, DeploymentContext, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
-};
+use crate::validation::{check_sptx_netinfo, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::{InputsHash, TxHash};
 
 use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
@@ -134,7 +132,7 @@ impl ProUpServTx {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
+  pub fn validate(&self) -> Result<(), ProTxInvalid> {
     if self.version == 0 {
       return Err(ProTxInvalid::BadVersion { version: self.version });
     }

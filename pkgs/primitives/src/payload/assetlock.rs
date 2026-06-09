@@ -9,7 +9,6 @@
 use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::tx_out::TxOut;
-use crate::validation::DeploymentContext;
 
 use core::fmt;
 
@@ -58,7 +57,7 @@ impl AssetLock {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), AssetLockInvalid> {
+  pub fn validate(&self) -> Result<(), AssetLockInvalid> {
     if self.version == 0 || self.version > 1 {
       return Err(AssetLockInvalid::BadVersion { version: self.version });
     }

@@ -8,7 +8,7 @@
 
 use crate::codec::codec_payload;
 use crate::support::RevocationReason;
-use crate::validation::{DeploymentContext, ProTxInvalid};
+use crate::validation::ProTxInvalid;
 use crate::{InputsHash, TxHash};
 
 use dash_types::BlsSignatureBytes;
@@ -48,7 +48,7 @@ impl ProUpRevTx {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
+  pub fn validate(&self) -> Result<(), ProTxInvalid> {
     if self.version == 0 {
       return Err(ProTxInvalid::BadVersion { version: self.version });
     }

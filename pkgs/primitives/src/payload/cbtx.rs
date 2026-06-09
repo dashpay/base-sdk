@@ -8,7 +8,6 @@
 
 use crate::codec::impl_payload;
 use crate::prelude::*;
-use crate::validation::DeploymentContext;
 use crate::MerkleRoot;
 
 use bitcoin_units::BlockHeight;
@@ -111,7 +110,7 @@ impl CoinbaseCommitment {
   ///
   /// Returns `CbTxInvalid` when the version is invalid or conflicts with
   /// deployment state.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), CbTxInvalid> {
+  pub fn validate(&self) -> Result<(), CbTxInvalid> {
     if self.version == 0 || self.version >= 4 {
       return Err(CbTxInvalid::BadVersion { version: self.version });
     }

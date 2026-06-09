@@ -21,11 +21,11 @@ fn decode_fields() {
   for (txid, entry) in &corpus {
     util::assert_txid(&entry.raw, txid);
     let tx = util::decode_tx(&entry.raw);
-    assert!(tx.validate(&Default::default()).is_ok());
+    assert!(tx.validate().is_ok());
     assert!(!tx.extra_payload.is_empty(), "{txid}");
 
     let payload = ProUpServTx::decode(&mut &tx.extra_payload[..]).unwrap();
-    assert!(payload.validate(&Default::default()).is_ok());
+    assert!(payload.validate().is_ok());
     let d = &entry.details;
 
     assert_eq!(payload.version, util::json_u64(&d["version"]) as u16, "{txid}",);

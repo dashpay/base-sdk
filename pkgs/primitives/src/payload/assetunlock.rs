@@ -7,7 +7,6 @@
 //! AssetUnlock (type 9): Platform to L1.
 
 use crate::codec::codec_payload;
-use crate::validation::DeploymentContext;
 use crate::QuorumHash;
 
 use dash_types::BlsSignatureBytes;
@@ -65,7 +64,7 @@ impl AssetUnlock {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), AssetUnlockInvalid> {
+  pub fn validate(&self) -> Result<(), AssetUnlockInvalid> {
     if self.version == 0 || self.version > 1 {
       return Err(AssetUnlockInvalid::BadVersion { version: self.version });
     }

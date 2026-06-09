@@ -12,7 +12,7 @@ use crate::prelude::*;
 use crate::tx_in::TxIn;
 use crate::tx_out::TxOut;
 use crate::tx_types::TxType;
-use crate::validation::{DeploymentContext, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
+use crate::validation::{MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
 
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
 use dash_types::impl_type;
@@ -122,7 +122,7 @@ impl Transaction {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), TxInvalid> {
+  pub fn validate(&self) -> Result<(), TxInvalid> {
     let allows_empty_vin = matches!(
       self.tx_type,
       TxType::QuorumCommitment | TxType::MnhfSignal | TxType::AssetUnlock
