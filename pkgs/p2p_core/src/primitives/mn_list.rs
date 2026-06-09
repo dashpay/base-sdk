@@ -19,6 +19,7 @@ use core::fmt;
 /// A single entry in the simplified masternode list.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct SimplifiedMnListEntry {
   /// Entry serialisation version.
   pub version: u16,
@@ -37,6 +38,7 @@ pub struct SimplifiedMnListEntry {
   /// Masternode type (Regular or Evo).
   pub mn_type: MnType,
   /// Platform HTTP port (Evo masternodes only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformHTTPPort"))]
   pub platform_http_port: Option<u16>,
   /// Platform node ID (Evo masternodes only).
   pub platform_node_id: Option<PlatformNodeId>,
@@ -109,6 +111,7 @@ impl fmt::Display for SimplifiedMnListEntry {
 /// Deleted quorum identifier (type + hash).
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct DeletedQuorum {
   /// LLMQ type.
   pub llmq_type: LlmqType,
@@ -124,6 +127,7 @@ codec_p2p!(DeletedQuorum { llmq_type, hash });
 /// `new_quorums`) of the quorums it covers.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct QuorumClSig {
   /// BLS signature.
   pub sig: BlsSignatureBytes,
@@ -136,6 +140,7 @@ codec_p2p!(QuorumClSig { sig, index_set });
 /// Full masternode list diff payload.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct MnListDiffPayload {
   /// Serialisation version.
   pub version: u16,

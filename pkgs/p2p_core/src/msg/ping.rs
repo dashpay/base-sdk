@@ -13,6 +13,7 @@ use crate::codec::codec_p2p;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Ping {
   /// Random nonce echoed back in the corresponding `Pong`.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::str_u64"))]
   pub nonce: u64,
 }
 
@@ -23,6 +24,7 @@ codec_p2p!(Ping { nonce });
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Pong {
   /// Nonce from the original `Ping`.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::str_u64"))]
   pub nonce: u64,
 }
 

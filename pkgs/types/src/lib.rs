@@ -19,14 +19,10 @@ mod prelude;
 mod uint;
 
 pub mod codec;
+#[cfg(feature = "serde")]
+pub mod serialize;
 
 pub use entity::{BufferDecoder, VecEncoder, MAX_SER_SIZE};
-
-/// Helpers for `#[serde(with = "...")]` annotations.
-#[cfg(feature = "serde")]
-pub mod serialize {
-  pub use crate::hex::serde as hex;
-}
 
 #[doc(hidden)]
 pub mod __private {

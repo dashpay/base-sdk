@@ -32,6 +32,7 @@ pub struct Version {
   /// Sender's own address.
   pub addr_send: NetAddr,
   /// Random nonce for connection deduplication.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::str_u64"))]
   pub nonce: u64,
   /// User agent string.
   pub user_agent: UserAgent,

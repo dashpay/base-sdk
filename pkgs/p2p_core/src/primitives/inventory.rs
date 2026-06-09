@@ -85,6 +85,7 @@ impl fmt::Display for InvType {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Inventory {
   /// Object type.
+  #[cfg_attr(feature = "serde", serde(rename = "type"))]
   pub inv_type: InvType,
   /// Object hash.
   pub hash: Hash256,
