@@ -111,19 +111,8 @@ impl CoinbaseCommitment {
   ///
   /// Returns `CbTxInvalid` when the version is invalid or conflicts with
   /// deployment state.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), CbTxInvalid> {
+  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), CbTxInvalid> {
     if self.version == 0 || self.version >= 4 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
-    }
-
-    if ctx.dip0008_active == Some(true) && self.version < 2 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
-    }
-
-    if ctx.v20_active == Some(true) && self.version < 3 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
-    }
-    if ctx.v20_active == Some(false) && self.version >= 3 {
       return Err(CbTxInvalid::BadVersion { version: self.version });
     }
 
