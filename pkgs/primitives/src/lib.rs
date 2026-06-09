@@ -79,4 +79,3 @@ pub use transaction::Transaction;
 pub use tx_in::TxIn;
 pub use tx_out::TxOut;
 pub use tx_types::{MnType, TxType};
-pub use validation::DeploymentContext;

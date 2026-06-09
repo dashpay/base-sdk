@@ -8,9 +8,10 @@
 
 use crate::codec::codec_payload;
 use crate::support::RevocationReason;
-use crate::validation::{check_protx_version, max_protx_version_no_ext, DeploymentContext, ProTxInvalid};
+use crate::validation::ProTxInvalid;
 use crate::{InputsHash, TxHash};
 
+use dash_types::codec::Checkable;
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -42,20 +43,19 @@ codec_payload!(ProUpRevTx {
   sig,
 });
 
-impl ProUpRevTx {
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
-    check_protx_version(self.version, max_protx_version_no_ext(ctx))?;
+impl Checkable for ProUpRevTx {
+  type Error = ProTxInvalid;
 
-    if matches!(self.reason, RevocationReason::Unknown(_)) {
-      return Err(ProTxInvalid::BadReason { reason: self.reason });
+  fn check(&self) -> Option<Self::Error> {
+    if self.version == 0 {
+      return Some(ProTxInvalid::BadVersion { version: self.version });
     }
 
-    Ok(())
+    if matches!(self.reason, RevocationReason::Unknown(_)) {
+      return Some(ProTxInvalid::BadReason { reason: self.reason });
+    }
+
+    None
   }
 }
 

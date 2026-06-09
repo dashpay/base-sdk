@@ -11,7 +11,7 @@
 mod util;
 
 use dash_primitives::{TxHash, TxType};
-use dash_types::codec::NumCodec;
+use dash_types::codec::{Checkable, NumCodec};
 use hex_conservative::FromHex;
 use rstest::rstest;
 
@@ -21,7 +21,7 @@ fn decode_fields() {
   for (txid, entry) in &corpus {
     util::assert_txid(&entry.raw, txid);
     let tx = util::decode_tx(&entry.raw);
-    assert!(tx.validate(&Default::default()).is_ok());
+    assert!(tx.check().is_none());
     let d = &entry.details;
 
     assert_eq!(tx.version, util::json_u64(&d["version"]) as i16, "{txid} version",);

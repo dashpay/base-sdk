@@ -12,9 +12,9 @@ use crate::prelude::*;
 use crate::tx_in::TxIn;
 use crate::tx_out::TxOut;
 use crate::tx_types::TxType;
-use crate::validation::{DeploymentContext, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
+use crate::validation::{MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
 
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::impl_type;
 
 use core::fmt;
@@ -78,6 +78,79 @@ impl BaseCodec for Transaction {
   }
 }
 
+impl Checkable for Transaction {
+  type Error = TxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
+    let allows_empty_vin = matches!(
+      self.tx_type,
+      TxType::QuorumCommitment | TxType::MnhfSignal | TxType::AssetUnlock
+    );
+    let allows_empty_vout = matches!(self.tx_type, TxType::QuorumCommitment | TxType::MnhfSignal);
+
+    if !allows_empty_vin && self.inputs.is_empty() {
+      return Some(TxInvalid::EmptyInputs);
+    }
+    if !allows_empty_vout && self.outputs.is_empty() {
+      return Some(TxInvalid::EmptyOutputs);
+    }
+
+    if !self.has_extra_payload() && !self.extra_payload.is_empty() {
+      return Some(TxInvalid::PayloadNotAllowed);
+    }
+    if self.extra_payload.len() > MAX_TX_EXTRA_PAYLOAD {
+      return Some(TxInvalid::PayloadOversize {
+        size: self.extra_payload.len(),
+      });
+    }
+
+    let max_money = bitcoin_units::Amount::MAX_MONEY.to_sat();
+    let mut total: u64 = 0;
+    for (i, output) in self.outputs.iter().enumerate() {
+      let sat = output.value.to_sat();
+      if sat > max_money {
+        return Some(TxInvalid::OutputTooLarge { index: i, value: sat });
+      }
+      total = total.saturating_add(sat);
+      if total > max_money {
+        return Some(TxInvalid::OutputTotalTooLarge { total });
+      }
+    }
+
+    // Duplicate inputs (CVE-2018-17144).
+    if self.inputs.len() > 1 {
+      let mut seen = BTreeSet::new();
+      for input in &self.inputs {
+        if !seen.insert(&input.prevout) {
+          return Some(TxInvalid::DuplicateInputs {
+            outpoint: input.prevout,
+          });
+        }
+      }
+    }
+
+    if self.is_coinbase() {
+      let min_cb_size = if self.tx_type == TxType::CoinbaseCommitment {
+        1
+      } else {
+        2
+      };
+      let cb_len = self.inputs[0].script_sig.len();
+      if cb_len < min_cb_size || cb_len > MAX_COINBASE_SCRIPT_SIZE {
+        return Some(TxInvalid::BadCoinbaseScriptLength { len: cb_len });
+      }
+    } else {
+      for (i, input) in self.inputs.iter().enumerate() {
+        if input.prevout.is_null() {
+          return Some(TxInvalid::NullPrevout { index: i });
+        }
+      }
+    }
+
+    None
+  }
+}
+
 impl Transaction {
   /// Returns the packed i32 version field as on the wire.
   pub fn raw_version(&self) -> i32 {
@@ -115,77 +188,6 @@ impl Transaction {
       }
       Ok(payload)
     }))
-  }
-
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), TxInvalid> {
-    let allows_empty_vin = matches!(
-      self.tx_type,
-      TxType::QuorumCommitment | TxType::MnhfSignal | TxType::AssetUnlock
-    );
-    let allows_empty_vout = matches!(self.tx_type, TxType::QuorumCommitment | TxType::MnhfSignal);
-
-    if !allows_empty_vin && self.inputs.is_empty() {
-      return Err(TxInvalid::EmptyInputs);
-    }
-    if !allows_empty_vout && self.outputs.is_empty() {
-      return Err(TxInvalid::EmptyOutputs);
-    }
-
-    if self.extra_payload.len() > MAX_TX_EXTRA_PAYLOAD {
-      return Err(TxInvalid::PayloadOversize {
-        size: self.extra_payload.len(),
-      });
-    }
-
-    let max_money = bitcoin_units::Amount::MAX_MONEY.to_sat();
-    let mut total: u64 = 0;
-    for (i, output) in self.outputs.iter().enumerate() {
-      let sat = output.value.to_sat();
-      if sat > max_money {
-        return Err(TxInvalid::OutputTooLarge { index: i, value: sat });
-      }
-      total = total.saturating_add(sat);
-      if total > max_money {
-        return Err(TxInvalid::OutputTotalTooLarge { total });
-      }
-    }
-
-    // Duplicate inputs (CVE-2018-17144).
-    if self.inputs.len() > 1 {
-      let mut seen = BTreeSet::new();
-      for input in &self.inputs {
-        if !seen.insert(&input.prevout) {
-          return Err(TxInvalid::DuplicateInputs {
-            outpoint: input.prevout,
-          });
-        }
-      }
-    }
-
-    if self.is_coinbase() {
-      let min_cb_size = if self.tx_type == TxType::CoinbaseCommitment {
-        1
-      } else {
-        2
-      };
-      let cb_len = self.inputs[0].script_sig.len();
-      if cb_len < min_cb_size || cb_len > MAX_COINBASE_SCRIPT_SIZE {
-        return Err(TxInvalid::BadCoinbaseScriptLength { len: cb_len });
-      }
-    } else {
-      for (i, input) in self.inputs.iter().enumerate() {
-        if input.prevout.is_null() {
-          return Err(TxInvalid::NullPrevout { index: i });
-        }
-      }
-    }
-
-    Ok(())
   }
 
   /// Returns `true` when the first input spends the null outpoint.
@@ -228,6 +230,8 @@ pub enum TxInvalid {
   BadCoinbaseScriptLength { len: usize },
   /// `bad-txns-prevout-null`
   NullPrevout { index: usize },
+  /// `bad-txns-payload-not-allowed`
+  PayloadNotAllowed,
 }
 
 impl fmt::Display for TxInvalid {
@@ -242,6 +246,7 @@ impl fmt::Display for TxInvalid {
       Self::DuplicateInputs { outpoint } => write!(f, "bad-txns-inputs-duplicate: {outpoint}"),
       Self::BadCoinbaseScriptLength { len } => write!(f, "bad-cb-length: {len}"),
       Self::NullPrevout { index } => write!(f, "bad-txns-prevout-null: input {index}"),
+      Self::PayloadNotAllowed => write!(f, "bad-txns-payload-not-allowed"),
     }
   }
 }

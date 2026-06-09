@@ -8,11 +8,10 @@
 
 use crate::codec::impl_payload;
 use crate::prelude::*;
-use crate::validation::DeploymentContext;
 use crate::MerkleRoot;
 
 use bitcoin_units::BlockHeight;
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -78,13 +77,17 @@ impl BaseCodec for CoinbaseCommitment {
     self.version.encode(buf);
     self.height.to_u32().encode(buf);
     self.merkle_root_mn_list.encode(buf);
-    if self.version >= 2 {
-      self.merkle_root_quorums.unwrap_or_default().encode(buf);
+    if let Some(root) = self.merkle_root_quorums {
+      root.encode(buf);
     }
-    if self.version >= 3 {
-      codec::write_compact_u64(self.best_cl_height_diff.unwrap_or(0), buf);
-      self.best_cl_signature.unwrap_or_default().encode(buf);
-      self.credit_pool_balance.unwrap_or(0).encode(buf);
+    if let (Some(diff), Some(sig), Some(bal)) = (
+      self.best_cl_height_diff,
+      self.best_cl_signature,
+      self.credit_pool_balance,
+    ) {
+      codec::write_compact_u64(diff, buf);
+      sig.encode(buf);
+      bal.encode(buf);
     }
   }
 }
@@ -94,40 +97,50 @@ impl BaseCodec for CoinbaseCommitment {
 pub enum CbTxInvalid {
   /// `bad-cbtx-version`
   BadVersion { version: u16 },
+  /// `bad-cbtx-missing-field`
+  MissingField,
+  /// `bad-cbtx-unexpected-field`
+  UnexpectedField,
 }
 
 impl core::fmt::Display for CbTxInvalid {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     match self {
       Self::BadVersion { version } => write!(f, "bad-cbtx-version: {version}"),
+      Self::MissingField => write!(f, "bad-cbtx-missing-field"),
+      Self::UnexpectedField => write!(f, "bad-cbtx-unexpected-field"),
     }
   }
 }
 
-impl CoinbaseCommitment {
-  /// Validates version constraints.
-  ///
-  /// # Errors
-  ///
-  /// Returns `CbTxInvalid` when the version is invalid or conflicts with
-  /// deployment state.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), CbTxInvalid> {
+impl Checkable for CoinbaseCommitment {
+  type Error = CbTxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 || self.version >= 4 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
+      return Some(CbTxInvalid::BadVersion { version: self.version });
     }
 
-    if ctx.dip0008_active == Some(true) && self.version < 2 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
+    if self.version >= 2 {
+      if self.merkle_root_quorums.is_none() {
+        return Some(CbTxInvalid::MissingField);
+      }
+    } else if self.merkle_root_quorums.is_some() {
+      return Some(CbTxInvalid::UnexpectedField);
     }
 
-    if ctx.v20_active == Some(true) && self.version < 3 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
-    }
-    if ctx.v20_active == Some(false) && self.version >= 3 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
+    if self.version >= 3 {
+      if self.best_cl_height_diff.is_none() || self.best_cl_signature.is_none() || self.credit_pool_balance.is_none() {
+        return Some(CbTxInvalid::MissingField);
+      }
+    } else if self.best_cl_height_diff.is_some()
+      || self.best_cl_signature.is_some()
+      || self.credit_pool_balance.is_some()
+    {
+      return Some(CbTxInvalid::UnexpectedField);
     }
 
-    Ok(())
+    None
   }
 }
 

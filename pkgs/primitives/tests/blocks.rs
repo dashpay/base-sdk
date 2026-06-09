@@ -11,7 +11,8 @@
 mod util;
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec};
-use dash_primitives::{Block, BlockHash, DeploymentContext, MerkleRoot};
+use dash_primitives::{Block, BlockHash, MerkleRoot};
+use dash_types::codec::Checkable;
 use hex_conservative::FromHex;
 use rstest::rstest;
 
@@ -21,7 +22,7 @@ fn decode_fields() {
   for (block_hash_hex, entry) in &corpus {
     let raw = Vec::<u8>::from_hex(&entry.raw).unwrap();
     let block: Block = decode_from_slice(&raw).unwrap();
-    assert!(block.validate(&DeploymentContext::default()).is_ok());
+    assert!(block.check().is_none());
 
     let h = &entry.header;
     let body = &entry.body;

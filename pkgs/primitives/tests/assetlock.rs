@@ -11,7 +11,7 @@
 mod util;
 
 use dash_primitives::payload::AssetLock;
-use dash_types::codec::BaseCodec;
+use dash_types::codec::{BaseCodec, Checkable};
 use hex_conservative::FromHex;
 use rstest::rstest;
 
@@ -21,11 +21,11 @@ fn decode_fields() {
   for (txid, entry) in &corpus {
     util::assert_txid(&entry.raw, txid);
     let tx = util::decode_tx(&entry.raw);
-    assert!(tx.validate(&Default::default()).is_ok());
+    assert!(tx.check().is_none());
     assert!(!tx.extra_payload.is_empty(), "{txid}");
 
     let payload = AssetLock::decode(&mut &tx.extra_payload[..]).unwrap();
-    assert!(payload.validate(&Default::default()).is_ok());
+    assert!(payload.check().is_none());
     let d = &entry.details;
 
     assert_eq!(payload.version, util::json_u64(&d["version"]) as u8, "{txid}",);

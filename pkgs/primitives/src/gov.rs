@@ -12,7 +12,7 @@ use crate::prelude::*;
 use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
-use dash_types::codec::{self, BaseCodec, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, NumCodec};
 use dash_types::impl_num;
 use hex_conservative::DisplayHex;
 
@@ -403,46 +403,43 @@ impl fmt::Display for ProposalInvalid {
   }
 }
 
-impl Proposal {
-  /// Validates proposal fields without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self) -> Result<(), ProposalInvalid> {
+impl Checkable for Proposal {
+  type Error = ProposalInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.name.is_empty() {
-      return Err(ProposalInvalid::NameEmpty);
+      return Some(ProposalInvalid::NameEmpty);
     }
     if self.name.len() > MAX_PROPOSAL_NAME_LEN {
-      return Err(ProposalInvalid::NameTooLong { len: self.name.len() });
+      return Some(ProposalInvalid::NameTooLong { len: self.name.len() });
     }
     if !self
       .name
       .bytes()
       .all(|b| PROPOSAL_NAME_CHARS.contains(&b.to_ascii_lowercase()))
     {
-      return Err(ProposalInvalid::NameInvalidChars);
+      return Some(ProposalInvalid::NameInvalidChars);
     }
 
     if self.end_epoch <= self.start_epoch {
-      return Err(ProposalInvalid::BadEpochRange);
+      return Some(ProposalInvalid::BadEpochRange);
     }
 
     if self.payment_amount.is_empty() {
-      return Err(ProposalInvalid::BadPaymentAmount);
+      return Some(ProposalInvalid::BadPaymentAmount);
     }
     let amount_positive = self.payment_amount.parse::<f64>().map(|v| v > 0.0).unwrap_or(false);
     if !amount_positive {
-      return Err(ProposalInvalid::BadPaymentAmount);
+      return Some(ProposalInvalid::BadPaymentAmount);
     }
 
     if self.url.len() < MIN_URL_LEN {
-      return Err(ProposalInvalid::UrlTooShort { len: self.url.len() });
+      return Some(ProposalInvalid::UrlTooShort { len: self.url.len() });
     }
     if self.url.bytes().any(|b| b.is_ascii_whitespace()) {
-      return Err(ProposalInvalid::UrlWhitespace);
+      return Some(ProposalInvalid::UrlWhitespace);
     }
 
-    Ok(())
+    None
   }
 }

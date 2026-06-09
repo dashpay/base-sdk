@@ -10,7 +10,9 @@ use crate::block_header::BlockHeader;
 use crate::codec_type;
 use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
-use crate::validation::{DeploymentContext, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE};
+use crate::validation::MAX_DIP0001_BLOCK_SIZE;
+
+use dash_types::codec::Checkable;
 
 use core::fmt;
 
@@ -26,41 +28,30 @@ pub struct Block {
 
 codec_type!(Block { header, transactions });
 
-impl Block {
-  /// Validates block structure without chain context.
-  ///
-  /// Does not check proof-of-work or the merkle root; those require data not
-  /// available from the block alone.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), BlockInvalid> {
-    let max_block_size = match ctx.dip0001_active {
-      Some(true) => MAX_DIP0001_BLOCK_SIZE,
-      Some(false) => MAX_LEGACY_BLOCK_SIZE,
-      None => MAX_DIP0001_BLOCK_SIZE,
-    };
+impl Checkable for Block {
+  type Error = BlockInvalid;
 
+  fn check(&self) -> Option<Self::Error> {
     if self.transactions.is_empty() {
-      return Err(BlockInvalid::BadBlockLength { size: 0 });
+      return Some(BlockInvalid::BadBlockLength { size: 0 });
     }
 
     if !self.transactions[0].is_coinbase() {
-      return Err(BlockInvalid::MissingCoinbase);
+      return Some(BlockInvalid::MissingCoinbase);
     }
     for i in 1..self.transactions.len() {
       if self.transactions[i].is_coinbase() {
-        return Err(BlockInvalid::MultipleCoinbases { index: i });
+        return Some(BlockInvalid::MultipleCoinbases { index: i });
       }
     }
 
     for (i, tx) in self.transactions.iter().enumerate() {
-      tx.validate(ctx)
-        .map_err(|e| BlockInvalid::Transaction { index: i, error: e })?;
+      if let Some(e) = tx.check() {
+        return Some(BlockInvalid::Transaction { index: i, error: e });
+      }
     }
 
-    let max_sigops = max_block_size / 50;
+    let max_sigops = MAX_DIP0001_BLOCK_SIZE / 50;
     let mut total_sigops: usize = 0;
     for tx in &self.transactions {
       for input in &tx.inputs {
@@ -71,13 +62,13 @@ impl Block {
       }
     }
     if total_sigops > max_sigops {
-      return Err(BlockInvalid::TooManySigops {
+      return Some(BlockInvalid::TooManySigops {
         count: total_sigops,
         limit: max_sigops,
       });
     }
 
-    Ok(())
+    None
   }
 }
 

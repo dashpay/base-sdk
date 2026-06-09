@@ -9,11 +9,10 @@
 use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::validation::{
-  check_operator_key_not_null, check_protx_version, max_protx_version_no_ext, DeploymentContext, ProTxInvalid,
-};
+use crate::validation::ProTxInvalid;
 use crate::{InputsHash, TxHash};
 
+use dash_types::codec::Checkable;
 use dash_types::{BlsPublicKeyBytes, KeyId};
 
 use core::fmt;
@@ -54,30 +53,31 @@ codec_payload!(ProUpRegTx {
   vch_sig,
 });
 
-impl ProUpRegTx {
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
-    check_protx_version(self.version, max_protx_version_no_ext(ctx))?;
+impl Checkable for ProUpRegTx {
+  type Error = ProTxInvalid;
 
-    if self.mode != 0 {
-      return Err(ProTxInvalid::BadMode { mode: self.mode });
+  fn check(&self) -> Option<Self::Error> {
+    if self.version == 0 {
+      return Some(ProTxInvalid::BadVersion { version: self.version });
     }
 
-    check_operator_key_not_null(&self.pub_key_operator)?;
+    if self.mode != 0 {
+      return Some(ProTxInvalid::BadMode { mode: self.mode });
+    }
+
+    if self.pub_key_operator.is_null() {
+      return Some(ProTxInvalid::NullKey);
+    }
     if self.key_id_voting.is_null() {
-      return Err(ProTxInvalid::NullKey);
+      return Some(ProTxInvalid::NullKey);
     }
 
     let payout = self.script_payout.as_bytes();
     if !dash_script::is_p2pkh(payout) && !dash_script::is_p2sh(payout) {
-      return Err(ProTxInvalid::BadPayoutScript);
+      return Some(ProTxInvalid::BadPayoutScript);
     }
 
-    Ok(())
+    None
   }
 }
 

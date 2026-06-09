@@ -12,12 +12,11 @@ use crate::script::Script;
 use crate::support::CService;
 use crate::tx_types::MnType;
 use crate::validation::{
-  check_net_info_trivially_valid, check_operator_key_not_null, check_protx_version, max_protx_version,
-  DeploymentContext, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
+  check_sptx_netinfo, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
 };
 use crate::{InputsHash, TxHash};
 
-use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, KeyId, PlatformNodeId};
 
 use core::fmt;
@@ -75,6 +74,31 @@ pub struct ProRegTx {
 }
 
 impl_payload!(ProRegTx);
+
+/// Checks that platform fields are consistent with mn_type and version.
+pub(super) fn check_platform_fields(
+  mn_type: MnType,
+  version: u16,
+  platform_node_id: &Option<PlatformNodeId>,
+  platform_p2p_port: Option<u16>,
+  platform_http_port: Option<u16>,
+) -> Option<ProTxInvalid> {
+  if mn_type == MnType::Evo {
+    if platform_node_id.is_none() {
+      return Some(ProTxInvalid::BadPlatformFields);
+    }
+    if version < PROTX_VERSION_EXT_ADDR {
+      if platform_p2p_port.is_none() || platform_http_port.is_none() {
+        return Some(ProTxInvalid::BadPlatformFields);
+      }
+    } else if platform_p2p_port.is_some() || platform_http_port.is_some() {
+      return Some(ProTxInvalid::BadPlatformFields);
+    }
+  } else if platform_node_id.is_some() || platform_p2p_port.is_some() || platform_http_port.is_some() {
+    return Some(ProTxInvalid::BadPlatformFields);
+  }
+  None
+}
 
 impl BaseCodec for ProRegTx {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -160,60 +184,73 @@ impl BaseCodec for ProRegTx {
   }
 }
 
-impl ProRegTx {
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
-    check_protx_version(self.version, max_protx_version(ctx))?;
+impl Checkable for ProRegTx {
+  type Error = ProTxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
+    if self.version == 0 {
+      return Some(ProTxInvalid::BadVersion { version: self.version });
+    }
 
     if self.mn_type == MnType::Evo && self.version < PROTX_VERSION_BASIC_BLS {
-      return Err(ProTxInvalid::EvoVersionTooLow { version: self.version });
+      return Some(ProTxInvalid::EvoVersionTooLow { version: self.version });
     }
     if matches!(self.mn_type, MnType::Unknown(_)) {
-      return Err(ProTxInvalid::BadMnType { mn_type: self.mn_type });
+      return Some(ProTxInvalid::BadMnType { mn_type: self.mn_type });
     }
     if self.mode != 0 {
-      return Err(ProTxInvalid::BadMode { mode: self.mode });
+      return Some(ProTxInvalid::BadMode { mode: self.mode });
     }
 
     if self.key_id_owner.is_null() || self.key_id_voting.is_null() {
-      return Err(ProTxInvalid::NullKey);
+      return Some(ProTxInvalid::NullKey);
     }
-    check_operator_key_not_null(&self.pub_key_operator)?;
+    if self.pub_key_operator.is_null() {
+      return Some(ProTxInvalid::NullKey);
+    }
 
     let payout = self.script_payout.as_bytes();
     if !dash_script::is_p2pkh(payout) && !dash_script::is_p2sh(payout) {
-      return Err(ProTxInvalid::BadPayoutScript);
+      return Some(ProTxInvalid::BadPayoutScript);
     }
 
     let is_extended = matches!(self.net_info, NetInfo::Extended(_));
-    if is_extended != (self.version == PROTX_VERSION_EXT_ADDR) {
-      return Err(ProTxInvalid::NetInfoVersionMismatch);
+    if is_extended != (self.version >= PROTX_VERSION_EXT_ADDR) {
+      return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
     if let NetInfo::Extended(ref ext) = self.net_info {
       if ext.entries.is_empty() {
-        return Err(ProTxInvalid::NetInfoEmpty);
+        return Some(ProTxInvalid::NetInfoEmpty);
       }
-      check_net_info_trivially_valid(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR)?;
+      if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version >= PROTX_VERSION_EXT_ADDR) {
+        return Some(e);
+      }
+    }
+
+    if let Some(e) = check_platform_fields(
+      self.mn_type,
+      self.version,
+      &self.platform_node_id,
+      self.platform_p2p_port,
+      self.platform_http_port,
+    ) {
+      return Some(e);
     }
 
     if let Some(hash) = dash_script::p2pkh_hash160(payout) {
       if hash == self.key_id_owner.as_bytes() || hash == self.key_id_voting.as_bytes() {
-        return Err(ProTxInvalid::PayoutKeyReuse);
+        return Some(ProTxInvalid::PayoutKeyReuse);
       }
     }
 
     if self.operator_reward > MAX_OPERATOR_REWARD {
-      return Err(ProTxInvalid::OperatorRewardTooHigh {
+      return Some(ProTxInvalid::OperatorRewardTooHigh {
         reward: self.operator_reward,
       });
     }
 
-    Ok(())
+    None
   }
 }
 
