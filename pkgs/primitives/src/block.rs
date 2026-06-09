@@ -12,6 +12,8 @@ use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
 use crate::validation::MAX_DIP0001_BLOCK_SIZE;
 
+use dash_types::codec::Checkable;
+
 use core::fmt;
 
 /// A Dash block: header followed by a vector of transactions.
@@ -50,8 +52,9 @@ impl Block {
     }
 
     for (i, tx) in self.transactions.iter().enumerate() {
-      tx.validate()
-        .map_err(|e| BlockInvalid::Transaction { index: i, error: e })?;
+      if let Some(e) = tx.check() {
+        return Err(BlockInvalid::Transaction { index: i, error: e });
+      }
     }
 
     let max_sigops = MAX_DIP0001_BLOCK_SIZE / 50;

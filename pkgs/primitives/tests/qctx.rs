@@ -12,7 +12,7 @@ mod util;
 
 use dash_primitives::payload::FinalCommitment;
 use dash_primitives::{LlmqType, QuorumHash, QuorumVvecHash};
-use dash_types::codec::{BaseCodec, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 use hex_conservative::FromHex;
 use rstest::rstest;
@@ -23,7 +23,7 @@ fn decode_fields() {
   for (txid, entry) in &corpus {
     util::assert_txid(&entry.raw, txid);
     let tx = util::decode_tx(&entry.raw);
-    assert!(tx.validate().is_ok());
+    assert!(tx.check().is_none());
     assert!(!tx.extra_payload.is_empty(), "{txid}");
 
     let payload = FinalCommitment::decode(&mut &tx.extra_payload[..]).unwrap();
