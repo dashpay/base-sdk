@@ -75,6 +75,31 @@ pub struct ProRegTx {
 
 impl_payload!(ProRegTx);
 
+/// Checks that platform fields are consistent with mn_type and version.
+pub(super) fn check_platform_fields(
+  mn_type: MnType,
+  version: u16,
+  platform_node_id: &Option<PlatformNodeId>,
+  platform_p2p_port: Option<u16>,
+  platform_http_port: Option<u16>,
+) -> Option<ProTxInvalid> {
+  if mn_type == MnType::Evo {
+    if platform_node_id.is_none() {
+      return Some(ProTxInvalid::BadPlatformFields);
+    }
+    if version < PROTX_VERSION_EXT_ADDR {
+      if platform_p2p_port.is_none() || platform_http_port.is_none() {
+        return Some(ProTxInvalid::BadPlatformFields);
+      }
+    } else if platform_p2p_port.is_some() || platform_http_port.is_some() {
+      return Some(ProTxInvalid::BadPlatformFields);
+    }
+  } else if platform_node_id.is_some() || platform_p2p_port.is_some() || platform_http_port.is_some() {
+    return Some(ProTxInvalid::BadPlatformFields);
+  }
+  None
+}
+
 impl BaseCodec for ProRegTx {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = u16::decode(data)?;
@@ -190,7 +215,7 @@ impl Checkable for ProRegTx {
     }
 
     let is_extended = matches!(self.net_info, NetInfo::Extended(_));
-    if is_extended != (self.version == PROTX_VERSION_EXT_ADDR) {
+    if is_extended != (self.version >= PROTX_VERSION_EXT_ADDR) {
       return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
@@ -198,9 +223,19 @@ impl Checkable for ProRegTx {
       if ext.entries.is_empty() {
         return Some(ProTxInvalid::NetInfoEmpty);
       }
-      if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR) {
+      if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version >= PROTX_VERSION_EXT_ADDR) {
         return Some(e);
       }
+    }
+
+    if let Some(e) = check_platform_fields(
+      self.mn_type,
+      self.version,
+      &self.platform_node_id,
+      self.platform_p2p_port,
+      self.platform_http_port,
+    ) {
+      return Some(e);
     }
 
     if let Some(hash) = dash_script::p2pkh_hash160(payout) {

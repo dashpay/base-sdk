@@ -32,7 +32,7 @@ pub use proregtx::{NetInfo, ProRegTx};
 pub use proupregtx::ProUpRegTx;
 pub use prouprevtx::ProUpRevTx;
 pub use proupservtx::ProUpServTx;
-pub use quorum::{Commitment, FinalCommitment};
+pub use quorum::{Commitment, CommitmentInvalid, FinalCommitment};
 
 /// A decoded special transaction payload.
 ///

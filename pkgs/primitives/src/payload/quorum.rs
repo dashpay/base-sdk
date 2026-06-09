@@ -134,10 +134,29 @@ impl BaseCodec for FinalCommitment {
   }
 }
 
+/// Final commitment validation failure.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CommitmentInvalid {
+  /// `bad-qc-quorum-index`
+  BadQuorumIndex,
+}
+
+impl fmt::Display for CommitmentInvalid {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::BadQuorumIndex => write!(f, "bad-qc-quorum-index"),
+    }
+  }
+}
+
 impl Checkable for FinalCommitment {
-  type Error = core::convert::Infallible;
+  type Error = CommitmentInvalid;
 
   fn check(&self) -> Option<Self::Error> {
+    let indexed = self.commitment.version == 2 || self.commitment.version == 4;
+    if indexed != self.commitment.quorum_index.is_some() {
+      return Some(CommitmentInvalid::BadQuorumIndex);
+    }
     None
   }
 }

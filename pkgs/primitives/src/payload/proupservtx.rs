@@ -6,7 +6,7 @@
 
 //! ProUpServTx service-update payload (type 2).
 
-use super::proregtx::NetInfo;
+use super::proregtx::{check_platform_fields, NetInfo};
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
@@ -134,12 +134,16 @@ impl Checkable for ProUpServTx {
       return Some(ProTxInvalid::BadVersion { version: self.version });
     }
 
+    if matches!(self.mn_type, MnType::Unknown(_)) {
+      return Some(ProTxInvalid::BadMnType { mn_type: self.mn_type });
+    }
+
     if self.mn_type == MnType::Evo && self.version < PROTX_VERSION_BASIC_BLS {
       return Some(ProTxInvalid::EvoVersionTooLow { version: self.version });
     }
 
     let is_extended = matches!(self.net_info, NetInfo::Extended(_));
-    if is_extended != (self.version == PROTX_VERSION_EXT_ADDR) {
+    if is_extended != (self.version >= PROTX_VERSION_EXT_ADDR) {
       return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
@@ -148,7 +152,7 @@ impl Checkable for ProUpServTx {
         if ext.entries.is_empty() {
           return Some(ProTxInvalid::NetInfoEmpty);
         }
-        if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR) {
+        if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version >= PROTX_VERSION_EXT_ADDR) {
           return Some(e);
         }
       }
@@ -157,6 +161,16 @@ impl Checkable for ProUpServTx {
           return Some(ProTxInvalid::NetInfoEmpty);
         }
       }
+    }
+
+    if let Some(e) = check_platform_fields(
+      self.mn_type,
+      self.version,
+      &self.platform_node_id,
+      self.platform_p2p_port,
+      self.platform_http_port,
+    ) {
+      return Some(e);
     }
 
     None
