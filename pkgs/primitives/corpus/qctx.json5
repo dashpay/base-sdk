@@ -10,11 +10,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000002c8d67e33dee633c27135733d941413f316d5988f8559f8cbb",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "b13bf06cdcf0cd64ed04b46dff05352dcf84e1fd6b54826500c351e3aca7647407016c6fba3cfae49c82666d8914372c",
           "quorumVvecHash": "9baaf5969df80262e930131617388d65d9594f4d977f5374fc01c2d4e3143ef6",
           "quorumSig": "9116c334833d0373b2474ac9330acdb5d204f26da21897b296fa0aed0f7bcae22ac7ff445e5199fe51eb4d00625d950907d020b6dfff358cf6c6c3a05db24fd115bb65082c12a2d134d652b9aff2d13ea2b19607935e314802f60e91685aeb7a",
@@ -32,11 +36,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000002c8d67e33dee633c27135733d941413f316d5988f8559f8cbb",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -54,11 +62,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000001cac01395b2e769d1d07c1935c65ee956f49d422cbee574c0a",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "a6aec17a757a3532b18d33d1a00c396d756ec5a9183004a0218280667aed85a09206a358ce9485521d91763ae2f01470",
           "quorumVvecHash": "0d2197b011ea8d3f8b5535055587169ecb2fd9daeaab11c7c3c8ceabec90878a",
           "quorumSig": "8df868cbea32369f6142857ee32c143708769025ae5ce9191061b8692d25d1901682916ea7a68413311b64902b18044008923e03ef051c59341a871395a94fae37a12337238569a4c034f9ea994eb91638fe6034cd2c4f6ce98c94e6216446c1",
@@ -76,11 +88,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000001cac01395b2e769d1d07c1935c65ee956f49d422cbee574c0a",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -98,11 +114,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000122cd7e1cd7b68392c71c325a344a9ecd9113af4546277cb73",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "a3377dcb5ace174568aa334526ad4fc4e3c1fa8ac2eb75378a025927f8b8139a0a110943759fd89511fb2d7eef1c377a",
           "quorumVvecHash": "cb94e4940c2a32e633328d279ef41e64228b894b3508207a3b56483c8713dd99",
           "quorumSig": "b592670427764ed586f698c972dae2844593bfd4da5b410be9192625ce6b1d5f974cbe10721d6ebde5def88b27b9af8b012f7cd52e62b12ed5a1b481bbeb8878d1aa237f8987cde050748571f0c27d7d0b3f520e9397ce3502677e0ec2d7341b",
@@ -120,11 +140,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000122cd7e1cd7b68392c71c325a344a9ecd9113af4546277cb73",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -142,11 +166,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000297092bfadf60a73d0bc07ef1057dfbd119728ed3afe0463e2",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "831ef078cad5dcbbee931dabfcccb7ad49ed2e531b8bc39b0312052c5126bd6af8c4a0941c1e29411a84501de405f8da",
           "quorumVvecHash": "d06cf5112146ba3e9c296865f16055bfadf56a03f0ecc6c4f040ed27008146be",
           "quorumSig": "95b15a477023a47945431e25ee92eac589eb38d79ad77d3c857bd4ddcf21f723689c80b110ef8e2f2126b08417a6f07d03724e1bcca131b1fb8fde23f94c14449847ea2d6c9a68ec19841a4921be91f3f3227baca60ff9f718c2c36042ec063c",
@@ -164,11 +192,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000297092bfadf60a73d0bc07ef1057dfbd119728ed3afe0463e2",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -186,11 +218,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000337a4224c55c047ec991d6b2817bda497a602f372698b87cac",
-          "quorumIndex": 0,
-          "signersCount": 99,
-          "signers": "ffffefffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffefffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "8ff54b63ea41b84ea2f1d5b28b6b3bf058ecc1a7c93a840f8fa128eda258a21c3ded167657bf46d6ba0fc6ba8ef72c36",
           "quorumVvecHash": "d93ab57544a759114f17d9c8b3bf33c49d9f0a84687836a8dee4c3ae316e9ef3",
           "quorumSig": "805d42653de5020f844d5a38112acc3b6186cc65d905b780f02c6b730450d061b002038bcaa66ffdf89f27b58eedddb513ba4619dfd66a9a626224c1e349ad59c431da6ed21f0f657de00980bf3f0d1fb95d2ca2e3b64d1f56f5ddcd6778cf32",
@@ -208,11 +244,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000337a4224c55c047ec991d6b2817bda497a602f372698b87cac",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -230,11 +270,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000000ec9340c853a58afdd5022b426e72fe54208beb6ecdb782bad",
-          "quorumIndex": 0,
-          "signersCount": 99,
-          "signers": "fffffffffffffffffff7ffff0f",
-          "validMembersCount": 99,
-          "validMembers": "fffffffffffffffffff7ffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "fffffffffffffffffff7ffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "fffffffffffffffffff7ffff0f"
+          },
           "quorumPublicKey": "89ee989cf708bfbe10099a1c16a08c900d3105f189e99ad92ac90c1986e9ff68600cf3c0b89f7935ea6eba16da6deb51",
           "quorumVvecHash": "eb3646becc244eb0ce5e926904a95600226940a46fe22d20d47d41d338f1beb6",
           "quorumSig": "8b52ae5ea26628f4653b5d4df50c1972e478986374e14f1365691db38bcde0b0028b5cca333905e3385ec3a36c86a5fc03c4ad86ee614ebef44ee7a59ec4ae5a953e4bc9f889feaa54d4a2409bc450ec87283b28974d5a90b2e430823b136d36",
@@ -252,11 +296,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000000ec9340c853a58afdd5022b426e72fe54208beb6ecdb782bad",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -274,11 +322,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "0000000000000026e320158ee9f0ccc30d9b3f6ed43e8a271842faff39c205df",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "9459781ba6e075521d4991c22cc87a44a279ae2dadd848592d80c67577e8239a795fb87da26541c73b607a934879cf1d",
           "quorumVvecHash": "30f39d7a8f160f031e9415492a3f857158650535f4bca4cdc0bc25a6b757ba4a",
           "quorumSig": "959a724cad3f6b0d90ec0c23aaa79c533d339b0ef9155f970674283ba223003d941775c6f741b20ca3224b436ba15a310acb6de59ea25e9dc614e232df4084fe0bc169d0553443245de366f1ceb262c15448c343489f529e68d17c2939ba1cd7",
@@ -296,11 +348,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "0000000000000026e320158ee9f0ccc30d9b3f6ed43e8a271842faff39c205df",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -318,11 +374,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000075d1243829e0ec5c46de1878aebcca8156e6c8be90e31d82e",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "8419565f7d69d1958003e47fd192fbfcc690de2ac189c517db13e44f74704e22756769c8b6d1b5cffe92d7d5aca09620",
           "quorumVvecHash": "98a3cf342d1999caff17b5760189bca00a3dad90b205d17c599daeac8fd315e6",
           "quorumSig": "b96f6590614d466332c3229974094b1d069b7711954e3fb537f938a9f4c4406dc0685d3fde74b114e5044cc7ca92d89702a04dd127229b92ab964bd5c820d9b4411fd7369b6b4e52dbbc40534e274ba0a4c081b51a0b0404b01016db7786c757",
@@ -340,11 +400,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000075d1243829e0ec5c46de1878aebcca8156e6c8be90e31d82e",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -362,11 +426,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000001ddacc752fd50bc1088f95f7f884bd3c8a0cbcd391ffd7b252",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "826b846be0db61d365427ea1de6cd248b436aa60443694d0f878a7f47b1f5d52b85bc9eb776fd9ea32f783638f976ec5",
           "quorumVvecHash": "668a1bdad302044c051256d9a2634d4e5e959f09648ea2f4a1a6ad47fada700e",
           "quorumSig": "a9074266c6f528e9c87ec6367873b1a92d2a052bdb313fcb9d5e4b1f6dd1caf76a6d98b90ece693bdf2bf3ea444ced520f84f02ab24d3efbf9cfc226f08ffa40fc7e6e4948f6f7d14a3c7d17f2b039bb38949638f636d520a81b6f7c9be8ecd1",
@@ -384,11 +452,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "000000000000001ddacc752fd50bc1088f95f7f884bd3c8a0cbcd391ffd7b252",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -406,11 +478,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000205e6286db5cb63e85d4f61d91fc52087be2e59dfa1345e6e8",
-          "quorumIndex": 0,
-          "signersCount": 100,
-          "signers": "ffffffffffffffffffffffff0f",
-          "validMembersCount": 100,
-          "validMembers": "ffffffffffffffffffffffff0f",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "ffffffffffffffffffffffff0f"
+          },
           "quorumPublicKey": "b4a43557ccb6092658a6e1242cb79df698caaf28115f1201dedc1211c2988deed06f91883204b9a3df9b4c4e31ecc437",
           "quorumVvecHash": "f8049eb9e8c3d8925a7a02237b68b08e99f0ccbd67627af372e7ac42daac0b0a",
           "quorumSig": "801de4e9b73a689195bdf7b0e718f519aba17498e81fdce36f978c21f2df46f5bf5ec628897f87a05f52ff81ab83a5270a38fa6c31ef4e2c89ce026a8b21825351863db2228827daccca9d8c728c1bec62eb35d57ee6a10a061cf9effafb93b4",
@@ -428,11 +504,15 @@
           "version": 3,
           "llmqType": 4,
           "quorumHash": "00000000000000205e6286db5cb63e85d4f61d91fc52087be2e59dfa1345e6e8",
-          "quorumIndex": 0,
-          "signersCount": 0,
-          "signers": "00000000000000000000000000",
-          "validMembersCount": 0,
-          "validMembers": "00000000000000000000000000",
+          "quorumIndex": null,
+          "signers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
+          "validMembers": {
+            "numBits": 100,
+            "data": "00000000000000000000000000"
+          },
           "quorumPublicKey": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
           "quorumVvecHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "quorumSig": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
