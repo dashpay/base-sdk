@@ -36,6 +36,7 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 
 [dev-dependencies]
+dash-dev = { version = "0.0.0", path = "../dev", features = ["std"] }
 hex-conservative = "0.3"
 hex-literal = "0.4"
 json5 = "0.4"

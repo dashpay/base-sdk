@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "pkgs/dev",
   "pkgs/num",
   "pkgs/params",
   "pkgs/p2p_core",

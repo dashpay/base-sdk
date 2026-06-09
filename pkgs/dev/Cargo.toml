@@ -1,0 +1,39 @@
+[package]
+name = "dash-dev"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[features]
+default = []
+std = [
+  "dep:json5",
+  "dep:serde_json",
+  "bitcoin-consensus-encoding/std",
+  "dash-primitives/std",
+  "dash-types/std",
+  "hex-conservative/std",
+]
+full = ["std", "serde"]
+serde = ["dep:serde", "dash-primitives/serde", "dash-types/serde"]
+_internal = []
+
+[dependencies]
+bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
+  "alloc",
+] }
+dash-primitives = { version = "0.0.0", path = "../primitives" }
+dash-types = { version = "0.0.0", path = "../types", default-features = false }
+hex-conservative = { version = "0.3", default-features = false, features = [
+  "alloc",
+] }
+json5 = { version = "0.4", optional = true }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
+serde_json = { version = "1", optional = true }
+
+[lints]
+workspace = true
+
+[package.rust-version]
+workspace = true
