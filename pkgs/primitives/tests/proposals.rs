@@ -12,7 +12,7 @@ mod util;
 
 use dash_primitives::gov::{GovObject, GovObjectType, Proposal};
 use dash_primitives::TxHash;
-use dash_types::codec::{BaseCodec, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, NumCodec};
 use hex_conservative::FromHex;
 use rstest::rstest;
 
@@ -86,7 +86,7 @@ fn decode_and_hash() {
       start_epoch: parsed["start_epoch"].as_i64().unwrap(),
       end_epoch: parsed["end_epoch"].as_i64().unwrap(),
     };
-    assert!(proposal.validate().is_ok());
+    assert!(proposal.check().is_none());
 
     // The corpus key IS the canonical governance hash.
     let computed_hash = obj.hash();
