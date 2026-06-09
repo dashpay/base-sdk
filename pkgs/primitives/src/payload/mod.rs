@@ -21,13 +21,16 @@ mod quorum;
 
 use crate::prelude::*;
 use crate::tx_types::TxType;
+use crate::validation::ProTxInvalid;
+
+use dash_types::codec::Checkable;
 
 use core::fmt;
 
-pub use assetlock::AssetLock;
-pub use assetunlock::AssetUnlock;
-pub use cbtx::CoinbaseCommitment;
-pub use mnhftx::MnHardFork;
+pub use assetlock::{AssetLock, AssetLockInvalid};
+pub use assetunlock::{AssetUnlock, AssetUnlockInvalid};
+pub use cbtx::{CbTxInvalid, CoinbaseCommitment};
+pub use mnhftx::{MnHardFork, MnHardForkInvalid};
 pub use proregtx::{NetInfo, ProRegTx};
 pub use proupregtx::ProUpRegTx;
 pub use prouprevtx::ProUpRevTx;
@@ -80,6 +83,55 @@ pub struct PayloadError {
 impl fmt::Display for PayloadError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{} payload: {}", self.tx_type, self.message)
+  }
+}
+
+/// Structural check failure for a special payload.
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum PayloadInvalid {
+  /// Provider transaction check failed.
+  ProTx(ProTxInvalid),
+  /// Coinbase commitment check failed.
+  CbTx(CbTxInvalid),
+  /// Hard-fork signal check failed.
+  MnHardFork(MnHardForkInvalid),
+  /// Asset lock check failed.
+  AssetLock(AssetLockInvalid),
+  /// Asset unlock check failed.
+  AssetUnlock(AssetUnlockInvalid),
+  /// Quorum commitment check failed.
+  Commitment(CommitmentInvalid),
+}
+
+impl fmt::Display for PayloadInvalid {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::ProTx(e) => e.fmt(f),
+      Self::CbTx(e) => e.fmt(f),
+      Self::MnHardFork(e) => e.fmt(f),
+      Self::AssetLock(e) => e.fmt(f),
+      Self::AssetUnlock(e) => e.fmt(f),
+      Self::Commitment(e) => e.fmt(f),
+    }
+  }
+}
+
+impl Checkable for SpecialPayload {
+  type Error = PayloadInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
+    match self {
+      Self::ProviderRegister(p) => p.check().map(PayloadInvalid::ProTx),
+      Self::ProviderUpdateService(p) => p.check().map(PayloadInvalid::ProTx),
+      Self::ProviderUpdateRegistrar(p) => p.check().map(PayloadInvalid::ProTx),
+      Self::ProviderUpdateRevoke(p) => p.check().map(PayloadInvalid::ProTx),
+      Self::CoinbaseCommitment(p) => p.check().map(PayloadInvalid::CbTx),
+      Self::QuorumCommitment(p) => p.check().map(PayloadInvalid::Commitment),
+      Self::MnhfSignal(p) => p.check().map(PayloadInvalid::MnHardFork),
+      Self::AssetLock(p) => p.check().map(PayloadInvalid::AssetLock),
+      Self::AssetUnlock(p) => p.check().map(PayloadInvalid::AssetUnlock),
+      Self::Unknown { .. } => None,
+    }
   }
 }
 
