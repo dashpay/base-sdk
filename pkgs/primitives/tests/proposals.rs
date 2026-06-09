@@ -10,6 +10,7 @@
 
 mod util;
 
+use bitcoin_units::Amount;
 use dash_primitives::gov::{GovObject, GovObjectType, Proposal};
 use dash_primitives::TxHash;
 use dash_types::codec::{BaseCodec, Checkable, NumCodec};
@@ -82,7 +83,7 @@ fn decode_and_hash() {
       name: parsed["name"].as_str().unwrap().into(),
       url: parsed["url"].as_str().unwrap().into(),
       payment_address: parsed["payment_address"].as_str().unwrap().into(),
-      payment_amount: parsed["payment_amount"].to_string(),
+      payment_amount: Amount::from_sat(parsed["payment_amount"].as_u64().unwrap()).unwrap(),
       start_epoch: parsed["start_epoch"].as_i64().unwrap(),
       end_epoch: parsed["end_epoch"].as_i64().unwrap(),
     };

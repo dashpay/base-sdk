@@ -12,6 +12,7 @@ use crate::prelude::*;
 use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
+use bitcoin_units::Amount;
 use dash_types::codec::{self, BaseCodec, Checkable, NumCodec};
 use dash_types::impl_num;
 use hex_conservative::DisplayHex;
@@ -90,8 +91,9 @@ pub struct Proposal {
   pub url: String,
   /// Dash address receiving payment.
   pub payment_address: String,
-  /// Payment amount in DASH as a decimal string.
-  pub payment_amount: String,
+  /// Payment amount.
+  #[cfg_attr(feature = "serde", serde(with = "crate::serialize::amount"))]
+  pub payment_amount: Amount,
   /// Unix timestamp when payments begin.
   pub start_epoch: i64,
   /// Unix timestamp when payments end.
@@ -425,11 +427,7 @@ impl Checkable for Proposal {
       return Some(ProposalInvalid::BadEpochRange);
     }
 
-    if self.payment_amount.is_empty() {
-      return Some(ProposalInvalid::BadPaymentAmount);
-    }
-    let amount_positive = self.payment_amount.parse::<f64>().map(|v| v > 0.0).unwrap_or(false);
-    if !amount_positive {
+    if self.payment_amount == Amount::ZERO {
       return Some(ProposalInvalid::BadPaymentAmount);
     }
 
