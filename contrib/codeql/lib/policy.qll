@@ -112,7 +112,8 @@ predicate isCheckableType(TypeItem t) {
   not isSerdeInternalType(t) and
   not isCodecType(t) and
   not isSecretType(t) and
-  not isIteratorType(t)
+  not isIteratorType(t) and
+  not hasUnexpandedDerive(t)
 }
 
 /** Holds if `t` lives in a crate that does not have a `serde` feature. */
@@ -130,12 +131,26 @@ private predicate fileRelPath(File f, string relPath) {
 }
 
 /**
- * Holds if `t` implements a serde trait via crate-qualified impl
- * or source-scanned match.
+ * Holds if `t` implements a serde trait via crate-qualified impl,
+ * unqualified proc-macro expansion, or source-scanned match.
  */
 bindingset[traitName]
 predicate implementsSerdeTrait(TypeItem t, string traitName) {
   implementsTraitInCrate(t, traitName, "serde")
+  or
+  // Serde proc-macro derives may emit unqualified impls that
+  // escape MacroItems wrapping.  Detect them by requiring the
+  // impl location to fall inside the type definition span (a
+  // hand-written impl is always outside that span).
+  (traitName = "Serialize" or traitName = "Deserialize") and
+  exists(Impl i |
+    not exists(MacroItems m | i = m.getItem(_)) and
+    fileOf(i) = fileOf(t) and
+    implSelfName(i) = t.getName().getText() and
+    implTraitName(i) = traitName and
+    startLine(i) >= startLine(t) and
+    startLine(i) <= endLine(t)
+  )
   or
   // Derive mention inside an attribute range (cfg_attr, cfg, or derive).
   exists(Attr a, int srcLine, string relPath, string content |
@@ -201,4 +216,83 @@ predicate directAllocImport(Use u) {
   usePrefix(u) = "alloc" and
   not fileOf(u).getBaseName() = "prelude.rs" and
   not fileOf(u).getAbsolutePath().matches("%/prelude/mod.rs")
+}
+
+/** Holds if file `f` is in a crate evaluated by decl ordering. */
+predicate isEvaluatedCrate(File f) {
+  f.getAbsolutePath().matches("%/pkgs/types/%") or
+  f.getAbsolutePath().matches("%/pkgs/primitives/%") or
+  f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
+}
+
+/** Gets the human-readable label for declaration slot `s`. */
+bindingset[s]
+pragma[inline]
+string slotLabel(int s) {
+  s = 0 and result = "definition"
+  or
+  s = 1 and result = "NumCodec impl"
+  or
+  s = 2 and result = "BaseCodec/Encodable/Decodable impl"
+  or
+  s = 3 and result = "inherent impl"
+  or
+  s = 4 and result = "trait impl"
+}
+
+/** Maps special trait names to their required declaration slot. */
+int traitSlot(string traitName) {
+  traitName = "NumCodec" and result = 1
+  or
+  traitName = "BaseCodec" and result = 2
+  or
+  traitName = "Encodable" and result = 2
+  or
+  traitName = "Decodable" and result = 2
+}
+
+/** Gets the slot for trait `trait`. */
+bindingset[trait]
+pragma[inline]
+int traitImplSlot(string trait) {
+  result = traitSlot(trait)
+  or
+  not exists(traitSlot(trait)) and result = 4
+}
+
+/**
+ * Maps `(type, slot, line, loc)` for all definition-related items.
+ *
+ * Keyed by `TypeItem` to avoid conflating same-named types
+ * in different modules within the same file.
+ */
+pragma[noinline]
+predicate itemEntry(TypeItem t, int slot, int line, Locatable loc) {
+  isSourceType(t) and
+  (t instanceof Struct or t instanceof Enum) and
+  (
+    // Slot 0: struct/enum definition.
+    slot = 0 and line = startLine(t) and loc = t
+    or
+    // Slots 1, 2, 4: hand-written trait impls.
+    exists(Impl i, string trait |
+      manualTraitImpl(t, trait, i, line) and
+      slot = traitImplSlot(trait) and
+      loc = i
+    )
+    or
+    // Slots 1, 2, 4: macro-generated trait impls (e.g. impl_type!).
+    exists(Impl i, string trait |
+      macroTraitImpl(t, trait, i, line) and
+      slot = traitImplSlot(trait) and
+      loc = i
+    )
+    or
+    // Slot 3: inherent impl.
+    exists(Impl i |
+      inherentImpl(t, i, line) and
+      slot = 3 and
+      loc = i
+    )
+  )
 }
