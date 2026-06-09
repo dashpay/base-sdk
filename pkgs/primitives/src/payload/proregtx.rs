@@ -12,7 +12,7 @@ use crate::script::Script;
 use crate::support::CService;
 use crate::tx_types::MnType;
 use crate::validation::{
-  check_net_info_trivially_valid, DeploymentContext, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS,
+  check_sptx_netinfo, DeploymentContext, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS,
   PROTX_VERSION_EXT_ADDR,
 };
 use crate::{InputsHash, TxHash};
@@ -202,7 +202,9 @@ impl ProRegTx {
       if ext.entries.is_empty() {
         return Err(ProTxInvalid::NetInfoEmpty);
       }
-      check_net_info_trivially_valid(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR)?;
+      if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR) {
+        return Err(e);
+      }
     }
 
     if let Some(hash) = dash_script::p2pkh_hash160(payout) {

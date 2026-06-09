@@ -13,7 +13,7 @@ use crate::script::Script;
 use crate::support::CService;
 use crate::tx_types::MnType;
 use crate::validation::{
-  check_net_info_trivially_valid, DeploymentContext, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
+  check_sptx_netinfo, DeploymentContext, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
 };
 use crate::{InputsHash, TxHash};
 
@@ -153,7 +153,9 @@ impl ProUpServTx {
         if ext.entries.is_empty() {
           return Err(ProTxInvalid::NetInfoEmpty);
         }
-        check_net_info_trivially_valid(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR)?;
+        if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR) {
+          return Err(e);
+        }
       }
       NetInfo::Legacy(svc) => {
         if svc.addr.is_null() && svc.port == 0 {

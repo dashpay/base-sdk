@@ -117,16 +117,16 @@ impl fmt::Display for ProTxInvalid {
 }
 
 /// Checks that an extended net info payload is trivially valid.
-pub(crate) fn check_net_info_trivially_valid(
+pub(crate) fn check_sptx_netinfo(
   entries: &[(NetInfoPurpose, Vec<NetInfoEntry>)],
   mn_type: MnType,
   can_store_platform: bool,
-) -> Result<(), ProTxInvalid> {
+) -> Option<ProTxInvalid> {
   let has_core = entries
     .iter()
     .any(|(p, e)| *p == NetInfoPurpose::CoreP2p && !e.is_empty());
   if !has_core {
-    return Err(ProTxInvalid::NetInfoEmpty);
+    return Some(ProTxInvalid::NetInfoEmpty);
   }
 
   let has_platform_p2p = entries
@@ -137,20 +137,20 @@ pub(crate) fn check_net_info_trivially_valid(
     .any(|(p, e)| *p == NetInfoPurpose::PlatformHttps && !e.is_empty());
 
   if mn_type == MnType::Regular && (has_platform_p2p || has_platform_https) {
-    return Err(ProTxInvalid::NetInfoInvalid);
+    return Some(ProTxInvalid::NetInfoInvalid);
   }
 
   if can_store_platform && mn_type == MnType::Evo && (!has_platform_p2p || !has_platform_https) {
-    return Err(ProTxInvalid::NetInfoEmpty);
+    return Some(ProTxInvalid::NetInfoEmpty);
   }
 
   for (_purpose, group) in entries {
     for entry in group {
       if matches!(entry, NetInfoEntry::Invalid) {
-        return Err(ProTxInvalid::NetInfoInvalid);
+        return Some(ProTxInvalid::NetInfoInvalid);
       }
     }
   }
 
-  Ok(())
+  None
 }
