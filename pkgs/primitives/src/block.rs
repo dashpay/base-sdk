@@ -10,7 +10,7 @@ use crate::block_header::BlockHeader;
 use crate::codec_type;
 use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
-use crate::validation::{DeploymentContext, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE};
+use crate::validation::{DeploymentContext, MAX_DIP0001_BLOCK_SIZE};
 
 use core::fmt;
 
@@ -36,12 +36,6 @@ impl Block {
   ///
   /// Returns the first validation error encountered.
   pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), BlockInvalid> {
-    let max_block_size = match ctx.dip0001_active {
-      Some(true) => MAX_DIP0001_BLOCK_SIZE,
-      Some(false) => MAX_LEGACY_BLOCK_SIZE,
-      None => MAX_DIP0001_BLOCK_SIZE,
-    };
-
     if self.transactions.is_empty() {
       return Err(BlockInvalid::BadBlockLength { size: 0 });
     }
@@ -60,7 +54,7 @@ impl Block {
         .map_err(|e| BlockInvalid::Transaction { index: i, error: e })?;
     }
 
-    let max_sigops = max_block_size / 50;
+    let max_sigops = MAX_DIP0001_BLOCK_SIZE / 50;
     let mut total_sigops: usize = 0;
     for tx in &self.transactions {
       for input in &tx.inputs {

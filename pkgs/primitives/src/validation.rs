@@ -16,6 +16,7 @@ use crate::tx_types::MnType;
 use core::fmt;
 
 /// Maximum serialized transaction size (single tx, always 1 MB).
+#[expect(unused, reason = "consensus constant")]
 pub(crate) const MAX_LEGACY_BLOCK_SIZE: usize = 1_000_000;
 
 /// Post-DIP0001 maximum block size (2 MB).
