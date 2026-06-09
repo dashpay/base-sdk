@@ -11,6 +11,7 @@ use crate::support::RevocationReason;
 use crate::validation::ProTxInvalid;
 use crate::{InputsHash, TxHash};
 
+use dash_types::codec::Checkable;
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -42,22 +43,19 @@ codec_payload!(ProUpRevTx {
   sig,
 });
 
-impl ProUpRevTx {
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self) -> Result<(), ProTxInvalid> {
+impl Checkable for ProUpRevTx {
+  type Error = ProTxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 {
-      return Err(ProTxInvalid::BadVersion { version: self.version });
+      return Some(ProTxInvalid::BadVersion { version: self.version });
     }
 
     if matches!(self.reason, RevocationReason::Unknown(_)) {
-      return Err(ProTxInvalid::BadReason { reason: self.reason });
+      return Some(ProTxInvalid::BadReason { reason: self.reason });
     }
 
-    Ok(())
+    None
   }
 }
 

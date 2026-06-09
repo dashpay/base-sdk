@@ -12,7 +12,7 @@ mod util;
 
 use dash_primitives::payload::ProUpRevTx;
 use dash_primitives::{InputsHash, RevocationReason, TxHash};
-use dash_types::codec::{BaseCodec, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, NumCodec};
 use rstest::rstest;
 
 #[rstest]
@@ -25,7 +25,7 @@ fn decode_fields() {
     assert!(!tx.extra_payload.is_empty(), "{txid}");
 
     let payload = ProUpRevTx::decode(&mut &tx.extra_payload[..]).unwrap();
-    assert!(payload.validate().is_ok());
+    assert!(payload.check().is_none());
     let d = &entry.details;
 
     assert_eq!(payload.version, util::json_u64(&d["version"]) as u16, "{txid}",);

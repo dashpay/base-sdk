@@ -12,6 +12,7 @@ use crate::script::Script;
 use crate::validation::ProTxInvalid;
 use crate::{InputsHash, TxHash};
 
+use dash_types::codec::Checkable;
 use dash_types::{BlsPublicKeyBytes, KeyId};
 
 use core::fmt;
@@ -52,34 +53,31 @@ codec_payload!(ProUpRegTx {
   vch_sig,
 });
 
-impl ProUpRegTx {
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self) -> Result<(), ProTxInvalid> {
+impl Checkable for ProUpRegTx {
+  type Error = ProTxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 {
-      return Err(ProTxInvalid::BadVersion { version: self.version });
+      return Some(ProTxInvalid::BadVersion { version: self.version });
     }
 
     if self.mode != 0 {
-      return Err(ProTxInvalid::BadMode { mode: self.mode });
+      return Some(ProTxInvalid::BadMode { mode: self.mode });
     }
 
     if self.pub_key_operator.is_null() {
-      return Err(ProTxInvalid::NullKey);
+      return Some(ProTxInvalid::NullKey);
     }
     if self.key_id_voting.is_null() {
-      return Err(ProTxInvalid::NullKey);
+      return Some(ProTxInvalid::NullKey);
     }
 
     let payout = self.script_payout.as_bytes();
     if !dash_script::is_p2pkh(payout) && !dash_script::is_p2sh(payout) {
-      return Err(ProTxInvalid::BadPayoutScript);
+      return Some(ProTxInvalid::BadPayoutScript);
     }
 
-    Ok(())
+    None
   }
 }
 

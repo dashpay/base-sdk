@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::support::{DynBitset, LlmqType};
 use crate::{QuorumHash, QuorumVvecHash};
 
-use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 
 use core::fmt;
@@ -131,6 +131,14 @@ impl BaseCodec for FinalCommitment {
     self.version.encode(buf);
     self.height.to_u32().encode(buf);
     self.commitment.encode(buf);
+  }
+}
+
+impl Checkable for FinalCommitment {
+  type Error = core::convert::Infallible;
+
+  fn check(&self) -> Option<Self::Error> {
+    None
   }
 }
 

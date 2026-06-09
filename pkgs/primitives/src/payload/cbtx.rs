@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::MerkleRoot;
 
 use bitcoin_units::BlockHeight;
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -103,19 +103,15 @@ impl core::fmt::Display for CbTxInvalid {
   }
 }
 
-impl CoinbaseCommitment {
-  /// Validates version constraints.
-  ///
-  /// # Errors
-  ///
-  /// Returns `CbTxInvalid` when the version is invalid or conflicts with
-  /// deployment state.
-  pub fn validate(&self) -> Result<(), CbTxInvalid> {
+impl Checkable for CoinbaseCommitment {
+  type Error = CbTxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 || self.version >= 4 {
-      return Err(CbTxInvalid::BadVersion { version: self.version });
+      return Some(CbTxInvalid::BadVersion { version: self.version });
     }
 
-    Ok(())
+    None
   }
 }
 

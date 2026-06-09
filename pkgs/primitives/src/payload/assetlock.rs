@@ -10,6 +10,8 @@ use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::tx_out::TxOut;
 
+use dash_types::codec::Checkable;
+
 use core::fmt;
 
 /// AssetLock: L1-to-Platform (type 8).
@@ -51,19 +53,16 @@ impl core::fmt::Display for AssetLockInvalid {
   }
 }
 
-impl AssetLock {
-  /// Validates payload invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self) -> Result<(), AssetLockInvalid> {
+impl Checkable for AssetLock {
+  type Error = AssetLockInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 || self.version > 1 {
-      return Err(AssetLockInvalid::BadVersion { version: self.version });
+      return Some(AssetLockInvalid::BadVersion { version: self.version });
     }
 
     if self.credit_outputs.is_empty() {
-      return Err(AssetLockInvalid::EmptyCreditOutputs);
+      return Some(AssetLockInvalid::EmptyCreditOutputs);
     }
 
     let max_money = bitcoin_units::Amount::MAX_MONEY.to_sat();
@@ -71,18 +70,18 @@ impl AssetLock {
     for (i, out) in self.credit_outputs.iter().enumerate() {
       let sat = out.value.to_sat();
       if sat == 0 || sat > max_money {
-        return Err(AssetLockInvalid::CreditOutOfRange { index: i });
+        return Some(AssetLockInvalid::CreditOutOfRange { index: i });
       }
       total = total.saturating_add(sat);
       if total > max_money {
-        return Err(AssetLockInvalid::CreditOutOfRange { index: i });
+        return Some(AssetLockInvalid::CreditOutOfRange { index: i });
       }
       if !dash_script::is_p2pkh(out.script_pubkey.as_bytes()) {
-        return Err(AssetLockInvalid::CreditNotP2pkh { index: i });
+        return Some(AssetLockInvalid::CreditNotP2pkh { index: i });
       }
     }
 
-    Ok(())
+    None
   }
 }
 

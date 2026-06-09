@@ -16,7 +16,7 @@ use crate::validation::{
 };
 use crate::{InputsHash, TxHash};
 
-use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, KeyId, PlatformNodeId};
 
 use core::fmt;
@@ -159,66 +159,63 @@ impl BaseCodec for ProRegTx {
   }
 }
 
-impl ProRegTx {
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self) -> Result<(), ProTxInvalid> {
+impl Checkable for ProRegTx {
+  type Error = ProTxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 {
-      return Err(ProTxInvalid::BadVersion { version: self.version });
+      return Some(ProTxInvalid::BadVersion { version: self.version });
     }
 
     if self.mn_type == MnType::Evo && self.version < PROTX_VERSION_BASIC_BLS {
-      return Err(ProTxInvalid::EvoVersionTooLow { version: self.version });
+      return Some(ProTxInvalid::EvoVersionTooLow { version: self.version });
     }
     if matches!(self.mn_type, MnType::Unknown(_)) {
-      return Err(ProTxInvalid::BadMnType { mn_type: self.mn_type });
+      return Some(ProTxInvalid::BadMnType { mn_type: self.mn_type });
     }
     if self.mode != 0 {
-      return Err(ProTxInvalid::BadMode { mode: self.mode });
+      return Some(ProTxInvalid::BadMode { mode: self.mode });
     }
 
     if self.key_id_owner.is_null() || self.key_id_voting.is_null() {
-      return Err(ProTxInvalid::NullKey);
+      return Some(ProTxInvalid::NullKey);
     }
     if self.pub_key_operator.is_null() {
-      return Err(ProTxInvalid::NullKey);
+      return Some(ProTxInvalid::NullKey);
     }
 
     let payout = self.script_payout.as_bytes();
     if !dash_script::is_p2pkh(payout) && !dash_script::is_p2sh(payout) {
-      return Err(ProTxInvalid::BadPayoutScript);
+      return Some(ProTxInvalid::BadPayoutScript);
     }
 
     let is_extended = matches!(self.net_info, NetInfo::Extended(_));
     if is_extended != (self.version == PROTX_VERSION_EXT_ADDR) {
-      return Err(ProTxInvalid::NetInfoVersionMismatch);
+      return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
     if let NetInfo::Extended(ref ext) = self.net_info {
       if ext.entries.is_empty() {
-        return Err(ProTxInvalid::NetInfoEmpty);
+        return Some(ProTxInvalid::NetInfoEmpty);
       }
       if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR) {
-        return Err(e);
+        return Some(e);
       }
     }
 
     if let Some(hash) = dash_script::p2pkh_hash160(payout) {
       if hash == self.key_id_owner.as_bytes() || hash == self.key_id_voting.as_bytes() {
-        return Err(ProTxInvalid::PayoutKeyReuse);
+        return Some(ProTxInvalid::PayoutKeyReuse);
       }
     }
 
     if self.operator_reward > MAX_OPERATOR_REWARD {
-      return Err(ProTxInvalid::OperatorRewardTooHigh {
+      return Some(ProTxInvalid::OperatorRewardTooHigh {
         reward: self.operator_reward,
       });
     }
 
-    Ok(())
+    None
   }
 }
 

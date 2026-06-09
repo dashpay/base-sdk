@@ -15,7 +15,7 @@ use crate::tx_types::MnType;
 use crate::validation::{check_sptx_netinfo, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::{InputsHash, TxHash};
 
-use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{BlsSignatureBytes, PlatformNodeId};
 
 use core::fmt;
@@ -126,43 +126,40 @@ impl BaseCodec for ProUpServTx {
   }
 }
 
-impl ProUpServTx {
-  /// Validates structural invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self) -> Result<(), ProTxInvalid> {
+impl Checkable for ProUpServTx {
+  type Error = ProTxInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 {
-      return Err(ProTxInvalid::BadVersion { version: self.version });
+      return Some(ProTxInvalid::BadVersion { version: self.version });
     }
 
     if self.mn_type == MnType::Evo && self.version < PROTX_VERSION_BASIC_BLS {
-      return Err(ProTxInvalid::EvoVersionTooLow { version: self.version });
+      return Some(ProTxInvalid::EvoVersionTooLow { version: self.version });
     }
 
     let is_extended = matches!(self.net_info, NetInfo::Extended(_));
     if is_extended != (self.version == PROTX_VERSION_EXT_ADDR) {
-      return Err(ProTxInvalid::NetInfoVersionMismatch);
+      return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
     match &self.net_info {
       NetInfo::Extended(ext) => {
         if ext.entries.is_empty() {
-          return Err(ProTxInvalid::NetInfoEmpty);
+          return Some(ProTxInvalid::NetInfoEmpty);
         }
         if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version == PROTX_VERSION_EXT_ADDR) {
-          return Err(e);
+          return Some(e);
         }
       }
       NetInfo::Legacy(svc) => {
         if svc.addr.is_null() && svc.port == 0 {
-          return Err(ProTxInvalid::NetInfoEmpty);
+          return Some(ProTxInvalid::NetInfoEmpty);
         }
       }
     }
 
-    Ok(())
+    None
   }
 }
 

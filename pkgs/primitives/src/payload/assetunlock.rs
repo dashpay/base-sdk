@@ -9,6 +9,7 @@
 use crate::codec::codec_payload;
 use crate::QuorumHash;
 
+use dash_types::codec::Checkable;
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
@@ -58,22 +59,19 @@ impl core::fmt::Display for AssetUnlockInvalid {
   }
 }
 
-impl AssetUnlock {
-  /// Validates payload invariants without chain context.
-  ///
-  /// # Errors
-  ///
-  /// Returns the first validation error encountered.
-  pub fn validate(&self) -> Result<(), AssetUnlockInvalid> {
+impl Checkable for AssetUnlock {
+  type Error = AssetUnlockInvalid;
+
+  fn check(&self) -> Option<Self::Error> {
     if self.version == 0 || self.version > 1 {
-      return Err(AssetUnlockInvalid::BadVersion { version: self.version });
+      return Some(AssetUnlockInvalid::BadVersion { version: self.version });
     }
 
     if self.fee == 0 {
-      return Err(AssetUnlockInvalid::FeeOutOfRange { fee: self.fee });
+      return Some(AssetUnlockInvalid::FeeOutOfRange { fee: self.fee });
     }
 
-    Ok(())
+    None
   }
 }
 
