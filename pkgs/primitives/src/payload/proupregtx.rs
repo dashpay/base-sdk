@@ -9,9 +9,7 @@
 use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::validation::{
-  check_operator_key_not_null, check_protx_version, max_protx_version_no_ext, DeploymentContext, ProTxInvalid,
-};
+use crate::validation::{DeploymentContext, ProTxInvalid};
 use crate::{InputsHash, TxHash};
 
 use dash_types::{BlsPublicKeyBytes, KeyId};
@@ -60,14 +58,18 @@ impl ProUpRegTx {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
-    check_protx_version(self.version, max_protx_version_no_ext(ctx))?;
+  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
+    if self.version == 0 {
+      return Err(ProTxInvalid::BadVersion { version: self.version });
+    }
 
     if self.mode != 0 {
       return Err(ProTxInvalid::BadMode { mode: self.mode });
     }
 
-    check_operator_key_not_null(&self.pub_key_operator)?;
+    if self.pub_key_operator.is_null() {
+      return Err(ProTxInvalid::NullKey);
+    }
     if self.key_id_voting.is_null() {
       return Err(ProTxInvalid::NullKey);
     }

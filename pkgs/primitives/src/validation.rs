@@ -34,6 +34,7 @@ pub(crate) const MAX_COINBASE_SCRIPT_SIZE: usize = 100;
 pub(crate) const MAX_OPERATOR_REWARD: u16 = 10_000;
 
 /// ProTx version: legacy BLS operator keys (v1).
+#[expect(unused, reason = "consensus constant")]
 pub(crate) const PROTX_VERSION_LEGACY_BLS: u16 = 1;
 
 /// ProTx version: basic (IETF) BLS operator keys (v2).
@@ -113,54 +114,6 @@ impl fmt::Display for ProTxInvalid {
       Self::BadReason { reason } => write!(f, "bad-protx-reason: {reason}"),
     }
   }
-}
-
-/// Returns the maximum ProTx version given deployment state, or `None` when the
-/// check should be skipped.
-pub(crate) fn max_protx_version(ctx: &DeploymentContext) -> Option<u16> {
-  if ctx.ext_addr_active == Some(true) {
-    return Some(PROTX_VERSION_EXT_ADDR);
-  }
-  if ctx.basic_bls_active == Some(true) {
-    return Some(PROTX_VERSION_BASIC_BLS);
-  }
-  if ctx.basic_bls_active == Some(false) && ctx.ext_addr_active != Some(true) {
-    return Some(PROTX_VERSION_LEGACY_BLS);
-  }
-  None
-}
-
-/// Returns the maximum version for ProUpRegTx / ProUpRevTx (no extended address
-/// version for these types).
-pub(crate) fn max_protx_version_no_ext(ctx: &DeploymentContext) -> Option<u16> {
-  if ctx.basic_bls_active == Some(true) {
-    return Some(PROTX_VERSION_BASIC_BLS);
-  }
-  if ctx.basic_bls_active == Some(false) {
-    return Some(PROTX_VERSION_LEGACY_BLS);
-  }
-  None
-}
-
-/// Checks that version > 0 and optionally <= max.
-pub(crate) fn check_protx_version(version: u16, max: Option<u16>) -> Result<(), ProTxInvalid> {
-  if version == 0 {
-    return Err(ProTxInvalid::BadVersion { version });
-  }
-  if let Some(max) = max {
-    if version > max {
-      return Err(ProTxInvalid::BadVersion { version });
-    }
-  }
-  Ok(())
-}
-
-/// Checks that a BLS operator public key is not all zeros.
-pub(crate) fn check_operator_key_not_null(key: &dash_types::BlsPublicKeyBytes) -> Result<(), ProTxInvalid> {
-  if key.is_null() {
-    return Err(ProTxInvalid::NullKey);
-  }
-  Ok(())
 }
 
 /// Checks that an extended net info payload is trivially valid.

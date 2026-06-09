@@ -12,8 +12,8 @@ use crate::script::Script;
 use crate::support::CService;
 use crate::tx_types::MnType;
 use crate::validation::{
-  check_net_info_trivially_valid, check_operator_key_not_null, check_protx_version, max_protx_version,
-  DeploymentContext, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
+  check_net_info_trivially_valid, DeploymentContext, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS,
+  PROTX_VERSION_EXT_ADDR,
 };
 use crate::{InputsHash, TxHash};
 
@@ -166,8 +166,10 @@ impl ProRegTx {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
-    check_protx_version(self.version, max_protx_version(ctx))?;
+  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
+    if self.version == 0 {
+      return Err(ProTxInvalid::BadVersion { version: self.version });
+    }
 
     if self.mn_type == MnType::Evo && self.version < PROTX_VERSION_BASIC_BLS {
       return Err(ProTxInvalid::EvoVersionTooLow { version: self.version });
@@ -182,7 +184,9 @@ impl ProRegTx {
     if self.key_id_owner.is_null() || self.key_id_voting.is_null() {
       return Err(ProTxInvalid::NullKey);
     }
-    check_operator_key_not_null(&self.pub_key_operator)?;
+    if self.pub_key_operator.is_null() {
+      return Err(ProTxInvalid::NullKey);
+    }
 
     let payout = self.script_payout.as_bytes();
     if !dash_script::is_p2pkh(payout) && !dash_script::is_p2sh(payout) {

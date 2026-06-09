@@ -13,8 +13,7 @@ use crate::script::Script;
 use crate::support::CService;
 use crate::tx_types::MnType;
 use crate::validation::{
-  check_net_info_trivially_valid, check_protx_version, max_protx_version, DeploymentContext, ProTxInvalid,
-  PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
+  check_net_info_trivially_valid, DeploymentContext, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
 };
 use crate::{InputsHash, TxHash};
 
@@ -135,8 +134,10 @@ impl ProUpServTx {
   /// # Errors
   ///
   /// Returns the first validation error encountered.
-  pub fn validate(&self, ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
-    check_protx_version(self.version, max_protx_version(ctx))?;
+  pub fn validate(&self, _ctx: &DeploymentContext) -> Result<(), ProTxInvalid> {
+    if self.version == 0 {
+      return Err(ProTxInvalid::BadVersion { version: self.version });
+    }
 
     if self.mn_type == MnType::Evo && self.version < PROTX_VERSION_BASIC_BLS {
       return Err(ProTxInvalid::EvoVersionTooLow { version: self.version });
