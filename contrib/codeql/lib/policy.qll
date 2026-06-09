@@ -225,39 +225,62 @@ predicate isEvaluatedCrate(File f) {
   f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
 }
 
-/** Gets the human-readable label for declaration slot `s`. */
-bindingset[s]
-pragma[inline]
-string slotLabel(int s) {
-  s = 0 and result = "definition"
-  or
-  s = 1 and result = "NumCodec impl"
-  or
-  s = 2 and result = "BaseCodec/Encodable/Decodable impl"
-  or
-  s = 3 and result = "inherent impl"
-  or
-  s = 4 and result = "trait impl"
+/** Declaration slots that define the required source ordering. */
+newtype TDeclSlot =
+  TDefinition() or
+  TNumCodecImpl() or
+  TBaseCodecImpl() or
+  TInherentImpl() or
+  TTraitImpl()
+
+/** A declaration slot with ordering and labelling. */
+class DeclSlot extends TDeclSlot {
+  /** Gets the numeric ordering key for this slot. */
+  int getOrder() {
+    this = TDefinition() and result = 0
+    or
+    this = TNumCodecImpl() and result = 1
+    or
+    this = TBaseCodecImpl() and result = 2
+    or
+    this = TInherentImpl() and result = 3
+    or
+    this = TTraitImpl() and result = 4
+  }
+
+  /** Gets the human-readable label. */
+  string toString() {
+    this = TDefinition() and result = "definition"
+    or
+    this = TNumCodecImpl() and result = "NumCodec impl"
+    or
+    this = TBaseCodecImpl() and
+    result = "BaseCodec/Encodable/Decodable impl"
+    or
+    this = TInherentImpl() and result = "inherent impl"
+    or
+    this = TTraitImpl() and result = "trait impl"
+  }
 }
 
-/** Maps special trait names to their required declaration slot. */
-int traitSlot(string traitName) {
-  traitName = "NumCodec" and result = 1
+/** Maps a trait name to its declaration slot. */
+DeclSlot traitSlot(string traitName) {
+  traitName = "NumCodec" and result = TNumCodecImpl()
   or
-  traitName = "BaseCodec" and result = 2
+  traitName = "BaseCodec" and result = TBaseCodecImpl()
   or
-  traitName = "Encodable" and result = 2
+  traitName = "Encodable" and result = TBaseCodecImpl()
   or
-  traitName = "Decodable" and result = 2
+  traitName = "Decodable" and result = TBaseCodecImpl()
 }
 
 /** Gets the slot for trait `trait`. */
 bindingset[trait]
 pragma[inline]
-int traitImplSlot(string trait) {
+DeclSlot traitImplSlot(string trait) {
   result = traitSlot(trait)
   or
-  not exists(traitSlot(trait)) and result = 4
+  not exists(traitSlot(trait)) and result = TTraitImpl()
 }
 
 /**
@@ -267,31 +290,31 @@ int traitImplSlot(string trait) {
  * in different modules within the same file.
  */
 pragma[noinline]
-predicate itemEntry(TypeItem t, int slot, int line, Locatable loc) {
+predicate itemEntry(TypeItem t, DeclSlot slot, int line, Locatable loc) {
   isSourceType(t) and
   (t instanceof Struct or t instanceof Enum) and
   (
-    // Slot 0: struct/enum definition.
-    slot = 0 and line = startLine(t) and loc = t
+    // Definition.
+    slot = TDefinition() and line = startLine(t) and loc = t
     or
-    // Slots 1, 2, 4: hand-written trait impls.
+    // Hand-written trait impls.
     exists(Impl i, string trait |
       manualTraitImpl(t, trait, i, line) and
       slot = traitImplSlot(trait) and
       loc = i
     )
     or
-    // Slots 1, 2, 4: macro-generated trait impls (e.g. impl_type!).
+    // Macro-generated trait impls (e.g. impl_type!).
     exists(Impl i, string trait |
       macroTraitImpl(t, trait, i, line) and
       slot = traitImplSlot(trait) and
       loc = i
     )
     or
-    // Slot 3: inherent impl.
+    // Inherent impl.
     exists(Impl i |
       inherentImpl(t, i, line) and
-      slot = 3 and
+      slot = TInherentImpl() and
       loc = i
     )
   )
