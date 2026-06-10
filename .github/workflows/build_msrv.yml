@@ -57,26 +57,14 @@ jobs:
           key: cargo-deps-${{ hashFiles('Cargo.lock') }}
           restore-keys: cargo-deps-
 
-      - name: Restore CodeQL caches
-        id: codeql-cache
-        uses: actions/cache/restore@v5
+      - name: Manage CodeQL packs
+        uses: actions/cache@v5
         with:
-          path: |
-            contrib/codeql/.cache
-            ~/.codeql
-          key: codeql-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pkgs/**/*.rs', 'contrib/codeql/**/*.ql', 'contrib/codeql/**/*.qll', 'Cargo.lock') }}
+          path: ~/.codeql
+          key: codeql-packs-${{ hashFiles('contrib/codeql/codeql-pack.lock.yml') }}
 
       - name: Run linters
         run: python3 contrib/lint/all_lint.py
-
-      - name: Save CodeQL caches
-        if: success() && steps.codeql-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            contrib/codeql/.cache
-            ~/.codeql
-          key: codeql-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pkgs/**/*.rs', 'contrib/codeql/**/*.ql', 'contrib/codeql/**/*.qll', 'Cargo.lock') }}
 
       - name: Check PR commit messages
         if: github.event_name == 'pull_request'
