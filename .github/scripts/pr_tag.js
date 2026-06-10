@@ -6,7 +6,7 @@
 
 // @ts-check
 
-const { getMergeableState, listOpenPulls } = require("./util");
+const { getPullDetail, listOpenPulls } = require("./util");
 
 const STALE_DAYS = 60;
 
@@ -56,13 +56,13 @@ module.exports = async ({ github, context }) => {
       console.log(`PR #${pr.number}: removed stale`);
     }
 
-    const mergeableState = await getMergeableState({ github, owner, repo, prNumber: pr.number });
+    const detail = await getPullDetail({ github, owner, repo, prNumber: pr.number });
 
-    if (mergeableState === "unknown") {
+    if (detail.mergeable_state === "unknown") {
       continue;
     }
 
-    const hasConflicts = mergeableState === "dirty";
+    const hasConflicts = detail.mergeable_state === "dirty";
     const hasRebaseLabel = labels.includes(Labels.NEEDS_REBASE);
 
     if (hasConflicts && !hasRebaseLabel) {

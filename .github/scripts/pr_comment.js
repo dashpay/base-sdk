@@ -6,9 +6,13 @@
 
 // @ts-check
 
-const { getMergeableState, listOpenPulls } = require("./util");
+const { getPullDetail, listOpenPulls } = require("./util");
 
 const COMMENT_TAG = "<!-- pr-status-bot -->";
+const MAX_COMMITS = Number.parseInt(process.env.MAX_PR_COMMITS, 10);
+if (!Number.isFinite(MAX_COMMITS) || MAX_COMMITS <= 0) {
+  throw new Error(`MAX_PR_COMMITS must be a positive integer (got: ${process.env.MAX_PR_COMMITS})`);
+}
 
 /**
  * @param {{ github: import("@actions/github").getOctokit, context: import("@actions/github").context }} params
@@ -53,8 +57,8 @@ async function buildFileCache({ github, owner, repo, pulls }) {
  * @returns {Promise<string>}
  */
 async function buildComment({ github, owner, repo, pr, pulls, fileCache }) {
-  const mergeableState = await getMergeableState({ github, owner, repo, prNumber: pr.number });
-  const isDirty = mergeableState === "dirty";
+  const detail = await getPullDetail({ github, owner, repo, prNumber: pr.number });
+  const isDirty = detail.mergeable_state === "dirty";
 
   const ourFiles = new Set(fileCache.get(pr.number) || []);
   const potentialConflicts = [];
@@ -70,14 +74,21 @@ async function buildComment({ github, owner, repo, pr, pulls, fileCache }) {
     }
   }
 
-  let banner;
+  let banner = "";
+  if (detail.commits > MAX_COMMITS) {
+    banner +=
+      "> [!CAUTION]\n" +
+      `> This pull request has more than ${MAX_COMMITS} commits. Large pull requests are difficult to review. Consider splitting\n` +
+      "> your changes into smaller pull requests. Some Action runners will terminate until this is resolved.\n\n";
+  }
+
   if (isDirty) {
-    banner = "> [!CAUTION]\n> This pull request conflicts with the base branch. Please rebase and force-push.";
+    banner += "> [!CAUTION]\n> This pull request conflicts with the base branch. Please rebase and force-push.";
   } else if (potentialConflicts.length > 0) {
-    banner =
+    banner +=
       "> [!WARNING]\n> This pull request may have conflicts, please coordinate with the authors of these pull requests.";
   } else {
-    banner = "> [!NOTE]\n> This pull request has no conflicts! 🎊 🎉 🎊";
+    banner += "> [!NOTE]\n> This pull request has no conflicts! 🎊 🎉 🎊";
   }
 
   let conflictSection = "";

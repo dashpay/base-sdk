@@ -1,10 +1,8 @@
 name: Tag PRs
 
 on:
-  push:
-    branches: [develop]
   pull_request_target:
-    types: [synchronize, opened, reopened]
+    types: [synchronize, opened, reopened, closed]
   schedule:
     - cron: "0 6 * * 1"
 
