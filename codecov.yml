@@ -6,23 +6,26 @@ coverage:
       dash-num:
         flags: [dash-num]
         target: auto
-      dash-script:
-        flags: [dash-script]
-        target: auto
-      dash-pow:
-        flags: [dash-pow]
-        target: auto
-      dash-pkc:
-        flags: [dash-pkc]
-        target: auto
-      dash-primitives:
-        flags: [dash-primitives]
+      dash-p2p-core:
+        flags: [dash-p2p-core]
         target: auto
       dash-params:
         flags: [dash-params]
         target: auto
-      dash-p2p-core:
-        flags: [dash-p2p-core]
+      dash-pkc:
+        flags: [dash-pkc]
+        target: auto
+      dash-pow:
+        flags: [dash-pow]
+        target: auto
+      dash-primitives:
+        flags: [dash-primitives]
+        target: auto
+      dash-script:
+        flags: [dash-script]
+        target: auto
+      dash-types:
+        flags: [dash-types]
         target: auto
     patch:
       default:
@@ -30,23 +33,26 @@ coverage:
       dash-num:
         flags: [dash-num]
         target: auto
-      dash-script:
-        flags: [dash-script]
-        target: auto
-      dash-pow:
-        flags: [dash-pow]
-        target: auto
-      dash-pkc:
-        flags: [dash-pkc]
-        target: auto
-      dash-primitives:
-        flags: [dash-primitives]
+      dash-p2p-core:
+        flags: [dash-p2p-core]
         target: auto
       dash-params:
         flags: [dash-params]
         target: auto
-      dash-p2p-core:
-        flags: [dash-p2p-core]
+      dash-pkc:
+        flags: [dash-pkc]
+        target: auto
+      dash-pow:
+        flags: [dash-pow]
+        target: auto
+      dash-primitives:
+        flags: [dash-primitives]
+        target: auto
+      dash-script:
+        flags: [dash-script]
+        target: auto
+      dash-types:
+        flags: [dash-types]
         target: auto
 
 flags:
@@ -56,18 +62,21 @@ flags:
   dash-script:
     paths: [pkgs/script/]
     carryforward: true
-  dash-pow:
-    paths: [pkgs/pow/]
-    carryforward: true
-  dash-pkc:
-    paths: [pkgs/pkc/]
-    carryforward: true
-  dash-primitives:
-    paths: [pkgs/primitives/]
+  dash-p2p-core:
+    paths: [pkgs/p2p_core/]
     carryforward: true
   dash-params:
     paths: [pkgs/params/]
     carryforward: true
-  dash-p2p-core:
-    paths: [pkgs/p2p_core/]
+  dash-pkc:
+    paths: [pkgs/pkc/]
+    carryforward: true
+  dash-pow:
+    paths: [pkgs/pow/]
+    carryforward: true
+  dash-primitives:
+    paths: [pkgs/primitives/]
+    carryforward: true
+  dash-types:
+    paths: [pkgs/types/]
     carryforward: true
