@@ -42,6 +42,17 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Run pull request checks
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          source .github/ci.env
+          commits=${{ github.event.pull_request.commits }}
+          if [ "${commits}" -gt "${MAX_PR_COMMITS}" ]; then
+            echo "::error::PR has ${commits} commits (limit: ${MAX_PR_COMMITS})"
+            exit 1
+          fi
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 

@@ -37,21 +37,23 @@ async function listOpenPulls({ github, owner, repo }) {
 
 /**
  * @param {{ github: any, owner: string, repo: string, prNumber: number }} params
- * @returns {Promise<string>}
+ * @returns {Promise<{ mergeable_state: string, commits: number }>}
  */
-async function getMergeableState({ github, owner, repo, prNumber }) {
+async function getPullDetail({ github, owner, repo, prNumber }) {
+  let commits = 0;
   for (let i = 0; i < MERGEABLE_RETRIES; i++) {
     const { data: detail } = await github.rest.pulls.get({
       owner,
       repo,
       pull_number: prNumber,
     });
+    commits = detail.commits;
     if (detail.mergeable_state !== "unknown") {
-      return detail.mergeable_state;
+      return { mergeable_state: detail.mergeable_state, commits };
     }
     await sleep(MERGEABLE_DELAY_MS);
   }
-  return "unknown";
+  return { mergeable_state: "unknown", commits };
 }
 
-module.exports = { BASE_BRANCH, getMergeableState, listOpenPulls, sleep };
+module.exports = { BASE_BRANCH, getPullDetail, listOpenPulls, sleep };

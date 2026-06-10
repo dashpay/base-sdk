@@ -8,6 +8,7 @@ export default [
       globals: {
         console: "readonly",
         module: "readonly",
+        process: "readonly",
         require: "readonly",
         setTimeout: "readonly",
       },

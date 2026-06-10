@@ -24,6 +24,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Read environment
+        run: cat .github/ci.env >> "$GITHUB_ENV"
+
       - name: Update PR comments
         uses: actions/github-script@v8
         with:
