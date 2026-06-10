@@ -18,7 +18,6 @@ const MAX_USER_AGENT: usize = 256;
 
 /// CompactSize-prefixed user agent bytestring.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct UserAgent(Vec<u8>);
 
 impl_p2p!(UserAgent);
@@ -88,5 +87,23 @@ impl fmt::Display for UserAgent {
       Some(s) => f.write_str(s),
       None => write!(f, "<{} bytes>", self.0.len()),
     }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl ::serde::Serialize for UserAgent {
+  fn serialize<S: ::serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+    match self.as_str() {
+      Some(text) => s.serialize_str(text),
+      None => Err(::serde::ser::Error::custom("user agent contains non-utf8 data")),
+    }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> ::serde::Deserialize<'de> for UserAgent {
+  fn deserialize<D: ::serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+    let text = <String as ::serde::Deserialize>::deserialize(d)?;
+    Self::new(text.into_bytes()).map_err(::serde::de::Error::custom)
   }
 }

@@ -214,6 +214,7 @@ impl_type!(DynBitset);
 /// Serde helper for [`DynBitset`] that validates on deserialisation.
 #[cfg(feature = "serde")]
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct DynBitsetSerde {
   num_bits: u64,
   #[serde(with = "dash_types::serialize::hex")]
@@ -363,6 +364,7 @@ impl Iterator for DynBitsetIterator<'_> {
 /// Legacy CService network address (ADDRv1 format, 18 bytes).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct CService {
   /// 16-byte address (IPv4-mapped IPv6 or native IPv6).
   pub addr: AddrV1,
@@ -439,6 +441,7 @@ impl fmt::Display for NetInfoPurpose {
 /// A single network info entry within a purpose group.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfoEntry {
   /// ADDRv1-style IP + port.
   Service(CService),
@@ -459,6 +462,7 @@ pub enum NetInfoEntry {
 /// platform P2P, platform HTTPS).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ExtendedNetInfo {
   /// Format version.
   pub version: u8,

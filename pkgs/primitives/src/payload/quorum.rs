@@ -24,6 +24,7 @@ use core::fmt;
 /// - v4: basic + indexed (quorum_index)
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Commitment {
   /// 1=legacy, 2=+indexed, 3=basic, 4=basic+idx.
   pub version: u16,
@@ -107,6 +108,7 @@ impl fmt::Display for Commitment {
 /// Tx-level wrapper for Commitment (type 6).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct FinalCommitment {
   /// Payload version.
   pub version: u16,
@@ -164,5 +166,20 @@ impl Checkable for FinalCommitment {
 impl fmt::Display for FinalCommitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "FinalCommitment {{ v{}, height: {} }}", self.version, self.height,)
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_qctx() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "qctx");
+    let items = read_corpus::<FinalCommitment>(&text, "qctx", check_sptx);
+    assert_serde_rt("qctx", &items);
   }
 }

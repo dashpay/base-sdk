@@ -23,6 +23,7 @@ use core::fmt;
 /// - v2: BasicBLS
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProUpRegTx {
   /// 1=LegacyBLS, 2=BasicBLS.
   pub version: u16,
@@ -39,6 +40,7 @@ pub struct ProUpRegTx {
   /// Hash of all inputs.
   pub inputs_hash: InputsHash,
   /// Owner ECDSA signature (variable-length).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub vch_sig: Vec<u8>,
 }
 
@@ -84,5 +86,20 @@ impl Checkable for ProUpRegTx {
 impl fmt::Display for ProUpRegTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "ProUpRegTx {{ v{} }}", self.version)
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_proupregtx() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "proupregtx");
+    let items = read_corpus::<ProUpRegTx>(&text, "proupregtx", check_sptx);
+    assert_serde_rt("proupregtx", &items);
   }
 }

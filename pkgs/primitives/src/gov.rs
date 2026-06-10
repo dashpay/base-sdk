@@ -12,6 +12,7 @@ use crate::prelude::*;
 use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
+use bitcoin_units::Amount;
 use dash_types::codec::{self, BaseCodec, Checkable, NumCodec};
 use dash_types::impl_num;
 use hex_conservative::DisplayHex;
@@ -90,8 +91,9 @@ pub struct Proposal {
   pub url: String,
   /// Dash address receiving payment.
   pub payment_address: String,
-  /// Payment amount in DASH as a decimal string.
-  pub payment_amount: String,
+  /// Payment amount.
+  #[cfg_attr(feature = "serde", serde(with = "crate::serialize::amount"))]
+  pub payment_amount: Amount,
   /// Unix timestamp when payments begin.
   pub start_epoch: i64,
   /// Unix timestamp when payments end.
@@ -111,6 +113,7 @@ pub struct Proposal {
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Trigger {
   /// Block height at which payments occur.
   pub event_block_height: i32,
@@ -144,6 +147,7 @@ pub enum GovData {
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovObject {
   /// Parent object hash (zero for root).
   pub hash_parent: TxHash,
@@ -154,12 +158,14 @@ pub struct GovObject {
   /// Collateral transaction hash.
   pub collateral_hash: TxHash,
   /// Raw data bytes (JSON when decoded as string).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub data: Vec<u8>,
   /// Object type code.
   pub object_type: GovObjectType,
   /// Signing masternode outpoint.
   pub masternode_outpoint: OutPoint,
   /// BLS or ECDSA signature.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub sig: Vec<u8>,
 }
 
@@ -327,6 +333,7 @@ impl fmt::Display for VoteSignal {
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovVote {
   /// Voting masternode outpoint.
   pub masternode_outpoint: OutPoint,
@@ -339,6 +346,7 @@ pub struct GovVote {
   /// Vote timestamp.
   pub time: i64,
   /// Signature bytes.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub sig: Vec<u8>,
 }
 
@@ -425,11 +433,7 @@ impl Checkable for Proposal {
       return Some(ProposalInvalid::BadEpochRange);
     }
 
-    if self.payment_amount.is_empty() {
-      return Some(ProposalInvalid::BadPaymentAmount);
-    }
-    let amount_positive = self.payment_amount.parse::<f64>().map(|v| v > 0.0).unwrap_or(false);
-    if !amount_positive {
+    if self.payment_amount == Amount::ZERO {
       return Some(ProposalInvalid::BadPaymentAmount);
     }
 
@@ -441,5 +445,96 @@ impl Checkable for Proposal {
     }
 
     None
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+#[expect(clippy::panic, clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use rstest::rstest;
+  use serde::{Deserialize, Serialize};
+
+  #[rstest]
+  fn corpus_govobjvote() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "govobjvote");
+    let items = read_corpus::<GovVote>(&text, "govobjvote", check_wire);
+    assert_serde_rt("govobjvote", &items);
+  }
+
+  #[rstest]
+  fn corpus_govobj_wire() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "govobj");
+    read_corpus::<serde_json::Value>(&text, "govobj", |raw, _, label| {
+      let decoded = GovObject::decode(&mut &raw[..]).unwrap();
+      let mut encoded = Vec::new();
+      decoded.encode(&mut encoded);
+      assert_eq!(encoded, raw, "{label}: encode");
+    });
+  }
+
+  /// Corpus representation of a governance object.
+  ///
+  /// Mirrors [`GovObject`] but stores the inner `data` payload as
+  /// structured JSON instead of a hex blob.
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  #[serde(rename_all = "camelCase")]
+  struct GovCorpusDetails {
+    hash_parent: TxHash,
+    revision: i32,
+    collateral_hash: TxHash,
+    object_type: GovObjectType,
+    time: i64,
+    masternode_outpoint: OutPoint,
+    #[serde(with = "dash_types::serialize::hex")]
+    sig: Vec<u8>,
+    data: serde_json::Value,
+  }
+
+  impl GovCorpusDetails {
+    fn assert_matches(&self, obj: &GovObject, label: &str) {
+      assert_eq!(self.hash_parent, obj.hash_parent, "{label}: hash_parent");
+      assert_eq!(self.revision, obj.revision, "{label}: revision");
+      assert_eq!(self.time, obj.time, "{label}: time");
+      assert_eq!(self.collateral_hash, obj.collateral_hash, "{label}: collateral_hash");
+      assert_eq!(self.object_type, obj.object_type, "{label}: object_type");
+      assert_eq!(
+        self.masternode_outpoint, obj.masternode_outpoint,
+        "{label}: masternode_outpoint"
+      );
+      assert_eq!(self.sig, obj.sig, "{label}: sig");
+
+      let wire_data: serde_json::Value = serde_json::from_slice(&obj.data).unwrap();
+      assert_eq!(self.data, wire_data, "{label}: data");
+    }
+  }
+
+  #[rstest]
+  #[case("proposals")]
+  #[case("triggers")]
+  fn corpus_govobj(#[case] section: &str) {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), section);
+    let items = read_corpus::<GovCorpusDetails>(&text, section, |raw, details, label| {
+      let obj = GovObject::decode(&mut &raw[..]).unwrap();
+      details.assert_matches(&obj, label);
+
+      if obj.object_type == GovObjectType::Proposal {
+        let proposal: Proposal =
+          serde_json::from_slice(&obj.data).unwrap_or_else(|e| panic!("{label}: proposal json: {e}"));
+        if let Some(e) = proposal.check() {
+          panic!("{label}: proposal check: {e}");
+        }
+      }
+
+      let mut encoded = Vec::new();
+      obj.encode(&mut encoded);
+      assert_eq!(encoded, raw, "{label}: encode");
+
+      let expected_hash = TxHash::from_hex(label).unwrap();
+      assert_eq!(obj.hash(), expected_hash, "{label}: hash");
+    });
+    assert_serde_rt(section, &items);
   }
 }

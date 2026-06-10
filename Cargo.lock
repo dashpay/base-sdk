@@ -226,6 +226,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dash-dev"
+version = "0.0.0"
+dependencies = [
+ "bitcoin-consensus-encoding 0.2.0",
+ "dash-primitives",
+ "dash-types",
+ "hex-conservative",
+ "json5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "dash-num"
 version = "0.0.0"
 dependencies = [
@@ -245,17 +258,15 @@ dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin-internals",
  "bitcoin-units",
+ "dash-dev",
  "dash-num",
  "dash-params",
  "dash-primitives",
  "dash-script",
  "dash-types",
  "hex-conservative",
- "hex-literal",
- "json5",
  "rstest",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -310,18 +321,16 @@ dependencies = [
 name = "dash-primitives"
 version = "0.0.0"
 dependencies = [
- "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin-internals",
  "bitcoin-units",
  "bitcoin_hashes",
+ "dash-dev",
  "dash-num",
  "dash-pow",
  "dash-script",
  "dash-types",
  "hex-conservative",
- "hex-literal",
- "json5",
  "rstest",
  "serde",
  "serde_json",

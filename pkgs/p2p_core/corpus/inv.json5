@@ -1,0 +1,56 @@
+{
+  "inv": {
+    // Single isdlock inventory (type 31)
+    "1bc6b8c7a3ded25ae54de6fc8935e7e9a2921053570a4b2b58ffdd4d55f7e29a": {
+      "raw": "011f000000e4403a9fe79784b73b54792d3bcf60fbf38181cd755e5fdaf733ff3feac2a47a",
+      "details": {
+        "inventory": [
+          {
+            "type": 31,
+            "hash": "7aa4c2ea3fff33f7da5f5e75cd8181f3fb60cf3b2d79543bb78497e79f3a40e4"
+          }
+        ]
+      }
+    },
+    // Single transaction inventory (type 1)
+    "597fc4042496b16350031e7d5de5f14c2d7b0ba6dd9752af8872df834ab46b8c": {
+      "raw": "010100000080ddfe470bafc9ca1e3b78f0d8fa6374e765d3b81a5097027373643da6fb79a2",
+      "details": {
+        "inventory": [
+          {
+            "type": 1,
+            "hash": "a279fba63d6473730297501ab8d365e77463fad8f0783b1ecac9af0b47fedd80"
+          }
+        ]
+      }
+    },
+    // Two items: transaction (type 1) + dstx (type 16)
+    "eaf05e4d88a3609491bcdfdec9504297a70d70cf3a107fa77473c6960636aac1": {
+      "raw": "020100000080ddfe470bafc9ca1e3b78f0d8fa6374e765d3b81a5097027373643da6fb79a2100000008740acd8cacffc3b40368eca55e1fa0197a84e01855fcfb8014fc9c03a479f2b",
+      "details": {
+        "inventory": [
+          {
+            "type": 1,
+            "hash": "a279fba63d6473730297501ab8d365e77463fad8f0783b1ecac9af0b47fedd80"
+          },
+          {
+            "type": 16,
+            "hash": "2b9f473ac0c94f01b8cf5f85014ea89701fae155ca8e36403bfccfcad8ac4087"
+          }
+        ]
+      }
+    },
+    // Single dsq inventory (type 32)
+    "6b9500ec5379eaf1f2e8ec7837a282bbd25c19189de077e74cb89ed93ce9ad5f": {
+      "raw": "01200000001318851649b25736d902fd5c8608d9665c72134dfb0c6994ad1c1829005d5077",
+      "details": {
+        "inventory": [
+          {
+            "type": 32,
+            "hash": "77505d0029181cad94690cfb4d13725c66d908865cfd02d93657b24916851813"
+          }
+        ]
+      }
+    },
+  }
+}

@@ -17,6 +17,7 @@ use core::fmt;
 /// AssetUnlock: Platform-to-L1 (type 9).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct AssetUnlock {
   /// Payload version.
   pub version: u8,
@@ -78,5 +79,20 @@ impl Checkable for AssetUnlock {
 impl fmt::Display for AssetUnlock {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "AssetUnlock {{ v{}, index: {} }}", self.version, self.index,)
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_assetunlock() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "assetunlock");
+    let items = read_corpus::<AssetUnlock>(&text, "assetunlock", check_sptx);
+    assert_serde_rt("assetunlock", &items);
   }
 }

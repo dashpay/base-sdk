@@ -5,15 +5,20 @@
       "raw": "0300020001c90d9f37c676f516a68b20a24db50275ba914e1dc1b58d96dd7b36f8cc9d15c2000000006a47304402201484d359100cd6aa7f72b7619745dc5dae8d500b54dc80d084cb34dbabd4663d022054aaa1b88deb50388f7ab66789ddb3016d1ae3205383da9eae5620a2586321b9012102f3c934586bec5fd90a7a3ac57a347b7baf95733724dbc62ff320a76824d9b573feffffff0164020000000000001976a9147150c0f252fe9c5b98b5b41c7bd8072e1ec6492588ac00000000b70200000058e394bebc2a48007f6aded454da3547801de04c3b22e1fdae287daaff73687f00000000000000000000ffff74cbf4de270f00ae6c79e8b39782cf0083e326982e4757f573ac5098a4a8dd63c552871ad0bc718ad8db5afe86e305025e8e0eaafe4731e1b3d093a7433fac78664ff26ac43a148b8bcb67f601f39f107b1201c00e30560563c406ad30b33882d95af1a4bfaeb2bb964363d80be61fd2bea30e26b563869e59ee120c0d0ecdee456202df9a35f0",
       "details": {
         "version": 2,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "7f6873ffaa7d28aefde1223b4ce01d804735da54d4de6a7f00482abcbe94e358",
-        "service": "116.203.244.222:9999",
-        "addresses": {
-          "core_p2p": [
-            "116.203.244.222:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff74cbf4de",
+            "port": 9999
+          }
         },
-        "inputsHash": "71bcd01a8752c563dda8a49850ac73f557472e9826e38300cf8297b3e8796cae"
+        "scriptOperatorPayout": "",
+        "inputsHash": "71bcd01a8752c563dda8a49850ac73f557472e9826e38300cf8297b3e8796cae",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "8ad8db5afe86e305025e8e0eaafe4731e1b3d093a7433fac78664ff26ac43a148b8bcb67f601f39f107b1201c00e30560563c406ad30b33882d95af1a4bfaeb2bb964363d80be61fd2bea30e26b563869e59ee120c0d0ecdee456202df9a35f0"
       }
     },
     // Block 000000000000001abcca40e14c22dde573a6170fd6dd303345ef38c0dee010a9
@@ -21,15 +26,20 @@
       "raw": "0300020001fb8f30377d3224d9612ffc7467de18406dea39c24c388bfec5b6e310ddd62228020000006a47304402206bf69080c8ff8e8e52b67db5f538cd2cd1dffbf3f958ac254b0d3004ed1b9079022045c1856b0f68a5dd76503047705e1ea3bcbc56fadbe241e1795cc68fb20f6c39012102cc8012f9cb6984a60fc0b40314e0c54cbd30ec98bcee3f96aa889ccc3751fa93feffffff01a2f2f204000000001976a914855f200e320ac48fb39369ce269e5faa4335f27d88ac00000000b702000000fa1c16eb6d87dda6a853672fbc1ac2f6f9dd9c0fdfe6a44b633b4cd9cf47b3db00000000000000000000ffffcdcead9f270f00478df8f1d070a9d3363b63e7d691fc313ca0f09d9ff6887be771548fea95451583e506c6e6dcbf6ae3073beb5bad90ff19f05502c726981b2f5b0efe216e1b38ca2a452c874b35973b06e8794df6a2cd17b3408f17dc76ad4f71dd76e8335fa3cd145da7aeffbba5097247f17c6d12c46a637fd1427248cac7865fe83c838290",
       "details": {
         "version": 2,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "dbb347cfd94c3b634ba4e6df0f9cddf9f6c21abc2f6753a8a6dd876deb161cfa",
-        "service": "205.206.173.159:9999",
-        "addresses": {
-          "core_p2p": [
-            "205.206.173.159:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffffcdcead9f",
+            "port": 9999
+          }
         },
-        "inputsHash": "154595ea8f5471e77b88f69f9df0a03c31fc91d6e7633b36d3a970d0f1f88d47"
+        "scriptOperatorPayout": "",
+        "inputsHash": "154595ea8f5471e77b88f69f9df0a03c31fc91d6e7633b36d3a970d0f1f88d47",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "83e506c6e6dcbf6ae3073beb5bad90ff19f05502c726981b2f5b0efe216e1b38ca2a452c874b35973b06e8794df6a2cd17b3408f17dc76ad4f71dd76e8335fa3cd145da7aeffbba5097247f17c6d12c46a637fd1427248cac7865fe83c838290"
       }
     },
     // Block 0000000000000011189267f402ded52b29b1d768b4f162967edb8aca7db35c22
@@ -37,15 +47,20 @@
       "raw": "0300020001fc19262562aa85f947cc22c0014c5e071bf84cc18dd9ad3e961269e31c8fade3020000006a473044022024a85a74d275ae1529b8aaeded795b74f7adfb2c716c7f3ea8dabd605efda864022059825bed6ffecba7f1438249456e0a6fec6535a6302e695954bcda2afc347d2d012102cc8012f9cb6984a60fc0b40314e0c54cbd30ec98bcee3f96aa889ccc3751fa93feffffff01e8acf304000000001976a914855f200e320ac48fb39369ce269e5faa4335f27d88ac00000000b501008aac31bd43b6afb8f45bba6e98cc24435d9b60d792cd0bed43582ddd3809cbf400000000000000000000ffffcdceffce270f00048e9f35dfaadda608b65e6a9d9cd19871e11c4f0875fc38a99bf90d74a90fb385bb6d29d126421653a15fb75abf274742f267542044f0f02f46038ad90a2edf29b0cdb77b0ee9628494dbad1b326555045fea8fe9613b3470872df84d6226efca93f75fe10c30431065e060c2da56c8de653a0fd27f0218cacca0fc772d2f7a",
       "details": {
         "version": 1,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "f4cb0938dd2d5843ed0bcd92d7609b5d4324cc986eba5bf4b8afb643bd31ac8a",
-        "service": "205.206.255.206:9999",
-        "addresses": {
-          "core_p2p": [
-            "205.206.255.206:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffffcdceffce",
+            "port": 9999
+          }
         },
-        "inputsHash": "b30fa9740df99ba938fc75084f1ce17198d19c9d6a5eb608a6ddaadf359f8e04"
+        "scriptOperatorPayout": "",
+        "inputsHash": "b30fa9740df99ba938fc75084f1ce17198d19c9d6a5eb608a6ddaadf359f8e04",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "85bb6d29d126421653a15fb75abf274742f267542044f0f02f46038ad90a2edf29b0cdb77b0ee9628494dbad1b326555045fea8fe9613b3470872df84d6226efca93f75fe10c30431065e060c2da56c8de653a0fd27f0218cacca0fc772d2f7a"
       }
     },
     // Block 00000000000000212f7e174246675a1e6577d48741bb682fba4991828ce44e26
@@ -53,15 +68,20 @@
       "raw": "0300020001fdae3c8a41c62d4665d10d2c4390fd8cd85e219672f9412f2a532ed3932e1e53020000006a47304402200d8e14aed7931440820d2d11d384e3d29146d582576ac5b3ec298e3083c87a25022011ebf018b0430f31767dea5f96b80928c53912828195c7e1c2db70685b74766a012102cc8012f9cb6984a60fc0b40314e0c54cbd30ec98bcee3f96aa889ccc3751fa93feffffff014e02f604000000001976a914855f200e320ac48fb39369ce269e5faa4335f27d88ac00000000b50100eefd78b85369e52e3e0290059a4e92a14941a269afe670172ad7489b0f16116700000000000000000000ffffcdcefe15270f00de2377f11253da1aa3bb8fb2754683aa3bda6f6a414976cd556b3a357325e56d0249ec51235e6d9d5fca68324ba95d2c03247cb8e6196f26caa7c7af14767ffe1f7da460f88076ef2f628eca8851c51d140fba7f0475c6b47a142a593072a58e5ed5fb225de39e7c527aeff065b33c56c2d691cd7c78a5264a3eaff3d206fdf7",
       "details": {
         "version": 1,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "6711160f9b48d72a1770e6af69a24149a1924e9a0590023e2ee56953b878fdee",
-        "service": "205.206.254.21:9999",
-        "addresses": {
-          "core_p2p": [
-            "205.206.254.21:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffffcdcefe15",
+            "port": 9999
+          }
         },
-        "inputsHash": "6de52573353a6b55cd7649416a6fda3baa834675b28fbba31ada5312f17723de"
+        "scriptOperatorPayout": "",
+        "inputsHash": "6de52573353a6b55cd7649416a6fda3baa834675b28fbba31ada5312f17723de",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "0249ec51235e6d9d5fca68324ba95d2c03247cb8e6196f26caa7c7af14767ffe1f7da460f88076ef2f628eca8851c51d140fba7f0475c6b47a142a593072a58e5ed5fb225de39e7c527aeff065b33c56c2d691cd7c78a5264a3eaff3d206fdf7"
       }
     },
     // Block 000000000000000308df2bfa67fe4bb71178206470ab9e77df33ac620af4aee6
@@ -69,15 +89,20 @@
       "raw": "0300020001c2cd5e4c4b10db6c1948f18a2be476d729a3a7489fb6d11aaf42f061a58903e1000000006a4730440220096c7da24367da98a38f630ce4785341e50efea99ede54b2b965f2a7c299925302207051defaab3484ea6d835ac0ea6aec7d4fe047d2bd2ce22faf2d3eb838d7dd5c0121032763ce6b561052795992c28afdd21bde06502b482eaed480ded62785f384e322feffffff014a0cfa02000000001976a914230a49c1b0620cf4787ef4506a6ddb5654c0ead588ac00000000b702000000dc324468e8f528a861710b7252413fb2efe2b696d664091a86997003779eab4a00000000000000000000ffff05e677c5270f001c86843154dcd8b359c4e7cde50280e49f9f399c4c232a13b766191c773a1bc6b1223577d04d0a5bbe98a1b4fb1be2078ce437baf11c421b898111d63bbccb56c3302e84bf9af8e8a293c98340857f500369ad49a03664e335556a28b936985705216987028512a3e2c05c6a4b06a36a043f72c680701373852f54f266579090",
       "details": {
         "version": 2,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "4aab9e77037099861a0964d696b6e2efb23f4152720b7161a828f5e8684432dc",
-        "service": "5.230.119.197:9999",
-        "addresses": {
-          "core_p2p": [
-            "5.230.119.197:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff05e677c5",
+            "port": 9999
+          }
         },
-        "inputsHash": "c61b3a771c1966b7132a234c9c399f9fe48002e5cde7c459b3d8dc543184861c"
+        "scriptOperatorPayout": "",
+        "inputsHash": "c61b3a771c1966b7132a234c9c399f9fe48002e5cde7c459b3d8dc543184861c",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "b1223577d04d0a5bbe98a1b4fb1be2078ce437baf11c421b898111d63bbccb56c3302e84bf9af8e8a293c98340857f500369ad49a03664e335556a28b936985705216987028512a3e2c05c6a4b06a36a043f72c680701373852f54f266579090"
       }
     },
     // Block 000000000000002a09bb2d9bdc1d9590c5ab87f074238ad6b272f5c239d251c2
@@ -85,15 +110,20 @@
       "raw": "03000200019fed667c26f5c12cd227f10a36b2dd47b82549edddab0f0d6bf5e3b5da55ae19000000006a47304402202a34bf6bff3ee314758e9247bb4185cc91fc2ccc1ac9214690f20d2c7fa59d65022045c6a03693ee606820b3bfd8529cb64099419253b16a1fb8623dcb3c9e92d49d012102610485f774532476ad1898c87fccd4173a3a56ebeaafed825db1e8e528a7e7b0feffffff01cf4a9700000000001976a9141513d657799bf3282792703ce3ab342e001ee85588ac00000000b7020000007e3b384ccf50454b770e1e9865be9d1864c0f2ca62d0df6e88b5219d0addb6ae00000000000000000000ffff54f784e6270f00e8a6fea89137f697ab9724a38ad3f19047046b534ef272fede4873b7090e275bb20a4c4898706c74afcdd7a22b902f2e260c1755cea59af2bb7e509fa1147f1049b1405538505cd40fe58a5720e8a8040282d2b9e800e05725716098a17939f72ad9dbe2516ab8bf590c38111ad1bd8a45b63ff95d661490b97b5b5bdb649827",
       "details": {
         "version": 2,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "aeb6dd0a9d21b5886edfd062caf2c064189dbe65981e0e774b4550cf4c383b7e",
-        "service": "84.247.132.230:9999",
-        "addresses": {
-          "core_p2p": [
-            "84.247.132.230:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff54f784e6",
+            "port": 9999
+          }
         },
-        "inputsHash": "5b270e09b77348defe72f24e536b044790f1d38aa32497ab97f63791a8fea6e8"
+        "scriptOperatorPayout": "",
+        "inputsHash": "5b270e09b77348defe72f24e536b044790f1d38aa32497ab97f63791a8fea6e8",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "b20a4c4898706c74afcdd7a22b902f2e260c1755cea59af2bb7e509fa1147f1049b1405538505cd40fe58a5720e8a8040282d2b9e800e05725716098a17939f72ad9dbe2516ab8bf590c38111ad1bd8a45b63ff95d661490b97b5b5bdb649827"
       }
     },
     // Block 0000000000000012e5fc149b0c4373506c10e802545d179532172a3b466a0b16
@@ -101,15 +131,20 @@
       "raw": "0300020001b81f928cff84d6e65004097b885db176c0320a4c38d8909cc160c5cb2cc4d333020000006a47304402205a656d5fabc5b649550ec64f4a8473d98082671e7c61d0d0e32da34f99d1bfd302202e720fb6656c1f3d1783051635bbdfc51e75f27fe3e9c91637e17b320e4c235b0121029a2cf2003f7dadc4e3aa19e51f2e366c2794c19d893b71eb6514e8a78dcbd679feffffff01504ff404000000001976a9140893a8985ba5ad52f83bd4043eaa531cf8f13a9888ac00000000b5010008606bb15c26162911d9dc10993c46c92d8943635251ffd338724d393a98435500000000000000000000ffff2e0af1bf270f003c52d07bacb0473bedf39e37ad7bb2fedd8b43ec5186bb675e735c87c6f00f720c7bdb0f50baea712d8c245e8a0bbfd66b72a848e4cde33aa1cf93111b4bc95e23a7f47705e09153e0b3ab9fa1f188ae0202e6523d0c6d8288daa37a117ea16c695886fadc8d9c5941af7a829f4ebb6c0fc6d02e3748052beaad55f25d1df557",
       "details": {
         "version": 1,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "5543983a394d7238d3ff51526343892dc9463c9910dcd9112916265cb16b6008",
-        "service": "46.10.241.191:9999",
-        "addresses": {
-          "core_p2p": [
-            "46.10.241.191:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff2e0af1bf",
+            "port": 9999
+          }
         },
-        "inputsHash": "720ff0c6875c735e67bb8651ec438bddfeb27bad379ef3ed3b47b0ac7bd0523c"
+        "scriptOperatorPayout": "",
+        "inputsHash": "720ff0c6875c735e67bb8651ec438bddfeb27bad379ef3ed3b47b0ac7bd0523c",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "0c7bdb0f50baea712d8c245e8a0bbfd66b72a848e4cde33aa1cf93111b4bc95e23a7f47705e09153e0b3ab9fa1f188ae0202e6523d0c6d8288daa37a117ea16c695886fadc8d9c5941af7a829f4ebb6c0fc6d02e3748052beaad55f25d1df557"
       }
     },
     // Block 0000000000000012e5fc149b0c4373506c10e802545d179532172a3b466a0b16
@@ -117,15 +152,20 @@
       "raw": "0300020001e9812e06fb6db5aee475094b9de7a4b40664efe27815084601a7ce5472fa9d3f020000006a4730440220464448db588f885a07486d09b32a73198086cf8ffbfc4d3c019d8b0b5cc21f8702203ab9338920111007f8f8b5e5e1e4438675b2765dbf65b89196ab56eaae09314c01210310e4f625b703be60c26903aa7cfaf97ac49bbd66c68745882b09338aef1482edfeffffff0166effb04000000001976a914fc20b8da2a2eebd178b9b6e6a3d58eb2d084f59b88ac00000000b50100ea1faae50e8731dc9bf3e0670af307031b202542d43bfe7d247b251cffdf315000000000000000000000ffff4e531300270f0068ba3a0607eaffce8fde31af2711731a903dd3f451f1763dd04a52e0ea1846288fc943b79189fc01de899da277b329e37b74c674e660e8aeefd555b320eb989fcaeb017d9cbe62ca3dbc8da8707565830895b75a53811e80d8cacadd019d0525fe24884e4849b36612fa049620e68cb4e0adacadb7fea56aeed0216d3ecad247",
       "details": {
         "version": 1,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "5031dfff1c257b247dfe3bd44225201b0307f30a67e0f39bdc31870ee5aa1fea",
-        "service": "78.83.19.0:9999",
-        "addresses": {
-          "core_p2p": [
-            "78.83.19.0:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff4e531300",
+            "port": 9999
+          }
         },
-        "inputsHash": "284618eae0524ad03d76f151f4d33d901a731127af31de8fceffea07063aba68"
+        "scriptOperatorPayout": "",
+        "inputsHash": "284618eae0524ad03d76f151f4d33d901a731127af31de8fceffea07063aba68",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "8fc943b79189fc01de899da277b329e37b74c674e660e8aeefd555b320eb989fcaeb017d9cbe62ca3dbc8da8707565830895b75a53811e80d8cacadd019d0525fe24884e4849b36612fa049620e68cb4e0adacadb7fea56aeed0216d3ecad247"
       }
     },
     // Block 000000000000002138f86fdd589616092a17d1e1cadf07e3a9edf40efe291448
@@ -133,15 +173,20 @@
       "raw": "0300020001fd3e1143970abd9160b4989aa3c61f3b92f0e2756169c44012ea2acc415baf4f020000006a473044022006b99534b2bc1f5a9cb5d1ddb7afce358e0e3f9b7bd48d6814eb24dbaaf8f86e0220026fe7b2ad7dd243f98cf5b9c6a30b5280d1a1ba1215f60617995bdd1e5dcee8012102922db407a89cc2048eabe3fa49d70c75d4466db96c86e4eb40e9ad72acd10718feffffff01879c5405000000001976a91464163d5bb93496e860a0240c5e44bdb077cc6c9388ac00000000b702000000174747cfb25de3b935d58d558d2928343e18eee50edb7bbf97aa2fb6f057f80000000000000000000000ffff50d1e9b6270f0019d8cde00774ce01d763a6e3d17b4e8fa65f1f7fde87e38b891e6e2dee68458fa7ff9ea1ee8b2b7b165a94648df8dd654530b8fc60d721d902fa73a43d9e8765334733aecbdd69dd6fb36e714fff891c013211d3a0e5cafdad66073fe228fea417e843dfb20c05271bc1500d2458023ca54b202804507979df76cf5199818733",
       "details": {
         "version": 2,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "00f857f0b62faa97bf7bdb0ee5ee183e3428298d558dd535b9e35db2cf474717",
-        "service": "80.209.233.182:9999",
-        "addresses": {
-          "core_p2p": [
-            "80.209.233.182:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff50d1e9b6",
+            "port": 9999
+          }
         },
-        "inputsHash": "8f4568ee2d6e1e898be387de7f1f5fa68f4e7bd1e3a663d701ce7407e0cdd819"
+        "scriptOperatorPayout": "",
+        "inputsHash": "8f4568ee2d6e1e898be387de7f1f5fa68f4e7bd1e3a663d701ce7407e0cdd819",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "a7ff9ea1ee8b2b7b165a94648df8dd654530b8fc60d721d902fa73a43d9e8765334733aecbdd69dd6fb36e714fff891c013211d3a0e5cafdad66073fe228fea417e843dfb20c05271bc1500d2458023ca54b202804507979df76cf5199818733"
       }
     },
     // Block 000000000000002138f86fdd589616092a17d1e1cadf07e3a9edf40efe291448
@@ -149,15 +194,20 @@
       "raw": "0300020001fb8d98f5b470b8ed772551a880835fc62aa17617d93d499533264ebdbe79f2f5020000006a473044022020b5375f7fae36dfd43c7e554cb8db40d444a79e00654583582739db6f02a2a60220416f92c8e7a2a3f433566f9e93d4f72a39c799c77e0892e2d6c7e12e6d83b52d012102922db407a89cc2048eabe3fa49d70c75d4466db96c86e4eb40e9ad72acd10718feffffff019ef7f504000000001976a91464163d5bb93496e860a0240c5e44bdb077cc6c9388ac00000000b702000000968a9242af444f35b2c9156578c003e084b5482ad572f9d76e86189afc97a6c700000000000000000000ffff592fa783270f004d3ff8a5514e2f33d46cdcc79aef651cf80e95aa78bb871ceb34e3fbceb0bb938620cf0c281ef36b0634ee89c479ace792c0771fa9df65fc73b4b27d039af8177aa1c4abf00dc433df5bf83dd22934680af2bc99cde6d049a87049f39266e81f40137f960f27ef431dbd3c34b480aaa7aab8e3732b8684d6202be11ab62b0608",
       "details": {
         "version": 2,
-        "type": 0,
+        "mnType": 0,
         "proTxHash": "c7a697fc9a18866ed7f972d52a48b584e003c0786515c9b2354f44af42928a96",
-        "service": "89.47.167.131:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.47.167.131:9999"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff592fa783",
+            "port": 9999
+          }
         },
-        "inputsHash": "93bbb0cefbe334eb1c87bb78aa950ef81c65ef9ac7dc6cd4332f4e51a5f83f4d"
+        "scriptOperatorPayout": "",
+        "inputsHash": "93bbb0cefbe334eb1c87bb78aa950ef81c65ef9ac7dc6cd4332f4e51a5f83f4d",
+        "platformNodeId": null,
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "sig": "8620cf0c281ef36b0634ee89c479ace792c0771fa9df65fc73b4b27d039af8177aa1c4abf00dc433df5bf83dd22934680af2bc99cde6d049a87049f39266e81f40137f960f27ef431dbd3c34b480aaa7aab8e3732b8684d6202be11ab62b0608"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -165,24 +215,20 @@
       "raw": "03000200013ce40fe3428d505f69a0a90f04a970df8c46fac4210920cbee02f67e37cd0280020000006a47304402205c8fc5e1f31ac620f78701fe1a56cfe7901f57b6835463cf6ac1d5d2034919eb02202165cf21192e689b2b7abac5a0e92554375b709798c0dbb0f26c28f4728144fa01210374475f4b97a2dbfc2cdbcec12ae43725cbd5feba969b49b97f9a112310c093d9feffffff014a28f204000000001976a914573966af1d8bb98d243b4dc6c74a12d7bdc4cf8a88ac00000000cf0200010080a0daa451cb8976708d61a324d681feab081cb5719c2e36cccb59ce7a83cefe00000000000000000000ffff597dd16e270f00944af9ea35e5664b5cddf875fa25df126b660d00cece490fb4df2a7567971f7b4c7e47d459857b8c6e70cf2195998bf1b4e29f6d2068bb01b9301a6b80ecde2908b573f47eff5c88fbbe513e7203814ef03cc51c061d5a876223daf3af7fcb045730ebe5344a7124196bf0c87a1bab4bb2dcf8d22688491297dd2bec1209ee8d8f13020e8601ec31ab9a48cc058fb52aaf50ed15c023686f",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "fece837ace59cbcc362e9c71b51c08abfe81d624a3618d707689cb51a4daa080",
-        "service": "89.125.209.110:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.110:9999"
-          ],
-          "platform_https": [
-            "89.125.209.110:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.110:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd16e",
+            "port": 9999
+          }
         },
-        "platformNodeID": "6d9fe2b4f18b999521cf706e8c7b8559d4477e4c",
+        "scriptOperatorPayout": "",
+        "inputsHash": "7b1f9767752adfb40f49cece000d666b12df25fa75f8dd5c4b66e535eaf94a94",
+        "platformNodeId": "4c7e47d459857b8c6e70cf2195998bf1b4e29f6d",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "7b1f9767752adfb40f49cece000d666b12df25fa75f8dd5c4b66e535eaf94a94"
+        "sig": "b9301a6b80ecde2908b573f47eff5c88fbbe513e7203814ef03cc51c061d5a876223daf3af7fcb045730ebe5344a7124196bf0c87a1bab4bb2dcf8d22688491297dd2bec1209ee8d8f13020e8601ec31ab9a48cc058fb52aaf50ed15c023686f"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -190,24 +236,20 @@
       "raw": "0300020001d85216fc6cde22872ab0a3e1992954cd3323735a0df8f92c3810e7a4dc00f4a8010000006a47304402203287d6b4eec6f3c31ae1905cc6ee029c95ff6a4bb1065a06360587fa98065d1002207c0b2f4cc0200753b266c5637f4deb6f8106aa2d7c799cd7ab69f475f836d6cf01210203da3d85e126365bfad5729dda1c517301f3a85ec91e50a92f6f9888f953f576feffffff014a28f204000000001976a9143b12f060324b9228c22cbf207b15987d3db7a68388ac00000000cf020001005f3fd04047380cac2e9c81fa27d6f7c57e922bdcee2c122b2ae5ab216f6d579800000000000000000000ffff597dd19c270f00081be56d4c0c4d3d97a3e5e4041feff3e02ad5783ea4fd673d2b3fbf28da1ea824ff591905e75621c902bf6a067ca588456f65c52068bb01b4ad337f9c7fd983e3a5f1478041a3bf839f1be8dab2278caab46936926c1fdf229b4c28b233d85726d2f58d2e3edad30d3c5f4ef5911d7dde2b72687e013a9d2d6d0966bab7034246a58ce373d1e58be6db0cd79584c03b67055bb72d9a0b0c",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "98576d6f21abe52a2b122ceedc2b927ec5f7d627fa819c2eac0c384740d03f5f",
-        "service": "89.125.209.156:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.156:9999"
-          ],
-          "platform_https": [
-            "89.125.209.156:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.156:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd19c",
+            "port": 9999
+          }
         },
-        "platformNodeID": "c5656f4588a57c066abf02c92156e7051959ff24",
+        "scriptOperatorPayout": "",
+        "inputsHash": "a81eda28bf3f2b3d67fda43e78d52ae0f3ef1f04e4e5a3973d4d0c4c6de51b08",
+        "platformNodeId": "24ff591905e75621c902bf6a067ca588456f65c5",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "a81eda28bf3f2b3d67fda43e78d52ae0f3ef1f04e4e5a3973d4d0c4c6de51b08"
+        "sig": "b4ad337f9c7fd983e3a5f1478041a3bf839f1be8dab2278caab46936926c1fdf229b4c28b233d85726d2f58d2e3edad30d3c5f4ef5911d7dde2b72687e013a9d2d6d0966bab7034246a58ce373d1e58be6db0cd79584c03b67055bb72d9a0b0c"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -215,24 +257,20 @@
       "raw": "0300020001fa443bf28840225216a00ba4ce939cc6495a7f1c43b8707f5d1c752eba103a68020000006a4730440220308b1cbd4e0525a9574bf4df44e43b0f5c9ef64c0fd068aa3ed56fbb7243cee3022052aaa76ae8f575a55b724c134bebe9169ba443d0303fe8de2c47b56d686af97b01210223f63c9d8f0131a3de697d8b8df6e03d98ec07be2bb9300a6b9a8d0f075f512efeffffff014a28f204000000001976a914322a0acacf92fd531d7b8bec0d7c571da52ecccd88ac00000000cf02000100c56713989ec07d4f4809044fc8598e4f1c4a2c33be1c4af3a28a6d7102c1a15400000000000000000000ffff597dd1c3270f006e0a5aa929b3cbc903d751795c339cf9710a05021229d02a07c52012dde7e907944675af37104f743964a373b025286fa59123592068bb01a008419108d55938ceed98a4253a22143d2eb57c36666f6aa4cc05b0cc5821f18c7a17d2eca8a7b4ef66c9f5dbf3200202430a10967f1b920ecb8d1db447a42969e95e6ee80c66a64953b858a97d9afad6ac9722ed2b42884835b95a62053b64",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "54a1c102716d8aa2f34a1cbe332c4a1c4f8e59c84f0409484f7dc09e981367c5",
-        "service": "89.125.209.195:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.195:9999"
-          ],
-          "platform_https": [
-            "89.125.209.195:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.195:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd1c3",
+            "port": 9999
+          }
         },
-        "platformNodeID": "592391a56f2825b073a36439744f1037af754694",
+        "scriptOperatorPayout": "",
+        "inputsHash": "07e9e7dd1220c5072ad0291202050a71f99c335c7951d703c9cbb329a95a0a6e",
+        "platformNodeId": "944675af37104f743964a373b025286fa5912359",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "07e9e7dd1220c5072ad0291202050a71f99c335c7951d703c9cbb329a95a0a6e"
+        "sig": "a008419108d55938ceed98a4253a22143d2eb57c36666f6aa4cc05b0cc5821f18c7a17d2eca8a7b4ef66c9f5dbf3200202430a10967f1b920ecb8d1db447a42969e95e6ee80c66a64953b858a97d9afad6ac9722ed2b42884835b95a62053b64"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -240,24 +278,20 @@
       "raw": "0300020001ecf56bc87d50cae5aaefb49b1fac0607e211fa55bb6d21b1740f1c0e32b5e749020000006a47304402205153fd305dfd7bffebc276ecbf817b5194ff1d7cb98b3adaf75654659ae58c47022042c5e4e1ef6a10bf44c46a8c27c9ba6144db6c7b4ed422399a927700fc5f927c0121038743a88e560d87944f40ca75089bdb9432706cc22f56bffba3153a47d14981e1feffffff014a28f204000000001976a914ed1213b5e9c5df06e99484db47e7a646e45716d488ac00000000cf02000100de3e13a9ca0dc8a4fe5c8102179b16a082d68980524922598a50ad178aed8b4e00000000000000000000ffff597dd11b270f009aec4d0e4b6f6b836fe01ba0e320e35184976ba568b36cba34408c07a079d98fd38d8886bb28489ad58e68a2b655e8bd49fcc1e92068bb01a07b1a788ab5da703c0f6d1fc3ee928ff8fc3b533674334b3c04b593444ca170228576abae6a067bbcc2949d8ffb4018170eb69caacabb00ed573f06c30fe0441ea1edd890add401577f7e92959c6d11822a535d6cfb286f3ac22341fb7b6a45",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "4e8bed8a17ad508a592249528089d682a0169b1702815cfea4c80dcaa9133ede",
-        "service": "89.125.209.27:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.27:9999"
-          ],
-          "platform_https": [
-            "89.125.209.27:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.27:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd11b",
+            "port": 9999
+          }
         },
-        "platformNodeID": "e9c1fc49bde855b6a2688ed59a4828bb86888dd3",
+        "scriptOperatorPayout": "",
+        "inputsHash": "8fd979a0078c4034ba6cb368a56b978451e320e3a01be06f836b6f4b0e4dec9a",
+        "platformNodeId": "d38d8886bb28489ad58e68a2b655e8bd49fcc1e9",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "8fd979a0078c4034ba6cb368a56b978451e320e3a01be06f836b6f4b0e4dec9a"
+        "sig": "a07b1a788ab5da703c0f6d1fc3ee928ff8fc3b533674334b3c04b593444ca170228576abae6a067bbcc2949d8ffb4018170eb69caacabb00ed573f06c30fe0441ea1edd890add401577f7e92959c6d11822a535d6cfb286f3ac22341fb7b6a45"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -265,24 +299,20 @@
       "raw": "030002000107ed9f1581819c323467c154eb55ea710017def4ae000402cb2a85e3011643b5000000006a47304402207b70de013cfe01025ee1917874f03d3c9b9b541f4a97d565f0a373465ce1543b022020f9134461f2fb6f8bcf6b6c72fd3277ecfb625a5f1ed7f149c704030e1827810121035ba822bb1d8f831f02723dc6e5236c8abf9e5e0763d6d5f145d3307fe9264489feffffff016442f204000000001976a914871ca1885baa9797bb2e040f9a781fae444e435788ac00000000cf02000100f9033f470392df0b29ea7837d22714edf65042057d54eb7caddf56ba436bcd1a00000000000000000000ffff597dd1ea270f00eb1ec4df48cf2aae164df852946e1ac9de7de51a0241f0508e869253a1b4c4f4ec8d1e6c5d2f2f44982c65f2884f1dcfd08683cb2068bb01902e40be051252feb43e6fb42ab12757d41d8c7c859960eef9c281e0aec60506415754b9e1cf8140a36303df446cba16096c30df8599f1e416f09d936b6246dfe1adf8764bdafc21a5929860100f1477fa191c255e01c6d5f842005d1d77a2eb",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "1acd6b43ba56dfad7ceb547d054250f6ed1427d23778ea290bdf9203473f03f9",
-        "service": "89.125.209.234:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.234:9999"
-          ],
-          "platform_https": [
-            "89.125.209.234:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.234:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd1ea",
+            "port": 9999
+          }
         },
-        "platformNodeID": "cb8386d0cf1d4f88f2652c98442f2f5d6c1e8dec",
+        "scriptOperatorPayout": "",
+        "inputsHash": "f4c4b4a15392868e50f041021ae57ddec91a6e9452f84d16ae2acf48dfc41eeb",
+        "platformNodeId": "ec8d1e6c5d2f2f44982c65f2884f1dcfd08683cb",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "f4c4b4a15392868e50f041021ae57ddec91a6e9452f84d16ae2acf48dfc41eeb"
+        "sig": "902e40be051252feb43e6fb42ab12757d41d8c7c859960eef9c281e0aec60506415754b9e1cf8140a36303df446cba16096c30df8599f1e416f09d936b6246dfe1adf8764bdafc21a5929860100f1477fa191c255e01c6d5f842005d1d77a2eb"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -290,24 +320,20 @@
       "raw": "0300020001f6db179afffc986346e94d559ec66c27a4e09901c62a378d7aab9133253333cd020000006a473044022054bca6668e5dee33cf296f2b4b4ea6a4409946f626df6a582a82b36a9f558cae02204528f127035906af956fb518187ee865711b5ecacf5a3747d9123bab8e7b4b1201210297416bd6756d03fbb3d752b9af808a029f7d9c26cde7ba86dcaaf5bc5d3238c7feffffff01e82ff204000000001976a9143e68b7e408655e61c93d85ae66520e5e8455df1188ac00000000cf02000100d8e99e6dabd67039793d0581c30b6662df9ec5a511b86a4830f183cc2720d45f00000000000000000000ffff597dd1b2270f009b4abde1b328cec34898cf3c3fc6976a54ed7febc5004163623c2fb8845191bdc549921c0f97ebdd4777efb41bc99b11945844ee2068bb01a813a7a6ac12072b7bc372b46f7da28a6c812aaee9413829ed0283411cb156ff3d954a12267f4bed936da9db56e3485a0c401a49978b74af239b7d5dafc2fcb3f2950bbe108182637f41fa20024b3b3976764dcb4c1c8136d145a9d7fe851c6c",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "5fd42027cc83f130486ab811a5c59edf62660bc381053d793970d6ab6d9ee9d8",
-        "service": "89.125.209.178:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.178:9999"
-          ],
-          "platform_https": [
-            "89.125.209.178:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.178:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd1b2",
+            "port": 9999
+          }
         },
-        "platformNodeID": "ee445894119bc91bb4ef7747ddeb970f1c9249c5",
+        "scriptOperatorPayout": "",
+        "inputsHash": "bd915184b82f3c62634100c5eb7fed546a97c63f3ccf9848c3ce28b3e1bd4a9b",
+        "platformNodeId": "c549921c0f97ebdd4777efb41bc99b11945844ee",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "bd915184b82f3c62634100c5eb7fed546a97c63f3ccf9848c3ce28b3e1bd4a9b"
+        "sig": "a813a7a6ac12072b7bc372b46f7da28a6c812aaee9413829ed0283411cb156ff3d954a12267f4bed936da9db56e3485a0c401a49978b74af239b7d5dafc2fcb3f2950bbe108182637f41fa20024b3b3976764dcb4c1c8136d145a9d7fe851c6c"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -315,24 +341,20 @@
       "raw": "0300020001ff035e3eead2c3c4fa607b6b451f9736cc681e867974d43efa11b8144db90c6a010000006a4730440220073dc115a5dbefe05feccc7648aee2c7b9cd3cd1be3a942acf71d6f14de2dc3502207b04b22c3c0415f72af89f2063669e4cf7af21ad29b08e95c385430b2773039f0121037a3483cc54193675bd7e8f597dc2fdf25904ac3cd0c6760dfe9db70cfb6fdf7dfeffffff01d42ef204000000001976a914be89de8bf3e712f5b07e3b83da1ef0670eb7052188ac00000000cf0200010055aa15f5ab3ebe49b31ade9ed51a469ec089d53dc458666237ff97a11f91c39a00000000000000000000ffff597dd178270f00880bc57cbf2138203d5491bb1f433bb096b7530405ded23f47b2d8fc654e2f9397e47a754ea361929bcd068c0554bbd59f08663e2068bb018da9de39ac15a825c3c0556255f96d25b6c368e7209ef9db209a6c371c318e73d1e10c85a1685fe58351bdfb90ef520508b27e5d017a464e08afe4c790b583571057b173d63a214d70d451def4678923686be84f8afbbab7900bee75f2189b23",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "9ac3911fa197ff37626658c43dd589c09e461ad59ede1ab349be3eabf515aa55",
-        "service": "89.125.209.120:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.120:9999"
-          ],
-          "platform_https": [
-            "89.125.209.120:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.120:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd178",
+            "port": 9999
+          }
         },
-        "platformNodeID": "3e66089fd5bb54058c06cd9b9261a34e757ae497",
+        "scriptOperatorPayout": "",
+        "inputsHash": "932f4e65fcd8b2473fd2de050453b796b03b431fbb91543d203821bf7cc50b88",
+        "platformNodeId": "97e47a754ea361929bcd068c0554bbd59f08663e",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "932f4e65fcd8b2473fd2de050453b796b03b431fbb91543d203821bf7cc50b88"
+        "sig": "8da9de39ac15a825c3c0556255f96d25b6c368e7209ef9db209a6c371c318e73d1e10c85a1685fe58351bdfb90ef520508b27e5d017a464e08afe4c790b583571057b173d63a214d70d451def4678923686be84f8afbbab7900bee75f2189b23"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -340,24 +362,20 @@
       "raw": "03000200010d9ba72362e5777885ace2c12f9a1f0938d7b0250a53291f16432d8ead3226ca020000006a47304402201d67179336679d31b973fe594bae3149d70b8da04285c12651a13a6588d8de0a02202887957227dd8169c37bf1f7b24ca42ee60ec372fb8dcc66ef3e691c3d50989a012103d95ccdf90cb5bcb9b7bb73a5e23bd0ec630d166e38d444f51d89264cd5c3aa68feffffff014c32f204000000001976a914044c59a41a04ecfbfda6c5c457c43262ca03571188ac00000000cf02000100bf36443593756c4f889e2cd9b3cd0749e2b8402b1463ffdd40b81fedc3de4fa700000000000000000000ffff597dd185270f001bb6ab94ca3324be87d9dd43ec13d11b06648ff89c8972734e767e6295d8f2938abdc35752c65f65d71baed0e6967ddef9d5beae2068bb018ed262631cd203059fdadc69151f61c8bb5a7ff4ecb80c5aa7a223444141626bc849cb4a0060c49f530f74afc0b184c301763db65fbce3cca72cdcd93623216e922076d26b1757d32b47f13dd3255b0e1ed2801b59e9c3c5613302ac09c6c926",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "a74fdec3ed1fb840ddff63142b40b8e24907cdb3d92c9e884f6c7593354436bf",
-        "service": "89.125.209.133:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.133:9999"
-          ],
-          "platform_https": [
-            "89.125.209.133:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.133:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd185",
+            "port": 9999
+          }
         },
-        "platformNodeID": "aebed5f9de7d96e6d0ae1bd7655fc65257c3bd8a",
+        "scriptOperatorPayout": "",
+        "inputsHash": "93f2d895627e764e7372899cf88f64061bd113ec43ddd987be2433ca94abb61b",
+        "platformNodeId": "8abdc35752c65f65d71baed0e6967ddef9d5beae",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "93f2d895627e764e7372899cf88f64061bd113ec43ddd987be2433ca94abb61b"
+        "sig": "8ed262631cd203059fdadc69151f61c8bb5a7ff4ecb80c5aa7a223444141626bc849cb4a0060c49f530f74afc0b184c301763db65fbce3cca72cdcd93623216e922076d26b1757d32b47f13dd3255b0e1ed2801b59e9c3c5613302ac09c6c926"
       }
     },
     // Block 000000000000002a81bdd0868ca78ac04b717ec82b3adafc5cf04055b56c458e
@@ -365,24 +383,20 @@
       "raw": "03000200018824da17f58e65720132c43f56386ff9d17b5f90e502c28502fe259f8477715c020000006a47304402204ca274201d3939f024a2b4e44c104f0aa9f7324fa43c6ea1439c788b978230a902203f42ffba45eee93d7ef4b64dc7eb355461a9284982a21b52d6c3d547fba7f508012102d5838fe15e3563cb3bb2c43355630caafe2fc960f106ed0e6fef651f256b7721feffffff014a28f204000000001976a91411430b10739fbfa7cb16558f7c647fd3010f8aff88ac00000000cf020001007c3fb9ff540a4b0b2ce536a84a8ffc37ba50fe88d68fb52511c1a8b9c21d490500000000000000000000ffff597dd198270f0045ab76ad3c1e95800c180213bbb27df59fc138c7a064a1bfd4652599256e80d7f2998535db16e2315344befbde1f88f5baaba0622068bb01a1327da115ece64bfdd2a9f459ea4cb3b025fb7f4711b687078ae54cb9f053d8bee170cd02e64cc01f76dc9f2f0303c51309917edb76812824757cacafa08bfa53cc650315685f88076e2bdc1a9e44acf6616a1a2ed914e58d3d2e67e601db7d",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "05491dc2b9a8c11125b58fd688fe50ba37fc8f4aa836e52c0b4b0a54ffb93f7c",
-        "service": "89.125.209.152:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.152:9999"
-          ],
-          "platform_https": [
-            "89.125.209.152:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.152:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd198",
+            "port": 9999
+          }
         },
-        "platformNodeID": "62a0abbaf5881fdefbbe445331e216db358599f2",
+        "scriptOperatorPayout": "",
+        "inputsHash": "d7806e25992565d4bfa164a0c738c19ff57db2bb1302180c80951e3cad76ab45",
+        "platformNodeId": "f2998535db16e2315344befbde1f88f5baaba062",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "d7806e25992565d4bfa164a0c738c19ff57db2bb1302180c80951e3cad76ab45"
+        "sig": "a1327da115ece64bfdd2a9f459ea4cb3b025fb7f4711b687078ae54cb9f053d8bee170cd02e64cc01f76dc9f2f0303c51309917edb76812824757cacafa08bfa53cc650315685f88076e2bdc1a9e44acf6616a1a2ed914e58d3d2e67e601db7d"
       }
     },
     // Block 000000000000001e1d170e7bc8a7f1c071e4f3133c67b01a2626586a467f79ff
@@ -390,24 +404,20 @@
       "raw": "03000200019caff031a7a4ad0c022854427865207e4adf5d03bdb4d93f5b1fdac334711079010000006a473044022048b6ac1588f4679fc4794d25cd7d8e9ea29171d990f30867a1bcc87060b63b1e0220156000fc72d2c4e5fae9d1e4cba47d6dbd1c90a7c1726b1b02686da15f7716bf012102f31398a90b95b0f46ab09496cdc977b3e8452edc99e3dc341d87560d0f6df6abfeffffff01b043f204000000001976a914f9eaab0a87dfd47d688d54af0d1400d2ed989f4288ac00000000cf0200010058b0ccfa9fa593b2976a752520c2f03755018782f3db97567e22e09d619cacc500000000000000000000ffff597dd16a270f00c02ac6ce42ff2e6d557d62d775ff31015f71c9da5506e678f4b5c082850fd9b38a84d43d1195c9ba1d0e7dd3764365efbfbd6ee32068bb0184daa3b3afd35091f2db2837ce74b0392783dfe9f08787310ddbda953613846175ef67c5af77831d685fa44c2c3b43a8122a5b08898304830af8aa5766551d19a50fe202189f36dd2eddb242fcde98d515e183e6cfb414e4f1e87439f700da64",
       "details": {
         "version": 2,
-        "type": 1,
+        "mnType": 1,
         "proTxHash": "c5ac9c619de0227e5697dbf38287015537f0c22025756a97b293a59ffaccb058",
-        "service": "89.125.209.106:9999",
-        "addresses": {
-          "core_p2p": [
-            "89.125.209.106:9999"
-          ],
-          "platform_https": [
-            "89.125.209.106:443"
-          ],
-          "platform_p2p": [
-            "89.125.209.106:26656"
-          ]
+        "netInfo": {
+          "legacy": {
+            "addr": "00000000000000000000ffff597dd16a",
+            "port": 9999
+          }
         },
-        "platformNodeID": "e36ebdbfef654376d37d0e1dbac995113dd4848a",
+        "scriptOperatorPayout": "",
+        "inputsHash": "b3d90f8582c0b5f478e60655dac9715f0131ff75d7627d556d2eff42cec62ac0",
+        "platformNodeId": "8a84d43d1195c9ba1d0e7dd3764365efbfbd6ee3",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
-        "inputsHash": "b3d90f8582c0b5f478e60655dac9715f0131ff75d7627d556d2eff42cec62ac0"
+        "sig": "84daa3b3afd35091f2db2837ce74b0392783dfe9f08787310ddbda953613846175ef67c5af77831d685fa44c2c3b43a8122a5b08898304830af8aa5766551d19a50fe202189f36dd2eddb242fcde98d515e183e6cfb414e4f1e87439f700da64"
       }
     }
   }

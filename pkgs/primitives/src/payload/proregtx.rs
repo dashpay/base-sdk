@@ -24,6 +24,7 @@ use core::fmt;
 /// Masternode network info: legacy CService or structured extended format.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfo {
   /// ADDRv1 CService (18 bytes).
   Legacy(CService),
@@ -38,6 +39,7 @@ pub enum NetInfo {
 /// - v3: ExtAddr (extended network info)
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProRegTx {
   /// 1=LegacyBLS, 2=BasicBLS, 3=ExtAddr.
   pub version: u16,
@@ -66,10 +68,13 @@ pub struct ProRegTx {
   /// Platform node id (Evo only).
   pub platform_node_id: Option<PlatformNodeId>,
   /// Platform P2P port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformP2PPort"))]
   pub platform_p2p_port: Option<u16>,
   /// Platform HTTP port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformHTTPPort"))]
   pub platform_http_port: Option<u16>,
   /// Owner ECDSA signature (variable-length).
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
   pub vch_sig: Vec<u8>,
 }
 
@@ -257,5 +262,20 @@ impl Checkable for ProRegTx {
 impl fmt::Display for ProRegTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_proregtx() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "proregtx");
+    let items = read_corpus::<ProRegTx>(&text, "proregtx", check_sptx);
+    assert_serde_rt("proregtx", &items);
   }
 }

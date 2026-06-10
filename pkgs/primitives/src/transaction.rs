@@ -28,6 +28,7 @@ use core::fmt;
 /// decoded separately by payload-specific decoders.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Transaction {
   /// Transaction version (lower 16 bits of the wire i32).
   pub version: i16,
@@ -255,5 +256,23 @@ impl OutPoint {
   /// Returns `true` for the null outpoint (all-zero hash, index `u32::MAX`).
   fn is_null(&self) -> bool {
     self.hash.is_null() && self.index == u32::MAX
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_tx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  #[case("spend")]
+  #[case("coinbase")]
+  #[case("data")]
+  fn corpus_tx(#[case] section: &str) {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), section);
+    let items = read_corpus::<Transaction>(&text, section, check_tx);
+    assert_serde_rt(section, &items);
   }
 }

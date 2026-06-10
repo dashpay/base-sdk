@@ -13,6 +13,7 @@ use crate::codec::codec_p2p;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Ping {
   /// Random nonce echoed back in the corresponding `Pong`.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::str_u64"))]
   pub nonce: u64,
 }
 
@@ -23,7 +24,30 @@ codec_p2p!(Ping { nonce });
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Pong {
   /// Nonce from the original `Ping`.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::str_u64"))]
   pub nonce: u64,
 }
 
 codec_p2p!(Pong { nonce });
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_ping() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "ping");
+    let items = read_corpus::<Ping>(&text, "ping", check_wire);
+    assert_serde_rt("ping", &items);
+  }
+
+  #[rstest]
+  fn corpus_pong() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "ping");
+    let items = read_corpus::<Pong>(&text, "pong", check_wire);
+    assert_serde_rt("pong", &items);
+  }
+}

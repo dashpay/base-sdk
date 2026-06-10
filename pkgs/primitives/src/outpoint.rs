@@ -14,6 +14,7 @@ use core::fmt;
 /// A reference to a previous transaction output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct OutPoint {
   /// Transaction hash of the referenced output.
   pub hash: TxHash,

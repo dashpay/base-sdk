@@ -27,6 +27,7 @@ use core::fmt;
 /// - v3: ExtAddr (extended network info)
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProUpServTx {
   /// 1=LegacyBLS, 2=BasicBLS, 3=ExtAddr.
   pub version: u16,
@@ -43,8 +44,10 @@ pub struct ProUpServTx {
   /// Platform node id (Evo only).
   pub platform_node_id: Option<PlatformNodeId>,
   /// Platform P2P port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformP2PPort"))]
   pub platform_p2p_port: Option<u16>,
   /// Platform HTTP port (Evo + version < 3 only).
+  #[cfg_attr(feature = "serde", serde(rename = "platformHTTPPort"))]
   pub platform_http_port: Option<u16>,
   /// Operator BLS signature.
   pub sig: BlsSignatureBytes,
@@ -180,5 +183,20 @@ impl Checkable for ProUpServTx {
 impl fmt::Display for ProUpServTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "ProUpServTx {{ v{}, mn_type: {} }}", self.version, self.mn_type,)
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_proupservtx() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "proupservtx");
+    let items = read_corpus::<ProUpServTx>(&text, "proupservtx", check_sptx);
+    assert_serde_rt("proupservtx", &items);
   }
 }

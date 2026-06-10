@@ -18,6 +18,7 @@ use core::fmt;
 /// MnHardFork -- hard-fork signal (type 7).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct MnHardFork {
   /// Payload version.
   pub version: u8,
@@ -73,5 +74,20 @@ impl Checkable for MnHardFork {
 impl fmt::Display for MnHardFork {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "MnHardFork {{ v{}, bit: {} }}", self.version, self.version_bit,)
+  }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+  use super::*;
+
+  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use rstest::rstest;
+
+  #[rstest]
+  fn corpus_mnhftx() {
+    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "mnhftx");
+    let items = read_corpus::<MnHardFork>(&text, "mnhftx", check_sptx);
+    assert_serde_rt("mnhftx", &items);
   }
 }
