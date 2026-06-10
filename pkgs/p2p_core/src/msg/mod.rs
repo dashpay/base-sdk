@@ -199,9 +199,9 @@ define_network_messages! {
     /// Governance sync request.
     GovSync(GovSync) => GOVSYNC,
     /// Governance object.
-    GovObj(dash_primitives::gov::GovObject) => GOVOBJ,
+    GovObj(dash_primitives::GovObject) => GOVOBJ,
     /// Governance vote.
-    GovObjVote(dash_primitives::gov::GovVote) => GOVOBJVOTE,
+    GovObjVote(dash_primitives::GovVote) => GOVOBJVOTE,
     /// Request MN list diff.
     GetMnListDiff(GetMnListDiff) => GETMNLISTD,
     /// MN list diff.
