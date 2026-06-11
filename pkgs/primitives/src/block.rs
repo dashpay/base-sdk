@@ -6,11 +6,11 @@
 
 //! Dash block (header + transactions).
 
-use crate::block_header::BlockHeader;
 use crate::codec_type;
 use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
 
+use dash_num::{make_hash, Hash256};
 use dash_types::codec::Checkable;
 
 use core::fmt;
@@ -20,6 +20,83 @@ pub const MAX_LEGACY_BLOCK_SIZE: usize = 1_000_000;
 
 /// Post-DIP0001 maximum block size (2 MB).
 pub const MAX_DIP0001_BLOCK_SIZE: usize = 2_000_000;
+
+make_hash! {
+  Hash256,
+  /// Hash of a block header.
+  BlockHash
+}
+
+make_hash! {
+  Hash256,
+  /// Merkle tree root hash.
+  MerkleRoot
+}
+
+/// A block header.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct BlockHeader {
+  /// Block version.
+  pub version: i32,
+  /// Hash of the previous block header.
+  pub prev_hash: BlockHash,
+  /// Merkle root of the transaction tree.
+  pub merkle_root: MerkleRoot,
+  /// Block timestamp (unix epoch seconds).
+  pub time: u32,
+  /// Compact difficulty target (nBits).
+  pub bits: u32,
+  /// Nonce used for proof-of-work.
+  pub nonce: u32,
+}
+
+codec_type!(BlockHeader {
+  version,
+  prev_hash,
+  merkle_root,
+  time,
+  bits,
+  nonce,
+});
+
+impl fmt::Display for BlockHeader {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "BlockHeader {{ version: {}, prev_hash: {}, time: {} }}",
+      self.version, self.prev_hash, self.time,
+    )
+  }
+}
+
+/// Block validation failure.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum BlockInvalid {
+  /// `bad-blk-length`
+  BadBlockLength { size: usize },
+  /// `bad-cb-missing`
+  MissingCoinbase,
+  /// `bad-cb-multiple`
+  MultipleCoinbases { index: usize },
+  /// `bad-blk-sigops`
+  TooManySigops { count: usize, limit: usize },
+  /// A contained transaction failed validation.
+  Transaction { index: usize, error: TxInvalid },
+}
+
+impl fmt::Display for BlockInvalid {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::BadBlockLength { size } => write!(f, "bad-blk-length: {size} bytes"),
+      Self::MissingCoinbase => write!(f, "bad-cb-missing"),
+      Self::MultipleCoinbases { index } => write!(f, "bad-cb-multiple: tx {index}"),
+      Self::TooManySigops { count, limit } => write!(f, "bad-blk-sigops: {count} > {limit}"),
+      Self::Transaction { index, error } => write!(f, "tx {index}: {error}"),
+    }
+  }
+}
 
 /// A Dash block: header followed by a vector of transactions.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -80,33 +157,6 @@ impl Checkable for Block {
 impl fmt::Display for Block {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "Block {{ txs: {} }}", self.transactions.len())
-  }
-}
-
-/// Block validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum BlockInvalid {
-  /// `bad-blk-length`
-  BadBlockLength { size: usize },
-  /// `bad-cb-missing`
-  MissingCoinbase,
-  /// `bad-cb-multiple`
-  MultipleCoinbases { index: usize },
-  /// `bad-blk-sigops`
-  TooManySigops { count: usize, limit: usize },
-  /// A contained transaction failed validation.
-  Transaction { index: usize, error: TxInvalid },
-}
-
-impl fmt::Display for BlockInvalid {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::BadBlockLength { size } => write!(f, "bad-blk-length: {size} bytes"),
-      Self::MissingCoinbase => write!(f, "bad-cb-missing"),
-      Self::MultipleCoinbases { index } => write!(f, "bad-cb-multiple: tx {index}"),
-      Self::TooManySigops { count, limit } => write!(f, "bad-blk-sigops: {count} > {limit}"),
-      Self::Transaction { index, error } => write!(f, "tx {index}: {error}"),
-    }
   }
 }
 

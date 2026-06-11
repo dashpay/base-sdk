@@ -13,7 +13,6 @@ extern crate alloc;
 extern crate std;
 
 mod block;
-mod block_header;
 mod codec;
 mod gov;
 mod hash;
@@ -35,22 +34,13 @@ pub mod __private {
 pub mod serialize;
 
 dash_num::make_hash256! {
-  /// Hash of a block header.
-  BlockHash
-}
-
-dash_num::make_hash256! {
   /// SHA256d hash of a serialized transaction.
   TxHash
 }
 
-dash_num::make_hash256! {
-  /// Merkle tree root hash.
-  MerkleRoot
-}
-
-pub use block::{Block, BlockInvalid, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE};
-pub use block_header::BlockHeader;
+pub use block::{
+  Block, BlockHash, BlockHeader, BlockInvalid, MerkleRoot, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE,
+};
 pub use codec::MAX_SPTX_PAYLOAD_SIZE;
 pub use dash_types::AddrV1;
 pub use gov::{
