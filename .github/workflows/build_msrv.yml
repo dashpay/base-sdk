@@ -83,7 +83,7 @@ jobs:
           key: codeql-packs-${{ hashFiles('contrib/codeql/codeql-pack.lock.yml') }}
 
       - name: Run linters
-        run: python3 contrib/lint/all_lint.py
+        run: python3 contrib/lint_all.py
 
       - name: Check PR commit messages
         if: github.event_name == 'pull_request'
