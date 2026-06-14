@@ -1,0 +1,38 @@
+[package]
+name = "dash-sample-solver"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+name = "demo_solver"
+path = "solver.rs"
+crate-type = ["cdylib"]
+
+[features]
+default = []
+std = []
+full = ["std"]
+
+[dependencies]
+bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
+  "alloc",
+] }
+bitcoin-units = { version = "0.3", default-features = false, features = [
+  "alloc",
+] }
+dash-num = { version = "0.0.0", path = "../../../pkgs/num", default-features = false }
+dash-pow = { version = "0.0.0", path = "../../../pkgs/pow", default-features = false, features = ["simd"] }
+dash-primitives = { version = "0.0.0", path = "../../../pkgs/primitives", default-features = false }
+dash-types = { version = "0.0.0", path = "../../../pkgs/types", default-features = false }
+hex-conservative = { version = "0.3", default-features = false, features = ["alloc"] }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+wasm-bindgen = "0.2"
+
+[lints]
+workspace = true

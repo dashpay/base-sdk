@@ -207,7 +207,8 @@ predicate isSerdeExempt(TypeItem t) {
 
 /** Crate directory names excluded from prelude enforcement. */
 string preludeExcludeCrate() {
-  result = "samples/parser"
+  result = "samples/parser" or
+  result = "samples/solver"
 }
 
 /** Holds if file `f` is in a crate evaluated by decl ordering. */

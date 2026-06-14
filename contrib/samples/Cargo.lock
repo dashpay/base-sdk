@@ -89,6 +89,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dash-pow"
+version = "0.0.0"
+dependencies = [
+ "cfg-if",
+ "dash-num",
+]
+
+[[package]]
 name = "dash-primitives"
 version = "0.0.0"
 dependencies = [
@@ -112,6 +120,22 @@ dependencies = [
  "dash-primitives",
  "dash-types",
  "hex-conservative",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "dash-sample-solver"
+version = "0.0.0"
+dependencies = [
+ "bitcoin-consensus-encoding 0.2.0",
+ "bitcoin-units",
+ "dash-num",
+ "dash-pow",
+ "dash-primitives",
+ "dash-types",
+ "hex-conservative",
+ "serde",
  "serde_json",
  "wasm-bindgen",
 ]
