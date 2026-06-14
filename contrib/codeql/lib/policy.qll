@@ -124,12 +124,6 @@ predicate isNonSerdeCrate(TypeItem t) {
   )
 }
 
-/** Materialises the regex capture for file-relative paths. */
-pragma[nomagic]
-private predicate fileRelPath(File f, string relPath) {
-  relPath = f.getAbsolutePath().regexpCapture(".*/pkgs/(.*)", 1)
-}
-
 /**
  * Holds if `t` implements a serde trait via crate-qualified impl,
  * unqualified proc-macro expansion, or source-scanned match.

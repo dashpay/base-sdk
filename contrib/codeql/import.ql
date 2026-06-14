@@ -23,7 +23,7 @@ import rust
 pragma[nomagic]
 private predicate fileCfgLines(File f, int cfgLine) {
   exists(string relPath, string content |
-    relPath = f.getAbsolutePath().regexpCapture(".*/pkgs/(.*)", 1) and
+    fileRelPath(f, relPath) and
     sourceLineContent(relPath, cfgLine, content) and
     content.matches("#[cfg%")
   )

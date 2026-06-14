@@ -43,6 +43,12 @@ Path rootPath(Path p) {
   not exists(result.getQualifier())
 }
 
+/** Materialises the repo-root-relative path for source files. */
+pragma[nomagic]
+predicate fileRelPath(File f, string relPath) {
+  relPath = f.getAbsolutePath().regexpCapture(".*/(pkgs/.*)", 1)
+}
+
 /** Gets the first path segment of use declaration `u`. */
 string usePrefix(Use u) {
   result = rootPath(u.getUseTree().getPath()).getSegment().getIdentifier().getText()
