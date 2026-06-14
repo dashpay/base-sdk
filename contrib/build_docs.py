@@ -20,6 +20,7 @@ import sys
 from functools import partial
 from pathlib import Path
 
+import rjsmin
 from common import RETCODE_ERR, RETCODE_PASS, require_bin, root_dir
 
 SITE_DIR = Path("public")
@@ -136,6 +137,20 @@ def _generate_pygments_css(site: Path) -> None:
   print(f"appended Pygments CSS to {css_file}")
 
 
+def _minify_js(site: Path) -> None:
+  """Minify JS files in the built sample directories."""
+  samples_dir = site / "samples"
+  if not samples_dir.is_dir():
+    return
+  for js in sorted(samples_dir.rglob("*.js")):
+    if js.parent.name == "pkg":
+      continue
+    print(f"minifying {js}")
+    original = js.read_text(encoding="utf-8")
+    minified = rjsmin.jsmin(original)
+    js.write_text(minified, encoding="utf-8")
+
+
 def _build(root: Path) -> None:
   """Run the full build pipeline."""
   wasm_pack = require_bin("wasm-pack")
@@ -145,6 +160,7 @@ def _build(root: Path) -> None:
   _build_site(root, zensical)
   _copy_artifacts(root)
   _generate_pygments_css(root / SITE_DIR)
+  _minify_js(root / SITE_DIR)
 
 
 def _find_free_port(host: str, start: int) -> int:

@@ -15,6 +15,7 @@ Most dependencies can be installed using `python -m pip install -e '.[dev]'`.
 
 * Zensical (included in `[dev]`)
 * PyMarkdown (included in `[dev]`)
+* rjsmin (included in `[dev]`)
 * [wasm-pack](https://github.com/wasm-bindgen/wasm-pack)
 
 ### Preview

@@ -8,6 +8,7 @@ dev = [
   "Markdown>=3.7",
   "pymarkdownlnt>=0.9.37",
   "pygments-styles>=0.3.0",
+  "rjsmin>=1.2",
   "ruff>=0.9",
   "semgrep>=1.118.0",
   "zensical>=0.0.33",
