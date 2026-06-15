@@ -9,9 +9,7 @@
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
-use dash_primitives::Commitment;
-use dash_primitives::PlatformNodeId;
-use dash_primitives::{BlockHash, CService, LlmqType, MnType, Transaction, TxHash};
+use dash_primitives::{BlockHash, CService, Commitment, LlmqType, MnType, PlatformNodeId, Transaction, TxHash};
 use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, KeyId};
 
@@ -198,6 +196,31 @@ impl fmt::Display for MnListDiffPayload {
     )
   }
 }
+
+/// Requests a masternode list diff between two blocks.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct GetMnListDiff {
+  /// Base block hash (beginning of range).
+  pub base_block_hash: BlockHash,
+  /// Target block hash (end of range).
+  pub block_hash: BlockHash,
+}
+
+codec_p2p!(GetMnListDiff {
+  base_block_hash,
+  block_hash
+});
+
+/// Response carrying the masternode list diff.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct MnListDiff {
+  /// The full diff payload.
+  pub payload: MnListDiffPayload,
+}
+
+codec_p2p!(MnListDiff { payload });
 
 #[cfg(all(test, feature = "serde"))]
 mod tests {

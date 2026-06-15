@@ -9,6 +9,7 @@
 use crate::prelude::*;
 use crate::primitives::CommandString;
 use crate::primitives::ShortId;
+use crate::primitives::{GetMnListDiff, MnListDiff};
 
 use bitcoin_consensus_encoding as encoding;
 
@@ -20,7 +21,6 @@ pub mod gov;
 pub mod headers;
 pub mod headers2;
 pub mod inv;
-pub mod mnlistdiff;
 pub mod ping;
 pub mod version;
 
@@ -32,7 +32,6 @@ pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
 pub use headers2::{GetHeaders2, Headers2};
 pub use inv::{GetData, Inv, NotFound};
-pub use mnlistdiff::{GetMnListDiff, MnListDiff};
 pub use ping::{Ping, Pong};
 pub use version::Version;
 
