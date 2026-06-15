@@ -60,8 +60,3 @@ make_bytes! {
   /// 20-byte public key hash (RIPEMD-160 of SHA-256).
   KeyId, 20
 }
-
-make_bytes! {
-  /// Platform node identifier for Evo masternodes.
-  PlatformNodeId, 20
-}

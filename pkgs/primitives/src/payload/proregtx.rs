@@ -17,7 +17,7 @@ use crate::support::CService;
 use crate::TxHash;
 
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{BlsPublicKeyBytes, KeyId, PlatformNodeId};
+use dash_types::{BlsPublicKeyBytes, KeyId};
 
 use core::fmt;
 
@@ -263,6 +263,11 @@ impl fmt::Display for ProRegTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
   }
+}
+
+dash_types::make_bytes! {
+  /// Platform node identifier for Evo masternodes.
+  PlatformNodeId, 20
 }
 
 #[cfg(all(test, feature = "serde"))]

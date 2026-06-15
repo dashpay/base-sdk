@@ -272,7 +272,7 @@ pub use assetlock::{AssetLock, AssetLockInvalid};
 pub use assetunlock::{AssetUnlock, AssetUnlockInvalid};
 pub use cbtx::{CbTxInvalid, CoinbaseCommitment};
 pub use mnhftx::{MnHardFork, MnHardForkInvalid};
-pub use proregtx::{NetInfo, ProRegTx};
+pub use proregtx::{NetInfo, PlatformNodeId, ProRegTx};
 pub use proupregtx::ProUpRegTx;
 pub use prouprevtx::ProUpRevTx;
 pub use proupservtx::ProUpServTx;

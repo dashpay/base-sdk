@@ -6,7 +6,7 @@
 
 //! ProUpServTx service-update payload (type 2).
 
-use super::proregtx::{check_platform_fields, NetInfo};
+use super::proregtx::{check_platform_fields, NetInfo, PlatformNodeId};
 use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::codec::impl_payload;
 use crate::prelude::*;
@@ -15,7 +15,7 @@ use crate::support::CService;
 use crate::TxHash;
 
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{BlsSignatureBytes, PlatformNodeId};
+use dash_types::BlsSignatureBytes;
 
 use core::fmt;
 
