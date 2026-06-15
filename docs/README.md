@@ -18,5 +18,5 @@ From repository root
 python -m pip install -e '.[dev]'
 
 # Build documentation
-python -m zensical build -f zensical.toml
+python contrib/build_docs.py
 ```
