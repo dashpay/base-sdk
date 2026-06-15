@@ -8,7 +8,6 @@
 
 mod command;
 mod compressed_header;
-mod filter_type;
 mod inventory;
 mod magic;
 mod mn_list;
@@ -20,7 +19,6 @@ mod user_agent;
 
 pub use command::CommandString;
 pub use compressed_header::CompressionState;
-pub use filter_type::FilterType;
 pub use inventory::{InvType, Inventory};
 pub use magic::Magic;
 pub use mn_list::{DeletedQuorum, GetMnListDiff, MnListDiff, MnListDiffPayload, QuorumClSig, SimplifiedMnListEntry};

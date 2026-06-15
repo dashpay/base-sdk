@@ -14,9 +14,7 @@ use crate::primitives::{GetMnListDiff, MnListDiff};
 use bitcoin_consensus_encoding as encoding;
 
 pub mod addr;
-pub mod cfcheckpt;
-pub mod cfheaders;
-pub mod cfilter;
+pub mod compact_filters;
 pub mod gov;
 pub mod headers;
 pub mod headers2;
@@ -25,9 +23,7 @@ pub mod ping;
 pub mod version;
 
 pub use addr::{Addr, AddrV2Msg};
-pub use cfcheckpt::{CFCheckpt, GetCFCheckpt};
-pub use cfheaders::{CFHeaders, GetCFHeaders};
-pub use cfilter::{CFilter, GetCFilters};
+pub use compact_filters::{CFCheckpt, CFHeaders, CFilter, FilterType, GetCFCheckpt, GetCFHeaders, GetCFilters};
 pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
 pub use headers2::{GetHeaders2, Headers2};
