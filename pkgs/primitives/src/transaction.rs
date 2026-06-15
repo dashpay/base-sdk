@@ -8,10 +8,10 @@
 //! special transactions.
 
 use crate::outpoint::OutPoint;
+use crate::payload::TxType;
 use crate::prelude::*;
 use crate::tx_in::TxIn;
 use crate::tx_out::TxOut;
-use crate::tx_types::TxType;
 use crate::validation::{MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};

@@ -26,7 +26,6 @@ mod support;
 mod transaction;
 mod tx_in;
 mod tx_out;
-mod tx_types;
 mod validation;
 
 #[doc(hidden)]
@@ -77,8 +76,8 @@ pub use hash::{double_sha256, tx_hash};
 pub use outpoint::OutPoint;
 pub use payload::{
   AssetLock, AssetLockInvalid, AssetUnlock, AssetUnlockInvalid, CbTxInvalid, CoinbaseCommitment, Commitment,
-  CommitmentInvalid, FinalCommitment, MnHardFork, MnHardForkInvalid, NetInfo, PayloadError, PayloadInvalid, ProRegTx,
-  ProUpRegTx, ProUpRevTx, ProUpServTx, SpecialPayload,
+  CommitmentInvalid, FinalCommitment, MnHardFork, MnHardForkInvalid, MnType, NetInfo, PayloadError, PayloadInvalid,
+  ProRegTx, ProUpRegTx, ProUpRevTx, ProUpServTx, SpecialPayload, TxType,
 };
 pub use script::Script;
 pub use support::{
@@ -88,5 +87,4 @@ pub use support::{
 pub use transaction::{Transaction, TxInvalid};
 pub use tx_in::TxIn;
 pub use tx_out::TxOut;
-pub use tx_types::{MnType, TxType};
 pub use validation::ProTxInvalid;

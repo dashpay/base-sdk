@@ -9,9 +9,9 @@
 //! Type-specific validation lives in each type's own module. This module
 //! provides helpers shared across multiple modules.
 
+use crate::payload::MnType;
 use crate::prelude::*;
 use crate::support::{NetInfoEntry, NetInfoPurpose};
-use crate::tx_types::MnType;
 
 use core::fmt;
 
