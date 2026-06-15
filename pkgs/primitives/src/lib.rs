@@ -16,15 +16,12 @@ mod block;
 mod codec;
 mod gov;
 mod hash;
-mod outpoint;
 mod payload;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 mod script;
 mod support;
 mod transaction;
-mod tx_in;
-mod tx_out;
 
 #[doc(hidden)]
 pub mod __private {
@@ -32,11 +29,6 @@ pub mod __private {
 }
 #[cfg(feature = "serde")]
 pub mod serialize;
-
-dash_num::make_hash256! {
-  /// SHA256d hash of a serialized transaction.
-  TxHash
-}
 
 pub use block::{
   Block, BlockHash, BlockHeader, BlockInvalid, MerkleRoot, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE,
@@ -47,7 +39,6 @@ pub use gov::{
   GovData, GovObject, GovObjectType, GovVote, Proposal, ProposalInvalid, Trigger, VoteOutcome, VoteSignal,
 };
 pub use hash::{double_sha256, tx_hash};
-pub use outpoint::OutPoint;
 pub use payload::{
   AssetLock, AssetLockInvalid, AssetUnlock, AssetUnlockInvalid, CbTxInvalid, CoinbaseCommitment, Commitment,
   CommitmentInvalid, FinalCommitment, InputsHash, MnHardFork, MnHardForkInvalid, MnType, NetInfo, PayloadError,
@@ -59,6 +50,6 @@ pub use support::{
   CService, DynBitset, DynBitsetIterator, ExtendedNetInfo, LlmqType, NetInfoEntry, NetInfoPurpose, NetworkType,
   RevocationReason,
 };
-pub use transaction::{Transaction, TxInvalid, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
-pub use tx_in::TxIn;
-pub use tx_out::TxOut;
+pub use transaction::{
+  OutPoint, Transaction, TxHash, TxIn, TxInvalid, TxOut, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD,
+};

@@ -7,12 +7,13 @@
 //! Dash transaction with version/type packing and optional extra payload for
 //! special transactions.
 
-use crate::outpoint::OutPoint;
+use crate::codec_type;
 use crate::payload::TxType;
 use crate::prelude::*;
-use crate::tx_in::TxIn;
-use crate::tx_out::TxOut;
+use crate::script::Script;
 
+use bitcoin_units::Amount;
+use dash_num::{make_hash, Hash256};
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::impl_type;
 
@@ -23,6 +24,145 @@ pub const MAX_TX_EXTRA_PAYLOAD: usize = 10_000;
 
 /// Maximum coinbase script size in bytes.
 pub const MAX_COINBASE_SCRIPT_SIZE: usize = 100;
+
+make_hash! {
+  Hash256,
+  /// SHA256d hash of a serialized transaction.
+  TxHash
+}
+
+/// A reference to a previous transaction output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct OutPoint {
+  /// Transaction hash of the referenced output.
+  pub hash: TxHash,
+  /// Index of the referenced output within the transaction.
+  pub index: u32,
+}
+
+codec_type!(OutPoint { hash, index });
+
+impl OutPoint {
+  /// Returns `true` for the null outpoint (all-zero hash, index `u32::MAX`).
+  pub fn is_null(&self) -> bool {
+    self.hash.is_null() && self.index == u32::MAX
+  }
+}
+
+impl fmt::Display for OutPoint {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}:{}", self.hash, self.index)
+  }
+}
+
+/// A transaction input.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct TxIn {
+  /// The outpoint being spent.
+  pub prevout: OutPoint,
+  /// Unlocking script.
+  pub script_sig: Script,
+  /// Sequence number.
+  pub sequence: u32,
+}
+
+codec_type!(TxIn {
+  prevout,
+  script_sig,
+  sequence
+});
+
+impl fmt::Display for TxIn {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "TxIn {{ prevout: {}, seq: {} }}", self.prevout, self.sequence,)
+  }
+}
+
+/// A transaction output.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct TxOut {
+  /// Output value in duffs.
+  #[cfg_attr(feature = "serde", serde(with = "crate::serialize::amount"))]
+  pub value: Amount,
+  /// Locking script.
+  #[cfg_attr(feature = "serde", serde(rename = "scriptPubKey"))]
+  pub script_pubkey: Script,
+}
+
+impl_type!(TxOut);
+
+impl BaseCodec for TxOut {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let raw = u64::decode(data)?;
+    let value = Amount::from_sat(raw).map_err(|_| DecodeError::InvalidValue {
+      expected: Amount::MAX_MONEY.to_sat(),
+      actual: raw,
+    })?;
+    Ok(Self {
+      value,
+      script_pubkey: Script::decode(data)?,
+    })
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.value.to_sat().encode(buf);
+    self.script_pubkey.encode(buf);
+  }
+}
+
+impl fmt::Display for TxOut {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "TxOut {{ value: {} }}", self.value.to_sat())
+  }
+}
+
+/// Transaction validation failure.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TxInvalid {
+  /// `bad-txns-vin-empty`
+  EmptyInputs,
+  /// `bad-txns-vout-empty`
+  EmptyOutputs,
+  /// `bad-txns-oversize`
+  Oversize { size: usize },
+  /// `bad-txns-payload-oversize`
+  PayloadOversize { size: usize },
+  /// `bad-txns-vout-toolarge`
+  OutputTooLarge { index: usize, value: u64 },
+  /// `bad-txns-txouttotal-toolarge`
+  OutputTotalTooLarge { total: u64 },
+  /// `bad-txns-inputs-duplicate`
+  DuplicateInputs { outpoint: OutPoint },
+  /// `bad-cb-length`
+  BadCoinbaseScriptLength { len: usize },
+  /// `bad-txns-prevout-null`
+  NullPrevout { index: usize },
+  /// `bad-txns-payload-not-allowed`
+  PayloadNotAllowed,
+}
+
+impl fmt::Display for TxInvalid {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::EmptyInputs => write!(f, "bad-txns-vin-empty"),
+      Self::EmptyOutputs => write!(f, "bad-txns-vout-empty"),
+      Self::Oversize { size } => write!(f, "bad-txns-oversize: {size} bytes"),
+      Self::PayloadOversize { size } => write!(f, "bad-txns-payload-oversize: {size} bytes"),
+      Self::OutputTooLarge { index, value } => write!(f, "bad-txns-vout-toolarge: output {index} value {value}"),
+      Self::OutputTotalTooLarge { total } => write!(f, "bad-txns-txouttotal-toolarge: {total}"),
+      Self::DuplicateInputs { outpoint } => write!(f, "bad-txns-inputs-duplicate: {outpoint}"),
+      Self::BadCoinbaseScriptLength { len } => write!(f, "bad-cb-length: {len}"),
+      Self::NullPrevout { index } => write!(f, "bad-txns-prevout-null: input {index}"),
+      Self::PayloadNotAllowed => write!(f, "bad-txns-payload-not-allowed"),
+    }
+  }
+}
 
 /// A Dash transaction.
 ///
@@ -212,55 +352,6 @@ impl fmt::Display for Transaction {
       self.inputs.len(),
       self.outputs.len(),
     )
-  }
-}
-
-/// Transaction validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum TxInvalid {
-  /// `bad-txns-vin-empty`
-  EmptyInputs,
-  /// `bad-txns-vout-empty`
-  EmptyOutputs,
-  /// `bad-txns-oversize`
-  Oversize { size: usize },
-  /// `bad-txns-payload-oversize`
-  PayloadOversize { size: usize },
-  /// `bad-txns-vout-toolarge`
-  OutputTooLarge { index: usize, value: u64 },
-  /// `bad-txns-txouttotal-toolarge`
-  OutputTotalTooLarge { total: u64 },
-  /// `bad-txns-inputs-duplicate`
-  DuplicateInputs { outpoint: OutPoint },
-  /// `bad-cb-length`
-  BadCoinbaseScriptLength { len: usize },
-  /// `bad-txns-prevout-null`
-  NullPrevout { index: usize },
-  /// `bad-txns-payload-not-allowed`
-  PayloadNotAllowed,
-}
-
-impl fmt::Display for TxInvalid {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::EmptyInputs => write!(f, "bad-txns-vin-empty"),
-      Self::EmptyOutputs => write!(f, "bad-txns-vout-empty"),
-      Self::Oversize { size } => write!(f, "bad-txns-oversize: {size} bytes"),
-      Self::PayloadOversize { size } => write!(f, "bad-txns-payload-oversize: {size} bytes"),
-      Self::OutputTooLarge { index, value } => write!(f, "bad-txns-vout-toolarge: output {index} value {value}"),
-      Self::OutputTotalTooLarge { total } => write!(f, "bad-txns-txouttotal-toolarge: {total}"),
-      Self::DuplicateInputs { outpoint } => write!(f, "bad-txns-inputs-duplicate: {outpoint}"),
-      Self::BadCoinbaseScriptLength { len } => write!(f, "bad-cb-length: {len}"),
-      Self::NullPrevout { index } => write!(f, "bad-txns-prevout-null: input {index}"),
-      Self::PayloadNotAllowed => write!(f, "bad-txns-payload-not-allowed"),
-    }
-  }
-}
-
-impl OutPoint {
-  /// Returns `true` for the null outpoint (all-zero hash, index `u32::MAX`).
-  fn is_null(&self) -> bool {
-    self.hash.is_null() && self.index == u32::MAX
   }
 }
 

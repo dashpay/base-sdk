@@ -7,8 +7,8 @@
 //! Governance object and vote types as defined by the Dash protocol.
 
 use crate::codec_type;
-use crate::outpoint::OutPoint;
 use crate::prelude::*;
+use crate::transaction::OutPoint;
 use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
