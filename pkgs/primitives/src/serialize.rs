@@ -11,6 +11,8 @@
 /// Integers are treated as satoshis; floats are treated as whole
 /// coins and converted to satoshis.
 pub mod amount {
+  use crate::prelude::*;
+
   use bitcoin_units::Amount;
 
   /// Serializes as raw satoshis.
@@ -42,7 +44,7 @@ pub mod amount {
         if !v.is_finite() || v < 0.0 {
           return Err(E::custom("invalid amount"));
         }
-        let sat = (v * Amount::ONE_BTC.to_sat() as f64).round();
+        let sat = round(v * Amount::ONE_BTC.to_sat() as f64);
         if sat > u64::MAX as f64 {
           return Err(E::custom("amount overflow"));
         }
