@@ -6,10 +6,10 @@
 
 //! ProUpRegTx registrar-update payload (type 3).
 
+use super::ProTxInvalid;
 use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::validation::ProTxInvalid;
 use crate::{InputsHash, TxHash};
 
 use dash_types::codec::Checkable;

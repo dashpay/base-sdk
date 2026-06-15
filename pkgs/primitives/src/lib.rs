@@ -77,7 +77,7 @@ pub use outpoint::OutPoint;
 pub use payload::{
   AssetLock, AssetLockInvalid, AssetUnlock, AssetUnlockInvalid, CbTxInvalid, CoinbaseCommitment, Commitment,
   CommitmentInvalid, FinalCommitment, MnHardFork, MnHardForkInvalid, MnType, NetInfo, PayloadError, PayloadInvalid,
-  ProRegTx, ProUpRegTx, ProUpRevTx, ProUpServTx, SpecialPayload, TxType,
+  ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, SpecialPayload, TxType,
 };
 pub use script::Script;
 pub use support::{
@@ -87,4 +87,3 @@ pub use support::{
 pub use transaction::{Transaction, TxInvalid};
 pub use tx_in::TxIn;
 pub use tx_out::TxOut;
-pub use validation::ProTxInvalid;

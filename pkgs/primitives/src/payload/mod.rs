@@ -20,12 +20,25 @@ mod proupservtx;
 mod quorum;
 
 use crate::prelude::*;
-use crate::validation::ProTxInvalid;
+use crate::support::{NetInfoEntry, NetInfoPurpose};
 
 use dash_types::codec::{Checkable, NumCodec};
 use dash_types::impl_num;
 
 use core::fmt;
+
+/// Maximum operator reward in basis points.
+pub(crate) const MAX_OPERATOR_REWARD: u16 = 10_000;
+
+/// ProTx version: legacy BLS operator keys (v1).
+#[expect(unused, reason = "consensus constant")]
+pub(crate) const PROTX_VERSION_LEGACY_BLS: u16 = 1;
+
+/// ProTx version: basic (IETF) BLS operator keys (v2).
+pub(crate) const PROTX_VERSION_BASIC_BLS: u16 = 2;
+
+/// ProTx version: extended network addresses (v3).
+pub(crate) const PROTX_VERSION_EXT_ADDR: u16 = 3;
 
 /// Dash transaction type, encoded in the upper 16 bits of the version field.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -147,6 +160,99 @@ impl fmt::Display for MnType {
       Self::Unknown(v) => write!(f, "unknown({v})"),
     }
   }
+}
+
+/// Provider transaction validation failure.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ProTxInvalid {
+  /// `bad-protx-version`
+  BadVersion { version: u16 },
+  /// `bad-protx-evo-version`
+  EvoVersionTooLow { version: u16 },
+  /// `bad-protx-type`
+  BadMnType { mn_type: MnType },
+  /// `bad-protx-mode`
+  BadMode { mode: u16 },
+  /// `bad-protx-key-null`
+  NullKey,
+  /// `bad-protx-operator-pubkey`
+  OperatorKeyMismatch,
+  /// `bad-protx-payee`
+  BadPayoutScript,
+  /// `bad-protx-netinfo-version`
+  NetInfoVersionMismatch,
+  /// `bad-protx-netinfo-empty`
+  NetInfoEmpty,
+  /// `bad-protx-netinfo-bad`
+  NetInfoInvalid,
+  /// `bad-protx-payee-reuse`
+  PayoutKeyReuse,
+  /// `bad-protx-operator-reward`
+  OperatorRewardTooHigh { reward: u16 },
+  /// `bad-protx-reason`
+  BadReason { reason: crate::support::RevocationReason },
+  /// `bad-protx-platform-fields`
+  BadPlatformFields,
+}
+
+impl fmt::Display for ProTxInvalid {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::BadVersion { version } => write!(f, "bad-protx-version: {version}"),
+      Self::EvoVersionTooLow { version } => write!(f, "bad-protx-evo-version: {version}"),
+      Self::BadMnType { mn_type } => write!(f, "bad-protx-type: {mn_type}"),
+      Self::BadMode { mode } => write!(f, "bad-protx-mode: {mode}"),
+      Self::NullKey => write!(f, "bad-protx-key-null"),
+      Self::OperatorKeyMismatch => write!(f, "bad-protx-operator-pubkey"),
+      Self::BadPayoutScript => write!(f, "bad-protx-payee"),
+      Self::NetInfoVersionMismatch => write!(f, "bad-protx-netinfo-version"),
+      Self::NetInfoEmpty => write!(f, "bad-protx-netinfo-empty"),
+      Self::NetInfoInvalid => write!(f, "bad-protx-netinfo-bad"),
+      Self::PayoutKeyReuse => write!(f, "bad-protx-payee-reuse"),
+      Self::OperatorRewardTooHigh { reward } => write!(f, "bad-protx-operator-reward: {reward}"),
+      Self::BadReason { reason } => write!(f, "bad-protx-reason: {reason}"),
+      Self::BadPlatformFields => write!(f, "bad-protx-platform-fields"),
+    }
+  }
+}
+
+/// Checks that an extended net info payload is trivially valid.
+pub(crate) fn check_sptx_netinfo(
+  entries: &[(NetInfoPurpose, Vec<NetInfoEntry>)],
+  mn_type: MnType,
+  can_store_platform: bool,
+) -> Option<ProTxInvalid> {
+  let has_core = entries
+    .iter()
+    .any(|(p, e)| *p == NetInfoPurpose::CoreP2p && !e.is_empty());
+  if !has_core {
+    return Some(ProTxInvalid::NetInfoEmpty);
+  }
+
+  let has_platform_p2p = entries
+    .iter()
+    .any(|(p, e)| *p == NetInfoPurpose::PlatformP2p && !e.is_empty());
+  let has_platform_https = entries
+    .iter()
+    .any(|(p, e)| *p == NetInfoPurpose::PlatformHttps && !e.is_empty());
+
+  if mn_type == MnType::Regular && (has_platform_p2p || has_platform_https) {
+    return Some(ProTxInvalid::NetInfoInvalid);
+  }
+
+  if can_store_platform && mn_type == MnType::Evo && (!has_platform_p2p || !has_platform_https) {
+    return Some(ProTxInvalid::NetInfoEmpty);
+  }
+
+  for (_purpose, group) in entries {
+    for entry in group {
+      if matches!(entry, NetInfoEntry::Invalid) {
+        return Some(ProTxInvalid::NetInfoInvalid);
+      }
+    }
+  }
+
+  None
 }
 
 pub use assetlock::{AssetLock, AssetLockInvalid};
