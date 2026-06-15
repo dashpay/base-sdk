@@ -15,7 +15,6 @@ import argparse
 import contextlib
 import csv
 import datetime
-import os
 import shutil
 import subprocess
 import sys
@@ -53,7 +52,8 @@ _SOURCE_KEYWORDS = ("Serialize", "Deserialize", "#[cfg")
 
 
 def _generate_source_lines(
-  source_root: Path,
+  repo_root: Path,
+  source_dirs: list[Path],
   query_dir: Path,
 ) -> Path:
   """Emit a raw source-line predicate for CodeQL queries.
@@ -66,19 +66,22 @@ def _generate_source_lines(
   """
   out = query_dir / "lib" / "source_lines.qll"
   rows: list[str] = []
-  for rs_file in sorted(source_root.rglob("*.rs")):
-    rel = str(rs_file.relative_to(source_root))
-    try:
-      text = rs_file.read_text(encoding="latin-1")
-    except OSError:
-      continue
-    for lineno, line in enumerate(text.splitlines(), 1):
-      if not any(kw in line for kw in _SOURCE_KEYWORDS):
+  for source_dir in source_dirs:
+    for rs_file in sorted(source_dir.rglob("*.rs")):
+      if "target" in rs_file.parts:
         continue
-      escaped = line.strip().replace("\\", "\\\\").replace('"', '\\"')
-      rows.append(
-        f'  file = "{rel}" and line = {lineno} and content = "{escaped}"',
-      )
+      rel = str(rs_file.relative_to(repo_root))
+      try:
+        text = rs_file.read_text(encoding="latin-1")
+      except OSError:
+        continue
+      for lineno, line in enumerate(text.splitlines(), 1):
+        if not any(kw in line for kw in _SOURCE_KEYWORDS):
+          continue
+        escaped = line.strip().replace("\\", "\\\\").replace('"', '\\"')
+        rows.append(
+          f'  file = "{rel}" and line = {lineno} and content = "{escaped}"',
+        )
 
   body = "\n  or\n".join(rows) if rows else "  none()"
   timestamp = datetime.datetime.now(datetime.UTC).strftime(
@@ -91,7 +94,7 @@ def _generate_source_lines(
     "/**\n"
     " * Holds if `line` in `file` contains look-out keywords.\n"
     " * `content` is the trimmed source text.\n"
-    " * File paths are relative to ``pkgs/``.\n"
+    " * File paths are relative to the repository root.\n"
     " */\n"
     "predicate sourceLineContent"
     "(string file, int line, string content) {\n"
@@ -111,7 +114,7 @@ def _print_csv_diagnostics(results_path: Path) -> int:
         continue
       if len(row) < 6:
         raise ValueError(f"malformed CodeQL CSV row: {row!r}")
-      uri = Path("pkgs") / row[4].lstrip("/")
+      uri = Path(row[4].lstrip("/"))
       line = row[5]
       msg = row[3].replace("\n", " ")
       print(f"{uri}:{line}: {msg}", file=sys.stderr)
@@ -190,7 +193,11 @@ def main(argv: list[str] | None = None) -> int:
     raise FileNotFoundError("no .ql queries found in contrib/codeql/")
 
   # Generate source-line data for queries that need raw text.
-  generated = _generate_source_lines(repo_root / "pkgs", query_dir)
+  source_dirs = [
+    repo_root / "pkgs",
+    repo_root / "contrib" / "samples",
+  ]
+  generated = _generate_source_lines(repo_root, source_dirs, query_dir)
   subprocess.run(  # noqa: S603
     [codeql_bin, "query", "format", "-i", str(generated)],
     check=True,
@@ -236,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
       if active_db.exists():
         shutil.rmtree(active_db)
       active_db.parent.mkdir(parents=True, exist_ok=True)
-      db_env = {**os.environ, "CARGO_INCREMENTAL": "0"}
+      config_file = query_dir / "codeql-config.yml"
       result = subprocess.run(  # noqa: S603
         [
           codeql_bin,
@@ -244,12 +251,12 @@ def main(argv: list[str] | None = None) -> int:
           "create",
           str(active_db),
           "--language=rust",
-          f"--source-root={repo_root / 'pkgs'}",
+          "--build-mode=none",
+          f"--source-root={repo_root}",
+          f"--codescanning-config={config_file}",
           f"-j{usable_threads()}",
-          "--command=cargo check --features full,_internal",
         ],
         cwd=str(repo_root),
-        env=db_env,
         check=False,
       )
       if result.returncode != RETCODE_PASS or not db_yml.is_file():

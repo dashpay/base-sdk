@@ -211,11 +211,9 @@ predicate isSerdeExempt(TypeItem t) {
   not implementsTrait(t, "PartialEq")
 }
 
-/** Holds if `u` imports directly from `alloc` outside `prelude.rs`. */
-predicate directAllocImport(Use u) {
-  usePrefix(u) = "alloc" and
-  not fileOf(u).getBaseName() = "prelude.rs" and
-  not fileOf(u).getAbsolutePath().matches("%/prelude/mod.rs")
+/** Crate directory names excluded from prelude enforcement. */
+string preludeExcludeCrate() {
+  result = "samples/parser"
 }
 
 /** Holds if file `f` is in a crate evaluated by decl ordering. */

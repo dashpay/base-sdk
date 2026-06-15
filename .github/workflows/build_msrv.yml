@@ -36,6 +36,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          components: rustfmt
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -84,6 +86,8 @@ jobs:
 
       - name: Run linters
         run: python3 contrib/lint_all.py
+        env:
+          RUSTUP_TOOLCHAIN: 1.85.0
 
       - name: Check PR commit messages
         if: github.event_name == 'pull_request'
