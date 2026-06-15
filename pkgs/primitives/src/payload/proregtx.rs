@@ -13,7 +13,7 @@ use super::{
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::support::ServiceV1;
+use crate::types::ServiceV1;
 use crate::TxHash;
 
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};

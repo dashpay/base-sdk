@@ -22,6 +22,7 @@ mod prelude;
 mod script;
 mod support;
 mod transaction;
+mod types;
 
 #[doc(hidden)]
 pub mod __private {
@@ -34,7 +35,6 @@ pub use block::{
   Block, BlockHash, BlockHeader, BlockInvalid, MerkleRoot, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE,
 };
 pub use codec::MAX_SPTX_PAYLOAD_SIZE;
-pub use dash_types::AddrV1;
 pub use gov::{
   GovData, GovObject, GovObjectType, GovVote, Proposal, ProposalInvalid, Trigger, VoteOutcome, VoteSignal,
 };
@@ -48,8 +48,8 @@ pub use payload::{
 pub use script::Script;
 pub use support::{
   DynBitset, DynBitsetIterator, ExtendedNetInfo, LlmqType, NetInfoEntry, NetInfoPurpose, NetworkType, RevocationReason,
-  ServiceV1,
 };
 pub use transaction::{
   OutPoint, Transaction, TxHash, TxIn, TxInvalid, TxOut, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD,
 };
+pub use types::{AddrV1, ServiceV1};

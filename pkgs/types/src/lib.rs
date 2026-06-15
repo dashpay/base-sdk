@@ -32,11 +32,6 @@ pub mod __private {
 }
 
 make_bytes! {
-  /// ADDRv1 IPv4-mapped IPv6 address (16 bytes).
-  AddrV1, 16
-}
-
-make_bytes! {
   /// Raw BLS public key bytes (48 bytes, unvalidated).
   BlsPublicKeyBytes, 48
 }
