@@ -47,9 +47,9 @@ pub use payload::{
 };
 pub use script::Script;
 pub use support::{
-  DynBitset, DynBitsetIterator, ExtendedNetInfo, LlmqType, NetInfoEntry, NetInfoPurpose, NetworkType, RevocationReason,
+  DynBitset, DynBitsetIterator, ExtendedNetInfo, LlmqType, NetInfoEntry, NetInfoPurpose, RevocationReason,
 };
 pub use transaction::{
   OutPoint, Transaction, TxHash, TxIn, TxInvalid, TxOut, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD,
 };
-pub use types::{AddrV1, ServiceV1};
+pub use types::{AddrV1, AddrV2, NetworkType, ServiceV1, ServiceV2};

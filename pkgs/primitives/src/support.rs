@@ -156,49 +156,6 @@ impl fmt::Display for RevocationReason {
   }
 }
 
-/// Network address type (BIP155).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum NetworkType {
-  /// IPv4.
-  Ipv4,
-  /// IPv6.
-  Ipv6,
-  /// Tor v3 hidden service.
-  TorV3,
-  /// I2P.
-  I2P,
-  /// CJDNS.
-  Cjdns,
-  /// Unknown network type.
-  Unknown(u8),
-}
-
-impl NumCodec<u8> for NetworkType {
-  fn from_base(val: u8) -> Self {
-    match val {
-      1 => Self::Ipv4,
-      2 => Self::Ipv6,
-      4 => Self::TorV3,
-      5 => Self::I2P,
-      6 => Self::Cjdns,
-      other => Self::Unknown(other),
-    }
-  }
-
-  fn to_base(&self) -> u8 {
-    match self {
-      Self::Ipv4 => 1,
-      Self::Ipv6 => 2,
-      Self::TorV3 => 4,
-      Self::I2P => 5,
-      Self::Cjdns => 6,
-      Self::Unknown(v) => *v,
-    }
-  }
-}
-
-impl_num!(NetworkType, u8);
-
 /// LSB-first dynamic bitset.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize))]

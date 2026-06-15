@@ -26,8 +26,8 @@ pub use msg::{
   GetCFilters, GetData, GetHeaders, GetHeaders2, GovSync, Headers, Headers2, Inv, NotFound, Ping, Pong, Version,
 };
 pub use primitives::{
-  AddrV2, AddrV2Entry, CommandString, CompressionState, DeletedQuorum, GetMnListDiff, InvType, Inventory, Magic,
-  MnListDiff, MnListDiffPayload, NetAddr, ProtocolVersion, QuorumClSig, ServiceFlags, ShortId, SimplifiedMnListEntry,
+  AddrV2Entry, CommandString, CompressionState, DeletedQuorum, GetMnListDiff, InvType, Inventory, Magic, MnListDiff,
+  MnListDiffPayload, NetAddr, ProtocolVersion, QuorumClSig, ServiceFlags, ShortId, SimplifiedMnListEntry,
   TimestampedAddr, UserAgent, UserAgentTooLong,
 };
 pub use v2::{decode_v2, encode_v2};
