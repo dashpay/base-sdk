@@ -75,7 +75,7 @@ All crates support these standard features:
 
 | Feature | Description | Crates |
 |---------|-------------|--------|
-| `default` | `no_std` + `alloc` (always enabled) | _All_ |
+| _(baseline)_ | `no_std` + `alloc`, always available | _All_ |
 | `std` | Enable standard library support | _All_ |
 | `serde` | Enable serde serialization (where applicable) | [num](./pkgs/num), [p2p-core](./pkgs/p2p_core), [pkc](./pkgs/pkc), [primitives](./pkgs/primitives), [script](./pkgs/script), [types](./pkgs/types) |
 | `full` | Enables all non-conflicting features | _All_ |
