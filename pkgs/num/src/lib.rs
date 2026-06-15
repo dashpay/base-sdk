@@ -18,7 +18,6 @@ extern crate std;
 mod arith;
 mod arith256;
 mod compact;
-mod error;
 mod hash;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
@@ -34,5 +33,4 @@ pub mod __private {
 pub use arith::ArithInt;
 pub use arith256::Arith256;
 pub use compact::{CompactTarget, DecodedTarget};
-pub use error::ParseHexError;
-pub use hash::{Hash160, Hash256, Hash512, HashBlob};
+pub use hash::{Hash160, Hash256, Hash512, HashBlob, ParseHexError};
