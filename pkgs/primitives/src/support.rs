@@ -361,20 +361,20 @@ impl Iterator for DynBitsetIterator<'_> {
   }
 }
 
-/// Legacy CService network address (ADDRv1 format, 18 bytes).
+/// Legacy ServiceV1 network address (ADDRv1 format, 18 bytes).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub struct CService {
+pub struct ServiceV1 {
   /// 16-byte address (IPv4-mapped IPv6 or native IPv6).
   pub addr: AddrV1,
   /// Network port (big-endian on the wire).
   pub port: u16,
 }
 
-impl_type!(CService);
+impl_type!(ServiceV1);
 
-impl BaseCodec for CService {
+impl BaseCodec for ServiceV1 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     Ok(Self {
       addr: AddrV1::decode(data)?,
@@ -444,7 +444,7 @@ impl fmt::Display for NetInfoPurpose {
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfoEntry {
   /// ADDRv1-style IP + port.
-  Service(CService),
+  Service(ServiceV1),
   /// Domain name + port.
   Domain {
     /// The domain name as raw bytes.
@@ -484,7 +484,7 @@ impl BaseCodec for ExtendedNetInfo {
       for _ in 0..entry_count {
         let entry_type = u8::decode(data)?;
         let entry = match entry_type {
-          0x01 => NetInfoEntry::Service(CService::decode(data)?),
+          0x01 => NetInfoEntry::Service(ServiceV1::decode(data)?),
           0x02 => {
             let name: Vec<u8> = Vec::decode(data)?;
             let port = codec::read_u16_be(data)?;

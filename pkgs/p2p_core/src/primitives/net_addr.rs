@@ -10,8 +10,8 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::ServiceFlags;
 
-use dash_primitives::CService;
 use dash_primitives::NetworkType;
+use dash_primitives::ServiceV1;
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
 
 use core::fmt;
@@ -25,7 +25,7 @@ pub struct NetAddr {
   /// Advertised services.
   pub services: ServiceFlags,
   /// IPv4-mapped IPv6 address + port.
-  pub addr: CService,
+  pub addr: ServiceV1,
 }
 
 codec_p2p!(NetAddr { services, addr });
@@ -45,7 +45,7 @@ pub struct TimestampedAddr {
   /// Advertised services.
   pub services: ServiceFlags,
   /// IPv4-mapped IPv6 address + port.
-  pub addr: CService,
+  pub addr: ServiceV1,
 }
 
 codec_p2p!(TimestampedAddr { time, services, addr });

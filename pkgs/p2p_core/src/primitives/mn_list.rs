@@ -9,7 +9,7 @@
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
-use dash_primitives::{BlockHash, CService, Commitment, LlmqType, MnType, PlatformNodeId, Transaction, TxHash};
+use dash_primitives::{BlockHash, Commitment, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash};
 use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, KeyId};
 
@@ -27,7 +27,7 @@ pub struct SimplifiedMnListEntry {
   /// Block hash at confirmation depth.
   pub confirmed_hash: BlockHash,
   /// Network service address.
-  pub service: CService,
+  pub service: ServiceV1,
   /// BLS operator public key.
   pub operator_key: BlsPublicKeyBytes,
   /// Voting key hash (HASH160).
@@ -50,7 +50,7 @@ impl BaseCodec for SimplifiedMnListEntry {
     let version = u16::decode(data)?;
     let pro_reg_tx_hash = TxHash::decode(data)?;
     let confirmed_hash = BlockHash::decode(data)?;
-    let service = CService::decode(data)?;
+    let service = ServiceV1::decode(data)?;
     let operator_key = BlsPublicKeyBytes::decode(data)?;
     let voting_key_id = KeyId::decode(data)?;
     let is_valid = bool::decode(data)?;

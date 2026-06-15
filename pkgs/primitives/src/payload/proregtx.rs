@@ -13,7 +13,7 @@ use super::{
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::support::CService;
+use crate::support::ServiceV1;
 use crate::TxHash;
 
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
@@ -21,13 +21,13 @@ use dash_types::{BlsPublicKeyBytes, KeyId};
 
 use core::fmt;
 
-/// Masternode network info: legacy CService or structured extended format.
+/// Masternode network info: legacy ServiceV1 or structured extended format.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfo {
-  /// ADDRv1 CService (18 bytes).
-  Legacy(CService),
+  /// ADDRv1 ServiceV1 (18 bytes).
+  Legacy(ServiceV1),
   /// Extended format (v3+) with purpose-grouped entries.
   Extended(crate::support::ExtendedNetInfo),
 }
@@ -51,7 +51,7 @@ pub struct ProRegTx {
   pub collateral_hash: TxHash,
   /// Collateral index.
   pub collateral_index: u32,
-  /// Legacy CService or extended NetInfo.
+  /// Legacy ServiceV1 or extended NetInfo.
   pub net_info: NetInfo,
   /// Owner key id (20 bytes).
   pub key_id_owner: KeyId,
@@ -116,7 +116,7 @@ impl BaseCodec for ProRegTx {
       let raw: Vec<u8> = Vec::decode(data)?;
       NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&mut &raw[..])?)
     } else {
-      NetInfo::Legacy(CService::decode(data)?)
+      NetInfo::Legacy(ServiceV1::decode(data)?)
     };
     let key_id_owner = KeyId::decode(data)?;
     let pub_key_operator = BlsPublicKeyBytes::decode(data)?;
