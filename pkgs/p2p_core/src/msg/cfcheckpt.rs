@@ -8,7 +8,7 @@
 
 use crate::codec::codec_p2p;
 use crate::prelude::*;
-use crate::primitives::filter_type::FilterType;
+use crate::primitives::FilterType;
 
 use dash_primitives::BlockHash;
 

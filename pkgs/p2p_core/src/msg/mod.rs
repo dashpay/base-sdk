@@ -7,8 +7,8 @@
 //! P2P message types and dispatch.
 
 use crate::prelude::*;
-use crate::primitives::command::CommandString;
-use crate::primitives::short_id::ShortId;
+use crate::primitives::CommandString;
+use crate::primitives::ShortId;
 
 use bitcoin_consensus_encoding as encoding;
 

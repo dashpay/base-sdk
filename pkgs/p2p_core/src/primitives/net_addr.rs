@@ -8,7 +8,7 @@
 
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
-use crate::primitives::service_flags::ServiceFlags;
+use crate::primitives::ServiceFlags;
 
 use dash_primitives::CService;
 use dash_primitives::NetworkType;

@@ -7,7 +7,7 @@
 //! Masternode list diff messages: getmnlistd, mnlistdiff.
 
 use crate::codec::codec_p2p;
-use crate::primitives::mn_list::MnListDiffPayload;
+use crate::primitives::MnListDiffPayload;
 
 use dash_primitives::BlockHash;
 

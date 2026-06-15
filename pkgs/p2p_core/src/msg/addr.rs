@@ -8,7 +8,7 @@
 
 use crate::codec::codec_p2p;
 use crate::prelude::*;
-use crate::primitives::net_addr::{AddrV2Entry, TimestampedAddr};
+use crate::primitives::{AddrV2Entry, TimestampedAddr};
 
 /// V1 address announcement carrying timestamped addresses.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

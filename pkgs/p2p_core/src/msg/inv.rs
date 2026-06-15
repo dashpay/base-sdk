@@ -8,7 +8,7 @@
 
 use crate::codec::codec_p2p;
 use crate::prelude::*;
-use crate::primitives::inventory::Inventory;
+use crate::primitives::Inventory;
 
 /// Announces available inventory to a peer.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

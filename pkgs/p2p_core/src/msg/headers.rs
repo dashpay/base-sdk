@@ -8,7 +8,7 @@
 
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
-use crate::primitives::protocol_version::ProtocolVersion;
+use crate::primitives::ProtocolVersion;
 
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
 use dash_types::codec::{self, BaseCodec, DecodeError};

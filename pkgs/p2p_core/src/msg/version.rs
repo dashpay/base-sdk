@@ -7,10 +7,7 @@
 //! Version handshake message (Dash-extended).
 
 use crate::codec::codec_p2p;
-use crate::primitives::net_addr::NetAddr;
-use crate::primitives::protocol_version::ProtocolVersion;
-use crate::primitives::service_flags::ServiceFlags;
-use crate::primitives::user_agent::UserAgent;
+use crate::primitives::{NetAddr, ProtocolVersion, ServiceFlags, UserAgent};
 
 use dash_num::Hash256;
 

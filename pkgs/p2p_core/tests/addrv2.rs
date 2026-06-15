@@ -9,9 +9,7 @@
 #![expect(clippy::panic, reason = "test code")]
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec};
-use dash_p2p_core::msg::addr::{Addr, AddrV2Msg};
-use dash_p2p_core::primitives::net_addr::{AddrV2, AddrV2Entry};
-use dash_p2p_core::primitives::service_flags::ServiceFlags;
+use dash_p2p_core::{Addr, AddrV2, AddrV2Entry, AddrV2Msg, ServiceFlags};
 use dash_primitives::NetworkType;
 use hex_conservative::FromHex;
 use rstest::rstest;
