@@ -6,12 +6,12 @@
 
 //! ProUpServTx service-update payload (type 2).
 
-use super::proregtx::{check_platform_fields, NetInfo, PlatformNodeId};
+use super::proregtx::{check_platform_fields, PlatformNodeId};
 use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::types::ServiceV1;
+use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
 use crate::TxHash;
 
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
@@ -67,7 +67,7 @@ impl BaseCodec for ProUpServTx {
     let pro_tx_hash = TxHash::decode(data)?;
     let net_info = if version >= 3 {
       let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&mut &raw[..])?)
+      NetInfo::Extended(ExtendedNetInfo::decode(&mut &raw[..])?)
     } else {
       NetInfo::Legacy(ServiceV1::decode(data)?)
     };

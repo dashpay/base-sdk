@@ -41,15 +41,15 @@ pub use gov::{
 pub use hash::{double_sha256, tx_hash};
 pub use payload::{
   AssetLock, AssetLockInvalid, AssetUnlock, AssetUnlockInvalid, CbTxInvalid, CoinbaseCommitment, Commitment,
-  CommitmentInvalid, FinalCommitment, InputsHash, MnHardFork, MnHardForkInvalid, MnType, NetInfo, PayloadError,
-  PayloadInvalid, PlatformNodeId, ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, QuorumHash,
-  QuorumVvecHash, SpecialPayload, TxType, VERSIONBITS_NUM_BITS,
+  CommitmentInvalid, FinalCommitment, InputsHash, MnHardFork, MnHardForkInvalid, MnType, PayloadError, PayloadInvalid,
+  PlatformNodeId, ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, QuorumHash, QuorumVvecHash,
+  SpecialPayload, TxType, VERSIONBITS_NUM_BITS,
 };
 pub use script::Script;
-pub use support::{
-  DynBitset, DynBitsetIterator, ExtendedNetInfo, LlmqType, NetInfoEntry, NetInfoPurpose, RevocationReason,
-};
+pub use support::{DynBitset, DynBitsetIterator, LlmqType, RevocationReason};
 pub use transaction::{
   OutPoint, Transaction, TxHash, TxIn, TxInvalid, TxOut, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD,
 };
-pub use types::{AddrV1, AddrV2, NetworkType, ServiceV1, ServiceV2};
+pub use types::{
+  AddrV1, AddrV2, ExtendedNetInfo, NetInfo, NetInfoEntry, NetInfoPurpose, NetworkType, ServiceV1, ServiceV2,
+};

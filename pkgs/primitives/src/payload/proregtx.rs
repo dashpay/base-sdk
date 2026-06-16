@@ -13,24 +13,13 @@ use super::{
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::types::ServiceV1;
+use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
 use crate::TxHash;
 
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, KeyId};
 
 use core::fmt;
-
-/// Masternode network info: legacy ServiceV1 or structured extended format.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub enum NetInfo {
-  /// ADDRv1 ServiceV1 (18 bytes).
-  Legacy(ServiceV1),
-  /// Extended format (v3+) with purpose-grouped entries.
-  Extended(crate::support::ExtendedNetInfo),
-}
 
 /// ProRegTx -- register a new masternode (type 1).
 ///
@@ -114,7 +103,7 @@ impl BaseCodec for ProRegTx {
     let collateral_index = u32::decode(data)?;
     let net_info = if version >= 3 {
       let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&mut &raw[..])?)
+      NetInfo::Extended(ExtendedNetInfo::decode(&mut &raw[..])?)
     } else {
       NetInfo::Legacy(ServiceV1::decode(data)?)
     };

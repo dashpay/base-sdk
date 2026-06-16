@@ -20,7 +20,7 @@ mod proupservtx;
 mod quorum;
 
 use crate::prelude::*;
-use crate::support::{NetInfoEntry, NetInfoPurpose};
+use crate::types::{NetInfoEntry, NetInfoPurpose};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
@@ -272,7 +272,7 @@ pub use assetlock::{AssetLock, AssetLockInvalid};
 pub use assetunlock::{AssetUnlock, AssetUnlockInvalid};
 pub use cbtx::{CbTxInvalid, CoinbaseCommitment};
 pub use mnhftx::{MnHardFork, MnHardForkInvalid, VERSIONBITS_NUM_BITS};
-pub use proregtx::{NetInfo, PlatformNodeId, ProRegTx};
+pub use proregtx::{PlatformNodeId, ProRegTx};
 pub use proupregtx::ProUpRegTx;
 pub use prouprevtx::ProUpRevTx;
 pub use proupservtx::ProUpServTx;

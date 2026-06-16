@@ -8,6 +8,8 @@
 
 mod addrv1;
 mod addrv2;
+mod netinfo;
 
 pub use addrv1::{AddrV1, ServiceV1};
 pub use addrv2::{AddrV2, NetworkType, ServiceV2};
+pub use netinfo::{ExtendedNetInfo, NetInfo, NetInfoEntry, NetInfoPurpose};
