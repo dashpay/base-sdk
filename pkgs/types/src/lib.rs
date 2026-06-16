@@ -30,8 +30,3 @@ pub mod __private {
   #[cfg(feature = "serde")]
   pub use hex_conservative;
 }
-
-make_bytes! {
-  /// 20-byte public key hash (RIPEMD-160 of SHA-256).
-  KeyId, 20
-}

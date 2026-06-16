@@ -19,7 +19,6 @@ use crate::opcode::Opcode as Op;
 use crate::prelude::*;
 
 use bitcoin_hashes::{hash160, sha256};
-use dash_types::KeyId;
 
 pub mod opcode;
 
@@ -152,15 +151,6 @@ pub fn encode_p2pkh(hash160: &[u8], prefix: u8) -> Option<String> {
 /// Encode a 20-byte script hash as a Base58Check P2SH address.
 pub fn encode_p2sh(hash160: &[u8], prefix: u8) -> Option<String> {
   encode_base58_check(prefix, hash160)
-}
-
-/// Encode a `KeyId` as a Base58Check P2PKH address.
-pub fn encode_key_id(key_id: &KeyId, prefix: u8) -> String {
-  let bytes = key_id.to_bytes();
-  let mut payload = Vec::with_capacity(HASH160_LEN + 1);
-  payload.push(prefix);
-  payload.extend_from_slice(&bytes);
-  base58ck::encode_check(&payload)
 }
 
 /// Derive a Base58Check address from a scriptPubKey.

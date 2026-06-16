@@ -9,7 +9,7 @@
 use crate::prelude::*;
 
 use dash_types::codec::{BaseCodec, DecodeError};
-use dash_types::impl_type;
+use dash_types::{impl_type, make_bytes};
 
 use core::fmt;
 
@@ -69,5 +69,20 @@ impl fmt::Display for Script {
       write!(f, "{:02x}", byte)?;
     }
     Ok(())
+  }
+}
+
+make_bytes! {
+  /// 20-byte public key hash (RIPEMD-160 of SHA-256).
+  KeyId, 20
+}
+
+impl KeyId {
+  /// Encode as a Base58Check string with the given version prefix.
+  pub fn to_base58c(&self, prefix: u8) -> alloc::string::String {
+    let mut payload = Vec::with_capacity(21);
+    payload.push(prefix);
+    payload.extend_from_slice(self.as_bytes());
+    base58ck::encode_check(&payload)
   }
 }

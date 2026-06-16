@@ -9,12 +9,11 @@
 use super::{InputsHash, ProTxInvalid};
 use crate::codec::codec_payload;
 use crate::prelude::*;
-use crate::script::Script;
+use crate::script::{KeyId, Script};
 use crate::TxHash;
 
 use dash_pkc::BlsPublicKeyBytes;
 use dash_types::codec::Checkable;
-use dash_types::KeyId;
 
 use core::fmt;
 
