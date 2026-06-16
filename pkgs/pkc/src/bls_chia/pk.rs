@@ -17,7 +17,7 @@ use blst::blst_p1_affine;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(into = "dash_types::BlsPublicKeyBytes", try_from = "dash_types::BlsPublicKeyBytes",)
+  serde(into = "crate::BlsPublicKeyBytes", try_from = "crate::BlsPublicKeyBytes",)
 )]
 pub struct PublicKey(pub(super) blst_p1_affine);
 
@@ -58,16 +58,16 @@ impl PublicKey {
 
 crate::common::bls::impl_hash_via_bytes!(PublicKey);
 
-impl From<PublicKey> for dash_types::BlsPublicKeyBytes {
+impl From<PublicKey> for crate::BlsPublicKeyBytes {
   fn from(pk: PublicKey) -> Self {
     Self(pk.to_bytes())
   }
 }
 
-impl TryFrom<dash_types::BlsPublicKeyBytes> for PublicKey {
+impl TryFrom<crate::BlsPublicKeyBytes> for PublicKey {
   type Error = super::error::Error;
 
-  fn try_from(bytes: dash_types::BlsPublicKeyBytes) -> Result<Self, Self::Error> {
+  fn try_from(bytes: crate::BlsPublicKeyBytes) -> Result<Self, Self::Error> {
     Self::from_bytes(&bytes.0)
   }
 }

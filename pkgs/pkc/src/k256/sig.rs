@@ -15,10 +15,7 @@ use k256::ecdsa;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(
-    into = "dash_types::EcdsaSignatureBytes",
-    try_from = "dash_types::EcdsaSignatureBytes",
-  )
+  serde(into = "crate::EcdsaSignatureBytes", try_from = "crate::EcdsaSignatureBytes",)
 )]
 pub struct Signature(ecdsa::Signature);
 
@@ -62,16 +59,16 @@ impl core::hash::Hash for Signature {
   }
 }
 
-impl From<Signature> for dash_types::EcdsaSignatureBytes {
+impl From<Signature> for crate::EcdsaSignatureBytes {
   fn from(sig: Signature) -> Self {
     Self(sig.to_compact())
   }
 }
 
-impl TryFrom<dash_types::EcdsaSignatureBytes> for Signature {
+impl TryFrom<crate::EcdsaSignatureBytes> for Signature {
   type Error = super::error::Error;
 
-  fn try_from(bytes: dash_types::EcdsaSignatureBytes) -> Result<Self, Self::Error> {
+  fn try_from(bytes: crate::EcdsaSignatureBytes) -> Result<Self, Self::Error> {
     Self::from_compact(&bytes.0)
   }
 }

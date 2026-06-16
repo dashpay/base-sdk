@@ -9,9 +9,12 @@
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
-use dash_primitives::{BlockHash, Commitment, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash};
+use dash_primitives::{
+  BlockHash, BlsPublicKeyBytes, BlsSignatureBytes, Commitment, LlmqType, MnType, PlatformNodeId, ServiceV1,
+  Transaction, TxHash,
+};
 use dash_types::codec::{BaseCodec, DecodeError, NumCodec};
-use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes, KeyId};
+use dash_types::KeyId;
 
 use core::fmt;
 

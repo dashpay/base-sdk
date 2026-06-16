@@ -32,26 +32,6 @@ pub mod __private {
 }
 
 make_bytes! {
-  /// Raw BLS public key bytes (48 bytes, unvalidated).
-  BlsPublicKeyBytes, 48
-}
-
-make_bytes! {
-  /// Raw BLS signature bytes (96 bytes, unvalidated).
-  BlsSignatureBytes, 96
-}
-
-make_bytes! {
-  /// Raw compressed ECDSA public key bytes (33 bytes, unvalidated).
-  EcdsaPublicKeyBytes, 33
-}
-
-make_bytes! {
-  /// Raw compact ECDSA signature bytes (64 bytes, unvalidated).
-  EcdsaSignatureBytes, 64
-}
-
-make_bytes! {
   /// 20-byte public key hash (RIPEMD-160 of SHA-256).
   KeyId, 20
 }

@@ -16,8 +16,9 @@ use crate::script::Script;
 use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
 use crate::TxHash;
 
+use dash_pkc::BlsPublicKeyBytes;
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{BlsPublicKeyBytes, KeyId};
+use dash_types::KeyId;
 
 use core::fmt;
 

@@ -18,7 +18,7 @@ use blst::*;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(into = "dash_types::BlsSignatureBytes", try_from = "dash_types::BlsSignatureBytes",)
+  serde(into = "crate::BlsSignatureBytes", try_from = "crate::BlsSignatureBytes",)
 )]
 pub struct Signature(pub(super) blst_p2_affine);
 
@@ -69,16 +69,16 @@ impl Signature {
 
 crate::common::bls::impl_hash_via_bytes!(Signature);
 
-impl From<Signature> for dash_types::BlsSignatureBytes {
+impl From<Signature> for crate::BlsSignatureBytes {
   fn from(sig: Signature) -> Self {
     Self(sig.to_bytes())
   }
 }
 
-impl TryFrom<dash_types::BlsSignatureBytes> for Signature {
+impl TryFrom<crate::BlsSignatureBytes> for Signature {
   type Error = super::error::Error;
 
-  fn try_from(bytes: dash_types::BlsSignatureBytes) -> Result<Self, Self::Error> {
+  fn try_from(bytes: crate::BlsSignatureBytes) -> Result<Self, Self::Error> {
     Self::from_bytes(&bytes.0)
   }
 }

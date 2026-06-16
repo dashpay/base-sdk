@@ -14,8 +14,8 @@ use crate::script::Script;
 use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
 use crate::TxHash;
 
+use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::BlsSignatureBytes;
 
 use core::fmt;
 

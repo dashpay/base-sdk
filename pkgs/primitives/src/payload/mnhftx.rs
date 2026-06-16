@@ -9,8 +9,8 @@
 use super::QuorumHash;
 use crate::codec::codec_payload;
 
+use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::Checkable;
-use dash_types::BlsSignatureBytes;
 
 use core::fmt;
 

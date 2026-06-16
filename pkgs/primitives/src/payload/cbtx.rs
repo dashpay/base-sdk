@@ -11,8 +11,8 @@ use crate::prelude::*;
 use crate::MerkleRoot;
 
 use bitcoin_units::BlockHeight;
+use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
-use dash_types::BlsSignatureBytes;
 
 use core::fmt;
 
