@@ -11,11 +11,11 @@ const BATCH_SIZE = 100000;
 const ready = init();
 
 self.onmessage = async (e) => {
-  await ready;
   const { version, prevHash, time, bits, scriptSig, scriptPubKey, amount, nonceFrom, nonceCount } = e.data;
   let totalHashes = 0;
 
   try {
+    await ready;
     let cur = nonceFrom;
     let remaining = nonceCount;
     while (remaining > 0) {
