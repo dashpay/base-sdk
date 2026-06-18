@@ -10,3 +10,13 @@ pub(crate) use alloc::collections::BTreeSet;
 pub(crate) use alloc::format;
 pub(crate) use alloc::string::String;
 pub(crate) use alloc::vec::Vec;
+
+// Shim for f64::round(), see rust-lang/rust#137578.
+#[cfg(feature = "serde")]
+cfg_if::cfg_if! {
+  if #[cfg(feature = "std")] {
+    pub(crate) fn round(x: f64) -> f64 { x.round() }
+  } else {
+    pub(crate) use libm::round;
+  }
+}

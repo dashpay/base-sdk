@@ -60,7 +60,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: cargo-deps-${{ hashFiles('Cargo.lock') }}
+          key: cargo-deps-${{ hashFiles('Cargo.lock', 'contrib/samples/Cargo.lock') }}
           restore-keys: cargo-deps-
 
       - name: Manage build artifacts
@@ -71,8 +71,8 @@ jobs:
           restore-keys: |
             cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-
 
-      - name: Format package
-        run: cargo fmt -p ${{ inputs.package }} --check
+      - name: Check formatting
+        run: python contrib/lint/lint_rust.py
 
       - name: Lint package
         run: cargo clippy -p ${{ inputs.package }} --features ${{ inputs.features }} --tests -- -D warnings

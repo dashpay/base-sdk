@@ -93,7 +93,7 @@ use some_external_crate;
 
 ### Directory layout
 
-```
+```text
 pkgs/<name>/
   bench/
   corpus/
@@ -103,6 +103,7 @@ pkgs/<name>/
 ```
 
 `Cargo.toml` must set:
+
 ```toml
 [package]
 name = "dash-<name>"

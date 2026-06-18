@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+# coding: latin-1
+
+#
+# Copyright (c) 2026-present, The Dash Core developers
+# SPDX-License-Identifier: MIT
+# See the accompanying file LICENSE or https://opensource.org/license/MIT
+#
+
+"""Check Rust formatting across workspace manifests."""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+
+from common import RETCODE_ERR, RETCODE_PASS, require_bin, root_dir
+
+CARGO_MANIFESTS: tuple[str, ...] = (
+  "Cargo.toml",
+  "contrib/samples/Cargo.toml",
+)
+
+
+def main() -> int:
+  _ = require_bin("rustfmt")
+  cargo_bin = require_bin("cargo")
+  repo_root = root_dir()
+
+  failed = False
+  for manifest in CARGO_MANIFESTS:
+    manifest_path = repo_root / manifest
+    print(f"checking formatting: {manifest}")
+    cmd = [cargo_bin, "fmt", "--check", "--all"]
+    cmd += ["--manifest-path", str(manifest_path)]
+    result = subprocess.run(  # noqa: S603
+      cmd,
+      check=False,
+      cwd=str(repo_root),
+    )
+    if result.returncode != 0:
+      failed = True
+
+  return RETCODE_ERR if failed else RETCODE_PASS
+
+
+if __name__ == "__main__":
+  try:
+    sys.exit(main())
+  except Exception as exc:
+    print(exc, file=sys.stderr)
+    sys.exit(RETCODE_ERR)

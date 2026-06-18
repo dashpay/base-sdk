@@ -7,6 +7,8 @@
 # See the accompanying file LICENSE or https://opensource.org/license/MIT
 #
 
+"""Lint Markdown files with pymarkdownlnt."""
+
 from __future__ import annotations
 
 import subprocess
@@ -14,37 +16,34 @@ import sys
 
 from common import RETCODE_ERR, require_bin, root_dir
 
-ESLINT_VERSION = "9.39.3"
-
-DEFAULT_TARGETS: tuple[str, ...] = (
-  ".github/scripts",
-  "contrib/samples",
-)
+DISABLED_RULES = "md025,md033,md041"
 
 
 def main() -> int:
-  npx_bin = require_bin("npx")
-
+  pymarkdown_bin = require_bin("pymarkdownlnt")
   repo_root = root_dir()
-  config_path = repo_root / "contrib" / "js" / "eslint.config.mjs"
-
-  if not config_path.is_file():
-    raise FileNotFoundError(f"error: eslint config not found: {config_path}")
-
-  targets = [str(repo_root / t) for t in DEFAULT_TARGETS]
-
   result = subprocess.run(  # noqa: S603
     [
-      npx_bin,
-      "--yes",
-      f"eslint@{ESLINT_VERSION}",
-      "--config",
-      str(config_path),
-      *targets,
+      pymarkdown_bin,
+      "--disable-rules",
+      DISABLED_RULES,
+      "scan",
+      "--recurse",
+      "--respect-gitignore",
+      str(repo_root),
     ],
+    capture_output=True,
     check=False,
     cwd=str(repo_root),
+    text=True,
   )
+
+  prefix = str(repo_root) + "/"
+  for line in result.stdout.splitlines():
+    print(line.replace(prefix, ""))
+  for line in result.stderr.splitlines():
+    print(line.replace(prefix, ""), file=sys.stderr)
+
   return result.returncode
 
 

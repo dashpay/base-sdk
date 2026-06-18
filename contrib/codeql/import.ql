@@ -23,7 +23,7 @@ import rust
 pragma[nomagic]
 private predicate fileCfgLines(File f, int cfgLine) {
   exists(string relPath, string content |
-    relPath = f.getAbsolutePath().regexpCapture(".*/pkgs/(.*)", 1) and
+    fileRelPath(f, relPath) and
     sourceLineContent(relPath, cfgLine, content) and
     content.matches("#[cfg%")
   )
@@ -41,6 +41,22 @@ predicate hasCfgGatedGap(File f, int startAfter, int endBefore) {
     cfgLine > startAfter and
     cfgLine < endBefore
   )
+}
+
+/** Holds if `f` is inside a crate excluded from prelude rules. */
+private predicate isPreludeExcluded(File f) {
+  exists(string name |
+    name = preludeExcludeCrate() and
+    f.getAbsolutePath().matches("%/" + name + "/%")
+  )
+}
+
+/** Holds if `u` imports directly from `alloc` outside `prelude.rs`. */
+private predicate directAllocImport(Use u) {
+  usePrefix(u) = "alloc" and
+  not fileOf(u).getBaseName() = "prelude.rs" and
+  not fileOf(u).getAbsolutePath().matches("%/prelude/mod.rs") and
+  not isPreludeExcluded(fileOf(u))
 }
 
 from Locatable item, string message

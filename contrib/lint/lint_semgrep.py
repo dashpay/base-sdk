@@ -27,7 +27,10 @@ def main() -> int:
 
   repo_root = root_dir()
   config_dir = repo_root / "contrib" / "semgrep"
-  target_dir = repo_root / "pkgs"
+  target_dirs = [
+    repo_root / "pkgs",
+    repo_root / "contrib" / "samples",
+  ]
 
   configs: list[str] = []
   for cfg in sorted(config_dir.glob("*.yml")):
@@ -44,7 +47,7 @@ def main() -> int:
       "scan",
       *configs,
       "--error",
-      str(target_dir),
+      *[str(d) for d in target_dirs],
     ],
     check=False,
   )

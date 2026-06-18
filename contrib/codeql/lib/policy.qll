@@ -124,12 +124,6 @@ predicate isNonSerdeCrate(TypeItem t) {
   )
 }
 
-/** Materialises the regex capture for file-relative paths. */
-pragma[nomagic]
-private predicate fileRelPath(File f, string relPath) {
-  relPath = f.getAbsolutePath().regexpCapture(".*/pkgs/(.*)", 1)
-}
-
 /**
  * Holds if `t` implements a serde trait via crate-qualified impl,
  * unqualified proc-macro expansion, or source-scanned match.
@@ -211,11 +205,10 @@ predicate isSerdeExempt(TypeItem t) {
   not implementsTrait(t, "PartialEq")
 }
 
-/** Holds if `u` imports directly from `alloc` outside `prelude.rs`. */
-predicate directAllocImport(Use u) {
-  usePrefix(u) = "alloc" and
-  not fileOf(u).getBaseName() = "prelude.rs" and
-  not fileOf(u).getAbsolutePath().matches("%/prelude/mod.rs")
+/** Crate directory names excluded from prelude enforcement. */
+string preludeExcludeCrate() {
+  result = "samples/parser" or
+  result = "samples/solver"
 }
 
 /** Holds if file `f` is in a crate evaluated by decl ordering. */

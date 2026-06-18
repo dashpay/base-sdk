@@ -137,7 +137,8 @@ def _format_table(results: list[LintResult]) -> str:
 
 
 async def _main() -> int:
-  lint_dir = Path(__file__).resolve().parent
+  contrib_dir = Path(__file__).resolve().parent
+  lint_dir = contrib_dir / "lint"
   scripts = _discover_linters(lint_dir)
 
   if not scripts:
