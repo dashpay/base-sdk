@@ -22,7 +22,7 @@ pub use compressed_header::CompressionState;
 pub use inventory::{InvType, Inventory};
 pub use magic::Magic;
 pub use mn_list::{DeletedQuorum, GetMnListDiff, MnListDiff, MnListDiffPayload, QuorumClSig, SimplifiedMnListEntry};
-pub use net_addr::{AddrV2Entry, NetAddr, TimestampedAddr};
+pub use net_addr::NetAddr;
 pub use protocol_version::ProtocolVersion;
 pub use service_flags::ServiceFlags;
 pub use short_id::ShortId;

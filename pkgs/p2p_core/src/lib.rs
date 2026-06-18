@@ -22,12 +22,13 @@ mod v2;
 
 pub use error::P2pDecodeError;
 pub use msg::{
-  Addr, AddrV2Msg, CFCheckpt, CFHeaders, CFilter, DashNetworkMessage, FilterType, GetCFCheckpt, GetCFHeaders,
-  GetCFilters, GetData, GetHeaders, GetHeaders2, GovSync, Headers, Headers2, Inv, NotFound, Ping, Pong, Version,
+  Addr, AddrV2Entry, AddrV2Msg, CFCheckpt, CFHeaders, CFilter, DashNetworkMessage, FilterType, GetCFCheckpt,
+  GetCFHeaders, GetCFilters, GetData, GetHeaders, GetHeaders2, GovSync, Headers, Headers2, Inv, NotFound, Ping, Pong,
+  TimestampedAddr, Version,
 };
 pub use primitives::{
-  AddrV2Entry, CommandString, CompressionState, DeletedQuorum, GetMnListDiff, InvType, Inventory, Magic, MnListDiff,
-  MnListDiffPayload, NetAddr, ProtocolVersion, QuorumClSig, ServiceFlags, ShortId, SimplifiedMnListEntry,
-  TimestampedAddr, UserAgent, UserAgentTooLong,
+  CommandString, CompressionState, DeletedQuorum, GetMnListDiff, InvType, Inventory, Magic, MnListDiff,
+  MnListDiffPayload, NetAddr, ProtocolVersion, QuorumClSig, ServiceFlags, ShortId, SimplifiedMnListEntry, UserAgent,
+  UserAgentTooLong,
 };
 pub use v2::{decode_v2, encode_v2};

@@ -22,7 +22,7 @@ pub mod inv;
 pub mod ping;
 pub mod version;
 
-pub use addr::{Addr, AddrV2Msg};
+pub use addr::{Addr, AddrV2Entry, AddrV2Msg, TimestampedAddr};
 pub use compact_filters::{CFCheckpt, CFHeaders, CFilter, FilterType, GetCFCheckpt, GetCFHeaders, GetCFilters};
 pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
