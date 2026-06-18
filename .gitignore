@@ -188,3 +188,6 @@ cython_debug/
 
 # Built site
 public/
+
+# WASM builds
+*.wasm

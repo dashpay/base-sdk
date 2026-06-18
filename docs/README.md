@@ -9,14 +9,24 @@ The user guide is generated using [Zensical](https://pypi.org/project/zensical/)
 [MkDocs](https://pypi.org/project/mkdocs/)), configured using [`zensical.toml`](../zensical.toml) with the documentation
 located in [`docs/zen`](./zen).
 
+### Dependencies
+
+Most dependencies can be installed using `python -m pip install -e '.[dev]'`.
+
+* Zensical (included in `[.dev]`)
+* PyMarkdown (included in `[.dev]`)
+* [wasm-pack](https://github.com/wasm-bindgen/wasm-pack)
+
+### Preview
+
+```sh
+python contrib/build_docs.py preview
+```
+
 ### Building
 
 From repository root
 
 ```sh
-# Install dependencies
-python -m pip install -e '.[dev]'
-
-# Build documentation
-python contrib/build_docs.py
+python contrib/build_docs.py build
 ```

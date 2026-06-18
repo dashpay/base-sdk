@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import http.server
+import shutil
 import socket
 import subprocess
 import sys
@@ -22,6 +23,48 @@ from common import RETCODE_ERR, RETCODE_PASS, require_bin, root_dir
 
 SITE_DIR = Path("public")
 PREVIEW_PORT = 8000
+WASM_SAMPLES_DIR = Path("contrib/samples")
+WEB_ASSET_GLOBS = ("*.js", "*.css")
+
+
+def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
+  """Compile every WASM sample crate under *WASM_SAMPLES_DIR*."""
+  samples = sorted((root / WASM_SAMPLES_DIR).glob("*/Cargo.toml"))
+  if not samples:
+    print("no WASM samples found", file=sys.stderr)
+    return
+
+  import os
+  import tomllib
+
+  toolchain_file = root / "rust-toolchain.toml"
+  with toolchain_file.open("rb") as f:
+    channel = tomllib.load(f)["toolchain"]["channel"]
+  env = {
+    **os.environ,
+    "RUSTUP_TOOLCHAIN": channel,
+    "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS":
+      "-C target-feature=+simd128",
+  }
+
+  for cargo_toml in samples:
+    crate_dir = cargo_toml.parent
+    name = crate_dir.name
+    print(f"building WASM sample: {name}")
+    subprocess.run(  # noqa: S603
+      [
+        wasm_pack,
+        "build",
+        str(crate_dir),
+        "--target",
+        "web",
+        "--out-dir",
+        "pkg",
+        "--no-default-features",
+      ],
+      check=True,
+      env=env,
+    )
 
 
 def _build_site(root: Path, zensical: str) -> None:
@@ -32,10 +75,40 @@ def _build_site(root: Path, zensical: str) -> None:
   )
 
 
+def _copy_artifacts(root: Path) -> None:
+  """Copy WASM packages and web assets into the built site."""
+  samples = sorted((root / WASM_SAMPLES_DIR).glob("*/Cargo.toml"))
+  site = root / SITE_DIR
+
+  for cargo_toml in samples:
+    crate_dir = cargo_toml.parent
+    name = crate_dir.name
+    dest_base = site / "samples" / name
+
+    pkg_src = crate_dir / "pkg"
+    if pkg_src.is_dir():
+      pkg_dest = dest_base / "pkg"
+      print(f"copying {pkg_src} -> {pkg_dest}")
+      if pkg_dest.exists():
+        shutil.rmtree(pkg_dest)
+      shutil.copytree(pkg_src, pkg_dest)
+
+    for pattern in WEB_ASSET_GLOBS:
+      for asset in crate_dir.glob(pattern):
+        dest = dest_base / asset.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        print(f"copying {asset} -> {dest}")
+        shutil.copy2(asset, dest)
+
+
 def _build(root: Path) -> None:
   """Run the full build pipeline."""
+  wasm_pack = require_bin("wasm-pack")
   zensical = require_bin("zensical")
+
+  _build_wasm_samples(root, wasm_pack)
   _build_site(root, zensical)
+  _copy_artifacts(root)
 
 
 def _find_free_port(host: str, start: int) -> int:
