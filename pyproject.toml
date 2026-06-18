@@ -4,7 +4,7 @@ version = "0.0.0"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
-dev = ["ruff>=0.9", "semgrep>=1.118.0"]
+dev = ["pymarkdownlnt>=0.9.37", "ruff>=0.9", "semgrep>=1.118.0"]
 
 [build-system]
 requires = ["setuptools"]
@@ -37,3 +37,12 @@ indent-style = "space"
 line-ending = "lf"
 quote-style = "double"
 skip-magic-trailing-comma = false
+
+[tool.pymarkdown.extensions.markdown-tables]
+enabled = true
+
+[tool.pymarkdown.plugins.md013]
+line_length = 120
+heading_line_length = 120
+code_blocks = false
+tables = false

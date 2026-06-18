@@ -1,6 +1,6 @@
 # Rust Development Guide
 
-**Table of Contents**
+## Table of Contents
 
 - [Coding Style (Rust)](#coding-style-rust)
   - [Formatting](#formatting)
@@ -86,16 +86,23 @@ const MAX_BLOCK_SIZE: usize = 2_000_000;
 
 ### Type Safety
 
-The type system is the first line of defence. A constraint expressed as a type is checked at compile time and costs nothing at runtime.
+The type system is the first line of defence. A constraint expressed as a type is checked at compile time and
+costs nothing at runtime.
 
-- Wrap primitive types in newtypes when two values of the same underlying type carry different semantics; this prevents accidental transposition of arguments
-- Prefer enums over booleans for function parameters because `Script::classify(P2pkh)` communicates intent where `Script::classify(true)` does not
-- Make invalid states unrepresentable; if a combination of fields is logically impossible, restructure the type so the compiler rejects it
-- Derive common traits eagerly on public types: `Clone`, `Debug`, `PartialEq`, `Eq`, `Hash`; the orphan rule prevents downstream crates from adding them later
-- All public types implement `Debug` because diagnostic output and test assertions depend on it; for types holding sensitive data, provide a custom implementation that redacts the secret
+- Wrap primitive types in newtypes when two values of the same underlying type carry different semantics; this prevents
+  accidental transposition of arguments
+- Prefer enums over booleans for function parameters because `Script::classify(P2pkh)` communicates intent where
+  `Script::classify(true)` does not
+- Make invalid states unrepresentable; if a combination of fields is logically impossible, restructure the type so the
+  compiler rejects it
+- Derive common traits eagerly on public types: `Clone`, `Debug`, `PartialEq`, `Eq`, `Hash`; the orphan rule prevents
+  downstream crates from adding them later
+- All public types implement `Debug` because diagnostic output and test assertions depend on it; for types holding
+  sensitive data, provide a custom implementation that redacts the secret
 
 > [!TIP]
-> Prefer `#[derive]` for standard trait implementations. A manual implementation is warranted only when the derived behaviour would be incorrect or when redaction is needed.
+> Prefer `#[derive]` for standard trait implementations. A manual implementation is warranted only when the
+> derived behaviour would be incorrect or when redaction is needed.
 
 <details>
 
@@ -136,13 +143,22 @@ impl core::fmt::Debug for SecretKey {
 ### Error Handling
 
 > [!IMPORTANT]
-> Never call `.unwrap()` or `.expect()` on `Result` or `Option` in library code. A panic converts a recoverable failure into process-level failure; depending on the panic strategy, the code may unwind or abort, but either outcome is unacceptable for routine error handling. Propagate errors with `?` or handle them explicitly with `match`. Both `clippy::unwrap_used` and `clippy::expect_used` are denied at the workspace level.
+> Never call `.unwrap()` or `.expect()` on `Result` or `Option` in library code. A panic converts a
+> recoverable failure into process-level failure; depending on the panic strategy, the code may unwind or
+> abort, but either outcome is unacceptable for routine error handling. Propagate errors with `?` or handle
+> them explicitly with `match`. Both `clippy::unwrap_used` and `clippy::expect_used` are denied at the
+> workspace level.
 
-- Define domain-specific error enums with a manual `Display` implementation; gate `std::error::Error` behind the `std` feature so the error type remains usable in `no_std` contexts
-- Error messages are lowercase and carry no trailing punctuation; they may be embedded in larger messages by callers, so capitalization and periods would read awkwardly in the middle of a sentence
-- Keep `?` chains short; if a function contains more than a few `?` calls on unrelated operations, each operation likely belongs in its own function
-- Use `#[expect]` instead of `#[allow]` when suppressing a lint; `expect` causes a warning if the suppression becomes unnecessary, preventing stale overrides from accumulating silently
-- The `.todo()`, `.unimplemented()`, and `.unreachable()` family of panicking stubs are not permitted; if a branch is genuinely unreachable, restructure the types so the compiler can prove it
+- Define domain-specific error enums with a manual `Display` implementation; gate `std::error::Error`
+  behind the `std` feature so the error type remains usable in `no_std` contexts
+- Error messages are lowercase and carry no trailing punctuation; they may be embedded in larger messages by
+  callers, so capitalization and periods would read awkwardly in the middle of a sentence
+- Keep `?` chains short; if a function contains more than a few `?` calls on unrelated operations, each
+  operation likely belongs in its own function
+- Use `#[expect]` instead of `#[allow]` when suppressing a lint; `expect` causes a warning if the suppression
+  becomes unnecessary, preventing stale overrides from accumulating silently
+- The `.todo()`, `.unimplemented()`, and `.unreachable()` family of panicking stubs are not permitted; if a
+  branch is genuinely unreachable, restructure the types so the compiler can prove it
 
 <details>
 
@@ -213,12 +229,17 @@ fn verify_header(raw: &[u8]) -> BlockHeader {
 
 ### Ownership and Borrowing
 
-Rust's ownership model eliminates data races and use-after-free at compile time. Working with it, rather than around it, produces code that is both safe and efficient.
+Rust's ownership model eliminates data races and use-after-free at compile time. Working with it, rather than
+around it, produces code that is both safe and efficient.
 
-- Prefer borrowing over cloning; cloning allocates and copies, and signals to readers that the caller needs an independent copy
-- Accept the most general reference that satisfies the function: `&str` rather than `&String`, `&[T]` rather than `&Vec<T>`; this lets callers pass any type that dereferences to the expected slice
-- Return owned values when the caller needs ownership; returning a reference to a local is a compile error, and this is intentional
-- Let the caller decide when to clone; a function that silently clones its input adds hidden cost and prevents the caller from choosing a cheaper alternative
+- Prefer borrowing over cloning; cloning allocates and copies, and signals to readers that the caller needs
+  an independent copy
+- Accept the most general reference that satisfies the function: `&str` rather than `&String`, `&[T]` rather
+  than `&Vec<T>`; this lets callers pass any type that dereferences to the expected slice
+- Return owned values when the caller needs ownership; returning a reference to a local is a compile error,
+  and this is intentional
+- Let the caller decide when to clone; a function that silently clones its input adds hidden cost and
+  prevents the caller from choosing a cheaper alternative
 
 <details>
 
@@ -248,7 +269,8 @@ Consistent conversion names tell the reader the cost and ownership semantics of 
 | `to_`   | Allocates or computes | Borrows input  | `Hash256::to_bytes()`     |
 | `into_` | Variable              | Consumes input | `String::into_bytes()`    |
 
-- Implement `From<T>` for infallible conversions; the blanket impl provides `Into<T>` automatically, so we never implement `Into` directly
+- Implement `From<T>` for infallible conversions; the blanket impl provides `Into<T>` automatically, so we
+  never implement `Into` directly
 - Implement `TryFrom<T>` for conversions that can fail; the associated error type documents what can go wrong
 - Implement `AsRef<T>` for cheap reference-to-reference conversions
 
@@ -292,8 +314,11 @@ impl BlockHash {
 
 ### Traits and Implementations
 
-- Derive standard traits eagerly; the orphan rule prevents downstream crates from adding them, so we provide everything applicable up front
-- Place `Serialize` and `Deserialize` behind an optional `serde` feature so crates that do not need serialization avoid the dependency; use `default-features = false` with `alloc` and `derive` features for `no_std` compatibility
+- Derive standard traits eagerly; the orphan rule prevents downstream crates from adding them, so we provide
+  everything applicable up front
+- Place `Serialize` and `Deserialize` behind an optional `serde` feature so crates that do not need
+  serialization avoid the dependency; use `default-features = false` with `alloc` and `derive` features for
+  `no_std` compatibility
 - Sealed traits prevent downstream implementations; this allows adding methods in future versions without a breaking change
 
 <details>
@@ -329,9 +354,12 @@ mod private {
 
 ### Generics
 
-- Use `impl Trait` in argument position for simple, single-use bounds; use named type parameters when the same bound appears in multiple arguments or the return type
-- Prefer static dispatch for performance-critical paths; use `dyn Trait` when the set of concrete types is open or when reducing binary size matters more than call overhead
-- Do not add trait bounds to struct definitions unless the bound is required for the struct's own invariants; bounds on impls are sufficient and avoid constraining downstream code
+- Use `impl Trait` in argument position for simple, single-use bounds; use named type parameters when the
+  same bound appears in multiple arguments or the return type
+- Prefer static dispatch for performance-critical paths; use `dyn Trait` when the set of concrete types is
+  open or when reducing binary size matters more than call overhead
+- Do not add trait bounds to struct definitions unless the bound is required for the struct's own
+  invariants; bounds on impls are sufficient and avoid constraining downstream code
 
 <details>
 
@@ -349,12 +377,15 @@ fn compute_hash(data: impl AsRef<[u8]>) -> Hash256 {
 
 ### Iterators
 
-Iterator chains express data transformations declaratively. The compiler often optimises them into tight loops with no intermediate allocations.
+Iterator chains express data transformations declaratively. The compiler often optimises them into tight loops
+with no intermediate allocations.
 
-- Implement `iter()`, `iter_mut()`, and `into_iter()` on collection types; the return types are named `Iter`, `IterMut`, and `IntoIter` respectively
+- Implement `iter()`, `iter_mut()`, and `into_iter()` on collection types; the return types are named
+  `Iter`, `IterMut`, and `IntoIter` respectively
 - Implement `FromIterator` and `Extend` so the collection works with `.collect()` and `.extend()`
 - Prefer `filter_map()` when filtering and mapping happen together; it expresses the intent in one place
-- Avoid `.collect()` when the result is only iterated once; return `impl Iterator<Item = T>` instead to defer allocation
+- Avoid `.collect()` when the result is only iterated once; return `impl Iterator<Item = T>` instead to
+  defer allocation
 - Implement `size_hint()` on custom iterators so downstream consumers can pre-allocate accurately
 
 <details>
@@ -380,7 +411,8 @@ fn spendable_outputs(
 
 ### Code Comments
 
-Comments explain intent and context that the code alone cannot convey. Restating what the code does adds noise and drifts out of sync with the implementation.
+Comments explain intent and context that the code alone cannot convey. Restating what the code does adds
+noise and drifts out of sync with the implementation.
 
 #### Inline Comments
 
@@ -391,7 +423,8 @@ Comments explain intent and context that the code alone cannot convey. Restating
 #### Rustdoc Comments
 
 - Documentation comments (`///`) must not exceed 80 characters wide
-- The summary is at most 3 lines; do not restate the function name or signature in prose because the reader can see them directly above
+- The summary is at most 3 lines; do not restate the function name or signature in prose because the reader
+  can see them directly above
 - Document `# Errors` when the function returns `Result`, listing each error variant and its cause
 - Document `# Panics` only when the function can panic, which should be rare
 - Pad lines so right columns align evenly for visual consistency
@@ -451,12 +484,17 @@ fn decode_header(
 ### Input Validation
 
 > [!CAUTION]
-> Assume every value decoded from the wire is adversarial. Trust boundaries include: consensus-encoded messages, peer-supplied byte streams, and any externally-produced data fed into a decoder.
+> Assume every value decoded from the wire is adversarial. Trust boundaries include: consensus-encoded
+> messages, peer-supplied byte streams, and any externally-produced data fed into a decoder.
 
-- **Validate early, fail loudly.** Check length, range, and structural invariants before the value reaches domain logic; return a clear error that tells the caller exactly what is wrong
-- **Encode validation in types.** A newtype that can only be constructed through a validating constructor carries its proof of validity with it; downstream code never needs to re-check
-- **Limit input size.** Set maximum sizes for payloads and maximum element counts for collections; unbounded input is an invitation for resource exhaustion
-- **Reject non-minimal encodings.** CompactSize, VarInt, and similar variable-length encodings must use their shortest representation; accepting non-minimal forms creates consensus divergence
+- **Validate early, fail loudly.** Check length, range, and structural invariants before the value reaches
+  domain logic; return a clear error that tells the caller exactly what is wrong
+- **Encode validation in types.** A newtype that can only be constructed through a validating constructor
+  carries its proof of validity with it; downstream code never needs to re-check
+- **Limit input size.** Set maximum sizes for payloads and maximum element counts for collections; unbounded
+  input is an invitation for resource exhaustion
+- **Reject non-minimal encodings.** CompactSize, VarInt, and similar variable-length encodings must use their
+  shortest representation; accepting non-minimal forms creates consensus divergence
 
 <details>
 
@@ -499,14 +537,21 @@ impl KeyId {
 
 ### Security
 
-- **Never log secrets.** Private keys, key shares, and seed material must never appear in log output, debug strings, or error messages
-- **Implement `Debug` to redact sensitive fields.** A custom `Debug` that prints a placeholder prevents accidental exposure through `{:?}` formatting in panics
-- **Use constant-time comparison for secrets.** Timing side-channels in byte-by-byte comparison leak information about secret values; use a constant-time equality function from a vetted cryptographic library
-- **Zero sensitive memory after use.** Stack and heap buffers that held secrets should be zeroised before deallocation to reduce the window of exposure; the `zeroize` crate provides a `Zeroize` trait and a `ZeroizeOnDrop` derive for this purpose
-- **Prefer explicit failure over silent defaults.** A default value for a missing secret silently degrades to an insecure state; failing explicitly is always safer than falling back to a placeholder
+- **Never log secrets.** Private keys, key shares, and seed material must never appear in log output, debug
+  strings, or error messages
+- **Implement `Debug` to redact sensitive fields.** A custom `Debug` that prints a placeholder prevents
+  accidental exposure through `{:?}` formatting in panics
+- **Use constant-time comparison for secrets.** Timing side-channels in byte-by-byte comparison leak
+  information about secret values; use a constant-time equality function from a vetted cryptographic library
+- **Zero sensitive memory after use.** Stack and heap buffers that held secrets should be zeroised before
+  deallocation to reduce the window of exposure; the `zeroize` crate provides a `Zeroize` trait and a
+  `ZeroizeOnDrop` derive for this purpose
+- **Prefer explicit failure over silent defaults.** A default value for a missing secret silently degrades to
+  an insecure state; failing explicitly is always safer than falling back to a placeholder
 
 > [!NOTE]
-> Audit dependencies regularly. A single compromised or unmaintained transitive dependency can undermine all other precautions in the codebase.
+> Audit dependencies regularly. A single compromised or unmaintained transitive dependency can undermine all
+> other precautions in the codebase.
 
 <details>
 
