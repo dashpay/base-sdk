@@ -1,0 +1,78 @@
+#wasm-parser textarea {
+  width: 100%;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo,
+    Consolas, 'Liberation Mono', monospace;
+  font-size: 1em;
+  padding: 0.6em;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 6px;
+  resize: vertical;
+  background: var(--md-code-bg-color);
+  color: var(--md-default-fg-color);
+}
+
+#wasm-parser textarea::placeholder {
+  color: var(--md-default-fg-color--light);
+}
+
+#wasm-parser .parser-actions {
+  margin-top: 0.5em;
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+
+#wasm-parser #error-msg {
+  margin-top: 0.5em;
+  min-height: 1.2em;
+}
+
+#wasm-parser #output {
+  margin-top: 1em;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo,
+    Consolas, 'Liberation Mono', monospace;
+  line-height: 1.5;
+}
+
+#wasm-parser .tree-children {
+  margin-left: 1em;
+  padding-left: 0.75em;
+  border-left: 1px solid var(--md-default-fg-color--lightest);
+}
+
+#wasm-parser .tree-label {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--md-default-fg-color);
+  padding: 0.1em 0;
+  display: block;
+  user-select: none;
+}
+
+#wasm-parser .tree-label::before {
+  content: "\25be\00a0";
+  font-size: 0.85em;
+}
+
+#wasm-parser .tree-label.closed::before {
+  content: "\25b8\00a0";
+}
+
+#wasm-parser .leaf {
+  margin-left: 1em;
+  padding: 0.1em 0;
+}
+
+#wasm-parser .key {
+  color: var(--md-default-fg-color);
+}
+
+#wasm-parser .val-str { color: #116329; }
+#wasm-parser .val-num { color: #0550ae; }
+#wasm-parser .val-bool { color: #8250df; }
+#wasm-parser .val-null { color: #b1bac4; }
+
+[data-md-color-scheme="slate"] #wasm-parser .val-str { color: #7ee787; }
+[data-md-color-scheme="slate"] #wasm-parser .val-num { color: #79c0ff; }
+[data-md-color-scheme="slate"] #wasm-parser .val-bool { color: #d2a8ff; }
+[data-md-color-scheme="slate"] #wasm-parser .val-null { color: #4a5568; }

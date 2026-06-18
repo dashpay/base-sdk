@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import http.server
+import re
 import shutil
 import socket
 import subprocess
@@ -80,6 +81,13 @@ def _copy_artifacts(root: Path) -> None:
   samples = sorted((root / WASM_SAMPLES_DIR).glob("*/Cargo.toml"))
   site = root / SITE_DIR
 
+  common_css = root / WASM_SAMPLES_DIR / "common.css"
+  if common_css.is_file():
+    dest = site / "samples" / "common.css"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    print(f"copying {common_css} -> {dest}")
+    shutil.copy2(common_css, dest)
+
   for cargo_toml in samples:
     crate_dir = cargo_toml.parent
     name = crate_dir.name
@@ -101,6 +109,33 @@ def _copy_artifacts(root: Path) -> None:
         shutil.copy2(asset, dest)
 
 
+def _generate_pygments_css(site: Path) -> None:
+  """Append Pygments syntax-highlight CSS to the built style.css."""
+  from pygments.formatters import HtmlFormatter
+
+  # Lines Pygments prepends for line-numbered blocks (unused by this site).
+  skip_re = re.compile(r"^(pre |td\.linenos |span\.linenos )")
+
+  parts = []
+  for style_name, prefix in (
+    ("github-light-default", ".md-typeset .highlight"),
+    ("github-dark-default",
+     '[data-md-color-scheme="slate"] .md-typeset .highlight'),
+  ):
+    fmt = HtmlFormatter(style=style_name)
+    for line in fmt.get_style_defs(prefix).splitlines():
+      if not skip_re.match(line):
+        parts.append(line)
+    parts.append("")
+
+  css_file = site / "style.css"
+  with css_file.open("a", encoding="utf-8") as f:
+    f.write("\n")
+    f.write("\n".join(parts))
+
+  print(f"appended Pygments CSS to {css_file}")
+
+
 def _build(root: Path) -> None:
   """Run the full build pipeline."""
   wasm_pack = require_bin("wasm-pack")
@@ -109,6 +144,7 @@ def _build(root: Path) -> None:
   _build_wasm_samples(root, wasm_pack)
   _build_site(root, zensical)
   _copy_artifacts(root)
+  _generate_pygments_css(root / SITE_DIR)
 
 
 def _find_free_port(host: str, start: int) -> int:

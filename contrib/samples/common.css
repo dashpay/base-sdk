@@ -1,0 +1,59 @@
+@import "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap";
+
+.sample-root {
+  font-size: 14px;
+}
+
+.sample-root select,
+.sample-root button {
+  padding: 0.4em 0.8em;
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: 600;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--md-code-bg-color);
+  color: var(--md-default-fg-color);
+}
+
+.sample-root .btn-primary {
+  background: var(--md-accent-fg-color);
+  color: #fff;
+  border-color: var(--md-accent-fg-color);
+}
+
+.sample-root .btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sample-root input:focus,
+.sample-root textarea:focus {
+  outline: none;
+  border-color: var(--md-accent-fg-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-accent-fg-color) 20%, transparent);
+}
+
+.sample-root .sample-error {
+  color: #cf222e;
+}
+
+[data-md-color-scheme="slate"] .sample-root .sample-error {
+  color: #f85149;
+}
+
+.sample-root .admonition.warning {
+  margin: 0.5em 0;
+  padding: 0.6em 0.8em;
+  border-left: 3px solid #d4a017;
+  border-radius: 4px;
+  background: #fef9e7;
+  color: #6e5b00;
+}
+
+[data-md-color-scheme="slate"] .sample-root .admonition.warning {
+  background: #3b3000;
+  color: #fcd34d;
+  border-left-color: #ca8a04;
+}

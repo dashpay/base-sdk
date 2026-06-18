@@ -16,7 +16,10 @@ from common import RETCODE_ERR, require_bin, root_dir
 
 ESLINT_VERSION = "9.39.3"
 
-DEFAULT_TARGETS: tuple[str, ...] = (".github/scripts",)
+DEFAULT_TARGETS: tuple[str, ...] = (
+  ".github/scripts",
+  "contrib/samples",
+)
 
 
 def main() -> int:

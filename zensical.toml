@@ -12,6 +12,10 @@ edit_uri = "edit/develop/docs/zen"
 extra_css = ["style.css"]
 nav = [
   { "Home" = "index.md" },
+  { "Samples" = [
+    { "Samples" = "samples/index.md" },
+    { "Object Parser" = "samples/parser/index.md" },
+  ] },
 ]
 
 [project.theme]
