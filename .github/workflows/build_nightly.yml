@@ -60,7 +60,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: cargo-deps-${{ hashFiles('Cargo.lock') }}
+          key: cargo-deps-${{ hashFiles('Cargo.lock', 'contrib/samples/Cargo.lock') }}
           restore-keys: cargo-deps-
 
       - name: Manage build artifacts
