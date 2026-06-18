@@ -178,3 +178,13 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Playwright browser binaries and test artifacts
+.playwright/
+**/.playwright/
+.playwright-cli/
+**/playwright-report/
+**/test-results/
+**/e2e/
+
+# Built site
+public/

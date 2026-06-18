@@ -1,0 +1,24 @@
+.md-content__inner {
+  max-width: none;
+}
+
+.md-typeset__table {
+  display: block;
+  width: 100%;
+}
+
+.md-typeset table:not([class]) {
+  display: table;
+  width: 100%;
+  table-layout: auto;
+  font-size: 0.75rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  font-size: 0.75rem;
+}
+
+.md-typeset :not(pre) > code {
+  font-size: 0.94em;
+}
