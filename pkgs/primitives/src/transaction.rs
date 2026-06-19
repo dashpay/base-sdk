@@ -12,12 +12,17 @@ use crate::payload::TxType;
 use crate::prelude::*;
 use crate::tx_in::TxIn;
 use crate::tx_out::TxOut;
-use crate::validation::{MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::impl_type;
 
 use core::fmt;
+
+/// Maximum extra payload size in bytes.
+pub const MAX_TX_EXTRA_PAYLOAD: usize = 10_000;
+
+/// Maximum coinbase script size in bytes.
+pub const MAX_COINBASE_SCRIPT_SIZE: usize = 100;
 
 /// A Dash transaction.
 ///

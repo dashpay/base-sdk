@@ -26,7 +26,6 @@ mod support;
 mod transaction;
 mod tx_in;
 mod tx_out;
-mod validation;
 
 #[doc(hidden)]
 pub mod __private {
@@ -50,7 +49,7 @@ dash_num::make_hash256! {
   MerkleRoot
 }
 
-pub use block::{Block, BlockInvalid};
+pub use block::{Block, BlockInvalid, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE};
 pub use block_header::BlockHeader;
 pub use codec::MAX_SPTX_PAYLOAD_SIZE;
 pub use dash_types::AddrV1;
@@ -63,13 +62,13 @@ pub use payload::{
   AssetLock, AssetLockInvalid, AssetUnlock, AssetUnlockInvalid, CbTxInvalid, CoinbaseCommitment, Commitment,
   CommitmentInvalid, FinalCommitment, InputsHash, MnHardFork, MnHardForkInvalid, MnType, NetInfo, PayloadError,
   PayloadInvalid, PlatformNodeId, ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, QuorumHash,
-  QuorumVvecHash, SpecialPayload, TxType,
+  QuorumVvecHash, SpecialPayload, TxType, VERSIONBITS_NUM_BITS,
 };
 pub use script::Script;
 pub use support::{
   CService, DynBitset, DynBitsetIterator, ExtendedNetInfo, LlmqType, NetInfoEntry, NetInfoPurpose, NetworkType,
   RevocationReason,
 };
-pub use transaction::{Transaction, TxInvalid};
+pub use transaction::{Transaction, TxInvalid, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD};
 pub use tx_in::TxIn;
 pub use tx_out::TxOut;

@@ -10,11 +10,16 @@ use crate::block_header::BlockHeader;
 use crate::codec_type;
 use crate::prelude::*;
 use crate::transaction::{Transaction, TxInvalid};
-use crate::validation::MAX_DIP0001_BLOCK_SIZE;
 
 use dash_types::codec::Checkable;
 
 use core::fmt;
+
+/// Maximum serialized transaction size (single tx, always 1 MB).
+pub const MAX_LEGACY_BLOCK_SIZE: usize = 1_000_000;
+
+/// Post-DIP0001 maximum block size (2 MB).
+pub const MAX_DIP0001_BLOCK_SIZE: usize = 2_000_000;
 
 /// A Dash block: header followed by a vector of transactions.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

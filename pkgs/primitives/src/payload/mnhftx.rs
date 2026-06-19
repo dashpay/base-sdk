@@ -8,12 +8,14 @@
 
 use super::QuorumHash;
 use crate::codec::codec_payload;
-use crate::validation::VERSIONBITS_NUM_BITS;
 
 use dash_types::codec::Checkable;
 use dash_types::BlsSignatureBytes;
 
 use core::fmt;
+
+/// Number of version bits available for signalling.
+pub const VERSIONBITS_NUM_BITS: u8 = 29;
 
 /// MnHardFork -- hard-fork signal (type 7).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

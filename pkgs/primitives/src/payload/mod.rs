@@ -271,7 +271,7 @@ pub(crate) fn check_sptx_netinfo(
 pub use assetlock::{AssetLock, AssetLockInvalid};
 pub use assetunlock::{AssetUnlock, AssetUnlockInvalid};
 pub use cbtx::{CbTxInvalid, CoinbaseCommitment};
-pub use mnhftx::{MnHardFork, MnHardForkInvalid};
+pub use mnhftx::{MnHardFork, MnHardForkInvalid, VERSIONBITS_NUM_BITS};
 pub use proregtx::{NetInfo, PlatformNodeId, ProRegTx};
 pub use proupregtx::ProUpRegTx;
 pub use prouprevtx::ProUpRevTx;
