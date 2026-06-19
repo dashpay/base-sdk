@@ -75,6 +75,7 @@ pub enum NetInfoEntry {
   /// Domain name + port.
   Domain {
     /// The domain name as raw bytes.
+    #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::utf8"))]
     name: Vec<u8>,
     /// Network port (big-endian on wire).
     port: u16,

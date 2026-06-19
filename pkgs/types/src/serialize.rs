@@ -8,6 +8,34 @@
 
 pub use crate::hex::serde as hex;
 
+/// UTF-8 serde for `Vec<u8>` fields that hold text.
+pub mod utf8 {
+  use crate::prelude::*;
+
+  use core::str::from_utf8;
+
+  /// Serializes bytes as a UTF-8 string.
+  ///
+  /// # Errors
+  ///
+  /// Returns a serialization error when bytes are not valid UTF-8.
+  pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
+    let s = from_utf8(data).map_err(::serde::ser::Error::custom)?;
+    serializer.serialize_str(s)
+  }
+
+  /// Deserializes a string into bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns a deserialization error when the input is not
+  /// a valid string.
+  pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
+    let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
+    Ok(s.into_bytes())
+  }
+}
+
 /// Serializes `u64` as a decimal string to avoid JSON precision loss.
 pub mod str_u64 {
   /// Serializes a `u64` as a decimal string.
