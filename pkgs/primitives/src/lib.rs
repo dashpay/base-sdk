@@ -50,21 +50,6 @@ dash_num::make_hash256! {
   MerkleRoot
 }
 
-dash_num::make_hash256! {
-  /// Hash of serialized transaction inputs.
-  InputsHash
-}
-
-dash_num::make_hash256! {
-  /// LLMQ quorum identifier.
-  QuorumHash
-}
-
-dash_num::make_hash256! {
-  /// Quorum verification vector hash.
-  QuorumVvecHash
-}
-
 pub use block::{Block, BlockInvalid};
 pub use block_header::BlockHeader;
 pub use codec::MAX_SPTX_PAYLOAD_SIZE;
@@ -76,8 +61,9 @@ pub use hash::{double_sha256, tx_hash};
 pub use outpoint::OutPoint;
 pub use payload::{
   AssetLock, AssetLockInvalid, AssetUnlock, AssetUnlockInvalid, CbTxInvalid, CoinbaseCommitment, Commitment,
-  CommitmentInvalid, FinalCommitment, MnHardFork, MnHardForkInvalid, MnType, NetInfo, PayloadError, PayloadInvalid,
-  ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, SpecialPayload, TxType,
+  CommitmentInvalid, FinalCommitment, InputsHash, MnHardFork, MnHardForkInvalid, MnType, NetInfo, PayloadError,
+  PayloadInvalid, ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, QuorumHash, QuorumVvecHash,
+  SpecialPayload, TxType,
 };
 pub use script::Script;
 pub use support::{

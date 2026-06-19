@@ -7,13 +7,14 @@
 //! ProRegTx registration payload (type 1).
 
 use super::{
-  check_sptx_netinfo, MnType, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
+  check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS,
+  PROTX_VERSION_EXT_ADDR,
 };
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
 use crate::support::CService;
-use crate::{InputsHash, TxHash};
+use crate::TxHash;
 
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{BlsPublicKeyBytes, KeyId, PlatformNodeId};

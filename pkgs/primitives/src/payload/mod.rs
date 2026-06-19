@@ -22,6 +22,7 @@ mod quorum;
 use crate::prelude::*;
 use crate::support::{NetInfoEntry, NetInfoPurpose};
 
+use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
 use dash_types::impl_num;
 
@@ -39,6 +40,18 @@ pub(crate) const PROTX_VERSION_BASIC_BLS: u16 = 2;
 
 /// ProTx version: extended network addresses (v3).
 pub(crate) const PROTX_VERSION_EXT_ADDR: u16 = 3;
+
+make_hash! {
+  Hash256,
+  /// LLMQ quorum identifier.
+  QuorumHash
+}
+
+make_hash! {
+  Hash256,
+  /// Hash of serialized transaction inputs.
+  InputsHash
+}
 
 /// Dash transaction type, encoded in the upper 16 bits of the version field.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -263,7 +276,7 @@ pub use proregtx::{NetInfo, ProRegTx};
 pub use proupregtx::ProUpRegTx;
 pub use prouprevtx::ProUpRevTx;
 pub use proupservtx::ProUpServTx;
-pub use quorum::{Commitment, CommitmentInvalid, FinalCommitment};
+pub use quorum::{Commitment, CommitmentInvalid, FinalCommitment, QuorumVvecHash};
 
 /// A decoded special transaction payload.
 ///

@@ -6,9 +6,9 @@
 
 //! MnHardFork hard-fork signal (type 7).
 
+use super::QuorumHash;
 use crate::codec::codec_payload;
 use crate::validation::VERSIONBITS_NUM_BITS;
-use crate::QuorumHash;
 
 use dash_types::codec::Checkable;
 use dash_types::BlsSignatureBytes;
