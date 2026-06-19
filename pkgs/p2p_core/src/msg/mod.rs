@@ -29,7 +29,7 @@ pub use headers::{GetHeaders, Headers};
 pub use headers2::{GetHeaders2, Headers2};
 pub use inv::{GetData, Inv, NotFound};
 pub use ping::{Ping, Pong};
-pub use version::Version;
+pub use version::{Version, VersionAddr};
 
 /// Decode helper: decode from slice, mapping the error.
 fn decode_msg<T: encoding::Decodable>(payload: &[u8]) -> Result<T, crate::P2pDecodeError>

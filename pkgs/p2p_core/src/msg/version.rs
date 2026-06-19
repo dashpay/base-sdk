@@ -7,9 +7,32 @@
 //! Version handshake message (Dash-extended).
 
 use crate::codec::codec_p2p;
-use crate::primitives::{NetAddr, ProtocolVersion, ServiceFlags, UserAgent};
+use crate::primitives::{ProtocolVersion, ServiceFlags, UserAgent};
 
 use dash_num::Hash256;
+use dash_primitives::ServiceV1;
+
+use core::fmt;
+
+/// Network address with service flags (used inside the version message).
+///
+/// Wire format: `u64 services` + `[u8; 16] addr` + `u16 BE port`.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct VersionAddr {
+  /// Advertised services.
+  pub services: ServiceFlags,
+  /// IPv4-mapped IPv6 address + port.
+  pub addr: ServiceV1,
+}
+
+codec_p2p!(VersionAddr { services, addr });
+
+impl fmt::Display for VersionAddr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{:?} ({})", self.addr, self.services)
+  }
+}
 
 /// The `version` message initiates the P2P handshake.
 ///
@@ -25,9 +48,9 @@ pub struct Version {
   /// Unix timestamp of the sender.
   pub timestamp: i64,
   /// Receiver's address as seen by the sender.
-  pub addr_recv: NetAddr,
+  pub addr_recv: VersionAddr,
   /// Sender's own address.
-  pub addr_send: NetAddr,
+  pub addr_send: VersionAddr,
   /// Random nonce for connection deduplication.
   #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::str_u64"))]
   pub nonce: u64,
