@@ -141,11 +141,3 @@ macro_rules! make_hash {
     $crate::impl_hash!($base, $name);
   };
 }
-
-/// Convenience alias: generates a `Hash256`-based newtype.
-#[macro_export]
-macro_rules! make_hash256 {
-  ($(#[$attr:meta])* $name:ident) => {
-    $crate::make_hash!($crate::Hash256, $(#[$attr])* $name);
-  };
-}
