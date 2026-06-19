@@ -57,8 +57,8 @@ pub enum ScriptKind {
   P2pk,
   /// Provably unspendable `OP_RETURN`.
   OpReturn,
-  /// Unrecognized or unsupported script.
-  Unknown,
+  /// Unrecognized or unsupported script pattern (leading opcode).
+  Unknown(u8),
 }
 
 /// Classify a scriptPubKey by its leading pattern.
@@ -75,7 +75,7 @@ pub fn classify(script: &[u8]) -> ScriptKind {
   if is_op_return(script) {
     return ScriptKind::OpReturn;
   }
-  ScriptKind::Unknown
+  ScriptKind::Unknown(script.first().copied().unwrap_or(0))
 }
 
 /// Returns `true` for P2PKH scripts
@@ -170,7 +170,7 @@ pub fn derive_address(script: &[u8], p2pkh_version: u8, p2sh_version: u8) -> Opt
       let h160 = hash160::Hash::from_byte_array(*bitcoin_hashes::ripemd160::Hash::hash(sha.as_ref()).as_byte_array());
       encode_p2pkh(h160.as_ref(), p2pkh_version)
     }
-    ScriptKind::OpReturn | ScriptKind::Unknown => None,
+    ScriptKind::OpReturn | ScriptKind::Unknown(_) => None,
   }
 }
 
@@ -354,13 +354,13 @@ mod tests {
 
   #[test]
   fn empty_is_unknown() {
-    assert_eq!(classify(&[]), ScriptKind::Unknown);
+    assert_eq!(classify(&[]), ScriptKind::Unknown(0));
   }
 
   #[test]
   fn arithmetic_script_is_unknown() {
     let script = hex!("59935b87");
-    assert_eq!(classify(&script), ScriptKind::Unknown);
+    assert_eq!(classify(&script), ScriptKind::Unknown(0x59));
   }
 
   #[test]
