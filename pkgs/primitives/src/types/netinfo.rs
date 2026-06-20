@@ -91,16 +91,16 @@ pub enum NetInfoEntry {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub struct ExtendedNetInfo {
+pub struct NetInfoV2 {
   /// Format version.
   pub version: u8,
   /// Purpose-grouped entries.
   pub entries: Vec<(NetInfoPurpose, Vec<NetInfoEntry>)>,
 }
 
-impl_type!(ExtendedNetInfo);
+impl_type!(NetInfoV2);
 
-impl BaseCodec for ExtendedNetInfo {
+impl BaseCodec for NetInfoV2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = u8::decode(data)?;
     let purpose_count = codec::read_compact_size(data, MAX_PURPOSES)?;
@@ -160,5 +160,5 @@ pub enum NetInfo {
   /// ADDRv1 ServiceV1 (18 bytes).
   Legacy(ServiceV1),
   /// Extended format (v3+) with purpose-grouped entries.
-  Extended(ExtendedNetInfo),
+  Extended(NetInfoV2),
 }

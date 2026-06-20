@@ -11,7 +11,7 @@ use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
+use crate::types::{NetInfo, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsSignatureBytes;
@@ -67,7 +67,7 @@ impl BaseCodec for ProUpServTx {
     let pro_tx_hash = TxHash::decode(data)?;
     let net_info = if version >= 3 {
       let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(ExtendedNetInfo::decode(&mut &raw[..])?)
+      NetInfo::Extended(NetInfoV2::decode(&mut &raw[..])?)
     } else {
       NetInfo::Legacy(ServiceV1::decode(data)?)
     };
