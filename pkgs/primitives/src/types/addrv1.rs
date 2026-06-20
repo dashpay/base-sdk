@@ -10,20 +10,84 @@ use super::netaddr::{NetAddr, NetworkType};
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::impl_type;
+use dash_types::{impl_bytes, impl_type};
 
-/// IPv4-mapped IPv6 prefix (::ffff:0:0/96).
+use core::fmt;
+
+/// First 12 bytes of an IPv4-mapped IPv6 address.
 const IPV4_MAPPED_PREFIX: [u8; 12] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
 
-dash_types::make_bytes! {
-  /// ADDRv1 IPv4-mapped IPv6 address (16 bytes).
-  AddrV1, 16
-}
+/// ADDRv1 IPv4-mapped IPv6 address (16 bytes).
+#[derive(Clone, Copy, Default, Eq, Hash, PartialEq)]
+pub struct AddrV1(pub [u8; 16]);
+
+impl_bytes!(16, AddrV1);
 
 impl AddrV1 {
-  /// Returns `true` when this is an IPv4-mapped IPv6 address.
+  /// Returns the inner byte array.
+  pub const fn to_bytes(self) -> [u8; 16] {
+    self.0
+  }
+
+  /// Borrows the inner byte array.
+  pub const fn as_bytes(&self) -> &[u8; 16] {
+    &self.0
+  }
+
+  /// Returns `true` when every byte is zero.
+  pub fn is_null(&self) -> bool {
+    self.0.iter().all(|&b| b == 0)
+  }
+
+  /// Returns `true` if the address is IPv4-mapped.
   pub fn is_ipv4(&self) -> bool {
     self.0[..12] == IPV4_MAPPED_PREFIX
+  }
+}
+
+impl From<AddrV1> for [u8; 16] {
+  fn from(val: AddrV1) -> Self {
+    val.0
+  }
+}
+
+impl AsRef<[u8]> for AddrV1 {
+  fn as_ref(&self) -> &[u8] {
+    &self.0
+  }
+}
+
+impl AsRef<[u8; 16]> for AddrV1 {
+  fn as_ref(&self) -> &[u8; 16] {
+    &self.0
+  }
+}
+
+impl fmt::Debug for AddrV1 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "AddrV1(")?;
+    for byte in &self.0 {
+      write!(f, "{byte:02x}")?;
+    }
+    write!(f, ")")
+  }
+}
+
+#[cfg(feature = "serde")]
+impl ::serde::Serialize for AddrV1 {
+  fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    use dash_types::__private::hex_conservative::DisplayHex;
+    serializer.serialize_str(&self.0.to_lower_hex_string())
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> ::serde::Deserialize<'de> for AddrV1 {
+  fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    let s = <alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
+    <[u8; 16] as dash_types::__private::hex_conservative::FromHex>::from_hex(&s)
+      .map(Self)
+      .map_err(::serde::de::Error::custom)
   }
 }
 
