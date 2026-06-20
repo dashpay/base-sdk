@@ -64,6 +64,47 @@ impl fmt::Display for NIPurpose {
   }
 }
 
+/// Type tag for an extended network info entry.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum NIEntryCode {
+  /// BIP155 address + port.
+  Service,
+  /// Domain name + port.
+  Domain,
+  /// Unrecognized entry type code.
+  Unknown(u8),
+}
+
+impl NumCodec<u8> for NIEntryCode {
+  fn from_base(val: u8) -> Self {
+    match val {
+      0x01 => Self::Service,
+      0x02 => Self::Domain,
+      other => Self::Unknown(other),
+    }
+  }
+
+  fn to_base(&self) -> u8 {
+    match self {
+      Self::Service => 0x01,
+      Self::Domain => 0x02,
+      Self::Unknown(v) => *v,
+    }
+  }
+}
+
+impl_num!(NIEntryCode, u8);
+
+impl fmt::Display for NIEntryCode {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Service => write!(f, "service"),
+      Self::Domain => write!(f, "domain"),
+      Self::Unknown(v) => write!(f, "unknown({v})"),
+    }
+  }
+}
+
 /// A single network info entry within a purpose group.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -140,16 +181,15 @@ impl BaseCodec for NetInfoV2 {
       let entry_count = codec::read_compact_size(data, data.len())?;
       let mut group = Vec::with_capacity(entry_count);
       for _ in 0..entry_count {
-        let entry_type = u8::decode(data)?;
-        let entry = match entry_type {
-          0x01 => NIEntry::Service(ServiceV2::decode(data)?),
-          0x02 => {
+        let entry = match NIEntryCode::from_base(u8::decode(data)?) {
+          NIEntryCode::Service => NIEntry::Service(ServiceV2::decode(data)?),
+          NIEntryCode::Domain => {
             let name_len = codec::read_compact_size(data, data.len())?;
             let name = codec::read_bytes(data, name_len)?.to_vec();
             let port = codec::read_u16_be(data)?;
             NIEntry::Domain { name, port }
           }
-          _ => NIEntry::Invalid,
+          NIEntryCode::Unknown(_) => NIEntry::Invalid,
         };
         group.push(entry);
       }
@@ -168,11 +208,11 @@ impl BaseCodec for NetInfoV2 {
       for entry in valid {
         match entry {
           NIEntry::Service(svc) => {
-            0x01u8.encode(buf);
+            NIEntryCode::Service.to_base().encode(buf);
             svc.encode(buf);
           }
           NIEntry::Domain { name, port } => {
-            0x02u8.encode(buf);
+            NIEntryCode::Domain.to_base().encode(buf);
             name.encode(buf);
             buf.extend_from_slice(&port.to_be_bytes());
           }
