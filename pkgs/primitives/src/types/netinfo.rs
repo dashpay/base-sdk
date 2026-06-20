@@ -21,7 +21,7 @@ const MAX_PURPOSES: usize = 8;
 
 /// Purpose tag for an extended network info entry.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum NetInfoPurpose {
+pub enum NIPurpose {
   /// Core P2P port.
   CoreP2p,
   /// Platform P2P port.
@@ -32,7 +32,7 @@ pub enum NetInfoPurpose {
   Unknown(u8),
 }
 
-impl NumCodec<u8> for NetInfoPurpose {
+impl NumCodec<u8> for NIPurpose {
   fn from_base(val: u8) -> Self {
     match val {
       0 => Self::CoreP2p,
@@ -52,9 +52,9 @@ impl NumCodec<u8> for NetInfoPurpose {
   }
 }
 
-impl_num!(NetInfoPurpose, u8);
+impl_num!(NIPurpose, u8);
 
-impl fmt::Display for NetInfoPurpose {
+impl fmt::Display for NIPurpose {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::CoreP2p => write!(f, "core_p2p"),
@@ -95,7 +95,7 @@ pub struct NetInfoV2 {
   /// Format version.
   pub version: u8,
   /// Purpose-grouped entries.
-  pub entries: Vec<(NetInfoPurpose, Vec<NetInfoEntry>)>,
+  pub entries: Vec<(NIPurpose, Vec<NetInfoEntry>)>,
 }
 
 impl_type!(NetInfoV2);
@@ -106,7 +106,7 @@ impl BaseCodec for NetInfoV2 {
     let purpose_count = codec::read_compact_size(data, MAX_PURPOSES)?;
     let mut entries = Vec::with_capacity(purpose_count);
     for _ in 0..purpose_count {
-      let purpose = NetInfoPurpose::from_base(u8::decode(data)?);
+      let purpose = NIPurpose::from_base(u8::decode(data)?);
       let entry_count = codec::read_compact_size(data, MAX_ENTRIES)?;
       let mut group = Vec::with_capacity(entry_count);
       for _ in 0..entry_count {

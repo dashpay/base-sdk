@@ -20,7 +20,7 @@ mod proupservtx;
 mod quorum;
 
 use crate::prelude::*;
-use crate::types::{NetInfoEntry, NetInfoPurpose};
+use crate::types::{NIPurpose, NetInfoEntry};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
@@ -231,23 +231,21 @@ impl fmt::Display for ProTxInvalid {
 
 /// Checks that an extended net info payload is trivially valid.
 pub(crate) fn check_sptx_netinfo(
-  entries: &[(NetInfoPurpose, Vec<NetInfoEntry>)],
+  entries: &[(NIPurpose, Vec<NetInfoEntry>)],
   mn_type: MnType,
   can_store_platform: bool,
 ) -> Option<ProTxInvalid> {
-  let has_core = entries
-    .iter()
-    .any(|(p, e)| *p == NetInfoPurpose::CoreP2p && !e.is_empty());
+  let has_core = entries.iter().any(|(p, e)| *p == NIPurpose::CoreP2p && !e.is_empty());
   if !has_core {
     return Some(ProTxInvalid::NetInfoEmpty);
   }
 
   let has_platform_p2p = entries
     .iter()
-    .any(|(p, e)| *p == NetInfoPurpose::PlatformP2p && !e.is_empty());
+    .any(|(p, e)| *p == NIPurpose::PlatformP2p && !e.is_empty());
   let has_platform_https = entries
     .iter()
-    .any(|(p, e)| *p == NetInfoPurpose::PlatformHttps && !e.is_empty());
+    .any(|(p, e)| *p == NIPurpose::PlatformHttps && !e.is_empty());
 
   if mn_type == MnType::Regular && (has_platform_p2p || has_platform_https) {
     return Some(ProTxInvalid::NetInfoInvalid);
