@@ -69,7 +69,7 @@ impl fmt::Display for NIPurpose {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub enum NetInfoEntry {
+pub enum NIEntry {
   /// ADDRv1-style IP + port.
   Service(ServiceV1),
   /// Domain name + port.
@@ -95,7 +95,7 @@ pub struct NetInfoV2 {
   /// Format version.
   pub version: u8,
   /// Purpose-grouped entries.
-  pub entries: Vec<(NIPurpose, Vec<NetInfoEntry>)>,
+  pub entries: Vec<(NIPurpose, Vec<NIEntry>)>,
 }
 
 impl_type!(NetInfoV2);
@@ -112,13 +112,13 @@ impl BaseCodec for NetInfoV2 {
       for _ in 0..entry_count {
         let entry_type = u8::decode(data)?;
         let entry = match entry_type {
-          0x01 => NetInfoEntry::Service(ServiceV1::decode(data)?),
+          0x01 => NIEntry::Service(ServiceV1::decode(data)?),
           0x02 => {
             let name: Vec<u8> = Vec::decode(data)?;
             let port = codec::read_u16_be(data)?;
-            NetInfoEntry::Domain { name, port }
+            NIEntry::Domain { name, port }
           }
-          _ => NetInfoEntry::Invalid,
+          _ => NIEntry::Invalid,
         };
         group.push(entry);
       }
@@ -132,20 +132,20 @@ impl BaseCodec for NetInfoV2 {
     codec::write_compact_size(self.entries.len(), buf);
     for (purpose, group) in &self.entries {
       purpose.to_base().encode(buf);
-      let valid_count = group.iter().filter(|e| !matches!(e, NetInfoEntry::Invalid)).count();
+      let valid_count = group.iter().filter(|e| !matches!(e, NIEntry::Invalid)).count();
       codec::write_compact_size(valid_count, buf);
       for entry in group {
         match entry {
-          NetInfoEntry::Service(svc) => {
+          NIEntry::Service(svc) => {
             0x01u8.encode(buf);
             svc.encode(buf);
           }
-          NetInfoEntry::Domain { name, port } => {
+          NIEntry::Domain { name, port } => {
             0x02u8.encode(buf);
             name.encode(buf);
             buf.extend_from_slice(&port.to_be_bytes());
           }
-          NetInfoEntry::Invalid => {}
+          NIEntry::Invalid => {}
         }
       }
     }

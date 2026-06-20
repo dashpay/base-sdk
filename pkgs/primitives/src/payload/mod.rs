@@ -20,7 +20,7 @@ mod proupservtx;
 mod quorum;
 
 use crate::prelude::*;
-use crate::types::{NIPurpose, NetInfoEntry};
+use crate::types::{NIEntry, NIPurpose};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
@@ -231,7 +231,7 @@ impl fmt::Display for ProTxInvalid {
 
 /// Checks that an extended net info payload is trivially valid.
 pub(crate) fn check_sptx_netinfo(
-  entries: &[(NIPurpose, Vec<NetInfoEntry>)],
+  entries: &[(NIPurpose, Vec<NIEntry>)],
   mn_type: MnType,
   can_store_platform: bool,
 ) -> Option<ProTxInvalid> {
@@ -257,7 +257,7 @@ pub(crate) fn check_sptx_netinfo(
 
   for (_purpose, group) in entries {
     for entry in group {
-      if matches!(entry, NetInfoEntry::Invalid) {
+      if matches!(entry, NIEntry::Invalid) {
         return Some(ProTxInvalid::NetInfoInvalid);
       }
     }
