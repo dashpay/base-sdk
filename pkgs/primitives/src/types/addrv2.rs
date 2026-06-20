@@ -6,7 +6,7 @@
 
 //! BIP155 network address types (ADDRv2).
 
-use super::netaddr::NetworkType;
+use super::netaddr::{NetAddr, NetworkType};
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
@@ -125,6 +125,40 @@ impl AddrV2 {
       Self::Cjdns(b) => b,
       Self::Unknown { addr, .. } => addr,
     }
+  }
+}
+
+impl NetAddr for AddrV2 {
+  fn bytes(&self) -> &[u8] {
+    self.bytes()
+  }
+
+  fn network(&self) -> NetworkType {
+    self.network()
+  }
+
+  fn is_ipv4(&self) -> bool {
+    matches!(self, Self::Ipv4(_))
+  }
+
+  fn is_ipv6(&self) -> bool {
+    matches!(self, Self::Ipv6(_))
+  }
+
+  fn is_null(&self) -> bool {
+    self.bytes().iter().all(|&b| b == 0)
+  }
+
+  fn is_tor(&self) -> bool {
+    matches!(self, Self::TorV3(_))
+  }
+
+  fn is_i2p(&self) -> bool {
+    matches!(self, Self::I2p(_))
+  }
+
+  fn is_cjdns(&self) -> bool {
+    matches!(self, Self::Cjdns(_))
   }
 }
 
