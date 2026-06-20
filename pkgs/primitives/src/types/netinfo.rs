@@ -6,10 +6,10 @@
 
 //! Network information types and trait.
 
-use super::{ServiceV1, ServiceV2};
+use super::{NetAddrError, ServiceV1, ServiceV2};
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{impl_num, impl_type};
 
 use core::fmt;
@@ -104,6 +104,27 @@ impl fmt::Display for NIEntryCode {
     }
   }
 }
+
+/// Network info validation error.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum NIError {
+  /// Address failed validation.
+  BadAddr {
+    /// The underlying address error.
+    error: NetAddrError,
+  },
+}
+
+impl fmt::Display for NIError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::BadAddr { error } => write!(f, "invalid address: {error}"),
+    }
+  }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for NIError {}
 
 /// A single network info entry within a purpose group.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -303,6 +324,17 @@ impl BaseCodec for NetInfoV1 {
 
   fn encode(&self, buf: &mut Vec<u8>) {
     self.0.encode(buf);
+  }
+}
+
+impl Checkable for NetInfoV1 {
+  type Error = NIError;
+
+  fn check(&self) -> Option<Self::Error> {
+    if let Some(error) = self.0.check() {
+      return Some(NIError::BadAddr { error });
+    }
+    None
   }
 }
 
