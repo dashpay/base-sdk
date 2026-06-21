@@ -10,8 +10,8 @@ use crate::logging;
 use crate::policy;
 use crate::Application;
 
-use dash_primitives::Block;
-use dash_types::codec::{BaseCodec, DecodeError};
+use dash_primitives::{Block, BlockInvalid};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError};
 use rayon::prelude::*;
 
 use std::fmt;
@@ -43,6 +43,8 @@ pub enum BootstrapError {
   CborDecode { block: u64, error: String },
   /// CBOR round-trip did not reproduce the original block.
   CborRoundTrip { block: u64 },
+  /// A block failed structural consistency checks.
+  Check { block: u64, error: BlockInvalid },
   /// Aggregate error after `--no-fastfail` finishes with failures.
   Summary { errors: u64 },
 }
@@ -61,6 +63,7 @@ impl fmt::Display for BootstrapError {
       Self::CborEncode { block, error } => write!(f, "block {block}: cbor encode failed: {error}"),
       Self::CborDecode { block, error } => write!(f, "block {block}: cbor decode failed: {error}"),
       Self::CborRoundTrip { block } => write!(f, "block {block}: cbor round-trip mismatch"),
+      Self::Check { block, error } => write!(f, "block {block}: check failed: {error}"),
       Self::Summary { errors } => write!(f, "{errors} block(s) failed verification"),
     }
   }
@@ -210,6 +213,10 @@ fn verify_block(index: u64, data: &[u8]) -> Result<(), BootstrapError> {
     })?;
   if decoded_from_cbor != block {
     return Err(BootstrapError::CborRoundTrip { block: index });
+  }
+
+  if let Some(e) = block.check() {
+    return Err(BootstrapError::Check { block: index, error: e });
   }
 
   Ok(())
