@@ -7,12 +7,15 @@
 //! BIP155 network address types (ADDRv2).
 
 use super::netaddr::{NetAddr, NetworkType};
+use super::util::{base16_enc, base32r_enc};
 use crate::prelude::*;
 
+use bitcoin_hashes::sha3_256;
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
 use dash_types::impl_type;
 
 use core::fmt;
+use core::net::{Ipv4Addr, Ipv6Addr};
 
 /// Maximum raw address length for any known BIP155 network type.
 const MAX_ADDR_LEN: usize = 512;
@@ -164,7 +167,40 @@ impl NetAddr for AddrV2 {
 
 impl fmt::Display for AddrV2 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.network())
+    match self {
+      Self::Ipv4(b) => {
+        let ip = Ipv4Addr::new(b[0], b[1], b[2], b[3]);
+        write!(f, "{ip}")
+      }
+      Self::Ipv6(b) | Self::Cjdns(b) => {
+        let ip = Ipv6Addr::from(*b);
+        write!(f, "[{ip}]")
+      }
+      Self::TorV3(pubkey) => {
+        const VERSION: u8 = 3;
+        let mut pre = [0u8; 48];
+        pre[..15].copy_from_slice(b".onion checksum");
+        pre[15..47].copy_from_slice(pubkey);
+        pre[47] = VERSION;
+        let hash = sha3_256::Hash::hash(&pre);
+        let cs = hash.to_byte_array();
+        let mut buf = [0u8; 35];
+        buf[..32].copy_from_slice(pubkey);
+        buf[32] = cs[0];
+        buf[33] = cs[1];
+        buf[34] = VERSION;
+        base32r_enc(&buf, f)?;
+        f.write_str(".onion")
+      }
+      Self::I2p(b) => {
+        base32r_enc(b, f)?;
+        f.write_str(".b32.i2p")
+      }
+      Self::Unknown { network, addr } => {
+        write!(f, "{}:", NetworkType::Unknown(*network))?;
+        base16_enc(addr, f)
+      }
+    }
   }
 }
 
@@ -196,5 +232,88 @@ impl BaseCodec for ServiceV2 {
 impl fmt::Display for ServiceV2 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}:{}", self.addr, self.port)
+  }
+}
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use super::*;
+
+  use hex_literal::hex;
+  use rstest::rstest;
+
+  #[rstest]
+  #[case::torv3_vec1(
+    AddrV2::TorV3(hex!("79bcc625184b05194975c28b66b66b0469f7f6556fb1ac3189a79b40dda32f1f")),
+    "pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion",
+  )]
+  #[case::torv3_vec2(
+    AddrV2::TorV3(hex!("53cd5648488c4707914182655b7664034e09e66f7e8cbf1084e654eb56c5bd88")),
+    "kpgvmscirrdqpekbqjsvw5teanhatztpp2gl6eee4zkowvwfxwenqaid.onion",
+  )]
+  #[case::i2p(
+    AddrV2::I2p(hex!("a2894dabaec08c0051a481a6dac88b64f98232ae42d4b6fd2fa81952dfe36a87")),
+    "ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p",
+  )]
+  #[case::ipv4(AddrV2::Ipv4([1, 2, 3, 4]), "1.2.3.4")]
+  #[case::ipv6(
+    AddrV2::Ipv6(hex!("00000000000000000000000000000001")),
+    "[::1]",
+  )]
+  #[case::cjdns(
+    AddrV2::Cjdns(hex!("fc000000000000000000000000000001")),
+    "[fc00::1]",
+  )]
+  fn display(#[case] addr: AddrV2, #[case] expected: &str) {
+    assert_eq!(addr.to_string(), expected);
+  }
+
+  #[rstest]
+  #[case::ipv4(AddrV2::Ipv4([1, 2, 3, 4]))]
+  #[case::ipv6(AddrV2::Ipv6(hex!("20010db8000000000000000000000001")))]
+  fn codec_roundtrip(#[case] addr: AddrV2) {
+    let mut buf = Vec::new();
+    addr.encode(&mut buf);
+    let decoded = AddrV2::decode(&mut buf.as_slice()).unwrap();
+    assert_eq!(decoded, addr);
+  }
+
+  #[rstest]
+  fn roundtrip_service() {
+    let svc = ServiceV2 {
+      addr: AddrV2::Ipv4([10, 0, 0, 1]),
+      port: 9999,
+    };
+    let mut buf = Vec::new();
+    svc.encode(&mut buf);
+    let decoded = ServiceV2::decode(&mut buf.as_slice()).unwrap();
+    assert_eq!(decoded, svc);
+  }
+
+  #[rstest]
+  fn netaddr_classification() {
+    assert!(AddrV2::Ipv4([10, 0, 0, 1]).is_rfc1918());
+    assert!(AddrV2::Ipv4([8, 8, 8, 8]).is_routable());
+    assert!(!AddrV2::Ipv4([127, 0, 0, 1]).is_routable());
+    assert!(AddrV2::Ipv4([127, 0, 0, 1]).is_local());
+    assert!(AddrV2::Ipv4([0, 0, 0, 0]).is_null());
+    assert!(AddrV2::TorV3([1; 32]).is_tor());
+    assert!(AddrV2::I2p([1; 32]).is_i2p());
+    assert!(AddrV2::Cjdns([0xfc; 16]).is_cjdns());
+    assert!(AddrV2::TorV3([1; 32]).is_privacy_net());
+    assert!(AddrV2::TorV3([1; 32]).is_routable());
+  }
+
+  #[rstest]
+  fn wire_compat_with_old_format() {
+    // Verify the wire encoding is identical to the old
+    // AddrV2 struct format: network byte + compact-size
+    // length + address bytes.
+    let addr = AddrV2::Ipv4([1, 2, 3, 4]);
+    let mut buf = Vec::new();
+    addr.encode(&mut buf);
+    // 0x01 (ipv4) + 0x04 (length) + 01020304
+    assert_eq!(buf, vec![0x01, 0x04, 1, 2, 3, 4]);
   }
 }

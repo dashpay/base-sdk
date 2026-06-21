@@ -8,7 +8,8 @@
 
 pub(crate) use alloc::collections::BTreeSet;
 pub(crate) use alloc::format;
-pub(crate) use alloc::string::String;
+pub(crate) use alloc::string::{String, ToString};
+pub(crate) use alloc::vec;
 pub(crate) use alloc::vec::Vec;
 
 // Shim for f64::round(), see rust-lang/rust#137578.
