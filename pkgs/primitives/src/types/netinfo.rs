@@ -268,6 +268,39 @@ impl fmt::Display for NetInfoV1 {
   }
 }
 
+impl NITrait for NetInfoV1 {
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_ {
+    let entry = if self.is_empty() {
+      None
+    } else {
+      match purpose {
+        None | Some(NIPurpose::CoreP2p) => Some(NIEntry::Service(ServiceV2::from(&self.0))),
+        Some(_) => None,
+      }
+    };
+    entry.into_iter()
+  }
+
+  fn primary(&self) -> Option<ServiceV2> {
+    if self.is_empty() {
+      return None;
+    }
+    Some(ServiceV2::from(&self.0))
+  }
+
+  fn is_empty(&self) -> bool {
+    self.0.addr.is_null() && self.0.port == 0
+  }
+
+  fn has_entries(&self, purpose: NIPurpose) -> bool {
+    purpose == NIPurpose::CoreP2p && !self.is_empty()
+  }
+
+  fn stores_platform(&self) -> bool {
+    false
+  }
+}
+
 /// Masternode network info: legacy ServiceV1 or structured extended format.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
