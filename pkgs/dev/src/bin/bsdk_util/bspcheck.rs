@@ -12,11 +12,14 @@ use crate::Application;
 
 use dash_primitives::Block;
 use dash_types::codec::{BaseCodec, DecodeError};
+use rayon::prelude::*;
 
 use std::fmt;
 use std::fs;
 use std::fs::File;
 use std::io::{self, BufReader, Read};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Mutex;
 use std::time::Instant;
 
 /// Errors that can occur during chain verification.
@@ -145,12 +148,28 @@ pub fn run(app: &Application, file: &str, no_fastfail: bool) -> Result<(), Boots
   let mut genesis_data = vec![0u8; first_header.size as usize];
   reader.read_exact(&mut genesis_data)?;
 
-  logging::log_msg(app, &format!("Genesis block: {} bytes", genesis_data.len()));
+  verify_chunks(app, &mut reader, genesis_data, no_fastfail, start)
+}
+
+fn verify_chunks(
+  app: &Application,
+  reader: &mut BufReader<Box<dyn Read>>,
+  genesis_data: Vec<u8>,
+  no_fastfail: bool,
+  start: Instant,
+) -> Result<(), BootstrapError> {
+  let interrupted = AtomicBool::new(false);
+  let first_error: Mutex<Option<BootstrapError>> = Mutex::new(None);
+  let error_count = AtomicU64::new(0);
+  let ok_count = AtomicU64::new(0);
 
   match verify_block(0, &genesis_data) {
-    Ok(()) => {}
+    Ok(()) => {
+      ok_count.fetch_add(1, Ordering::Relaxed);
+    }
     Err(e) => {
       logging::log_msg(app, &format!("Error: {e}"));
+      error_count.fetch_add(1, Ordering::Relaxed);
       if !no_fastfail {
         return Err(e);
       }
@@ -159,31 +178,52 @@ pub fn run(app: &Application, file: &str, no_fastfail: bool) -> Result<(), Boots
 
   drop(genesis_data);
 
-  let (chunk, _chunk_bytes, _reached_eof) = diskfmt::read_all(&mut reader, app)?;
+  let (chunk, _chunk_bytes, _reached_eof) = diskfmt::read_all(reader, app)?;
 
-  let mut errors: u64 = 0;
-  for (idx, data) in &chunk {
+  chunk.par_iter().for_each(|(idx, data)| {
+    if !no_fastfail && interrupted.load(Ordering::Acquire) {
+      return;
+    }
+
     match verify_block(*idx, data) {
-      Ok(()) => {}
+      Ok(()) => {
+        ok_count.fetch_add(1, Ordering::Relaxed);
+      }
       Err(e) => {
         logging::log_msg(app, &format!("Error: {e}"));
-        errors += 1;
+        error_count.fetch_add(1, Ordering::Relaxed);
         if !no_fastfail {
-          return Err(e);
+          interrupted.store(true, Ordering::Release);
+          logging::log_msg(app, "Interrupting remaining blocks");
+          let mut guard = first_error.lock().unwrap_or_else(|p| p.into_inner());
+          if guard.is_none() {
+            *guard = Some(e);
+          }
         }
       }
     }
+  });
+
+  let ok = ok_count.load(Ordering::Relaxed);
+  let errs = error_count.load(Ordering::Relaxed);
+  let verified = ok + errs;
+  let total = chunk.len() as u64 + 1;
+  let skipped = total - verified;
+
+  let runtime = logging::format_runtime(start.elapsed());
+  logging::log_msg(app, &format!("Verified: {ok}/{verified} blocks in {runtime}"));
+  if skipped > 0 {
+    logging::log_msg(app, &format!("Skipped: {skipped} blocks (interrupted)"));
   }
 
-  let total = chunk.len() as u64 + 1;
-  let runtime = logging::format_runtime(start.elapsed());
-  logging::log_msg(
-    app,
-    &format!("Verified: {}/{total} blocks in {runtime}", total - errors),
-  );
-
-  if errors > 0 {
-    return Err(BootstrapError::Summary { errors });
+  if errs > 0 {
+    if no_fastfail {
+      return Err(BootstrapError::Summary { errors: errs });
+    }
+    if let Some(e) = first_error.lock().unwrap_or_else(|p| p.into_inner()).take() {
+      return Err(e);
+    }
+    return Err(BootstrapError::Summary { errors: errs });
   }
 
   logging::log_msg(app, "All blocks passed verification");

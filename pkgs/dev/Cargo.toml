@@ -22,7 +22,7 @@ std = [
 ]
 full = ["std", "serde"]
 serde = ["dep:serde", "dash-primitives/serde", "dash-types/serde"]
-bin = ["full", "dep:chrono", "dep:clap"]
+bin = ["full", "dep:chrono", "dep:clap", "dep:rayon"]
 _internal = []
 
 [build-dependencies]
@@ -51,6 +51,7 @@ clap = { version = "4", default-features = false, features = [
   "error-context",
 ], optional = true }
 json5 = { version = "0.4", optional = true }
+rayon = { version = "1", optional = true }
 serde = { version = "1", default-features = false, features = [
   "derive",
   "alloc",
