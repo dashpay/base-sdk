@@ -6,13 +6,14 @@
 
 //! BIP155 network address types (ADDRv2).
 
+use super::addrv1::{AddrV1, ServiceV1};
 use super::netaddr::{NetAddr, NetworkType};
 use super::util::{base16_enc, base32r_enc};
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
-use dash_types::impl_type;
+use dash_types::{impl_type, type_cvrt};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};
@@ -204,6 +205,15 @@ impl fmt::Display for AddrV2 {
   }
 }
 
+type_cvrt!(From<AddrV1> for AddrV2, |v1| {
+  if v1.is_ipv4() {
+    let b = v1.as_bytes();
+    Self::Ipv4([b[12], b[13], b[14], b[15]])
+  } else {
+    Self::Ipv6(*v1.as_bytes())
+  }
+});
+
 /// BIP155 network service (address + port).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -234,6 +244,13 @@ impl fmt::Display for ServiceV2 {
     write!(f, "{}:{}", self.addr, self.port)
   }
 }
+
+type_cvrt!(From<ServiceV1> for ServiceV2, |v1| {
+  Self {
+    addr: AddrV2::from(&v1.addr),
+    port: v1.port,
+  }
+});
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
