@@ -82,6 +82,29 @@ impl fmt::Display for NetworkType {
   }
 }
 
+/// Network address validation error.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum NetAddrError {
+  /// Address type not representable in target format.
+  AddrTooNew {
+    /// The incompatible network type.
+    network: NetworkType,
+  },
+}
+
+impl fmt::Display for NetAddrError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::AddrTooNew { network } => {
+        write!(f, "{network} address type not supported")
+      }
+    }
+  }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for NetAddrError {}
+
 /// Shared classification interface for network addresses.
 ///
 /// Both legacy (`AddrV1`) and modern (`AddrV2`) address types

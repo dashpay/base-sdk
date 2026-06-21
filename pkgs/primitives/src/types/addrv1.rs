@@ -6,11 +6,12 @@
 
 //! Legacy ADDRv1 address and service types.
 
-use super::netaddr::{NetAddr, NetworkType};
+use super::addrv2::{AddrV2, ServiceV2};
+use super::netaddr::{NetAddr, NetAddrError, NetworkType};
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError};
-use dash_types::{impl_bytes, impl_type};
+use dash_types::{impl_bytes, impl_type, type_cvrt};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};
@@ -134,6 +135,21 @@ impl fmt::Display for AddrV1 {
   }
 }
 
+type_cvrt!(TryFrom<AddrV2> for AddrV1, NetAddrError, |addr| {
+  match addr {
+    AddrV2::Ipv4(b) => {
+      let mut arr = [0u8; 16];
+      arr[..12].copy_from_slice(&IPV4_MAPPED_PREFIX);
+      arr[12..].copy_from_slice(b);
+      Ok(Self(arr))
+    }
+    AddrV2::Ipv6(b) => Ok(Self(*b)),
+    other => Err(NetAddrError::AddrTooNew {
+      network: other.network(),
+    }),
+  }
+});
+
 /// Legacy network address (ADDRv1 format, 18 bytes).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -166,3 +182,10 @@ impl fmt::Display for ServiceV1 {
     write!(f, "{}:{}", self.addr, self.port)
   }
 }
+
+type_cvrt!(TryFrom<ServiceV2> for ServiceV1, NetAddrError, |v2| {
+  Ok(Self {
+    addr: AddrV1::try_from(&v2.addr)?,
+    port: v2.port,
+  })
+});
