@@ -96,6 +96,24 @@ impl fmt::Display for NIEntry {
   }
 }
 
+/// Interface for network information types.
+pub trait NITrait: fmt::Display {
+  /// Returns entries, optionally filtered by purpose.
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_;
+
+  /// Returns the primary service if available.
+  fn primary(&self) -> Option<ServiceV2>;
+
+  /// Returns `true` when this value carries no addresses.
+  fn is_empty(&self) -> bool;
+
+  /// Returns `true` if entries exist for the given purpose.
+  fn has_entries(&self, purpose: NIPurpose) -> bool;
+
+  /// Returns `true` when this type can carry platform addresses.
+  fn stores_platform(&self) -> bool;
+}
+
 /// Extended network info for v3+ ProRegTx / ProUpServTx.
 ///
 /// Contains a versioned list of purpose-grouped network entries (core P2P,
@@ -185,6 +203,41 @@ impl fmt::Display for NetInfoV2 {
       f.write_str("]")?;
     }
     f.write_str(")")
+  }
+}
+
+impl NITrait for NetInfoV2 {
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_ {
+    self
+      .entries
+      .iter()
+      .filter(move |(pp, _)| purpose.is_none() || purpose == Some(*pp))
+      .flat_map(|(_, group)| group.iter().cloned())
+  }
+
+  fn primary(&self) -> Option<ServiceV2> {
+    self
+      .entries
+      .iter()
+      .find(|(p, e)| *p == NIPurpose::CoreP2p && !e.is_empty())
+      .and_then(|(_, entries)| {
+        entries.iter().find_map(|e| match e {
+          NIEntry::Service(svc) => Some(svc.clone()),
+          _ => None,
+        })
+      })
+  }
+
+  fn is_empty(&self) -> bool {
+    self.entries.iter().all(|(_, group)| group.is_empty())
+  }
+
+  fn has_entries(&self, purpose: NIPurpose) -> bool {
+    self.entries.iter().any(|(p, e)| *p == purpose && !e.is_empty())
+  }
+
+  fn stores_platform(&self) -> bool {
+    true
   }
 }
 
