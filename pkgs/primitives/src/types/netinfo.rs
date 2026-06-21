@@ -4,9 +4,9 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Extended network info types for v3+ provider transactions.
+//! Network information types and trait.
 
-use super::ServiceV1;
+use super::{ServiceV1, ServiceV2};
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
@@ -70,8 +70,8 @@ impl fmt::Display for NIPurpose {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NIEntry {
-  /// ADDRv1-style IP + port.
-  Service(ServiceV1),
+  /// BIP155 address + port.
+  Service(ServiceV2),
   /// Domain name + port.
   Domain {
     /// The domain name as raw bytes.
@@ -125,9 +125,10 @@ impl BaseCodec for NetInfoV2 {
       for _ in 0..entry_count {
         let entry_type = u8::decode(data)?;
         let entry = match entry_type {
-          0x01 => NIEntry::Service(ServiceV1::decode(data)?),
+          0x01 => NIEntry::Service(ServiceV2::decode(data)?),
           0x02 => {
-            let name: Vec<u8> = Vec::decode(data)?;
+            let name_len = codec::read_compact_size(data, data.len())?;
+            let name = codec::read_bytes(data, name_len)?.to_vec();
             let port = codec::read_u16_be(data)?;
             NIEntry::Domain { name, port }
           }
@@ -145,9 +146,9 @@ impl BaseCodec for NetInfoV2 {
     codec::write_compact_size(self.entries.len(), buf);
     for (purpose, group) in &self.entries {
       purpose.to_base().encode(buf);
-      let valid_count = group.iter().filter(|e| !matches!(e, NIEntry::Invalid)).count();
-      codec::write_compact_size(valid_count, buf);
-      for entry in group {
+      let valid = group.iter().filter(|e| !matches!(e, NIEntry::Invalid));
+      codec::write_compact_size(valid.clone().count(), buf);
+      for entry in valid {
         match entry {
           NIEntry::Service(svc) => {
             0x01u8.encode(buf);
