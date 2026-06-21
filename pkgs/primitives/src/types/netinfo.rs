@@ -241,6 +241,33 @@ impl NITrait for NetInfoV2 {
   }
 }
 
+/// Legacy network information wrapper.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct NetInfoV1(pub ServiceV1);
+
+impl_type!(NetInfoV1);
+
+impl BaseCodec for NetInfoV1 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    Ok(Self(ServiceV1::decode(data)?))
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.0.encode(buf);
+  }
+}
+
+impl fmt::Display for NetInfoV1 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    if self.0.addr.is_null() && self.0.port == 0 {
+      return f.write_str("NetInfoV1()");
+    }
+    write!(f, "NetInfoV1({})", self.0)
+  }
+}
+
 /// Masternode network info: legacy ServiceV1 or structured extended format.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
