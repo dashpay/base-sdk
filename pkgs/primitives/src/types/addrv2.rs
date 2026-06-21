@@ -12,7 +12,7 @@ use super::util::{base16_dec, base16_enc, base32r_dec, base32r_enc};
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{impl_type, type_cvrt};
 
 use core::fmt;
@@ -106,6 +106,52 @@ impl BaseCodec for AddrV2 {
 }
 
 impl_type!(AddrV2);
+
+impl Checkable for AddrV2 {
+  type Error = NetAddrError;
+
+  fn check(&self) -> Option<Self::Error> {
+    if self.is_null() {
+      return Some(NetAddrError::BadRange { value: 0 });
+    }
+    match self {
+      Self::Ipv4(b) => {
+        // broadcast address (255.255.255.255)
+        if *b == [255; 4] {
+          return Some(NetAddrError::BadRange { value: 255 });
+        }
+      }
+      Self::Ipv6(b) => {
+        // fc00::/8 belongs in the Cjdns variant per BIP155.
+        if b[0] == 0xfc {
+          return Some(NetAddrError::BadRange { value: 0xfc });
+        }
+      }
+      Self::Cjdns(b) => {
+        if b[0] != 0xfc {
+          return Some(NetAddrError::BadRange { value: b[0] });
+        }
+      }
+      Self::Unknown { network, addr } => {
+        // Known network IDs must use their typed variant.
+        if NetworkType::from_base(*network).expected_len().is_some() {
+          return Some(NetAddrError::BadRange { value: *network });
+        }
+        if addr.len() > MAX_ADDR_LEN {
+          return Some(NetAddrError::BadLen {
+            expected: MAX_ADDR_LEN,
+            actual: addr.len(),
+          });
+        }
+      }
+      _ => {}
+    }
+    if self.is_rfc3849() {
+      return Some(NetAddrError::BadRange { value: 0xb8 });
+    }
+    None
+  }
+}
 
 impl AddrV2 {
   /// Returns the BIP155 network type for this address.
@@ -303,6 +349,22 @@ impl BaseCodec for ServiceV2 {
   }
 }
 
+impl Checkable for ServiceV2 {
+  type Error = NetAddrError;
+
+  fn check(&self) -> Option<Self::Error> {
+    // I2P SAM 3.1 does not use ports; port must be exactly 0.
+    if self.addr.is_i2p() {
+      if self.port != 0 {
+        return Some(NetAddrError::BadPort { port: self.port });
+      }
+    } else if self.port == 0 {
+      return Some(NetAddrError::BadPort { port: 0 });
+    }
+    self.addr.check()
+  }
+}
+
 impl fmt::Display for ServiceV2 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}:{}", self.addr, self.port)
@@ -407,6 +469,56 @@ mod tests {
     addr.encode(&mut buf);
     // 0x01 (ipv4) + 0x04 (length) + 01020304
     assert_eq!(buf, vec![0x01, 0x04, 1, 2, 3, 4]);
+  }
+
+  #[rstest]
+  #[case::ipv4_null(AddrV2::Ipv4([0; 4]), Some(NetAddrError::BadRange { value: 0 }))]
+  #[case::ipv4_broadcast(AddrV2::Ipv4([255; 4]), Some(NetAddrError::BadRange { value: 255 }))]
+  #[case::ipv4_valid(AddrV2::Ipv4([8, 8, 8, 8]), None)]
+  #[case::ipv4_low(AddrV2::Ipv4([0, 1, 2, 3]), None)]
+  #[case::ipv4_high(AddrV2::Ipv4([240, 0, 0, 1]), None)]
+  #[case::ipv6_null(AddrV2::Ipv6([0; 16]), Some(NetAddrError::BadRange { value: 0 }))]
+  #[case::ipv6_rfc3849(
+    AddrV2::Ipv6(hex!("20010db8000000000000000000000001")),
+    Some(NetAddrError::BadRange { value: 0xb8 }),
+  )]
+  #[case::ipv6_valid(AddrV2::Ipv6(hex!("20010000000000000000000000000001")), None)]
+  #[case::cjdns_bad_prefix(
+    AddrV2::Cjdns(hex!("fd000000000000000000000000000001")),
+    Some(NetAddrError::BadRange { value: 0xfd }),
+  )]
+  #[case::cjdns_valid(AddrV2::Cjdns(hex!("fc000000000000000000000000000001")), None)]
+  #[case::ipv6_cjdns_range(
+    AddrV2::Ipv6(hex!("fc000000000000000000000000000001")),
+    Some(NetAddrError::BadRange { value: 0xfc }),
+  )]
+  #[case::unknown_known_id(
+    AddrV2::Unknown { network: 1, addr: vec![1, 2, 3, 4] },
+    Some(NetAddrError::BadRange { value: 1 }),
+  )]
+  #[case::unknown_valid(
+    AddrV2::Unknown { network: 99, addr: vec![1, 2] },
+    None,
+  )]
+  #[case::tor_valid(AddrV2::TorV3([1; 32]), None)]
+  #[case::i2p_valid(AddrV2::I2p([1; 32]), None)]
+  fn check_addr(#[case] addr: AddrV2, #[case] expected: Option<NetAddrError>) {
+    assert_eq!(addr.check(), expected);
+  }
+
+  #[rstest]
+  #[case::zero_port(AddrV2::Ipv4([8, 8, 8, 8]), 0, Some(NetAddrError::BadPort { port: 0 }))]
+  #[case::delegates_to_addr(
+    AddrV2::Cjdns(hex!("fd000000000000000000000000000001")),
+    8333,
+    Some(NetAddrError::BadRange { value: 0xfd }),
+  )]
+  #[case::delegates_null(AddrV2::Ipv4([0; 4]), 8333, Some(NetAddrError::BadRange { value: 0 }))]
+  #[case::valid(AddrV2::Ipv4([8, 8, 8, 8]), 8333, None)]
+  #[case::i2p_port_zero(AddrV2::I2p([1; 32]), 0, None)]
+  #[case::i2p_nonzero_port(AddrV2::I2p([1; 32]), 9999, Some(NetAddrError::BadPort { port: 9999 }))]
+  fn check_service(#[case] addr: AddrV2, #[case] port: u16, #[case] expected: Option<NetAddrError>) {
+    assert_eq!(ServiceV2 { addr, port }.check(), expected);
   }
 
   #[rstest]
