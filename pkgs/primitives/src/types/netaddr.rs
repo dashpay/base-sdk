@@ -85,6 +85,11 @@ impl fmt::Display for NetworkType {
 /// Network address validation error.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum NetAddrError {
+  /// Numeric value outside structural bounds.
+  BadRange {
+    /// The out-of-range value.
+    value: u8,
+  },
   /// Invalid character in encoded address.
   BadChar {
     /// The offending byte.
@@ -114,6 +119,11 @@ pub enum NetAddrError {
     /// The version byte.
     version: u8,
   },
+  /// Port outside u16 range or zero.
+  BadPort {
+    /// The invalid port value.
+    port: u16,
+  },
   /// Address type not representable in target format.
   AddrTooNew {
     /// The incompatible network type.
@@ -124,6 +134,9 @@ pub enum NetAddrError {
 impl fmt::Display for NetAddrError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
+      Self::BadRange { value } => {
+        write!(f, "value 0x{value:02x} out of range")
+      }
       Self::BadChar { byte } => {
         write!(f, "invalid character 0x{byte:02x}")
       }
@@ -142,6 +155,9 @@ impl fmt::Display for NetAddrError {
       }
       Self::BadVersion { version } => {
         write!(f, "unsupported version {version}")
+      }
+      Self::BadPort { port } => {
+        write!(f, "invalid port {port}")
       }
       Self::AddrTooNew { network } => {
         write!(f, "{network} address type not supported")

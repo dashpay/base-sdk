@@ -10,7 +10,7 @@ use super::addrv2::{AddrV2, ServiceV2};
 use super::netaddr::{NetAddr, NetAddrError, NetworkType};
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
 use dash_types::{impl_bytes, impl_type, type_cvrt};
 
 use core::fmt;
@@ -25,6 +25,28 @@ const IPV4_MAPPED_PREFIX: [u8; 12] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
 pub struct AddrV1(pub [u8; 16]);
 
 impl_bytes!(16, AddrV1);
+
+impl Checkable for AddrV1 {
+  type Error = NetAddrError;
+
+  fn check(&self) -> Option<Self::Error> {
+    if self.is_null() {
+      return Some(NetAddrError::BadRange { value: 0 });
+    }
+    // IPv4-mapped null (::ffff:0.0.0.0) has a non-zero prefix
+    // so the all-zeros check above does not catch it.
+    if self.is_ipv4() && self.0[12..] == [0; 4] {
+      return Some(NetAddrError::BadRange { value: 0 });
+    }
+    if self.is_ipv4() && self.0[12..] == [255; 4] {
+      return Some(NetAddrError::BadRange { value: 255 });
+    }
+    if NetAddr::is_rfc3849(self) {
+      return Some(NetAddrError::BadRange { value: 0xb8 });
+    }
+    None
+  }
+}
 
 impl AddrV1 {
   /// Returns the inner byte array.
@@ -207,6 +229,17 @@ impl BaseCodec for ServiceV1 {
   }
 }
 
+impl Checkable for ServiceV1 {
+  type Error = NetAddrError;
+
+  fn check(&self) -> Option<Self::Error> {
+    if self.port == 0 {
+      return Some(NetAddrError::BadPort { port: 0 });
+    }
+    self.addr.check()
+  }
+}
+
 impl fmt::Display for ServiceV1 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}:{}", self.addr, self.port)
@@ -254,4 +287,181 @@ pub(super) fn split_service_str(s: &str) -> Result<(&str, u16), NetAddrError> {
   let port_str = &s[colon + 1..];
   let port: u16 = port_str.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
   Ok((addr_str, port))
+}
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use super::*;
+
+  use hex_literal::hex;
+  use rstest::rstest;
+
+  #[rstest]
+  #[case::ipv4("1.2.3.4", hex!("00000000000000000000ffff01020304"))]
+  #[case::loopback("127.0.0.1", hex!("00000000000000000000ffff7f000001"))]
+  #[case::ipv6("[::1]", hex!("00000000000000000000000000000001"))]
+  #[case::ipv6_full("[2001:db8::1]", hex!("20010db8000000000000000000000001"))]
+  fn addr_roundtrip(#[case] s: &str, #[case] raw: [u8; 16]) {
+    let parsed: AddrV1 = s.parse().unwrap();
+    assert_eq!(parsed, AddrV1(raw));
+    assert_eq!(parsed.to_string(), s);
+  }
+
+  #[rstest]
+  #[case::ipv4("1.2.3.4:8333")]
+  #[case::ipv6("[::1]:9999")]
+  fn service_roundtrip(#[case] s: &str) {
+    let parsed: ServiceV1 = s.parse().unwrap();
+    assert_eq!(parsed.to_string(), s);
+  }
+
+  #[rstest]
+  #[case::local("127.0.0.1", true)]
+  #[case::rfc1918("10.0.0.1", false)]
+  #[case::routable("1.2.3.4", false)]
+  #[case::ipv6_local("[::1]", true)]
+  fn is_local(#[case] s: &str, #[case] expected: bool) {
+    let addr: AddrV1 = s.parse().unwrap();
+    assert_eq!(NetAddr::is_local(&addr), expected);
+  }
+
+  #[rstest]
+  #[case::routable("1.2.3.4", true)]
+  #[case::local("127.0.0.1", false)]
+  #[case::private("10.0.0.1", false)]
+  fn is_routable(#[case] s: &str, #[case] expected: bool) {
+    let addr: AddrV1 = s.parse().unwrap();
+    assert_eq!(NetAddr::is_routable(&addr), expected);
+  }
+
+  #[rstest]
+  #[case::yes("10.0.0.1", true)]
+  #[case::no("8.8.8.8", false)]
+  fn is_rfc1918(#[case] s: &str, #[case] expected: bool) {
+    let addr: AddrV1 = s.parse().unwrap();
+    assert_eq!(NetAddr::is_rfc1918(&addr), expected);
+  }
+
+  #[rstest]
+  #[case::null([0u8; 16], Some(NetAddrError::BadRange { value: 0 }))]
+  #[case::ipv4_null(
+    hex!("00000000000000000000ffff00000000"),
+    Some(NetAddrError::BadRange { value: 0 }),
+  )]
+  #[case::broadcast(
+    hex!("00000000000000000000ffffffffffff"),
+    Some(NetAddrError::BadRange { value: 255 }),
+  )]
+  #[case::rfc3849(
+    hex!("20010db8000000000000000000000001"),
+    Some(NetAddrError::BadRange { value: 0xb8 }),
+  )]
+  #[case::valid(hex!("00000000000000000000ffff08080808"), None)]
+  fn check_addr(#[case] raw: [u8; 16], #[case] expected: Option<NetAddrError>) {
+    assert_eq!(AddrV1(raw).check(), expected);
+  }
+
+  #[rstest]
+  #[case::zero_port("8.8.8.8", 0, Some(NetAddrError::BadPort { port: 0 }))]
+  #[case::null_addr([0u8; 16], 8333, Some(NetAddrError::BadRange { value: 0 }))]
+  #[case::valid("8.8.8.8", 8333, None)]
+  fn check_service(
+    #[case] input: impl Into<CheckServiceInput>,
+    #[case] port: u16,
+    #[case] expected: Option<NetAddrError>,
+  ) {
+    let addr = input.into().0;
+    assert_eq!(ServiceV1 { addr, port }.check(), expected);
+  }
+
+  /// Helper for polymorphic test inputs in `check_service`.
+  struct CheckServiceInput(AddrV1);
+
+  impl From<&str> for CheckServiceInput {
+    fn from(s: &str) -> Self {
+      Self(s.parse().unwrap())
+    }
+  }
+
+  impl From<[u8; 16]> for CheckServiceInput {
+    fn from(raw: [u8; 16]) -> Self {
+      Self(AddrV1(raw))
+    }
+  }
+
+  #[rstest]
+  #[case::ipv4("1.2.3.4", AddrV2::Ipv4([1, 2, 3, 4]))]
+  #[case::ipv6(
+    "[2001:db8::1]",
+    AddrV2::Ipv6(hex!("20010db8000000000000000000000001")),
+  )]
+  fn from_addrv1(#[case] s: &str, #[case] expected: AddrV2) {
+    let v1: AddrV1 = s.parse().unwrap();
+    assert_eq!(AddrV2::from(v1), expected);
+  }
+
+  #[rstest]
+  #[case::ipv4(AddrV2::Ipv4([1, 2, 3, 4]), "1.2.3.4")]
+  #[case::ipv6(
+    AddrV2::Ipv6(hex!("20010db8000000000000000000000001")),
+    "[2001:db8::1]",
+  )]
+  fn try_from_addrv2_ok(#[case] v2: AddrV2, #[case] s: &str) {
+    let v1 = AddrV1::try_from(v2).unwrap();
+    assert_eq!(v1.to_string(), s);
+  }
+
+  #[rstest]
+  #[case::tor(AddrV2::TorV3([1; 32]), NetworkType::TorV3)]
+  #[case::i2p(AddrV2::I2p([1; 32]), NetworkType::I2p)]
+  #[case::cjdns(AddrV2::Cjdns([0xfc; 16]), NetworkType::Cjdns)]
+  fn try_from_addrv2_fails(#[case] v2: AddrV2, #[case] net: NetworkType) {
+    let err = AddrV1::try_from(v2).unwrap_err();
+    assert_eq!(err, NetAddrError::AddrTooNew { network: net });
+  }
+
+  #[rstest]
+  #[case::onion("pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion", NetworkType::TorV3)]
+  #[case::i2p("ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p", NetworkType::I2p)]
+  fn from_str_rejects(#[case] s: &str, #[case] net: NetworkType) {
+    let err = s.parse::<AddrV1>().unwrap_err();
+    assert_eq!(err, NetAddrError::AddrTooNew { network: net });
+  }
+
+  #[rstest]
+  fn service_from_v1() {
+    let v1 = ServiceV1 {
+      addr: "1.2.3.4".parse().unwrap(),
+      port: 8333,
+    };
+    let v2 = ServiceV2::from(v1);
+    assert_eq!(v2.addr, AddrV2::Ipv4([1, 2, 3, 4]));
+    assert_eq!(v2.port, 8333);
+  }
+
+  #[rstest]
+  fn service_try_from_v2() {
+    let v2 = ServiceV2 {
+      addr: AddrV2::Ipv4([1, 2, 3, 4]),
+      port: 8333,
+    };
+    let v1 = ServiceV1::try_from(v2).unwrap();
+    assert_eq!(v1.to_string(), "1.2.3.4:8333");
+  }
+
+  #[rstest]
+  fn service_try_from_v2_tor_fails() {
+    let v2 = ServiceV2 {
+      addr: AddrV2::TorV3([1; 32]),
+      port: 8333,
+    };
+    let err = ServiceV1::try_from(v2).unwrap_err();
+    assert_eq!(
+      err,
+      NetAddrError::AddrTooNew {
+        network: NetworkType::TorV3,
+      }
+    );
+  }
 }
