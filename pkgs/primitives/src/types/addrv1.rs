@@ -13,6 +13,7 @@ use dash_types::codec::{self, BaseCodec, DecodeError};
 use dash_types::{impl_bytes, impl_type};
 
 use core::fmt;
+use core::net::{Ipv4Addr, Ipv6Addr};
 
 /// First 12 bytes of an IPv4-mapped IPv6 address.
 const IPV4_MAPPED_PREFIX: [u8; 12] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
@@ -121,6 +122,18 @@ impl NetAddr for AddrV1 {
   }
 }
 
+impl fmt::Display for AddrV1 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    if self.is_ipv4() {
+      let ip = Ipv4Addr::new(self.0[12], self.0[13], self.0[14], self.0[15]);
+      write!(f, "{ip}")
+    } else {
+      let ip = Ipv6Addr::from(self.0);
+      write!(f, "[{ip}]")
+    }
+  }
+}
+
 /// Legacy network address (ADDRv1 format, 18 bytes).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -145,5 +158,11 @@ impl BaseCodec for ServiceV1 {
   fn encode(&self, buf: &mut Vec<u8>) {
     self.addr.encode(buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
+  }
+}
+
+impl fmt::Display for ServiceV1 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}:{}", self.addr, self.port)
   }
 }
