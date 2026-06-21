@@ -10,7 +10,7 @@ use crate::logging;
 use crate::policy;
 use crate::Application;
 
-use dash_primitives::{Block, BlockInvalid};
+use dash_primitives::{Block, BlockHash, BlockInvalid};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError};
 use rayon::prelude::*;
 
@@ -31,6 +31,14 @@ pub enum BootstrapError {
   Io(String),
   /// The input contained no frames at all.
   EmptyInput,
+  /// The first frame's magic bytes do not match any known network.
+  UnknownMagic { magic: [u8; 4] },
+  /// A frame's magic bytes do not match the detected network.
+  BadMagic {
+    block: u64,
+    expected: [u8; 4],
+    actual: [u8; 4],
+  },
   /// A frame payload exceeds the maximum allowed size.
   OversizedFrame { block: u64, size: u32, max: u32 },
   /// A block's raw bytes could not be decoded into a `Block`.
@@ -45,6 +53,8 @@ pub enum BootstrapError {
   CborRoundTrip { block: u64 },
   /// A block failed structural consistency checks.
   Check { block: u64, error: BlockInvalid },
+  /// The genesis block does not match the expected hash for the network.
+  GenesisAnchor { expected: BlockHash, actual: BlockHash },
   /// Aggregate error after `--no-fastfail` finishes with failures.
   Summary { errors: u64 },
 }
@@ -55,6 +65,20 @@ impl fmt::Display for BootstrapError {
       Self::Config(e) => write!(f, "configuration error: {e}"),
       Self::Io(e) => write!(f, "i/o error: {e}"),
       Self::EmptyInput => write!(f, "empty input"),
+      Self::UnknownMagic { magic: m } => {
+        write!(f, "unknown magic: 0x{:02x}{:02x}{:02x}{:02x}", m[0], m[1], m[2], m[3])
+      }
+      Self::BadMagic {
+        block,
+        expected: e,
+        actual: a,
+      } => {
+        write!(
+          f,
+          "block {block}: bad magic 0x{:02x}{:02x}{:02x}{:02x} (expected 0x{:02x}{:02x}{:02x}{:02x})",
+          a[0], a[1], a[2], a[3], e[0], e[1], e[2], e[3],
+        )
+      }
       Self::OversizedFrame { block, size, max } => {
         write!(f, "block {block}: frame size {size} exceeds maximum {max}")
       }
@@ -64,6 +88,9 @@ impl fmt::Display for BootstrapError {
       Self::CborDecode { block, error } => write!(f, "block {block}: cbor decode failed: {error}"),
       Self::CborRoundTrip { block } => write!(f, "block {block}: cbor round-trip mismatch"),
       Self::Check { block, error } => write!(f, "block {block}: check failed: {error}"),
+      Self::GenesisAnchor { expected, actual } => {
+        write!(f, "genesis anchor mismatch: expected {expected}, got {actual}")
+      }
       Self::Summary { errors } => write!(f, "{errors} block(s) failed verification"),
     }
   }
@@ -74,6 +101,73 @@ impl std::error::Error for BootstrapError {}
 impl From<io::Error> for BootstrapError {
   fn from(e: io::Error) -> Self {
     Self::Io(format!("{} ({})", e, e.kind()))
+  }
+}
+
+mod magic {
+  use super::BootstrapError;
+  use crate::Application;
+
+  use dash_params::types::{ChainParams, MessageStart};
+
+  const KNOWN_NETWORKS: &[&ChainParams] = &[
+    &dash_params::main::PARAMS,
+    &dash_params::test3::PARAMS,
+    &dash_params::regtest::PARAMS,
+  ];
+
+  fn detect(magic: MessageStart) -> Result<&'static ChainParams, BootstrapError> {
+    KNOWN_NETWORKS
+      .iter()
+      .find(|p| p.message_start == magic)
+      .copied()
+      .ok_or(BootstrapError::UnknownMagic { magic })
+  }
+
+  /// Identify the network from magic bytes and log the result.
+  pub fn check(magic: MessageStart, app: &Application) -> Result<&'static ChainParams, BootstrapError> {
+    let params = detect(magic)?;
+    let [a, b, c, d] = magic;
+    crate::logging::log_msg(
+      app,
+      &format!(
+        "Magic 0x{a:02x}{b:02x}{c:02x}{d:02x} corresponds to \"{}\"",
+        params.network_id
+      ),
+    );
+    Ok(params)
+  }
+}
+
+mod genesis {
+  use super::BootstrapError;
+  use crate::Application;
+
+  use dash_num::Hash256;
+  use dash_primitives::BlockHash;
+  use dash_types::codec::DecodeError;
+
+  /// Verify genesis block header hash matches the network.
+  pub fn check(data: &[u8], expected: Hash256, app: &Application) -> Result<BlockHash, BootstrapError> {
+    if data.len() < 80 {
+      return Err(BootstrapError::Decode {
+        block: 0,
+        error: DecodeError::Eof {
+          needed: 80,
+          remaining: data.len(),
+        },
+      });
+    }
+    let genesis_hash = BlockHash::from(dash_pow::hash(&data[..80]));
+    let expected_hash = BlockHash::from(expected);
+    if genesis_hash != expected_hash {
+      return Err(BootstrapError::GenesisAnchor {
+        expected: expected_hash,
+        actual: genesis_hash,
+      });
+    }
+    crate::logging::log_msg(app, &format!("Genesis anchor: {genesis_hash}"));
+    Ok(genesis_hash)
   }
 }
 
@@ -126,6 +220,7 @@ mod diskfmt {
   /// avoiding stream misalignment at chunk boundaries.
   pub fn read_chunk(
     reader: &mut impl Read,
+    expected_magic: [u8; 4],
     start_index: u64,
     budget_bytes: u64,
     report_secs: u64,
@@ -155,6 +250,14 @@ mod diskfmt {
           }
         },
       };
+
+      if header.magic != expected_magic {
+        return Err(BootstrapError::BadMagic {
+          block: index,
+          expected: expected_magic,
+          actual: header.magic,
+        });
+      }
 
       if header.size > policy::MAX_FRAME_SIZE {
         return Err(BootstrapError::OversizedFrame {
@@ -272,13 +375,7 @@ pub fn run(
 
   let first_header = diskfmt::read_frame_header(&mut reader)?.ok_or(BootstrapError::EmptyInput)?;
 
-  logging::log_msg(
-    app,
-    &format!(
-      "First block magic: 0x{:02x}{:02x}{:02x}{:02x}",
-      first_header.magic[0], first_header.magic[1], first_header.magic[2], first_header.magic[3],
-    ),
-  );
+  let params = magic::check(first_header.magic, app)?;
 
   if first_header.size > policy::MAX_FRAME_SIZE {
     return Err(BootstrapError::OversizedFrame {
@@ -292,12 +389,15 @@ pub fn run(
   reader.read_exact(&mut genesis_data)?;
   let _genesis_bytes = policy::FRAME_HEADER_LEN + first_header.size as u64;
 
+  genesis::check(&genesis_data, params.consensus.hash_genesis_block, app)?;
+
   logging::log_msg(app, &format!("Dispatching verification across {thread_count} threads"));
 
   verify_chunks(
     app,
     &pool,
     &mut reader,
+    params,
     genesis_data,
     budget_bytes,
     report_freq,
@@ -311,6 +411,7 @@ fn verify_chunks(
   app: &Application,
   pool: &rayon::ThreadPool,
   reader: &mut BufReader<Box<dyn Read>>,
+  params: &dash_params::types::ChainParams,
   genesis_data: Vec<u8>,
   budget_bytes: u64,
   report_secs: u64,
@@ -348,6 +449,7 @@ fn verify_chunks(
 
     let cr = diskfmt::read_chunk(
       reader,
+      params.message_start,
       block_index,
       budget_bytes,
       report_secs,

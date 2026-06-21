@@ -28,6 +28,9 @@ bin = [
   "dep:chrono",
   "dep:ciborium",
   "dep:clap",
+  "dep:dash-num",
+  "dep:dash-params",
+  "dep:dash-pow",
   "dep:rayon",
   "dep:sysinfo",
 ]
@@ -43,6 +46,9 @@ xxhash-rust = { version = "0.8", features = ["xxh32"] }
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
 ] }
+dash-num = { version = "0.0.0", path = "../num", optional = true }
+dash-params = { version = "0.0.0", path = "../params", optional = true }
+dash-pow = { version = "0.0.0", path = "../pow", optional = true }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
 hex-conservative = { version = "0.3", default-features = false, features = [
