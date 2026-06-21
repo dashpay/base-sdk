@@ -37,6 +37,12 @@ pub enum BootstrapError {
   Decode { block: u64, error: DecodeError },
   /// Re-encoding a decoded block did not reproduce the original bytes.
   WireRoundTrip { block: u64 },
+  /// CBOR serialization failed.
+  CborEncode { block: u64, error: String },
+  /// CBOR deserialization failed.
+  CborDecode { block: u64, error: String },
+  /// CBOR round-trip did not reproduce the original block.
+  CborRoundTrip { block: u64 },
   /// Aggregate error after `--no-fastfail` finishes with failures.
   Summary { errors: u64 },
 }
@@ -52,6 +58,9 @@ impl fmt::Display for BootstrapError {
       }
       Self::Decode { block, error } => write!(f, "block {block}: decode failed: {error}"),
       Self::WireRoundTrip { block } => write!(f, "block {block}: wire round-trip mismatch"),
+      Self::CborEncode { block, error } => write!(f, "block {block}: cbor encode failed: {error}"),
+      Self::CborDecode { block, error } => write!(f, "block {block}: cbor decode failed: {error}"),
+      Self::CborRoundTrip { block } => write!(f, "block {block}: cbor round-trip mismatch"),
       Self::Summary { errors } => write!(f, "{errors} block(s) failed verification"),
     }
   }
@@ -187,6 +196,20 @@ fn verify_block(index: u64, data: &[u8]) -> Result<(), BootstrapError> {
   block.encode(&mut re_encoded);
   if re_encoded != data {
     return Err(BootstrapError::WireRoundTrip { block: index });
+  }
+
+  let mut cbor_bytes = Vec::new();
+  ciborium::into_writer(&block, &mut cbor_bytes).map_err(|e| BootstrapError::CborEncode {
+    block: index,
+    error: e.to_string(),
+  })?;
+  let decoded_from_cbor: Block =
+    ciborium::from_reader(&cbor_bytes[..]).map_err(|e: ciborium::de::Error<io::Error>| BootstrapError::CborDecode {
+      block: index,
+      error: e.to_string(),
+    })?;
+  if decoded_from_cbor != block {
+    return Err(BootstrapError::CborRoundTrip { block: index });
   }
 
   Ok(())
