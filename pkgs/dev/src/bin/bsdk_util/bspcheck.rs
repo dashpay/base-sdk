@@ -35,6 +35,8 @@ pub enum BootstrapError {
   OversizedFrame { block: u64, size: u32, max: u32 },
   /// A block's raw bytes could not be decoded into a `Block`.
   Decode { block: u64, error: DecodeError },
+  /// Re-encoding a decoded block did not reproduce the original bytes.
+  WireRoundTrip { block: u64 },
   /// Aggregate error after `--no-fastfail` finishes with failures.
   Summary { errors: u64 },
 }
@@ -49,6 +51,7 @@ impl fmt::Display for BootstrapError {
         write!(f, "block {block}: frame size {size} exceeds maximum {max}")
       }
       Self::Decode { block, error } => write!(f, "block {block}: decode failed: {error}"),
+      Self::WireRoundTrip { block } => write!(f, "block {block}: wire round-trip mismatch"),
       Self::Summary { errors } => write!(f, "{errors} block(s) failed verification"),
     }
   }
@@ -178,7 +181,14 @@ mod diskfmt {
 }
 
 fn verify_block(index: u64, data: &[u8]) -> Result<(), BootstrapError> {
-  let _block = Block::decode(&mut &data[..]).map_err(|e| BootstrapError::Decode { block: index, error: e })?;
+  let block = Block::decode(&mut &data[..]).map_err(|e| BootstrapError::Decode { block: index, error: e })?;
+
+  let mut re_encoded = Vec::with_capacity(data.len());
+  block.encode(&mut re_encoded);
+  if re_encoded != data {
+    return Err(BootstrapError::WireRoundTrip { block: index });
+  }
+
   Ok(())
 }
 
