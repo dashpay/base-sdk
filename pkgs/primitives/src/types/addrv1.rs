@@ -15,6 +15,7 @@ use dash_types::{impl_bytes, impl_type, type_cvrt};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};
+use core::str::FromStr;
 
 /// First 12 bytes of an IPv4-mapped IPv6 address.
 const IPV4_MAPPED_PREFIX: [u8; 12] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
@@ -135,6 +136,35 @@ impl fmt::Display for AddrV1 {
   }
 }
 
+impl FromStr for AddrV1 {
+  type Err = NetAddrError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if let Some(inner) = s.strip_prefix('[').and_then(|r| r.strip_suffix(']')) {
+      let ip: Ipv6Addr = inner.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
+      return Ok(Self(ip.octets()));
+    }
+    if s.ends_with(".onion") {
+      return Err(NetAddrError::AddrTooNew {
+        network: NetworkType::TorV3,
+      });
+    }
+    if s.ends_with(".b32.i2p") {
+      return Err(NetAddrError::AddrTooNew {
+        network: NetworkType::I2p,
+      });
+    }
+    if let Ok(ip) = s.parse::<Ipv4Addr>() {
+      let octets = ip.octets();
+      let mut arr = [0u8; 16];
+      arr[..12].copy_from_slice(&IPV4_MAPPED_PREFIX);
+      arr[12..].copy_from_slice(&octets);
+      return Ok(Self(arr));
+    }
+    Err(NetAddrError::BadEncode { pos: 0 })
+  }
+}
+
 type_cvrt!(TryFrom<AddrV2> for AddrV1, NetAddrError, |addr| {
   match addr {
     AddrV2::Ipv4(b) => {
@@ -180,6 +210,16 @@ impl BaseCodec for ServiceV1 {
 impl fmt::Display for ServiceV1 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}:{}", self.addr, self.port)
+  }
+}
+
+impl FromStr for ServiceV1 {
+  type Err = NetAddrError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    let (addr_str, port) = split_service_str(s)?;
+    let addr = AddrV1::from_str(addr_str)?;
+    Ok(Self { addr, port })
   }
 }
 
