@@ -12,6 +12,7 @@ use crate::Application;
 
 use dash_primitives::{Block, BlockHash, BlockInvalid};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError};
+use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
 use std::fmt;
@@ -332,6 +333,7 @@ pub fn run(
   memory_mib: u64,
   report_freq: u64,
   no_fastfail: bool,
+  progress: bool,
 ) -> Result<(), BootstrapError> {
   let start = Instant::now();
   let from_stdin = file == "-";
@@ -360,7 +362,7 @@ pub fn run(
     &format!("Threads: {thread_count}, memory budget: {budget_mib} MiB, report every {report_freq}s"),
   );
 
-  let (input, _file_size): (Box<dyn Read>, Option<u64>) = if from_stdin {
+  let (input, file_size): (Box<dyn Read>, Option<u64>) = if from_stdin {
     logging::log_msg(app, "Reading from stdin (streaming)");
     (Box::new(io::stdin().lock()), None)
   } else {
@@ -387,9 +389,34 @@ pub fn run(
 
   let mut genesis_data = vec![0u8; first_header.size as usize];
   reader.read_exact(&mut genesis_data)?;
-  let _genesis_bytes = policy::FRAME_HEADER_LEN + first_header.size as u64;
+  let genesis_bytes = policy::FRAME_HEADER_LEN + first_header.size as u64;
 
   genesis::check(&genesis_data, params.consensus.hash_genesis_block, app)?;
+
+  if progress {
+    let bar = match file_size {
+      Some(total) => {
+        let b = ProgressBar::new(total);
+        b.set_style(
+          ProgressStyle::default_bar()
+            .template("{bar:40} {bytes}/{total_bytes} ({eta})")
+            .unwrap_or_else(|_| ProgressStyle::default_bar()),
+        );
+        b
+      }
+      None => {
+        let b = ProgressBar::new_spinner();
+        b.set_style(
+          ProgressStyle::default_spinner()
+            .template("{spinner} {bytes} ({elapsed})")
+            .unwrap_or_else(|_| ProgressStyle::default_spinner()),
+        );
+        b
+      }
+    };
+    bar.inc(genesis_bytes);
+    app.pb.set(bar).ok();
+  }
 
   logging::log_msg(app, &format!("Dispatching verification across {thread_count} threads"));
 
@@ -447,7 +474,7 @@ fn verify_chunks(
       break;
     }
 
-    let cr = diskfmt::read_chunk(
+    let cr = match diskfmt::read_chunk(
       reader,
       params.message_start,
       block_index,
@@ -455,7 +482,15 @@ fn verify_chunks(
       report_secs,
       app,
       pending_header.take(),
-    )?;
+    ) {
+      Ok(v) => v,
+      Err(e) => {
+        if let Some(bar) = app.pb.get() {
+          bar.finish_and_clear();
+        }
+        return Err(e);
+      }
+    };
 
     if cr.frames.is_empty() {
       break;
@@ -491,6 +526,10 @@ fn verify_chunks(
       });
     });
 
+    if let Some(bar) = app.pb.get() {
+      bar.inc(cr.bytes);
+    }
+
     logging::log_msg(
       app,
       &format!(
@@ -505,6 +544,10 @@ fn verify_chunks(
     if reached_eof || (!no_fastfail && interrupted.load(Ordering::Acquire)) {
       break;
     }
+  }
+
+  if let Some(bar) = app.pb.get() {
+    bar.finish_and_clear();
   }
 
   let ok = ok_count.load(Ordering::Relaxed);

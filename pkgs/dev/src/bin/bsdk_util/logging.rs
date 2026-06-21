@@ -21,7 +21,11 @@ mod built_info {
 pub fn log_msg(app: &Application, msg: &str) {
   let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ");
   let line = format!("[{ts}] {msg}");
-  eprintln!("{line}");
+
+  match app.pb.get() {
+    Some(bar) => bar.println(&line),
+    None => eprintln!("{line}"),
+  }
 
   if let Ok(mut guard) = app.log.lock() {
     if let Some(ref mut w) = *guard {

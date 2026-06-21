@@ -12,16 +12,19 @@ mod platform;
 mod policy;
 
 use clap::{Parser, Subcommand};
+use indicatif::ProgressBar;
 
 use std::env;
 use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::process::ExitCode;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 /// Application shared state.
 pub struct Application {
+  /// Progress bar, set at most once after file size is known.
+  pub pb: OnceLock<ProgressBar>,
   /// Optional log-file writer.
   pub log: Mutex<Option<BufWriter<File>>>,
   /// Path to the log file on disk.
@@ -31,6 +34,7 @@ pub struct Application {
 impl fmt::Debug for Application {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("Application")
+      .field("pb", &self.pb.get().is_some())
       .field("log_path", &self.log_path)
       .finish_non_exhaustive()
   }
@@ -50,7 +54,11 @@ impl Application {
         }
       }
     };
-    Self { log, log_path }
+    Self {
+      pb: OnceLock::new(),
+      log,
+      log_path,
+    }
   }
 }
 
@@ -85,6 +93,10 @@ enum Command {
     #[arg(short = 'n', long)]
     no_fastfail: bool,
 
+    /// Show a progress bar.
+    #[arg(short = 'p', long)]
+    progress: bool,
+
     /// Path to a linearized chain, or "-" for stdin.
     file: String,
   },
@@ -114,8 +126,9 @@ fn main() -> ExitCode {
       memory,
       report_freq,
       no_fastfail,
+      progress,
       file,
-    } => bspcheck::run(&app, &file, threads, memory, report_freq, no_fastfail),
+    } => bspcheck::run(&app, &file, threads, memory, report_freq, no_fastfail, progress),
   };
 
   match result {

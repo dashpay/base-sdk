@@ -31,6 +31,7 @@ bin = [
   "dep:dash-num",
   "dep:dash-params",
   "dep:dash-pow",
+  "dep:indicatif",
   "dep:rayon",
   "dep:sysinfo",
 ]
@@ -65,6 +66,7 @@ clap = { version = "4", default-features = false, features = [
   "usage",
   "error-context",
 ], optional = true }
+indicatif = { version = "0.17", default-features = false, optional = true }
 json5 = { version = "0.4", optional = true }
 rayon = { version = "1", optional = true }
 serde = { version = "1", default-features = false, features = [
