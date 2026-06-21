@@ -84,6 +84,19 @@ pub enum NIEntry {
   Invalid,
 }
 
+impl fmt::Display for NIEntry {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Service(svc) => write!(f, "{svc}"),
+      Self::Domain { name, port } => {
+        let s = core::str::from_utf8(name).unwrap_or("<invalid utf-8>");
+        write!(f, "{s}:{port}")
+      }
+      Self::Invalid => f.write_str("<invalid>"),
+    }
+  }
+}
+
 /// Extended network info for v3+ ProRegTx / ProUpServTx.
 ///
 /// Contains a versioned list of purpose-grouped network entries (core P2P,
@@ -149,6 +162,29 @@ impl BaseCodec for NetInfoV2 {
         }
       }
     }
+  }
+}
+
+impl fmt::Display for NetInfoV2 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    if self.entries.is_empty() {
+      return f.write_str("NetInfoV2()");
+    }
+    f.write_str("NetInfoV2(")?;
+    for (i, (purpose, group)) in self.entries.iter().enumerate() {
+      if i > 0 {
+        f.write_str(", ")?;
+      }
+      write!(f, "{purpose}=[")?;
+      for (j, entry) in group.iter().enumerate() {
+        if j > 0 {
+          f.write_str(", ")?;
+        }
+        write!(f, "{entry}")?;
+      }
+      f.write_str("]")?;
+    }
+    f.write_str(")")
   }
 }
 
