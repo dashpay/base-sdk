@@ -11,7 +11,7 @@ use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::types::{NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
+use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsSignatureBytes;
@@ -147,17 +147,17 @@ impl Checkable for ProUpServTx {
     }
 
     match &self.net_info {
-      NetInfo::Extended(ext) => {
-        if ext.entries.is_empty() {
+      NetInfo::Legacy(addr) => {
+        if addr.is_empty() {
           return Some(ProTxInvalid::NetInfoEmpty);
         }
-        if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version >= PROTX_VERSION_EXT_ADDR) {
-          return Some(e);
+        if let Some(error) = addr.check() {
+          return Some(ProTxInvalid::NetInfoInvalid { error });
         }
       }
-      NetInfo::Legacy(svc) => {
-        if svc.0.addr.is_null() && svc.0.port == 0 {
-          return Some(ProTxInvalid::NetInfoEmpty);
+      NetInfo::Extended(addr) => {
+        if let Some(e) = check_sptx_netinfo(addr, self.version, self.mn_type) {
+          return Some(e);
         }
       }
     }

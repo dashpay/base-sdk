@@ -13,7 +13,7 @@ use super::{
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::{KeyId, Script};
-use crate::types::{NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
+use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsPublicKeyBytes;
@@ -210,12 +210,18 @@ impl Checkable for ProRegTx {
       return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
-    if let NetInfo::Extended(ref ext) = self.net_info {
-      if ext.entries.is_empty() {
-        return Some(ProTxInvalid::NetInfoEmpty);
-      }
-      if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version >= PROTX_VERSION_EXT_ADDR) {
-        return Some(e);
+    if !self.net_info.is_empty() {
+      match &self.net_info {
+        NetInfo::Legacy(addr) => {
+          if let Some(error) = addr.check() {
+            return Some(ProTxInvalid::NetInfoInvalid { error });
+          }
+        }
+        NetInfo::Extended(addr) => {
+          if let Some(e) = check_sptx_netinfo(addr, self.version, self.mn_type) {
+            return Some(e);
+          }
+        }
       }
     }
 
