@@ -15,9 +15,8 @@ use dash_types::{impl_num, impl_type};
 use core::fmt;
 
 /// Maximum entries per purpose.
-const MAX_ENTRIES: usize = 8;
-/// Maximum number of purpose groups.
-const MAX_PURPOSES: usize = 8;
+#[expect(unused, reason = "consensus constant")]
+const MAX_ENTRIES: usize = 4;
 
 /// Purpose tag for an extended network info entry.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -116,11 +115,11 @@ impl_type!(NetInfoV2);
 impl BaseCodec for NetInfoV2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = u8::decode(data)?;
-    let purpose_count = codec::read_compact_size(data, MAX_PURPOSES)?;
+    let purpose_count = codec::read_compact_size(data, data.len())?;
     let mut entries = Vec::with_capacity(purpose_count);
     for _ in 0..purpose_count {
       let purpose = NIPurpose::from_base(u8::decode(data)?);
-      let entry_count = codec::read_compact_size(data, MAX_ENTRIES)?;
+      let entry_count = codec::read_compact_size(data, data.len())?;
       let mut group = Vec::with_capacity(entry_count);
       for _ in 0..entry_count {
         let entry_type = u8::decode(data)?;
