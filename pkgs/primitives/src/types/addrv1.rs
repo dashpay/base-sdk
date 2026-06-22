@@ -189,3 +189,29 @@ type_cvrt!(TryFrom<ServiceV2> for ServiceV1, NetAddrError, |v2| {
     port: v2.port,
   })
 });
+
+/// Splits a service string into `(addr, port)`.
+///
+/// Handles both bracketed (`[addr]:port`) and plain (`addr:port`) forms. The
+/// unbracketed path uses `rfind(':')`, so callers must never pass bare IPv6
+/// addresses without brackets.
+///
+/// # Errors
+///
+/// Returns `BadEncode` when the input cannot be split into a
+/// valid address and port pair.
+pub(super) fn split_service_str(s: &str) -> Result<(&str, u16), NetAddrError> {
+  if s.starts_with('[') {
+    let close = s.rfind(']').ok_or(NetAddrError::BadEncode { pos: 0 })?;
+    let addr_str = &s[..=close];
+    let rest = &s[close + 1..];
+    let port_str = rest.strip_prefix(':').ok_or(NetAddrError::BadEncode { pos: 0 })?;
+    let port: u16 = port_str.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
+    return Ok((addr_str, port));
+  }
+  let colon = s.rfind(':').ok_or(NetAddrError::BadEncode { pos: 0 })?;
+  let addr_str = &s[..colon];
+  let port_str = &s[colon + 1..];
+  let port: u16 = port_str.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
+  Ok((addr_str, port))
+}

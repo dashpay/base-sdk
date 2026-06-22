@@ -7,8 +7,8 @@
 //! BIP155 network address types (ADDRv2).
 
 use super::addrv1::{AddrV1, ServiceV1};
-use super::netaddr::{NetAddr, NetworkType};
-use super::util::{base16_enc, base32r_enc};
+use super::netaddr::{NetAddr, NetAddrError, NetworkType};
+use super::util::{base16_dec, base16_enc, base32r_dec, base32r_enc};
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
@@ -17,6 +17,7 @@ use dash_types::{impl_type, type_cvrt};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};
+use core::str::FromStr;
 
 /// Maximum raw address length for any known BIP155 network type.
 const MAX_ADDR_LEN: usize = 512;
@@ -214,6 +215,69 @@ type_cvrt!(From<AddrV1> for AddrV2, |v1| {
   }
 });
 
+impl FromStr for AddrV2 {
+  type Err = NetAddrError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if let Some(name) = s.strip_suffix(".onion") {
+      let mut buf = [0u8; 35];
+      base32r_dec(name, &mut buf)?;
+      let version = buf[34];
+      if version != 3 {
+        return Err(NetAddrError::BadVersion { version });
+      }
+      let mut pubkey = [0u8; 32];
+      pubkey.copy_from_slice(&buf[..32]);
+      // Verify SHA3-256 checksum.
+      let mut pre = [0u8; 48];
+      pre[..15].copy_from_slice(b".onion checksum");
+      pre[15..47].copy_from_slice(&pubkey);
+      pre[47] = version;
+      let hash = sha3_256::Hash::hash(&pre);
+      let cs = hash.to_byte_array();
+      if buf[32] != cs[0] || buf[33] != cs[1] {
+        return Err(NetAddrError::BadChecksum {
+          expected: [cs[0], cs[1]],
+          actual: [buf[32], buf[33]],
+        });
+      }
+      return Ok(Self::TorV3(pubkey));
+    }
+    if let Some(name) = s.strip_suffix(".b32.i2p") {
+      let mut buf = [0u8; 32];
+      base32r_dec(name, &mut buf)?;
+      return Ok(Self::I2p(buf));
+    }
+    if let Some(rest) = s.strip_prefix("unknown(") {
+      let close = rest.find(')').ok_or(NetAddrError::BadEncode { pos: 0 })?;
+      let net_str = &rest[..close];
+      let net: u8 = net_str.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
+      let hex_str = rest
+        .get(close + 1..)
+        .and_then(|r| r.strip_prefix(':'))
+        .ok_or(NetAddrError::BadEncode { pos: close + 1 })?;
+      let addr = base16_dec(hex_str)?;
+      if addr.len() > MAX_ADDR_LEN {
+        return Err(NetAddrError::BadLen {
+          expected: MAX_ADDR_LEN,
+          actual: addr.len(),
+        });
+      }
+      return Ok(Self::Unknown { network: net, addr });
+    }
+    if let Some(inner) = s.strip_prefix('[').and_then(|r| r.strip_suffix(']')) {
+      let ip: Ipv6Addr = inner.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
+      let octets = ip.octets();
+      if octets[0] == 0xfc {
+        return Ok(Self::Cjdns(octets));
+      }
+      return Ok(Self::Ipv6(octets));
+    }
+    let ip: Ipv4Addr = s.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
+    Ok(Self::Ipv4(ip.octets()))
+  }
+}
+
 /// BIP155 network service (address + port).
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -252,6 +316,16 @@ type_cvrt!(From<ServiceV1> for ServiceV2, |v1| {
   }
 });
 
+impl FromStr for ServiceV2 {
+  type Err = NetAddrError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    let (addr_str, port) = super::addrv1::split_service_str(s)?;
+    let addr = AddrV2::from_str(addr_str)?;
+    Ok(Self { addr, port })
+  }
+}
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
@@ -284,6 +358,7 @@ mod tests {
   )]
   fn display(#[case] addr: AddrV2, #[case] expected: &str) {
     assert_eq!(addr.to_string(), expected);
+    assert_eq!(expected.parse::<AddrV2>().unwrap(), addr);
   }
 
   #[rstest]
@@ -332,5 +407,42 @@ mod tests {
     addr.encode(&mut buf);
     // 0x01 (ipv4) + 0x04 (length) + 01020304
     assert_eq!(buf, vec![0x01, 0x04, 1, 2, 3, 4]);
+  }
+
+  #[rstest]
+  #[case::bad_ipv4("999.999.999.999")]
+  #[case::bad_bracket("[not-an-ip]")]
+  #[case::bad_onion("zzzz.onion")]
+  fn from_str_errors(#[case] s: &str) {
+    assert!(s.parse::<AddrV2>().is_err());
+  }
+
+  #[rstest]
+  #[case::ipv4("1.2.3.4:8333")]
+  #[case::ipv6("[::1]:9999")]
+  #[case::cjdns("[fc00::1]:1234")]
+  #[case::tor("pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion:8333")]
+  #[case::i2p("ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p:7654")]
+  fn service_from_str_roundtrip(#[case] s: &str) {
+    let parsed: ServiceV2 = s.parse().unwrap();
+    assert_eq!(parsed.to_string(), s);
+  }
+
+  #[rstest]
+  #[case::missing_separator("unknown(99)abcd")]
+  #[case::unclosed_paren("unknown(99abcd")]
+  fn from_str_unknown_bad_format(#[case] s: &str) {
+    assert!(s.parse::<AddrV2>().is_err());
+  }
+
+  #[rstest]
+  fn unknown_from_str_roundtrip() {
+    let addr = AddrV2::Unknown {
+      network: 99,
+      addr: vec![0xab, 0xcd],
+    };
+    let s = addr.to_string();
+    let parsed: AddrV2 = s.parse().unwrap();
+    assert_eq!(parsed, addr);
   }
 }

@@ -85,6 +85,35 @@ impl fmt::Display for NetworkType {
 /// Network address validation error.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum NetAddrError {
+  /// Invalid character in encoded address.
+  BadChar {
+    /// The offending byte.
+    byte: u8,
+  },
+  /// Checksum mismatch.
+  BadChecksum {
+    /// Expected checksum bytes.
+    expected: [u8; 2],
+    /// Actual checksum bytes.
+    actual: [u8; 2],
+  },
+  /// Encoding error at a byte position.
+  BadEncode {
+    /// Byte offset of the error.
+    pos: usize,
+  },
+  /// Unexpected address length.
+  BadLen {
+    /// Expected byte count.
+    expected: usize,
+    /// Actual byte count.
+    actual: usize,
+  },
+  /// Unsupported address version byte.
+  BadVersion {
+    /// The version byte.
+    version: u8,
+  },
   /// Address type not representable in target format.
   AddrTooNew {
     /// The incompatible network type.
@@ -95,6 +124,25 @@ pub enum NetAddrError {
 impl fmt::Display for NetAddrError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
+      Self::BadChar { byte } => {
+        write!(f, "invalid character 0x{byte:02x}")
+      }
+      Self::BadChecksum { expected, actual } => {
+        write!(
+          f,
+          "checksum mismatch: expected {:02x}{:02x}, got {:02x}{:02x}",
+          expected[0], expected[1], actual[0], actual[1]
+        )
+      }
+      Self::BadEncode { pos } => {
+        write!(f, "encoding error at position {pos}")
+      }
+      Self::BadLen { expected, actual } => {
+        write!(f, "expected {expected} bytes, got {actual}")
+      }
+      Self::BadVersion { version } => {
+        write!(f, "unsupported version {version}")
+      }
       Self::AddrTooNew { network } => {
         write!(f, "{network} address type not supported")
       }
