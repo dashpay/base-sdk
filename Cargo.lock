@@ -286,6 +286,7 @@ dependencies = [
 name = "dash-pkc"
 version = "0.0.0"
 dependencies = [
+ "bitcoin-consensus-encoding 0.2.0",
  "blst",
  "dash-num",
  "dash-types",
@@ -321,6 +322,7 @@ dependencies = [
 name = "dash-primitives"
 version = "0.0.0"
 dependencies = [
+ "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin-internals",
  "bitcoin-units",
@@ -328,6 +330,7 @@ dependencies = [
  "cfg-if",
  "dash-dev",
  "dash-num",
+ "dash-pkc",
  "dash-pow",
  "dash-script",
  "dash-types",
@@ -345,7 +348,6 @@ dependencies = [
  "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin_hashes",
- "dash-types",
  "hex-literal",
  "serde",
 ]

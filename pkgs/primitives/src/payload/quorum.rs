@@ -6,15 +6,22 @@
 
 //! LLMQ final commitment payload (type 6).
 
+use super::QuorumHash;
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::support::{DynBitset, LlmqType};
-use crate::{QuorumHash, QuorumVvecHash};
 
+use dash_num::{make_hash, Hash256};
+use dash_pkc::{BlsPublicKeyBytes, BlsSignatureBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{BlsPublicKeyBytes, BlsSignatureBytes};
 
 use core::fmt;
+
+make_hash! {
+  Hash256,
+  /// Quorum verification vector hash.
+  QuorumVvecHash
+}
 
 /// DKG session output for one LLMQ.
 ///

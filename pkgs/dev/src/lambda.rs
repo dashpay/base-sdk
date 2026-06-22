@@ -62,7 +62,7 @@ where
 ///
 /// Panics on txid mismatch.
 fn assert_txid(raw: &[u8], label: &str) {
-  let computed = dash_primitives::hash::tx_hash(raw);
+  let computed = dash_primitives::tx_hash(raw);
   let expected = TxHash::from_hex(label).unwrap_or_else(|e| panic!("{label}: bad txid hex: {e}"));
   assert_eq!(computed, expected, "{label}: txid mismatch");
 }

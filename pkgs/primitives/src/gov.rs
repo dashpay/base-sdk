@@ -7,8 +7,8 @@
 //! Governance object and vote types as defined by the Dash protocol.
 
 use crate::codec_type;
-use crate::outpoint::OutPoint;
 use crate::prelude::*;
+use crate::transaction::OutPoint;
 use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
@@ -31,12 +31,12 @@ const PROPOSAL_NAME_CHARS: &[u8] = b"-_abcdefghijklmnopqrstuvwxyz0123456789";
 /// Governance object type codes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum GovObjectType {
-  /// Unknown or unrecognized type.
-  Unknown,
   /// Budget proposal.
   Proposal,
   /// Superblock trigger.
   Trigger,
+  /// Unknown or unrecognized type.
+  Unknown(i32),
 }
 
 impl NumCodec<i32> for GovObjectType {
@@ -44,15 +44,15 @@ impl NumCodec<i32> for GovObjectType {
     match v {
       1 => Self::Proposal,
       2 => Self::Trigger,
-      _ => Self::Unknown,
+      other => Self::Unknown(other),
     }
   }
 
   fn to_base(&self) -> i32 {
     match self {
-      Self::Unknown => 0,
       Self::Proposal => 1,
       Self::Trigger => 2,
+      Self::Unknown(v) => *v,
     }
   }
 }
@@ -62,9 +62,9 @@ impl_num!(GovObjectType, i32);
 impl fmt::Display for GovObjectType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Self::Unknown => write!(f, "unknown"),
       Self::Proposal => write!(f, "proposal"),
       Self::Trigger => write!(f, "trigger"),
+      Self::Unknown(v) => write!(f, "unknown({v})"),
     }
   }
 }

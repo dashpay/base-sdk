@@ -1,0 +1,9 @@
+rules:
+  - id: no-newtype-in-types
+    message: "do not define newtypes in dash-types; use the owning crate instead"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/types/src/**/*.rs]
+      exclude: [/pkgs/types/src/hex.rs, /pkgs/types/src/uint.rs]
+    pattern-regex: '\b(?:make|impl)_(?:bytes|num|type)!\s*\{'

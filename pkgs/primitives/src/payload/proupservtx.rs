@@ -6,17 +6,16 @@
 
 //! ProUpServTx service-update payload (type 2).
 
-use super::proregtx::{check_platform_fields, NetInfo};
+use super::proregtx::{check_platform_fields, PlatformNodeId};
+use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::support::CService;
-use crate::tx_types::MnType;
-use crate::validation::{check_sptx_netinfo, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
-use crate::{InputsHash, TxHash};
+use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
+use crate::TxHash;
 
+use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{BlsSignatureBytes, PlatformNodeId};
 
 use core::fmt;
 
@@ -35,7 +34,7 @@ pub struct ProUpServTx {
   pub mn_type: MnType,
   /// ProTx hash identifying the masternode.
   pub pro_tx_hash: TxHash,
-  /// Legacy CService or extended NetInfo.
+  /// Legacy ServiceV1 or extended NetInfo.
   pub net_info: NetInfo,
   /// Operator payout script.
   pub script_operator_payout: Script,
@@ -68,9 +67,9 @@ impl BaseCodec for ProUpServTx {
     let pro_tx_hash = TxHash::decode(data)?;
     let net_info = if version >= 3 {
       let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&mut &raw[..])?)
+      NetInfo::Extended(ExtendedNetInfo::decode(&mut &raw[..])?)
     } else {
-      NetInfo::Legacy(CService::decode(data)?)
+      NetInfo::Legacy(ServiceV1::decode(data)?)
     };
     let script_operator_payout = Script::decode(data)?;
     let inputs_hash = InputsHash::decode(data)?;

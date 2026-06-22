@@ -6,31 +6,20 @@
 
 //! ProRegTx registration payload (type 1).
 
+use super::{
+  check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS,
+  PROTX_VERSION_EXT_ADDR,
+};
 use crate::codec::impl_payload;
 use crate::prelude::*;
-use crate::script::Script;
-use crate::support::CService;
-use crate::tx_types::MnType;
-use crate::validation::{
-  check_sptx_netinfo, ProTxInvalid, MAX_OPERATOR_REWARD, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR,
-};
-use crate::{InputsHash, TxHash};
+use crate::script::{KeyId, Script};
+use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
+use crate::TxHash;
 
+use dash_pkc::BlsPublicKeyBytes;
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{BlsPublicKeyBytes, KeyId, PlatformNodeId};
 
 use core::fmt;
-
-/// Masternode network info: legacy CService or structured extended format.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub enum NetInfo {
-  /// ADDRv1 CService (18 bytes).
-  Legacy(CService),
-  /// Extended format (v3+) with purpose-grouped entries.
-  Extended(crate::support::ExtendedNetInfo),
-}
 
 /// ProRegTx -- register a new masternode (type 1).
 ///
@@ -51,7 +40,7 @@ pub struct ProRegTx {
   pub collateral_hash: TxHash,
   /// Collateral index.
   pub collateral_index: u32,
-  /// Legacy CService or extended NetInfo.
+  /// Legacy ServiceV1 or extended NetInfo.
   pub net_info: NetInfo,
   /// Owner key id (20 bytes).
   pub key_id_owner: KeyId,
@@ -114,9 +103,9 @@ impl BaseCodec for ProRegTx {
     let collateral_index = u32::decode(data)?;
     let net_info = if version >= 3 {
       let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(crate::support::ExtendedNetInfo::decode(&mut &raw[..])?)
+      NetInfo::Extended(ExtendedNetInfo::decode(&mut &raw[..])?)
     } else {
-      NetInfo::Legacy(CService::decode(data)?)
+      NetInfo::Legacy(ServiceV1::decode(data)?)
     };
     let key_id_owner = KeyId::decode(data)?;
     let pub_key_operator = BlsPublicKeyBytes::decode(data)?;
@@ -263,6 +252,11 @@ impl fmt::Display for ProRegTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
   }
+}
+
+dash_types::make_bytes! {
+  /// Platform node identifier for Evo masternodes.
+  PlatformNodeId, 20
 }
 
 #[cfg(all(test, feature = "serde"))]

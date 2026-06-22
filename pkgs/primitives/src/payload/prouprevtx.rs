@@ -6,13 +6,13 @@
 
 //! ProUpRevTx revocation payload (type 4).
 
+use super::{InputsHash, ProTxInvalid};
 use crate::codec::codec_payload;
 use crate::support::RevocationReason;
-use crate::validation::ProTxInvalid;
-use crate::{InputsHash, TxHash};
+use crate::TxHash;
 
+use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::Checkable;
-use dash_types::BlsSignatureBytes;
 
 use core::fmt;
 

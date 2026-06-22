@@ -19,7 +19,6 @@ use crate::opcode::Opcode as Op;
 use crate::prelude::*;
 
 use bitcoin_hashes::{hash160, sha256};
-use dash_types::KeyId;
 
 pub mod opcode;
 
@@ -58,8 +57,8 @@ pub enum ScriptKind {
   P2pk,
   /// Provably unspendable `OP_RETURN`.
   OpReturn,
-  /// Unrecognized or unsupported script.
-  Unknown,
+  /// Unrecognized or unsupported script pattern (leading opcode).
+  Unknown(u8),
 }
 
 /// Classify a scriptPubKey by its leading pattern.
@@ -76,7 +75,7 @@ pub fn classify(script: &[u8]) -> ScriptKind {
   if is_op_return(script) {
     return ScriptKind::OpReturn;
   }
-  ScriptKind::Unknown
+  ScriptKind::Unknown(script.first().copied().unwrap_or(0))
 }
 
 /// Returns `true` for P2PKH scripts
@@ -154,15 +153,6 @@ pub fn encode_p2sh(hash160: &[u8], prefix: u8) -> Option<String> {
   encode_base58_check(prefix, hash160)
 }
 
-/// Encode a `KeyId` as a Base58Check P2PKH address.
-pub fn encode_key_id(key_id: &KeyId, prefix: u8) -> String {
-  let bytes = key_id.to_bytes();
-  let mut payload = Vec::with_capacity(HASH160_LEN + 1);
-  payload.push(prefix);
-  payload.extend_from_slice(&bytes);
-  base58ck::encode_check(&payload)
-}
-
 /// Derive a Base58Check address from a scriptPubKey.
 ///
 /// Returns `None` for `OP_RETURN` and unrecognized scripts.
@@ -180,7 +170,7 @@ pub fn derive_address(script: &[u8], p2pkh_version: u8, p2sh_version: u8) -> Opt
       let h160 = hash160::Hash::from_byte_array(*bitcoin_hashes::ripemd160::Hash::hash(sha.as_ref()).as_byte_array());
       encode_p2pkh(h160.as_ref(), p2pkh_version)
     }
-    ScriptKind::OpReturn | ScriptKind::Unknown => None,
+    ScriptKind::OpReturn | ScriptKind::Unknown(_) => None,
   }
 }
 
@@ -364,13 +354,13 @@ mod tests {
 
   #[test]
   fn empty_is_unknown() {
-    assert_eq!(classify(&[]), ScriptKind::Unknown);
+    assert_eq!(classify(&[]), ScriptKind::Unknown(0));
   }
 
   #[test]
   fn arithmetic_script_is_unknown() {
     let script = hex!("59935b87");
-    assert_eq!(classify(&script), ScriptKind::Unknown);
+    assert_eq!(classify(&script), ScriptKind::Unknown(0x59));
   }
 
   #[test]

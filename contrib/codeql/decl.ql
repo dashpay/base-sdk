@@ -5,7 +5,7 @@
  *
  * @id base-sdk/decl-rules
  * @name Rules for definition orders
- * @description Enforces order of definitions for enums, impls and structs.
+ * @description Enforces definition order and enum variant structure.
  * @kind problem
  * @precision high
  * @problem.severity warning
@@ -36,19 +36,66 @@ predicate outOfOrder(
   )
 }
 
-from TypeItem t, Locatable badItem, string name, string message
-where
-  isSourceType(t) and
-  (t instanceof Struct or t instanceof Enum) and
-  not isSerdeInternalType(t) and
-  not isNotEncodable(t) and
-  isEvaluatedCrate(fileOf(t)) and
-  name = t.getName().getText() and
-  exists(DeclSlot badSlot, int badLine, DeclSlot priorSlot |
-    outOfOrder(t, badSlot, badLine, priorSlot, badItem) and
-    message =
-      fmt("{0} {1} appears after {2}", name,
-        fmt("{0} (slot {1})", badSlot.toString(), badSlot.getOrder().toString()),
-        fmt("{0} (slot {1})", priorSlot.toString(), priorSlot.getOrder().toString()))
+/** Holds if `v` is a bare `Unknown` variant without associated data. */
+predicate bareUnknownVariant(Enum e, Variant v) {
+  isSourceType(e) and
+  v = e.getVariantList().getAVariant() and
+  v.getName().getText() = "Unknown" and
+  not exists(v.getFieldList())
+}
+
+/** Gets the NumCodec type parameter for enum `e`. */
+string numCodecType(Enum e) {
+  exists(Impl i |
+    fileOf(i) = fileOf(e) and
+    implSelfName(i) = e.getName().getText() and
+    implTraitName(i) = "NumCodec" and
+    result =
+      i.getTrait()
+          .(PathTypeRepr)
+          .getPath()
+          .getSegment()
+          .getGenericArgList()
+          .getGenericArg(0)
+          .(TypeArg)
+          .getTypeRepr()
+          .(PathTypeRepr)
+          .getPath()
+          .getSegment()
+          .getIdentifier()
+          .getText()
   )
-select badItem, message
+}
+
+from Locatable item, string message
+where
+  exists(TypeItem t, string name |
+    isSourceType(t) and
+    (t instanceof Struct or t instanceof Enum) and
+    not isSerdeInternalType(t) and
+    not isNotEncodable(t) and
+    isEvaluatedCrate(fileOf(t)) and
+    name = t.getName().getText() and
+    exists(DeclSlot badSlot, int badLine, DeclSlot priorSlot |
+      outOfOrder(t, badSlot, badLine, priorSlot, item) and
+      message =
+        fmt("{0} {1} appears after {2}", name,
+          fmt("{0} (slot {1})", badSlot.toString(), badSlot.getOrder().toString()),
+          fmt("{0} (slot {1})", priorSlot.toString(), priorSlot.getOrder().toString()))
+    )
+  )
+  or
+  exists(Enum e |
+    bareUnknownVariant(e, item) and
+    (
+      exists(string ty |
+        ty = numCodecType(e) and
+        message =
+          fmt("{0}::Unknown must carry the raw value (e.g. Unknown({1}))", e.getName().getText(), ty)
+      )
+      or
+      not exists(numCodecType(e)) and
+      message = fmt("{0}::Unknown must carry the raw value", e.getName().getText())
+    )
+  )
+select item, message

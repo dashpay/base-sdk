@@ -6,14 +6,22 @@
 
 //! P2P-specific primitive types.
 
-pub mod command;
-pub mod compressed_header;
-pub mod filter_type;
-pub mod inventory;
-pub mod magic;
-pub mod mn_list;
-pub mod net_addr;
-pub mod protocol_version;
-pub mod service_flags;
-pub mod short_id;
-pub mod user_agent;
+mod command;
+mod compressed_header;
+mod inventory;
+mod magic;
+mod mn_list;
+mod protocol_version;
+mod service_flags;
+mod short_id;
+mod user_agent;
+
+pub use command::CommandString;
+pub use compressed_header::CompressionState;
+pub use inventory::{InvType, Inventory};
+pub use magic::Magic;
+pub use mn_list::{DeletedQuorum, GetMnListDiff, MnListDiff, MnListDiffPayload, QuorumClSig, SimplifiedMnListEntry};
+pub use protocol_version::ProtocolVersion;
+pub use service_flags::ServiceFlags;
+pub use short_id::ShortId;
+pub use user_agent::{UserAgent, UserAgentTooLong};

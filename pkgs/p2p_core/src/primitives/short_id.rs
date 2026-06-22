@@ -6,7 +6,7 @@
 
 //! V2 short ID mapping for BIP324 message framing.
 
-use crate::primitives::command::CommandString;
+use crate::primitives::CommandString;
 
 // Maps between V2 1-byte short IDs and command strings.
 //

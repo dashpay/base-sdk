@@ -8,7 +8,7 @@
 
 use crate::codec::codec_payload;
 use crate::prelude::*;
-use crate::tx_out::TxOut;
+use crate::transaction::TxOut;
 
 use dash_types::codec::Checkable;
 

@@ -11,8 +11,8 @@
 
 use crate::msg::DashNetworkMessage;
 use crate::prelude::*;
-use crate::primitives::command::CommandString;
-use crate::primitives::short_id::ShortId;
+use crate::primitives::CommandString;
+use crate::primitives::ShortId;
 use crate::P2pDecodeError;
 
 /// Encodes a `DashNetworkMessage` into V2 framed bytes.

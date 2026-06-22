@@ -9,7 +9,7 @@
 pub(crate) use bitcoin_units::BlockHeight;
 
 pub use dash_num::{Arith256, Hash256};
-pub use dash_primitives::hash::double_sha256;
+pub use dash_primitives::double_sha256;
 pub use dash_primitives::{
   Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
 };

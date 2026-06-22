@@ -16,10 +16,7 @@ use k256::ecdsa::{self, signature::hazmat::PrehashVerifier};
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(
-    into = "dash_types::EcdsaPublicKeyBytes",
-    try_from = "dash_types::EcdsaPublicKeyBytes",
-  )
+  serde(into = "crate::EcdsaPublicKeyBytes", try_from = "crate::EcdsaPublicKeyBytes",)
 )]
 pub struct PublicKey(ecdsa::VerifyingKey);
 
@@ -73,16 +70,16 @@ impl core::hash::Hash for PublicKey {
   }
 }
 
-impl From<PublicKey> for dash_types::EcdsaPublicKeyBytes {
+impl From<PublicKey> for crate::EcdsaPublicKeyBytes {
   fn from(pk: PublicKey) -> Self {
     Self(pk.to_bytes())
   }
 }
 
-impl TryFrom<dash_types::EcdsaPublicKeyBytes> for PublicKey {
+impl TryFrom<crate::EcdsaPublicKeyBytes> for PublicKey {
   type Error = super::error::Error;
 
-  fn try_from(bytes: dash_types::EcdsaPublicKeyBytes) -> Result<Self, Self::Error> {
+  fn try_from(bytes: crate::EcdsaPublicKeyBytes) -> Result<Self, Self::Error> {
     Self::from_bytes(&bytes.0)
   }
 }

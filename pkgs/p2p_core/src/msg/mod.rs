@@ -7,34 +7,29 @@
 //! P2P message types and dispatch.
 
 use crate::prelude::*;
-use crate::primitives::command::CommandString;
-use crate::primitives::short_id::ShortId;
+use crate::primitives::CommandString;
+use crate::primitives::ShortId;
+use crate::primitives::{GetMnListDiff, MnListDiff};
 
 use bitcoin_consensus_encoding as encoding;
 
 pub mod addr;
-pub mod cfcheckpt;
-pub mod cfheaders;
-pub mod cfilter;
+pub mod compact_filters;
 pub mod gov;
 pub mod headers;
 pub mod headers2;
 pub mod inv;
-pub mod mnlistdiff;
 pub mod ping;
 pub mod version;
 
-pub use addr::{Addr, AddrV2Msg};
-pub use cfcheckpt::{CFCheckpt, GetCFCheckpt};
-pub use cfheaders::{CFHeaders, GetCFHeaders};
-pub use cfilter::{CFilter, GetCFilters};
+pub use addr::{Addr, AddrV2Entry, AddrV2Msg, TimestampedAddr};
+pub use compact_filters::{CFCheckpt, CFHeaders, CFilter, FilterType, GetCFCheckpt, GetCFHeaders, GetCFilters};
 pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
 pub use headers2::{GetHeaders2, Headers2};
 pub use inv::{GetData, Inv, NotFound};
-pub use mnlistdiff::{GetMnListDiff, MnListDiff};
 pub use ping::{Ping, Pong};
-pub use version::Version;
+pub use version::{Version, VersionAddr};
 
 /// Decode helper: decode from slice, mapping the error.
 fn decode_msg<T: encoding::Decodable>(payload: &[u8]) -> Result<T, crate::P2pDecodeError>
@@ -199,9 +194,9 @@ define_network_messages! {
     /// Governance sync request.
     GovSync(GovSync) => GOVSYNC,
     /// Governance object.
-    GovObj(dash_primitives::gov::GovObject) => GOVOBJ,
+    GovObj(dash_primitives::GovObject) => GOVOBJ,
     /// Governance vote.
-    GovObjVote(dash_primitives::gov::GovVote) => GOVOBJVOTE,
+    GovObjVote(dash_primitives::GovVote) => GOVOBJVOTE,
     /// Request MN list diff.
     GetMnListDiff(GetMnListDiff) => GETMNLISTD,
     /// MN list diff.

@@ -13,26 +13,22 @@ extern crate alloc;
 extern crate std;
 
 mod codec;
+mod error;
+mod msg;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
-
-pub mod error;
-pub mod msg;
-pub mod primitives;
-pub mod v2;
+mod primitives;
+mod v2;
 
 pub use error::P2pDecodeError;
-pub use msg::DashNetworkMessage;
-pub use primitives::{
-  command::CommandString,
-  compressed_header::CompressionState,
-  filter_type::FilterType,
-  inventory::{InvType, Inventory},
-  magic::Magic,
-  mn_list::{MnListDiffPayload, SimplifiedMnListEntry},
-  net_addr::{AddrV2, AddrV2Entry, NetAddr, TimestampedAddr},
-  protocol_version::ProtocolVersion,
-  service_flags::ServiceFlags,
-  short_id::ShortId,
-  user_agent::UserAgent,
+pub use msg::{
+  Addr, AddrV2Entry, AddrV2Msg, CFCheckpt, CFHeaders, CFilter, DashNetworkMessage, FilterType, GetCFCheckpt,
+  GetCFHeaders, GetCFilters, GetData, GetHeaders, GetHeaders2, GovSync, Headers, Headers2, Inv, NotFound, Ping, Pong,
+  TimestampedAddr, Version, VersionAddr,
 };
+pub use primitives::{
+  CommandString, CompressionState, DeletedQuorum, GetMnListDiff, InvType, Inventory, Magic, MnListDiff,
+  MnListDiffPayload, ProtocolVersion, QuorumClSig, ServiceFlags, ShortId, SimplifiedMnListEntry, UserAgent,
+  UserAgentTooLong,
+};
+pub use v2::{decode_v2, encode_v2};

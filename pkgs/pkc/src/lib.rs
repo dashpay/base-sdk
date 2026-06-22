@@ -27,3 +27,23 @@ pub mod k256;
 pub mod worker;
 
 pub use dash_num::Hash256;
+
+dash_types::make_bytes! {
+  /// Raw BLS public key bytes (48 bytes, unvalidated).
+  BlsPublicKeyBytes, 48
+}
+
+dash_types::make_bytes! {
+  /// Raw BLS signature bytes (96 bytes, unvalidated).
+  BlsSignatureBytes, 96
+}
+
+dash_types::make_bytes! {
+  /// Raw compressed ECDSA public key bytes (33 bytes, unvalidated).
+  EcdsaPublicKeyBytes, 33
+}
+
+dash_types::make_bytes! {
+  /// Raw compact ECDSA signature bytes (64 bytes, unvalidated).
+  EcdsaSignatureBytes, 64
+}
