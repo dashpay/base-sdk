@@ -14,5 +14,5 @@ mod util;
 
 pub use addrv1::{AddrV1, ServiceV1};
 pub use addrv2::{AddrV2, ServiceV2};
-pub use netaddr::{NetAddr, NetAddrError, NetworkType};
+pub use netaddr::{is_bad_port, NetAddr, NetAddrError, NetworkType};
 pub use netinfo::{ExtendedNetInfo, NetInfo, NetInfoEntry, NetInfoPurpose};

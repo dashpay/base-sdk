@@ -169,6 +169,37 @@ impl fmt::Display for NetAddrError {
 #[cfg(feature = "std")]
 impl std::error::Error for NetAddrError {}
 
+/// Returns `true` when the port is on the blocklist.
+pub fn is_bad_port(port: u16) -> bool {
+  if (1..=1023).contains(&port) {
+    return true;
+  }
+  matches!(
+    port,
+    1719  // h323gatestat
+    | 1720  // h323hostcall
+    | 1723  // pptp
+    | 2049  // nfs
+    | 3659  // apple-sasl / PasswordServer
+    | 4045  // lockd
+    | 5060  // sip
+    | 5061  // sips
+    | 6000  // X11
+    | 6566  // sane-port
+    | 6665  // alternate IRC
+    | 6666  // alternate IRC
+    | 6667  // standard IRC
+    | 6668  // alternate IRC
+    | 6669  // alternate IRC
+    | 6697  // IRC + TLS
+    | 8332  // Bitcoin JSON-RPC
+    | 8333  // Bitcoin P2P
+    | 10080 // Amanda
+    | 18332 // Bitcoin testnet RPC
+    | 18333 // Bitcoin testnet P2P
+  )
+}
+
 /// Shared classification interface for network addresses.
 ///
 /// Both legacy (`AddrV1`) and modern (`AddrV2`) address types
