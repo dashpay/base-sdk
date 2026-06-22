@@ -6,7 +6,11 @@
 
 //! Entrypoint for Base SDK Debug Utility.
 
+mod bspcheck;
 mod logging;
+mod policy;
+
+use clap::{Parser, Subcommand};
 
 use std::env;
 use std::fmt;
@@ -49,8 +53,34 @@ impl Application {
   }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Parser)]
+#[command(name = "bsdk-util", about = "Base SDK Debug Utility")]
+struct Cli {
+  /// Write a log file to this path.
+  #[arg(long, global = true)]
+  log: Option<String>,
+
+  #[command(subcommand)]
+  command: Command,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Subcommand)]
+enum Command {
+  /// Verify every block in a linearized chain.
+  Bspcheck {
+    /// Continue processing after errors instead of aborting.
+    #[arg(short = 'n', long)]
+    no_fastfail: bool,
+
+    /// Path to a linearized chain, or "-" for stdin.
+    file: String,
+  },
+}
+
 fn main() -> ExitCode {
-  let app = Application::new(None);
+  let cli = Cli::parse();
+  let app = Application::new(cli.log);
+
   logging::print_banner(&app);
 
   let args: Vec<String> = env::args().skip(1).collect();
@@ -65,13 +95,25 @@ fn main() -> ExitCode {
     ),
   );
 
-  if let Some(mut w) = app.log.lock().ok().and_then(|mut g| g.take()) {
-    if let Err(e) = w.flush() {
-      eprintln!("fatal: log flush failed: {e}");
-      return ExitCode::FAILURE;
-    }
-    logging::log_msg(&app, &format!("Log saved to {}", app.log_path));
-  }
+  let result = match cli.command {
+    Command::Bspcheck { file, no_fastfail } => bspcheck::run(&app, &file, no_fastfail),
+  };
 
-  ExitCode::SUCCESS
+  match result {
+    Ok(()) => {
+      if let Some(mut w) = app.log.lock().ok().and_then(|mut g| g.take()) {
+        if let Err(e) = w.flush() {
+          eprintln!("fatal: log flush failed: {e}");
+          return ExitCode::FAILURE;
+        }
+        logging::log_msg(&app, &format!("Log saved to {}", app.log_path));
+      }
+      ExitCode::SUCCESS
+    }
+    Err(e) => {
+      logging::log_msg(&app, &format!("Fatal: {e}"));
+      eprintln!("fatal: {e}");
+      ExitCode::FAILURE
+    }
+  }
 }

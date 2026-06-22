@@ -9,7 +9,7 @@
 use crate::Application;
 
 use built_info::{DIRECT_DEPENDENCIES, GIT_COMMIT_HASH_SHORT, PKG_VERSION, RUSTC_VERSION};
-use chrono::Utc;
+use chrono::{TimeDelta, Utc};
 
 use std::io::Write;
 
@@ -51,4 +51,30 @@ pub fn print_banner(app: &Application) {
     }
   }
   log_msg(app, "");
+}
+
+/// Format a duration as a compact human-readable string.
+pub fn format_runtime(elapsed: std::time::Duration) -> String {
+  let delta = TimeDelta::from_std(elapsed).unwrap_or(TimeDelta::zero());
+  let days = delta.num_days();
+  let hours = delta.num_hours() % 24;
+  let minutes = delta.num_minutes() % 60;
+  let seconds = delta.num_seconds() % 60;
+  let mut parts = Vec::new();
+  if days > 0 {
+    parts.push(format!("{days}d"));
+  }
+  if hours > 0 {
+    parts.push(format!("{hours}h"));
+  }
+  if minutes > 0 {
+    parts.push(format!("{minutes}m"));
+  }
+  if parts.is_empty() {
+    let millis = delta.num_milliseconds() % 1000;
+    parts.push(format!("{seconds}.{millis:03}s"));
+  } else {
+    parts.push(format!("{seconds}s"));
+  }
+  parts.join(" ")
 }
