@@ -255,14 +255,6 @@ pub(crate) fn check_sptx_netinfo(
     return Some(ProTxInvalid::NetInfoEmpty);
   }
 
-  for (_purpose, group) in entries {
-    for entry in group {
-      if matches!(entry, NIEntry::Invalid) {
-        return Some(ProTxInvalid::NetInfoInvalid);
-      }
-    }
-  }
-
   None
 }
 

@@ -120,8 +120,6 @@ pub enum NIEntry {
     /// Network port (big-endian on wire).
     port: u16,
   },
-  /// Invalid / placeholder entry.
-  Invalid,
 }
 
 impl fmt::Display for NIEntry {
@@ -132,7 +130,6 @@ impl fmt::Display for NIEntry {
         let s = core::str::from_utf8(name).unwrap_or("<invalid utf-8>");
         write!(f, "{s}:{port}")
       }
-      Self::Invalid => f.write_str("<invalid>"),
     }
   }
 }
@@ -189,7 +186,12 @@ impl BaseCodec for NetInfoV2 {
             let port = codec::read_u16_be(data)?;
             NIEntry::Domain { name, port }
           }
-          NIEntryCode::Unknown(_) => NIEntry::Invalid,
+          NIEntryCode::Unknown(t) => {
+            return Err(DecodeError::InvalidValue {
+              expected: NIEntryCode::Service.to_base() as u64,
+              actual: u64::from(t),
+            });
+          }
         };
         group.push(entry);
       }
@@ -203,9 +205,8 @@ impl BaseCodec for NetInfoV2 {
     codec::write_compact_size(self.entries.len(), buf);
     for (purpose, group) in &self.entries {
       purpose.to_base().encode(buf);
-      let valid = group.iter().filter(|e| !matches!(e, NIEntry::Invalid));
-      codec::write_compact_size(valid.clone().count(), buf);
-      for entry in valid {
+      codec::write_compact_size(group.len(), buf);
+      for entry in group {
         match entry {
           NIEntry::Service(svc) => {
             NIEntryCode::Service.to_base().encode(buf);
@@ -216,7 +217,6 @@ impl BaseCodec for NetInfoV2 {
             name.encode(buf);
             buf.extend_from_slice(&port.to_be_bytes());
           }
-          NIEntry::Invalid => {}
         }
       }
     }
