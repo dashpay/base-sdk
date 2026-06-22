@@ -5,6 +5,11 @@ edition = "2021"
 license = "MIT"
 publish = false
 
+[[bin]]
+name = "bsdk-util"
+path = "src/bin/bsdk_util/main.rs"
+required-features = ["bin"]
+
 [features]
 default = []
 std = [
@@ -17,7 +22,14 @@ std = [
 ]
 full = ["std", "serde"]
 serde = ["dep:serde", "dash-primitives/serde", "dash-types/serde"]
+bin = ["full", "dep:chrono", "dep:clap"]
 _internal = []
+
+[build-dependencies]
+built = { version = "0.7", features = ["dependency-tree", "git2"] }
+proc-macro2 = "1"
+syn = { version = "2", features = ["full", "visit"] }
+xxhash-rust = { version = "0.8", features = ["xxh32"] }
 
 [dependencies]
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
@@ -28,14 +40,22 @@ dash-types = { version = "0.0.0", path = "../types", default-features = false }
 hex-conservative = { version = "0.3", default-features = false, features = [
   "alloc",
 ] }
+chrono = { version = "0.4", default-features = false, features = [
+  "clock",
+], optional = true }
+clap = { version = "4", default-features = false, features = [
+  "derive",
+  "std",
+  "help",
+  "usage",
+  "error-context",
+], optional = true }
 json5 = { version = "0.4", optional = true }
-serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
+serde = { version = "1", default-features = false, features = [
+  "derive",
+  "alloc",
+], optional = true }
 serde_json = { version = "1", optional = true }
-
-[build-dependencies]
-proc-macro2 = "1"
-syn = { version = "2", features = ["full", "visit"] }
-xxhash-rust = { version = "0.8", features = ["xxh32"] }
 
 [lints]
 workspace = true

@@ -114,6 +114,14 @@ predicate isCodecType(TypeItem t) {
   t.getName().getText() = "ArrayBuf"
 }
 
+/** Holds if `t` lives in a crate with no public API. */
+predicate isPrivateCrate(TypeItem t) {
+  exists(string path |
+    path = fileOf(t).getAbsolutePath() and
+    path.matches("%/pkgs/dev/%")
+  )
+}
+
 /** Holds if `t` is a source type eligible for the "must derive" check. */
 predicate isCheckableType(TypeItem t) {
   isSourceType(t) and
@@ -121,6 +129,7 @@ predicate isCheckableType(TypeItem t) {
   not isCodecType(t) and
   not isSecretType(t) and
   not isIteratorType(t) and
+  not isPrivateCrate(t) and
   not hasUnexpandedDerive(t)
 }
 
