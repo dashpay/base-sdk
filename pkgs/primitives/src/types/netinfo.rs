@@ -122,6 +122,38 @@ pub enum NIEntry {
   },
 }
 
+impl BaseCodec for NIEntry {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    match NIEntryCode::from_base(u8::decode(data)?) {
+      NIEntryCode::Service => Ok(Self::Service(ServiceV2::decode(data)?)),
+      NIEntryCode::Domain => {
+        let name_len = codec::read_compact_size(data, data.len())?;
+        let name = codec::read_bytes(data, name_len)?.to_vec();
+        let port = codec::read_u16_be(data)?;
+        Ok(Self::Domain { name, port })
+      }
+      NIEntryCode::Unknown(t) => Err(DecodeError::InvalidValue {
+        expected: NIEntryCode::Service.to_base() as u64,
+        actual: u64::from(t),
+      }),
+    }
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    match self {
+      Self::Service(svc) => {
+        NIEntryCode::Service.to_base().encode(buf);
+        svc.encode(buf);
+      }
+      Self::Domain { name, port } => {
+        NIEntryCode::Domain.to_base().encode(buf);
+        name.encode(buf);
+        buf.extend_from_slice(&port.to_be_bytes());
+      }
+    }
+  }
+}
+
 impl fmt::Display for NIEntry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -178,22 +210,7 @@ impl BaseCodec for NetInfoV2 {
       let entry_count = codec::read_compact_size(data, data.len())?;
       let mut group = Vec::with_capacity(entry_count);
       for _ in 0..entry_count {
-        let entry = match NIEntryCode::from_base(u8::decode(data)?) {
-          NIEntryCode::Service => NIEntry::Service(ServiceV2::decode(data)?),
-          NIEntryCode::Domain => {
-            let name_len = codec::read_compact_size(data, data.len())?;
-            let name = codec::read_bytes(data, name_len)?.to_vec();
-            let port = codec::read_u16_be(data)?;
-            NIEntry::Domain { name, port }
-          }
-          NIEntryCode::Unknown(t) => {
-            return Err(DecodeError::InvalidValue {
-              expected: NIEntryCode::Service.to_base() as u64,
-              actual: u64::from(t),
-            });
-          }
-        };
-        group.push(entry);
+        group.push(NIEntry::decode(data)?);
       }
       entries.push((purpose, group));
     }
@@ -207,17 +224,7 @@ impl BaseCodec for NetInfoV2 {
       purpose.to_base().encode(buf);
       codec::write_compact_size(group.len(), buf);
       for entry in group {
-        match entry {
-          NIEntry::Service(svc) => {
-            NIEntryCode::Service.to_base().encode(buf);
-            svc.encode(buf);
-          }
-          NIEntry::Domain { name, port } => {
-            NIEntryCode::Domain.to_base().encode(buf);
-            name.encode(buf);
-            buf.extend_from_slice(&port.to_be_bytes());
-          }
-        }
+        entry.encode(buf);
       }
     }
   }
