@@ -102,8 +102,7 @@ impl BaseCodec for ProRegTx {
     let collateral_hash = TxHash::decode(data)?;
     let collateral_index = u32::decode(data)?;
     let net_info = if version >= 3 {
-      let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(NetInfoV2::decode(&mut &raw[..])?)
+      NetInfo::Extended(NetInfoV2::decode(data)?)
     } else {
       NetInfo::Legacy(ServiceV1::decode(data)?)
     };
@@ -154,9 +153,7 @@ impl BaseCodec for ProRegTx {
     // guarantees the variant matches the version.
     if self.version >= 3 {
       if let NetInfo::Extended(ext) = &self.net_info {
-        let mut inner = Vec::new();
-        ext.encode(&mut inner);
-        inner.encode(buf);
+        ext.encode(buf);
       }
     } else if let NetInfo::Legacy(svc) = &self.net_info {
       svc.encode(buf);
