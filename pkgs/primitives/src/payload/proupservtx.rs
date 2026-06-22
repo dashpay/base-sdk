@@ -11,7 +11,7 @@ use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::Script;
-use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
+use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsSignatureBytes;
@@ -66,10 +66,9 @@ impl BaseCodec for ProUpServTx {
 
     let pro_tx_hash = TxHash::decode(data)?;
     let net_info = if version >= 3 {
-      let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(ExtendedNetInfo::decode(&mut &raw[..])?)
+      NetInfo::Extended(NetInfoV2::decode(data)?)
     } else {
-      NetInfo::Legacy(ServiceV1::decode(data)?)
+      NetInfo::Legacy(NetInfoV1(ServiceV1::decode(data)?))
     };
     let script_operator_payout = Script::decode(data)?;
     let inputs_hash = InputsHash::decode(data)?;
@@ -108,9 +107,7 @@ impl BaseCodec for ProUpServTx {
     // guarantees the variant matches the version.
     if self.version >= 3 {
       if let NetInfo::Extended(ext) = &self.net_info {
-        let mut inner = Vec::new();
-        ext.encode(&mut inner);
-        inner.encode(buf);
+        ext.encode(buf);
       }
     } else if let NetInfo::Legacy(svc) = &self.net_info {
       svc.encode(buf);
@@ -150,17 +147,17 @@ impl Checkable for ProUpServTx {
     }
 
     match &self.net_info {
-      NetInfo::Extended(ext) => {
-        if ext.entries.is_empty() {
+      NetInfo::Legacy(addr) => {
+        if addr.is_empty() {
           return Some(ProTxInvalid::NetInfoEmpty);
         }
-        if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version >= PROTX_VERSION_EXT_ADDR) {
-          return Some(e);
+        if let Some(error) = addr.check() {
+          return Some(ProTxInvalid::NetInfoInvalid { error });
         }
       }
-      NetInfo::Legacy(svc) => {
-        if svc.addr.is_null() && svc.port == 0 {
-          return Some(ProTxInvalid::NetInfoEmpty);
+      NetInfo::Extended(addr) => {
+        if let Some(e) = check_sptx_netinfo(addr, self.version, self.mn_type) {
+          return Some(e);
         }
       }
     }

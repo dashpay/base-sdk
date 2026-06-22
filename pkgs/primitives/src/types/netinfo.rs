@@ -4,24 +4,53 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Extended network info types for v3+ provider transactions.
+//! Network information types and trait.
 
-use super::ServiceV1;
+use super::netaddr::{is_bad_port, NetAddr};
+use super::{AddrV2, NetAddrError, ServiceV1, ServiceV2};
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
 use dash_types::{impl_num, impl_type};
 
 use core::fmt;
 
 /// Maximum entries per purpose.
-const MAX_ENTRIES: usize = 8;
-/// Maximum number of purpose groups.
-const MAX_PURPOSES: usize = 8;
+const MAX_ENTRIES: usize = 4;
+/// Maximum label length per RFC 1035.
+const DOMAIN_LABEL_MAX: usize = 63;
+/// Maximum FQDN length.
+const DOMAIN_MAX: usize = 253;
+/// Minimum FQDN length.
+const DOMAIN_MIN: usize = 3;
+
+/// Reserved and privacy TLDs that must be rejected.
+const TLDS_BAD: &[&str] = &[
+  // ICANN resolution 2018.02.04.12
+  ".mail",
+  // Infrastructure TLD
+  ".arpa",
+  // RFC 6761
+  ".example",
+  ".invalid",
+  ".localhost",
+  ".test",
+  // RFC 6762
+  ".local",
+  // RFC 6762, appendix G
+  ".corp",
+  ".home",
+  ".internal",
+  ".intranet",
+  ".lan",
+  ".private",
+];
+/// Privacy-network TLDs that must be rejected.
+const TLDS_PRIVACY: &[&str] = &[".i2p", ".onion"];
 
 /// Purpose tag for an extended network info entry.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum NetInfoPurpose {
+pub enum NIPurpose {
   /// Core P2P port.
   CoreP2p,
   /// Platform P2P port.
@@ -32,7 +61,7 @@ pub enum NetInfoPurpose {
   Unknown(u8),
 }
 
-impl NumCodec<u8> for NetInfoPurpose {
+impl NumCodec<u8> for NIPurpose {
   fn from_base(val: u8) -> Self {
     match val {
       0 => Self::CoreP2p,
@@ -52,9 +81,9 @@ impl NumCodec<u8> for NetInfoPurpose {
   }
 }
 
-impl_num!(NetInfoPurpose, u8);
+impl_num!(NIPurpose, u8);
 
-impl fmt::Display for NetInfoPurpose {
+impl fmt::Display for NIPurpose {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::CoreP2p => write!(f, "core_p2p"),
@@ -65,13 +94,105 @@ impl fmt::Display for NetInfoPurpose {
   }
 }
 
+/// Type tag for an extended network info entry.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum NIEntryCode {
+  /// BIP155 address + port.
+  Service,
+  /// Domain name + port.
+  Domain,
+  /// Unrecognized entry type code.
+  Unknown(u8),
+}
+
+impl NumCodec<u8> for NIEntryCode {
+  fn from_base(val: u8) -> Self {
+    match val {
+      0x01 => Self::Service,
+      0x02 => Self::Domain,
+      other => Self::Unknown(other),
+    }
+  }
+
+  fn to_base(&self) -> u8 {
+    match self {
+      Self::Service => 0x01,
+      Self::Domain => 0x02,
+      Self::Unknown(v) => *v,
+    }
+  }
+}
+
+impl_num!(NIEntryCode, u8);
+
+impl fmt::Display for NIEntryCode {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Service => write!(f, "service"),
+      Self::Domain => write!(f, "domain"),
+      Self::Unknown(v) => write!(f, "unknown({v})"),
+    }
+  }
+}
+
+/// Network info validation error.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum NIError {
+  /// Address failed validation.
+  BadAddr {
+    /// The underlying address error.
+    error: NetAddrError,
+  },
+  /// Port is zero or invalid for context.
+  BadPort {
+    /// The invalid port value.
+    port: u16,
+  },
+  /// Entry or address type not valid for this purpose.
+  BadType {
+    /// The offending entry type byte.
+    entry_type: u8,
+  },
+  /// Duplicate address:port within the structure.
+  Duplicate,
+  /// Too many entries or purpose groups.
+  MaxLimit {
+    /// Actual count.
+    count: usize,
+    /// Maximum allowed.
+    max: usize,
+  },
+  /// Structural integrity violation.
+  Malformed,
+}
+
+impl fmt::Display for NIError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::BadAddr { error } => write!(f, "invalid address: {error}"),
+      Self::BadPort { port } => write!(f, "invalid port {port}"),
+      Self::BadType { entry_type } => {
+        write!(f, "unsupported entry type {entry_type}")
+      }
+      Self::Duplicate => f.write_str("duplicate entry"),
+      Self::MaxLimit { count, max } => {
+        write!(f, "too many entries: {count} exceeds limit {max}")
+      }
+      Self::Malformed => f.write_str("malformed structure"),
+    }
+  }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for NIError {}
+
 /// A single network info entry within a purpose group.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub enum NetInfoEntry {
-  /// ADDRv1-style IP + port.
-  Service(ServiceV1),
+pub enum NIEntry {
+  /// BIP155 address + port.
+  Service(ServiceV2),
   /// Domain name + port.
   Domain {
     /// The domain name as raw bytes.
@@ -80,8 +201,135 @@ pub enum NetInfoEntry {
     /// Network port (big-endian on wire).
     port: u16,
   },
-  /// Invalid / placeholder entry.
-  Invalid,
+}
+
+impl BaseCodec for NIEntry {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    match NIEntryCode::from_base(u8::decode(data)?) {
+      NIEntryCode::Service => Ok(Self::Service(ServiceV2::decode(data)?)),
+      NIEntryCode::Domain => {
+        let name_len = codec::read_compact_size(data, data.len())?;
+        let name = codec::read_bytes(data, name_len)?.to_vec();
+        let port = codec::read_u16_be(data)?;
+        Ok(Self::Domain { name, port })
+      }
+      NIEntryCode::Unknown(t) => Err(DecodeError::InvalidValue {
+        expected: NIEntryCode::Service.to_base() as u64,
+        actual: u64::from(t),
+      }),
+    }
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    match self {
+      Self::Service(svc) => {
+        NIEntryCode::Service.to_base().encode(buf);
+        svc.encode(buf);
+      }
+      Self::Domain { name, port } => {
+        NIEntryCode::Domain.to_base().encode(buf);
+        name.encode(buf);
+        buf.extend_from_slice(&port.to_be_bytes());
+      }
+    }
+  }
+}
+
+/// Validates a domain name per RFC 1035 consensus rules.
+fn check_domain(name: &[u8]) -> Option<NIError> {
+  let s = match core::str::from_utf8(name) {
+    Ok(s) => s,
+    Err(_) => return Some(NIError::Malformed),
+  };
+  if s.len() < DOMAIN_MIN || s.len() > DOMAIN_MAX {
+    return Some(NIError::Malformed);
+  }
+  if s.bytes().any(|b| b.is_ascii_uppercase()) {
+    return Some(NIError::Malformed);
+  }
+  if !s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-') {
+    return Some(NIError::Malformed);
+  }
+  if s.as_bytes()[0] == b'.' || s.as_bytes()[s.len() - 1] == b'.' {
+    return Some(NIError::Malformed);
+  }
+  let mut label_count = 0usize;
+  for label in s.split('.') {
+    if label.is_empty() || label.len() > DOMAIN_LABEL_MAX {
+      return Some(NIError::Malformed);
+    }
+    if label.as_bytes()[0] == b'-' || label.as_bytes()[label.len() - 1] == b'-' {
+      return Some(NIError::Malformed);
+    }
+    label_count += 1;
+  }
+  if label_count < 2 {
+    return Some(NIError::Malformed);
+  }
+  // Reject reserved and privacy TLDs.
+  if TLDS_BAD.iter().chain(TLDS_PRIVACY.iter()).any(|tld| s.ends_with(tld)) {
+    return Some(NIError::Malformed);
+  }
+  // TLD must be purely alphabetic (ICANN guideline).
+  let last_label = s.rsplit('.').next().unwrap_or("");
+  if !last_label.bytes().all(|b| b.is_ascii_lowercase()) {
+    return Some(NIError::Malformed);
+  }
+  None
+}
+
+impl Checkable for NIEntry {
+  type Error = NIError;
+
+  fn check(&self) -> Option<Self::Error> {
+    match self {
+      Self::Service(svc) => {
+        if let Some(error) = svc.check() {
+          return Some(NIError::BadAddr { error });
+        }
+        if !svc.addr.is_i2p() && is_bad_port(svc.port) {
+          return Some(NIError::BadPort { port: svc.port });
+        }
+        None
+      }
+      Self::Domain { name, port } => {
+        if *port == 0 || (is_bad_port(*port) && *port != 443) {
+          return Some(NIError::BadPort { port: *port });
+        }
+        check_domain(name)
+      }
+    }
+  }
+}
+
+impl fmt::Display for NIEntry {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Service(svc) => write!(f, "{svc}"),
+      Self::Domain { name, port } => {
+        let s = core::str::from_utf8(name).unwrap_or("<invalid utf-8>");
+        write!(f, "{s}:{port}")
+      }
+    }
+  }
+}
+
+/// Interface for network information types.
+pub trait NITrait: fmt::Display {
+  /// Returns entries, optionally filtered by purpose.
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_;
+
+  /// Returns the primary service if available.
+  fn primary(&self) -> Option<ServiceV2>;
+
+  /// Returns `true` when this value carries no addresses.
+  fn is_empty(&self) -> bool;
+
+  /// Returns `true` if entries exist for the given purpose.
+  fn has_entries(&self, purpose: NIPurpose) -> bool;
+
+  /// Returns `true` when this type can carry platform addresses.
+  fn stores_platform(&self) -> bool;
 }
 
 /// Extended network info for v3+ ProRegTx / ProUpServTx.
@@ -91,36 +339,26 @@ pub enum NetInfoEntry {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub struct ExtendedNetInfo {
+pub struct NetInfoV2 {
   /// Format version.
   pub version: u8,
   /// Purpose-grouped entries.
-  pub entries: Vec<(NetInfoPurpose, Vec<NetInfoEntry>)>,
+  pub entries: Vec<(NIPurpose, Vec<NIEntry>)>,
 }
 
-impl_type!(ExtendedNetInfo);
+impl_type!(NetInfoV2);
 
-impl BaseCodec for ExtendedNetInfo {
+impl BaseCodec for NetInfoV2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = u8::decode(data)?;
-    let purpose_count = codec::read_compact_size(data, MAX_PURPOSES)?;
+    let purpose_count = codec::read_compact_size(data, data.len())?;
     let mut entries = Vec::with_capacity(purpose_count);
     for _ in 0..purpose_count {
-      let purpose = NetInfoPurpose::from_base(u8::decode(data)?);
-      let entry_count = codec::read_compact_size(data, MAX_ENTRIES)?;
+      let purpose = NIPurpose::from_base(u8::decode(data)?);
+      let entry_count = codec::read_compact_size(data, data.len())?;
       let mut group = Vec::with_capacity(entry_count);
       for _ in 0..entry_count {
-        let entry_type = u8::decode(data)?;
-        let entry = match entry_type {
-          0x01 => NetInfoEntry::Service(ServiceV1::decode(data)?),
-          0x02 => {
-            let name: Vec<u8> = Vec::decode(data)?;
-            let port = codec::read_u16_be(data)?;
-            NetInfoEntry::Domain { name, port }
-          }
-          _ => NetInfoEntry::Invalid,
-        };
-        group.push(entry);
+        group.push(NIEntry::decode(data)?);
       }
       entries.push((purpose, group));
     }
@@ -132,23 +370,223 @@ impl BaseCodec for ExtendedNetInfo {
     codec::write_compact_size(self.entries.len(), buf);
     for (purpose, group) in &self.entries {
       purpose.to_base().encode(buf);
-      let valid_count = group.iter().filter(|e| !matches!(e, NetInfoEntry::Invalid)).count();
-      codec::write_compact_size(valid_count, buf);
+      codec::write_compact_size(group.len(), buf);
       for entry in group {
-        match entry {
-          NetInfoEntry::Service(svc) => {
-            0x01u8.encode(buf);
-            svc.encode(buf);
-          }
-          NetInfoEntry::Domain { name, port } => {
-            0x02u8.encode(buf);
-            name.encode(buf);
-            buf.extend_from_slice(&port.to_be_bytes());
-          }
-          NetInfoEntry::Invalid => {}
+        entry.encode(buf);
+      }
+    }
+  }
+}
+
+impl Checkable for NetInfoV2 {
+  type Error = NIError;
+
+  fn check(&self) -> Option<Self::Error> {
+    if self.version == 0 || self.version > Self::CURRENT_VERSION {
+      return Some(NIError::Malformed);
+    }
+    if self.entries.is_empty() {
+      return Some(NIError::Malformed);
+    }
+    // Duplicate purpose key detection.
+    for i in 0..self.entries.len() {
+      for j in (i + 1)..self.entries.len() {
+        if self.entries[i].0 == self.entries[j].0 {
+          return Some(NIError::Duplicate);
         }
       }
     }
+    // addr:port duplicates across all entries
+    let all: Vec<&NIEntry> = self.entries.iter().flat_map(|(_, g)| g.iter()).collect();
+    for i in 0..all.len() {
+      for j in (i + 1)..all.len() {
+        if all[i] == all[j] {
+          return Some(NIError::Duplicate);
+        }
+      }
+    }
+    for (purpose, group) in &self.entries {
+      if matches!(purpose, NIPurpose::Unknown(_)) {
+        return Some(NIError::Malformed);
+      }
+      if group.is_empty() {
+        return Some(NIError::Malformed);
+      }
+      if group.len() > MAX_ENTRIES {
+        return Some(NIError::MaxLimit {
+          count: group.len(),
+          max: MAX_ENTRIES,
+        });
+      }
+      // addr-only duplicates within purpose group
+      for i in 0..group.len() {
+        for j in (i + 1)..group.len() {
+          if same_addr(&group[i], &group[j]) {
+            return Some(NIError::Duplicate);
+          }
+        }
+      }
+      for entry in group {
+        if let NIEntry::Service(svc) = entry {
+          if matches!(svc.addr, AddrV2::Unknown { .. }) {
+            return Some(NIError::BadType {
+              entry_type: svc.addr.network().to_base(),
+            });
+          }
+        }
+        if matches!(entry, NIEntry::Domain { .. }) && *purpose != NIPurpose::PlatformHttps {
+          return Some(NIError::BadType { entry_type: 0x02 });
+        }
+        if let Some(e) = entry.check() {
+          return Some(e);
+        }
+      }
+    }
+    None
+  }
+}
+
+impl NetInfoV2 {
+  /// Highest supported format version.
+  const CURRENT_VERSION: u8 = 1;
+}
+
+impl fmt::Display for NetInfoV2 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    if self.entries.is_empty() {
+      return f.write_str("NetInfoV2()");
+    }
+    f.write_str("NetInfoV2(")?;
+    for (i, (purpose, group)) in self.entries.iter().enumerate() {
+      if i > 0 {
+        f.write_str(", ")?;
+      }
+      write!(f, "{purpose}=[")?;
+      for (j, entry) in group.iter().enumerate() {
+        if j > 0 {
+          f.write_str(", ")?;
+        }
+        write!(f, "{entry}")?;
+      }
+      f.write_str("]")?;
+    }
+    f.write_str(")")
+  }
+}
+
+impl NITrait for NetInfoV2 {
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_ {
+    self
+      .entries
+      .iter()
+      .filter(move |(pp, _)| purpose.is_none() || purpose == Some(*pp))
+      .flat_map(|(_, group)| group.iter().cloned())
+  }
+
+  fn primary(&self) -> Option<ServiceV2> {
+    self
+      .entries
+      .iter()
+      .find(|(p, e)| *p == NIPurpose::CoreP2p && !e.is_empty())
+      .and_then(|(_, entries)| {
+        entries.iter().find_map(|e| match e {
+          NIEntry::Service(svc) => Some(svc.clone()),
+          _ => None,
+        })
+      })
+  }
+
+  fn is_empty(&self) -> bool {
+    self.entries.iter().all(|(_, group)| group.is_empty())
+  }
+
+  fn has_entries(&self, purpose: NIPurpose) -> bool {
+    self.entries.iter().any(|(p, e)| *p == purpose && !e.is_empty())
+  }
+
+  fn stores_platform(&self) -> bool {
+    true
+  }
+}
+
+/// Returns `true` when two entries share the same address,
+/// ignoring port.
+fn same_addr(a: &NIEntry, b: &NIEntry) -> bool {
+  match (a, b) {
+    (NIEntry::Service(sa), NIEntry::Service(sb)) => sa.addr == sb.addr,
+    (NIEntry::Domain { name: na, .. }, NIEntry::Domain { name: nb, .. }) => na == nb,
+    _ => false,
+  }
+}
+
+/// Legacy network information wrapper.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct NetInfoV1(pub ServiceV1);
+
+impl_type!(NetInfoV1);
+
+impl BaseCodec for NetInfoV1 {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    Ok(Self(ServiceV1::decode(data)?))
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    self.0.encode(buf);
+  }
+}
+
+impl Checkable for NetInfoV1 {
+  type Error = NIError;
+
+  fn check(&self) -> Option<Self::Error> {
+    if let Some(error) = self.0.check() {
+      return Some(NIError::BadAddr { error });
+    }
+    None
+  }
+}
+
+impl fmt::Display for NetInfoV1 {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    if self.0.addr.is_null() && self.0.port == 0 {
+      return f.write_str("NetInfoV1()");
+    }
+    write!(f, "NetInfoV1({})", self.0)
+  }
+}
+
+impl NITrait for NetInfoV1 {
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_ {
+    let entry = if self.is_empty() {
+      None
+    } else {
+      match purpose {
+        None | Some(NIPurpose::CoreP2p) => Some(NIEntry::Service(ServiceV2::from(&self.0))),
+        Some(_) => None,
+      }
+    };
+    entry.into_iter()
+  }
+
+  fn primary(&self) -> Option<ServiceV2> {
+    if self.is_empty() {
+      return None;
+    }
+    Some(ServiceV2::from(&self.0))
+  }
+
+  fn is_empty(&self) -> bool {
+    self.0.addr.is_null() && self.0.port == 0
+  }
+
+  fn has_entries(&self, purpose: NIPurpose) -> bool {
+    purpose == NIPurpose::CoreP2p && !self.is_empty()
+  }
+
+  fn stores_platform(&self) -> bool {
+    false
   }
 }
 
@@ -157,8 +595,480 @@ impl BaseCodec for ExtendedNetInfo {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfo {
-  /// ADDRv1 ServiceV1 (18 bytes).
-  Legacy(ServiceV1),
+  /// ADDRv1 service (18 bytes).
+  Legacy(NetInfoV1),
   /// Extended format (v3+) with purpose-grouped entries.
-  Extended(ExtendedNetInfo),
+  Extended(NetInfoV2),
+}
+
+impl Checkable for NetInfo {
+  type Error = NIError;
+
+  fn check(&self) -> Option<Self::Error> {
+    match self {
+      Self::Legacy(v1) => v1.check(),
+      Self::Extended(v2) => v2.check(),
+    }
+  }
+}
+
+impl fmt::Display for NetInfo {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Legacy(v1) => v1.fmt(f),
+      Self::Extended(v2) => v2.fmt(f),
+    }
+  }
+}
+
+impl NITrait for NetInfo {
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_ {
+    let (a, b) = match self {
+      Self::Legacy(v1) => (Some(v1.entries(purpose)), None),
+      Self::Extended(v2) => (None, Some(v2.entries(purpose))),
+    };
+    a.into_iter().flatten().chain(b.into_iter().flatten())
+  }
+
+  fn primary(&self) -> Option<ServiceV2> {
+    match self {
+      Self::Legacy(v1) => v1.primary(),
+      Self::Extended(v2) => v2.primary(),
+    }
+  }
+
+  fn is_empty(&self) -> bool {
+    match self {
+      Self::Legacy(v1) => v1.is_empty(),
+      Self::Extended(v2) => v2.is_empty(),
+    }
+  }
+
+  fn has_entries(&self, purpose: NIPurpose) -> bool {
+    match self {
+      Self::Legacy(v1) => v1.has_entries(purpose),
+      Self::Extended(v2) => v2.has_entries(purpose),
+    }
+  }
+
+  fn stores_platform(&self) -> bool {
+    match self {
+      Self::Legacy(v1) => v1.stores_platform(),
+      Self::Extended(v2) => v2.stores_platform(),
+    }
+  }
+}
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use super::*;
+  use crate::types::{AddrV1, AddrV2};
+
+  use dash_types::codec::{BaseCodec, Checkable};
+  use hex_literal::hex;
+  use rstest::rstest;
+
+  #[rstest]
+  #[case::ipv4(
+    &hex!(
+      "01"       // entry_type=Service
+      "01"       // network=ipv4
+      "04"       // addr_len=4
+      "01020304" // addr 1.2.3.4
+      "270f"     // port=9999
+    ),
+    NIEntry::Service(ServiceV2 { addr: AddrV2::Ipv4([1, 2, 3, 4]), port: 9999 }),
+  )]
+  #[case::ipv6(
+    &hex!(
+      "01"                               // entry_type=Service
+      "02"                               // network=ipv6
+      "10"                               // addr_len=16
+      "00000000000000000000000000000001" // addr ::1
+      "270f"                             // port=9999
+    ),
+    NIEntry::Service(ServiceV2 { addr: AddrV2::Ipv6([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]), port: 9999 }),
+  )]
+  #[case::domain(
+    &hex!(
+      "02"                     // entry_type=Domain
+      "0b"                     // name_len=11
+      "6578616d706c652e636f6d" // "example.com"
+      "01bb"                   // port=443
+    ),
+    NIEntry::Domain { name: b"example.com".to_vec(), port: 443 },
+  )]
+  fn nientry_roundtrip(#[case] wire: &[u8], #[case] expected: NIEntry) {
+    let decoded = NIEntry::decode(&mut &wire[..]).unwrap();
+    assert_eq!(decoded, expected);
+    let mut buf = Vec::new();
+    decoded.encode(&mut buf);
+    assert_eq!(buf, wire);
+  }
+
+  #[rstest]
+  fn nientry_unknown_type_fails() {
+    let wire = hex!("ff");
+    assert!(NIEntry::decode(&mut &wire[..]).is_err());
+  }
+
+  #[rstest]
+  #[case::single_ipv4(
+    &hex!(
+      "01"            // version=1
+      "01"            // purpose_count=1
+      "00"            // purpose=CoreP2p
+      "01"            // entry_count=1
+      "01"            // entry_type=Service
+      "0104 01020304" // ipv4 1.2.3.4
+      "270f"          // port=9999
+    ),
+    NetInfoV2 {
+      version: 1,
+      entries: vec![(
+        NIPurpose::CoreP2p,
+        vec![NIEntry::Service(ServiceV2 {
+          addr: AddrV2::Ipv4([1, 2, 3, 4]),
+          port: 9999,
+        })],
+      )],
+    },
+  )]
+  #[case::multi_purpose(
+    &hex!(
+      "01"                       // version=1
+      "02"                       // purpose_count=2
+      "00"                       // purpose=CoreP2p
+      "01"                       // entry_count=1
+      "01"                       // entry_type=Service
+      "0104 c0a80001"            // ipv4 192.168.0.1
+      "238e"                     // port=9102
+      "02"                       // purpose=PlatformHttps
+      "01"                       // entry_count=1
+      "02"                       // entry_type=Domain
+      "0b6578616d706c652e636f6d" // "example.com"
+      "01bb"                     // port=443
+    ),
+    NetInfoV2 {
+      version: 1,
+      entries: vec![
+        (
+          NIPurpose::CoreP2p,
+          vec![NIEntry::Service(ServiceV2 {
+            addr: AddrV2::Ipv4([192, 168, 0, 1]),
+            port: 9102,
+          })],
+        ),
+        (
+          NIPurpose::PlatformHttps,
+          vec![NIEntry::Domain {
+            name: b"example.com".to_vec(),
+            port: 443,
+          }],
+        ),
+      ],
+    },
+  )]
+  fn netinfov2_roundtrip(#[case] wire: &[u8], #[case] expected: NetInfoV2) {
+    let decoded = NetInfoV2::decode(&mut &wire[..]).unwrap();
+    assert_eq!(decoded, expected);
+    let mut buf = Vec::new();
+    decoded.encode(&mut buf);
+    assert_eq!(buf, wire);
+  }
+
+  #[rstest]
+  #[case::ipv4_valid(AddrV2::Ipv4([1, 2, 3, 4]), 9999, None)]
+  #[case::ipv4_port_zero(
+    AddrV2::Ipv4([1, 2, 3, 4]), 0,
+    Some(NIError::BadAddr { error: NetAddrError::BadPort { port: 0 } }),
+  )]
+  #[case::ipv4_port_privileged(AddrV2::Ipv4([1, 2, 3, 4]), 22, Some(NIError::BadPort { port: 22 }))]
+  #[case::ipv4_port_named_bad(AddrV2::Ipv4([1, 2, 3, 4]), 8333, Some(NIError::BadPort { port: 8333 }))]
+  #[case::i2p_port_zero(AddrV2::I2p([1; 32]), 0, None)]
+  #[case::i2p_port_nonzero(
+    AddrV2::I2p([1; 32]), 9998,
+    Some(NIError::BadAddr { error: NetAddrError::BadPort { port: 9998 } }),
+  )]
+  #[case::tor_port_zero(
+    AddrV2::TorV3([1; 32]), 0,
+    Some(NIError::BadAddr { error: NetAddrError::BadPort { port: 0 } }),
+  )]
+  #[case::tor_port_valid(AddrV2::TorV3([1; 32]), 9998, None)]
+  #[case::cjdns_valid(AddrV2::Cjdns(hex!("fc000000000000000000000000000001")), 9998, None)]
+  fn check_entry_service(#[case] addr: AddrV2, #[case] port: u16, #[case] expected: Option<NIError>) {
+    let entry = NIEntry::Service(ServiceV2 { addr, port });
+    assert_eq!(entry.check(), expected);
+  }
+
+  #[rstest]
+  // Port rules
+  #[case::valid(b"example.com", 443, None)]
+  #[case::bad_port_zero(b"example.com", 0, Some(NIError::BadPort { port: 0 }))]
+  #[case::bad_port_privileged(b"example.com", 80, Some(NIError::BadPort { port: 80 }))]
+  #[case::port_443_exception(b"example.com", 443, None)]
+  #[case::port_above_threshold(b"example.com", 9999, None)]
+  // RFC 1035 syntax
+  #[case::small_label(b"r.server-1.ab.cd", 443, None)]
+  #[case::numeric_label_rfc1123(b"9998.9example7.ab", 443, None)]
+  #[case::uppercase(b"Example.com", 443, Some(NIError::Malformed))]
+  #[case::too_short(b"ab", 443, Some(NIError::Malformed))]
+  #[case::dotless(b"localhost", 443, Some(NIError::Malformed))]
+  #[case::leading_dot(b".abc.com", 443, Some(NIError::Malformed))]
+  #[case::trailing_dot(b"abc.com.", 443, Some(NIError::Malformed))]
+  #[case::empty_label(b"a..b.com", 443, Some(NIError::Malformed))]
+  #[case::leading_hyphen(b"-example.com", 443, Some(NIError::Malformed))]
+  #[case::trailing_hyphen(b"a-.bc.de", 443, Some(NIError::Malformed))]
+  #[case::bad_char_apostrophe(b"it's.example.com", 443, Some(NIError::Malformed))]
+  #[case::bad_char_space(b"some host.example.com", 443, Some(NIError::Malformed))]
+  // TLD rules
+  #[case::tld_local(b"host.local", 443, Some(NIError::Malformed))]
+  #[case::tld_onion(b"hidden.onion", 443, Some(NIError::Malformed))]
+  #[case::tld_test(b"host.test", 443, Some(NIError::Malformed))]
+  #[case::tld_i2p(b"host.i2p", 443, Some(NIError::Malformed))]
+  #[case::tld_arpa(b"host.arpa", 443, Some(NIError::Malformed))]
+  #[case::tld_numeric(b"example.123", 443, Some(NIError::Malformed))]
+  fn check_entry_domain(#[case] name: &[u8], #[case] port: u16, #[case] expected: Option<NIError>) {
+    let entry = NIEntry::Domain {
+      name: name.to_vec(),
+      port,
+    };
+    assert_eq!(entry.check(), expected);
+  }
+
+  #[rstest]
+  fn check_domain_length_limits() {
+    // 63-char label is valid
+    let label63 = "a".repeat(63);
+    let valid_long_label = format!("{label63}.com");
+    assert_eq!(check_domain(valid_long_label.as_bytes()), None,);
+    // 64-char label exceeds per-label maximum
+    let label64 = "a".repeat(64);
+    let bad_label = format!("{label64}.com");
+    assert_eq!(check_domain(bad_label.as_bytes()), Some(NIError::Malformed),);
+    // 253-char FQDN is at the maximum limit
+    let fqdn253 = format!(
+      "{}.{}.{}.{}.ab",
+      "a".repeat(63),
+      "b".repeat(63),
+      "c".repeat(63),
+      "d".repeat(58),
+    );
+    assert_eq!(fqdn253.len(), 253);
+    assert_eq!(check_domain(fqdn253.as_bytes()), None);
+    // 254-char FQDN exceeds maximum
+    let fqdn254 = format!(
+      "{}.{}.{}.{}.abc",
+      "a".repeat(63),
+      "b".repeat(63),
+      "c".repeat(63),
+      "d".repeat(58),
+    );
+    assert_eq!(fqdn254.len(), 254);
+    assert_eq!(check_domain(fqdn254.as_bytes()), Some(NIError::Malformed),);
+  }
+
+  #[rstest]
+  #[case::valid("1.2.3.4", 9999, None)]
+  #[case::bad_port("1.2.3.4", 0, Some(NIError::BadAddr { error: NetAddrError::BadPort { port: 0 } }))]
+  #[case::null_addr_raw("[::0]", 9999, Some(NIError::BadAddr { error: NetAddrError::BadRange { value: 0 } }))]
+  #[case::ipv6_valid("[2001::1]", 9999, None)]
+  fn check_v1(#[case] addr_str: &str, #[case] port: u16, #[case] expected: Option<NIError>) {
+    let addr: AddrV1 = addr_str.parse().unwrap();
+    let v1 = NetInfoV1(ServiceV1 { addr, port });
+    assert_eq!(v1.check(), expected);
+  }
+
+  fn svc(addr: AddrV2, port: u16) -> NIEntry {
+    NIEntry::Service(ServiceV2 { addr, port })
+  }
+
+  fn dom(name: &[u8], port: u16) -> NIEntry {
+    NIEntry::Domain {
+      name: name.to_vec(),
+      port,
+    }
+  }
+
+  fn valid_v2() -> NetInfoV2 {
+    NetInfoV2 {
+      version: 1,
+      entries: vec![(NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)])],
+    }
+  }
+
+  #[rstest]
+  #[case::zero(0, Some(NIError::Malformed))]
+  #[case::current(1, None)]
+  #[case::future(2, Some(NIError::Malformed))]
+  fn check_v2_version(#[case] version: u8, #[case] expected: Option<NIError>) {
+    let mut v2 = valid_v2();
+    v2.version = version;
+    assert_eq!(v2.check(), expected);
+  }
+
+  #[rstest]
+  #[case::empty_group(
+    NIPurpose::CoreP2p,
+    vec![],
+    Some(NIError::Malformed),
+  )]
+  #[case::unknown_purpose(
+    NIPurpose::Unknown(99),
+    vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)],
+    Some(NIError::Malformed),
+  )]
+  #[case::domain_wrong_purpose(
+    NIPurpose::CoreP2p,
+    vec![dom(b"example.com", 443)],
+    Some(NIError::BadType { entry_type: 0x02 }),
+  )]
+  #[case::unknown_network(
+    NIPurpose::CoreP2p,
+    vec![svc(AddrV2::Unknown { network: 99, addr: vec![1, 2] }, 9999)],
+    Some(NIError::BadType { entry_type: 99 }),
+  )]
+  #[case::delegates_entry_error(
+    NIPurpose::CoreP2p,
+    vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 0)],
+    Some(NIError::BadAddr { error: NetAddrError::BadPort { port: 0 } }),
+  )]
+  #[case::duplicate_addr_same_group(
+    NIPurpose::CoreP2p,
+    vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999), svc(AddrV2::Ipv4([1, 2, 3, 4]), 8888)],
+    Some(NIError::Duplicate),
+  )]
+  fn check_v2_group(#[case] purpose: NIPurpose, #[case] group: Vec<NIEntry>, #[case] expected: Option<NIError>) {
+    let v2 = NetInfoV2 {
+      version: 1,
+      entries: vec![(purpose, group)],
+    };
+    assert_eq!(v2.check(), expected);
+  }
+
+  #[rstest]
+  #[case::empty(vec![], Some(NIError::Malformed))]
+  #[case::duplicate_purpose_key(
+    vec![
+      (NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([10, 0, 0, 1]), 9999)]),
+      (NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([10, 0, 0, 2]), 9999)]),
+    ],
+    Some(NIError::Duplicate),
+  )]
+  #[case::duplicate_addr_port_cross_group(
+    vec![
+      (NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)]),
+      (NIPurpose::PlatformP2p, vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)]),
+    ],
+    Some(NIError::Duplicate),
+  )]
+  fn check_v2_structure(#[case] entries: Vec<(NIPurpose, Vec<NIEntry>)>, #[case] expected: Option<NIError>) {
+    let v2 = NetInfoV2 { version: 1, entries };
+    assert_eq!(v2.check(), expected);
+  }
+
+  #[rstest]
+  fn check_v2_too_many_entries() {
+    let v2 = NetInfoV2 {
+      version: 1,
+      entries: vec![(
+        NIPurpose::CoreP2p,
+        (0..MAX_ENTRIES + 1)
+          .map(|i| svc(AddrV2::Ipv4([10, 0, 0, i as u8 + 1]), 9999))
+          .collect(),
+      )],
+    };
+    assert_eq!(
+      v2.check(),
+      Some(NIError::MaxLimit {
+        count: MAX_ENTRIES + 1,
+        max: MAX_ENTRIES,
+      })
+    );
+  }
+
+  #[rstest]
+  fn trait_v2_entries() {
+    let v2 = valid_v2();
+    let all: Vec<_> = v2.entries(None).collect();
+    assert_eq!(all.len(), 1);
+    let core: Vec<_> = v2.entries(Some(NIPurpose::CoreP2p)).collect();
+    assert_eq!(core.len(), 1);
+    let plat: Vec<_> = v2.entries(Some(NIPurpose::PlatformP2p)).collect();
+    assert!(plat.is_empty());
+  }
+
+  #[rstest]
+  fn trait_v2_primary() {
+    let v2 = valid_v2();
+    let primary = v2.primary().unwrap();
+    assert_eq!(primary.addr, AddrV2::Ipv4([1, 2, 3, 4]));
+    assert_eq!(primary.port, 9999);
+  }
+
+  #[rstest]
+  fn trait_v2_empty() {
+    let empty = NetInfoV2 {
+      version: 1,
+      entries: vec![],
+    };
+    assert!(empty.is_empty());
+    assert!(!empty.has_entries(NIPurpose::CoreP2p));
+    assert!(empty.primary().is_none());
+    assert!(!valid_v2().is_empty());
+    assert!(valid_v2().has_entries(NIPurpose::CoreP2p));
+    assert!(valid_v2().stores_platform());
+  }
+
+  #[rstest]
+  fn trait_v1_entries() {
+    let v1 = NetInfoV1(ServiceV1 {
+      addr: "1.2.3.4".parse().unwrap(),
+      port: 9999,
+    });
+    assert!(!v1.is_empty());
+    assert!(v1.has_entries(NIPurpose::CoreP2p));
+    assert!(!v1.has_entries(NIPurpose::PlatformP2p));
+    assert!(!v1.stores_platform());
+    let all: Vec<_> = v1.entries(None).collect();
+    assert_eq!(all.len(), 1);
+    let plat: Vec<_> = v1.entries(Some(NIPurpose::PlatformP2p)).collect();
+    assert!(plat.is_empty());
+    assert!(v1.primary().is_some());
+  }
+
+  #[rstest]
+  fn trait_v1_empty() {
+    let empty = NetInfoV1(ServiceV1 {
+      addr: AddrV1::default(),
+      port: 0,
+    });
+    assert!(empty.is_empty());
+    assert!(!empty.has_entries(NIPurpose::CoreP2p));
+    assert!(empty.primary().is_none());
+    let all: Vec<_> = empty.entries(None).collect();
+    assert!(all.is_empty());
+  }
+
+  #[rstest]
+  fn trait_dispatch_legacy() {
+    let v1 = NetInfo::Legacy(NetInfoV1(ServiceV1 {
+      addr: "1.2.3.4".parse().unwrap(),
+      port: 9999,
+    }));
+    assert!(!v1.is_empty());
+    assert!(v1.has_entries(NIPurpose::CoreP2p));
+    assert!(!v1.stores_platform());
+    assert!(v1.primary().is_some());
+  }
+
+  #[rstest]
+  fn trait_dispatch_extended() {
+    let v2 = NetInfo::Extended(valid_v2());
+    assert!(!v2.is_empty());
+    assert!(v2.has_entries(NIPurpose::CoreP2p));
+    assert!(v2.stores_platform());
+    assert!(v2.primary().is_some());
+  }
 }

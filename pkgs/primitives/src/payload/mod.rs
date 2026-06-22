@@ -20,7 +20,7 @@ mod proupservtx;
 mod quorum;
 
 use crate::prelude::*;
-use crate::types::{NetInfoEntry, NetInfoPurpose};
+use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
@@ -197,7 +197,10 @@ pub enum ProTxInvalid {
   /// `bad-protx-netinfo-empty`
   NetInfoEmpty,
   /// `bad-protx-netinfo-bad`
-  NetInfoInvalid,
+  NetInfoInvalid {
+    /// The underlying error.
+    error: NIError,
+  },
   /// `bad-protx-payee-reuse`
   PayoutKeyReuse,
   /// `bad-protx-operator-reward`
@@ -220,7 +223,7 @@ impl fmt::Display for ProTxInvalid {
       Self::BadPayoutScript => write!(f, "bad-protx-payee"),
       Self::NetInfoVersionMismatch => write!(f, "bad-protx-netinfo-version"),
       Self::NetInfoEmpty => write!(f, "bad-protx-netinfo-empty"),
-      Self::NetInfoInvalid => write!(f, "bad-protx-netinfo-bad"),
+      Self::NetInfoInvalid { error } => write!(f, "bad-protx-netinfo-bad: {error}"),
       Self::PayoutKeyReuse => write!(f, "bad-protx-payee-reuse"),
       Self::OperatorRewardTooHigh { reward } => write!(f, "bad-protx-operator-reward: {reward}"),
       Self::BadReason { reason } => write!(f, "bad-protx-reason: {reason}"),
@@ -230,41 +233,26 @@ impl fmt::Display for ProTxInvalid {
 }
 
 /// Checks that an extended net info payload is trivially valid.
-pub(crate) fn check_sptx_netinfo(
-  entries: &[(NetInfoPurpose, Vec<NetInfoEntry>)],
-  mn_type: MnType,
-  can_store_platform: bool,
-) -> Option<ProTxInvalid> {
-  let has_core = entries
-    .iter()
-    .any(|(p, e)| *p == NetInfoPurpose::CoreP2p && !e.is_empty());
-  if !has_core {
+pub(crate) fn check_sptx_netinfo(ext: &NetInfoV2, version: u16, mn_type: MnType) -> Option<ProTxInvalid> {
+  if let Some(error) = ext.check() {
+    return Some(ProTxInvalid::NetInfoInvalid { error });
+  }
+  if !ext.has_entries(NIPurpose::CoreP2p) {
     return Some(ProTxInvalid::NetInfoEmpty);
   }
-
-  let has_platform_p2p = entries
-    .iter()
-    .any(|(p, e)| *p == NetInfoPurpose::PlatformP2p && !e.is_empty());
-  let has_platform_https = entries
-    .iter()
-    .any(|(p, e)| *p == NetInfoPurpose::PlatformHttps && !e.is_empty());
-
-  if mn_type == MnType::Regular && (has_platform_p2p || has_platform_https) {
-    return Some(ProTxInvalid::NetInfoInvalid);
+  if mn_type == MnType::Regular
+    && (ext.has_entries(NIPurpose::PlatformP2p) || ext.has_entries(NIPurpose::PlatformHttps))
+  {
+    return Some(ProTxInvalid::NetInfoInvalid {
+      error: NIError::Malformed,
+    });
   }
-
-  if can_store_platform && mn_type == MnType::Evo && (!has_platform_p2p || !has_platform_https) {
+  if version >= PROTX_VERSION_EXT_ADDR
+    && mn_type == MnType::Evo
+    && (!ext.has_entries(NIPurpose::PlatformP2p) || !ext.has_entries(NIPurpose::PlatformHttps))
+  {
     return Some(ProTxInvalid::NetInfoEmpty);
   }
-
-  for (_purpose, group) in entries {
-    for entry in group {
-      if matches!(entry, NetInfoEntry::Invalid) {
-        return Some(ProTxInvalid::NetInfoInvalid);
-      }
-    }
-  }
-
   None
 }
 

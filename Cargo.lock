@@ -335,6 +335,7 @@ dependencies = [
  "dash-script",
  "dash-types",
  "hex-conservative",
+ "hex-literal",
  "libm",
  "rstest",
  "serde",

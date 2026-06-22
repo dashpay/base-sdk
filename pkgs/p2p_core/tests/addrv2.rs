@@ -18,10 +18,7 @@ fn ipv4_entry(ip: [u8; 4], port: u16, time: u32) -> AddrV2Entry {
   AddrV2Entry {
     time,
     services: ServiceFlags(1),
-    addr: AddrV2 {
-      network: NetworkType::Ipv4,
-      addr: ip.to_vec(),
-    },
+    addr: AddrV2::Ipv4(ip),
     port,
   }
 }
@@ -98,26 +95,26 @@ fn addrv2_bip155_wire_vector() {
 
   assert_eq!(decoded.addrs.len(), 3);
 
-  let loopback: Vec<u8> = {
-    let mut v = vec![0u8; 15];
-    v.push(1);
+  let loopback = {
+    let mut v = [0u8; 16];
+    v[15] = 1;
     v
   };
 
   assert_eq!(decoded.addrs[0].time, 0x4966bc61);
   assert_eq!(decoded.addrs[0].services, ServiceFlags(0));
-  assert_eq!(decoded.addrs[0].addr.network, NetworkType::Ipv6);
-  assert_eq!(decoded.addrs[0].addr.addr, loopback);
+  assert_eq!(decoded.addrs[0].addr.network(), NetworkType::Ipv6);
+  assert_eq!(decoded.addrs[0].addr, AddrV2::Ipv6(loopback));
   assert_eq!(decoded.addrs[0].port, 0);
 
   assert_eq!(decoded.addrs[1].time, 0x83766279);
   assert_eq!(decoded.addrs[1].services, ServiceFlags(1));
-  assert_eq!(decoded.addrs[1].addr.addr, loopback);
+  assert_eq!(decoded.addrs[1].addr, AddrV2::Ipv6(loopback));
   assert_eq!(decoded.addrs[1].port, 241);
 
   assert_eq!(decoded.addrs[2].time, 0xffffffff);
   assert_eq!(decoded.addrs[2].services, ServiceFlags(1024));
-  assert_eq!(decoded.addrs[2].addr.addr, loopback);
+  assert_eq!(decoded.addrs[2].addr, AddrV2::Ipv6(loopback));
   assert_eq!(decoded.addrs[2].port, 0xf1f2);
 
   assert_eq!(encode_to_vec(&decoded), bytes);
@@ -167,61 +164,56 @@ fn addr_v1_wire_vector() {
 /// round-trip correctly.
 #[rstest]
 fn addrv2_all_bip155_network_types() {
-  let torv3: Vec<u8> = Vec::<u8>::from_hex("79bcc625184b05194975c28b66b66b0469f7f6556fb1ac3189a79b40dda32f1f")
-    .unwrap_or_else(|e| panic!("bad hex: {e}"));
+  let torv3_bytes: [u8; 32] = {
+    let v = Vec::<u8>::from_hex("79bcc625184b05194975c28b66b66b0469f7f6556fb1ac3189a79b40dda32f1f")
+      .unwrap_or_else(|e| panic!("bad hex: {e}"));
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&v);
+    arr
+  };
 
-  let i2p: Vec<u8> = Vec::<u8>::from_hex("a2894dabaec08c0051a481a6dac88b64f98232ae42d4b6fd2fa81952dfe36a87")
-    .unwrap_or_else(|e| panic!("bad hex: {e}"));
+  let i2p_bytes: [u8; 32] = {
+    let v = Vec::<u8>::from_hex("a2894dabaec08c0051a481a6dac88b64f98232ae42d4b6fd2fa81952dfe36a87")
+      .unwrap_or_else(|e| panic!("bad hex: {e}"));
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&v);
+    arr
+  };
 
   let original = AddrV2Msg {
     addrs: vec![
       AddrV2Entry {
         time: 1_700_000_000,
         services: ServiceFlags(1),
-        addr: AddrV2 {
-          network: NetworkType::Ipv4,
-          addr: vec![1, 2, 3, 4],
-        },
+        addr: AddrV2::Ipv4([1, 2, 3, 4]),
         port: 9999,
       },
       AddrV2Entry {
         time: 1_700_000_001,
         services: ServiceFlags(1),
-        addr: AddrV2 {
-          network: NetworkType::Ipv6,
-          addr: vec![
-            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
-          ],
-        },
+        addr: AddrV2::Ipv6([
+          0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
+        ]),
         port: 9999,
       },
       AddrV2Entry {
         time: 1_700_000_002,
         services: ServiceFlags(1),
-        addr: AddrV2 {
-          network: NetworkType::TorV3,
-          addr: torv3,
-        },
+        addr: AddrV2::TorV3(torv3_bytes),
         port: 9999,
       },
       AddrV2Entry {
         time: 1_700_000_003,
         services: ServiceFlags(1),
-        addr: AddrV2 {
-          network: NetworkType::I2P,
-          addr: i2p,
-        },
+        addr: AddrV2::I2p(i2p_bytes),
         port: 9999,
       },
       AddrV2Entry {
         time: 1_700_000_004,
         services: ServiceFlags(1),
-        addr: AddrV2 {
-          network: NetworkType::Cjdns,
-          addr: vec![
-            0xfc, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04, 0x00, 0x05, 0x00, 0x06, 0x00, 0x07,
-          ],
-        },
+        addr: AddrV2::Cjdns([
+          0xfc, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04, 0x00, 0x05, 0x00, 0x06, 0x00, 0x07,
+        ]),
         port: 9999,
       },
     ],

@@ -13,7 +13,7 @@ use super::{
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::{KeyId, Script};
-use crate::types::{ExtendedNetInfo, NetInfo, ServiceV1};
+use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsPublicKeyBytes;
@@ -102,10 +102,9 @@ impl BaseCodec for ProRegTx {
     let collateral_hash = TxHash::decode(data)?;
     let collateral_index = u32::decode(data)?;
     let net_info = if version >= 3 {
-      let raw: Vec<u8> = Vec::decode(data)?;
-      NetInfo::Extended(ExtendedNetInfo::decode(&mut &raw[..])?)
+      NetInfo::Extended(NetInfoV2::decode(data)?)
     } else {
-      NetInfo::Legacy(ServiceV1::decode(data)?)
+      NetInfo::Legacy(NetInfoV1(ServiceV1::decode(data)?))
     };
     let key_id_owner = KeyId::decode(data)?;
     let pub_key_operator = BlsPublicKeyBytes::decode(data)?;
@@ -154,9 +153,7 @@ impl BaseCodec for ProRegTx {
     // guarantees the variant matches the version.
     if self.version >= 3 {
       if let NetInfo::Extended(ext) = &self.net_info {
-        let mut inner = Vec::new();
-        ext.encode(&mut inner);
-        inner.encode(buf);
+        ext.encode(buf);
       }
     } else if let NetInfo::Legacy(svc) = &self.net_info {
       svc.encode(buf);
@@ -213,12 +210,18 @@ impl Checkable for ProRegTx {
       return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
-    if let NetInfo::Extended(ref ext) = self.net_info {
-      if ext.entries.is_empty() {
-        return Some(ProTxInvalid::NetInfoEmpty);
-      }
-      if let Some(e) = check_sptx_netinfo(&ext.entries, self.mn_type, self.version >= PROTX_VERSION_EXT_ADDR) {
-        return Some(e);
+    if !self.net_info.is_empty() {
+      match &self.net_info {
+        NetInfo::Legacy(addr) => {
+          if let Some(error) = addr.check() {
+            return Some(ProTxInvalid::NetInfoInvalid { error });
+          }
+        }
+        NetInfo::Extended(addr) => {
+          if let Some(e) = check_sptx_netinfo(addr, self.version, self.mn_type) {
+            return Some(e);
+          }
+        }
       }
     }
 

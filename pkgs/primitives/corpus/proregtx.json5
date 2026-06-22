@@ -539,6 +539,104 @@
         "platformHTTPPort": null,
         "vchSig": "1fbeb3d72e590341119141f2e56b00c99c43377ebc587b8b02984633d0814916c52b9a0dbf2d8eab115e87a6762981cf8c6b8a332807cc579eb00b871051a28b19"
       }
+    },
+    // Synthetic ExtAddr from rpc_netinfo.py, Evonode with single IPv4 per purpose
+    "f137aa6f6e0a8895086f5eb18a3de18acf2cba5a1a598a13722a7d8cbdfb1261": {
+      "raw": "030001000103549432f45ab131b382207c2b8188e50e75af6baf17fe9c6e308ee57f660f7f010000006a47304402205058745ff7b9addc793390c58a5bd54bf7a0563c298eae6e166604f924af512102203b662d789e8852122ff122bd1753b75743a55e6b9e394c7cb2941dc8317cf656012102de469765cb9273617bc34cf5cbf1a0a919db9b14b3d9d7880289139b34e291d6feffffff01ce54f405000000001976a91469b366dadd041a9afb5a59b277f7164027c1285388ac00000000fd370103000100000003549432f45ab131b382207c2b8188e50e75af6baf17fe9c6e308ee57f660f7f00000000010300010101047f000001334501010101047f00000156b802010101047f00000156b9a8de9990c0a0676a95450ee59c6032c0222060dca326c971a901c71247043152a691a5a460c79ac9ff83fd876e3c1a6fa3b6734ecc72961438ddfc67049f941b3dfbedea19badc75f739727264b6848edef4e2f97ae303eb00001976a9142528448b4447518b5eafe16f574661c8e07bb18588ac3aaefd39eb12cdbcc1c40bc2d4ad000b4cafc9e0fa3e901e7571c9ff7c77ff72e5992efdc3d9e31931fb19590b33aaa1b90bb9584120c21b280fb2e8f72f9c46d7af4f78e50f6f6c31f0aeb080c6042879027a096a2b2f29047d0871e506e93c277e37e3ac52a2823cd205fe6051be5539b798d0f08f",
+      "details": {
+        "version": 3,
+        "mnType": 1,
+        "mode": 0,
+        "collateralHash": "7f0f667fe58e306e9cfe17af6baf750ee588812b7c2082b331b15af432945403",
+        "collateralIndex": 0,
+        "netInfo": {
+          "extended": {
+            "version": 1,
+            "entries": [
+              [0, [{"service": {"addr": {"Ipv4": [127, 0, 0, 1]}, "port": 13125}}]],
+              [1, [{"service": {"addr": {"Ipv4": [127, 0, 0, 1]}, "port": 22200}}]],
+              [2, [{"service": {"addr": {"Ipv4": [127, 0, 0, 1]}, "port": 22201}}]]
+            ]
+          }
+        },
+        "keyIdOwner": "a8de9990c0a0676a95450ee59c6032c0222060dc",
+        "pubKeyOperator": "a326c971a901c71247043152a691a5a460c79ac9ff83fd876e3c1a6fa3b6734ecc72961438ddfc67049f941b3dfbedea",
+        "keyIdVoting": "19badc75f739727264b6848edef4e2f97ae303eb",
+        "operatorReward": 0,
+        "scriptPayout": "76a9142528448b4447518b5eafe16f574661c8e07bb18588ac",
+        "inputsHash": "72ff777cffc971751e903efae0c9af4c0b00add4c20bc4c1bccd12eb39fdae3a",
+        "platformNodeId": "e5992efdc3d9e31931fb19590b33aaa1b90bb958",
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "vchSig": "20c21b280fb2e8f72f9c46d7af4f78e50f6f6c31f0aeb080c6042879027a096a2b2f29047d0871e506e93c277e37e3ac52a2823cd205fe6051be5539b798d0f08f"
+      }
+    },
+    // Synthetic ExtAddr from rpc_netinfo.py, Evonode with dual IPv4+IPv6 per purpose
+    "a51324799403f291cef55feb42d68d4e226187b83faf5e44b38112dc3bfbf5dc": {
+      "raw": "0300010001cd3f92989da4770b690bb464f2faaa3dc21f7eed750922fd4a75ef821df9ddd3010000006a473044022034a3d407f02004877cdec6ab5481b9d871433f76b123a0852ecd42f68da6240f0220596b64b09edcbf0273c3ce8725a1ec2812b630fdafda49ea04f104e10fdbc9ab012102c28ef58e2f72d4785500e96965c1f8dcd86db1ed38fc87b00c8aae4cc225c547feffffff01c1c5f205000000001976a914d5b798dfb6a4fc4820ee449561e8871b3b11a98688ac00000000fd7601030001000000cd3f92989da4770b690bb464f2faaa3dc21f7eed750922fd4a75ef821df9ddd300000000010300020101047f000001334501021000000000000000000000000000000001334501020101047f00000256b80102100000000000000000000000000000000256b802020101047f00000356b90102100000000000000000000000000000000356b9fd553fc926287871a7dcd71968ad659026c093f795d86735440a8f1f650c1efae172fa21e5ea6cb5edb374e2cb6c3399184a5904f36a35d5969a01c9a15f49d3d4075b731441c5334f5decfbff85f3e60b1073ee2597c75000001976a9146fcb03df8b448707f27f4adb99bb1ddbf11a561a88ac2b4dff8a08c996556b81a270b7e337d6a86ecb6f1ac1702820b5348900797a8344442971737accd3a941166d9b3dc35f619ca10f4120c9582a842b570f95c68246ed563f992328354d3e0ee0d64bba7344278ca2ee93519761d07d315b0108bd4e95487c5e6fdc07970fdf9b528c747b1292cfbe25c7",
+      "details": {
+        "version": 3,
+        "mnType": 1,
+        "mode": 0,
+        "collateralHash": "d3ddf91d82ef754afd220975ed7e1fc23daafaf264b40b690b77a49d98923fcd",
+        "collateralIndex": 0,
+        "netInfo": {
+          "extended": {
+            "version": 1,
+            "entries": [
+              [0, [
+                {"service": {"addr": {"Ipv4": [127, 0, 0, 1]}, "port": 13125}},
+                {"service": {"addr": {"Ipv6": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]}, "port": 13125}}
+              ]],
+              [1, [
+                {"service": {"addr": {"Ipv4": [127, 0, 0, 2]}, "port": 22200}},
+                {"service": {"addr": {"Ipv6": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]}, "port": 22200}}
+              ]],
+              [2, [
+                {"service": {"addr": {"Ipv4": [127, 0, 0, 3]}, "port": 22201}},
+                {"service": {"addr": {"Ipv6": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]}, "port": 22201}}
+              ]]
+            ]
+          }
+        },
+        "keyIdOwner": "fd553fc926287871a7dcd71968ad659026c093f7",
+        "pubKeyOperator": "95d86735440a8f1f650c1efae172fa21e5ea6cb5edb374e2cb6c3399184a5904f36a35d5969a01c9a15f49d3d4075b73",
+        "keyIdVoting": "1441c5334f5decfbff85f3e60b1073ee2597c750",
+        "operatorReward": 0,
+        "scriptPayout": "76a9146fcb03df8b448707f27f4adb99bb1ddbf11a561a88ac",
+        "inputsHash": "837a79008934b5202870c11a6fcb6ea8d637e3b770a2816b5596c9088aff4d2b",
+        "platformNodeId": "44442971737accd3a941166d9b3dc35f619ca10f",
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "vchSig": "20c9582a842b570f95c68246ed563f992328354d3e0ee0d64bba7344278ca2ee93519761d07d315b0108bd4e95487c5e6fdc07970fdf9b528c747b1292cfbe25c7"
+      }
+    },
+    // Synthetic ExtAddr from rpc_netinfo.py, Evonode with blanked services (later updated with ProUpServTx)
+    "ecf23a8aee664a60783d5db8b0bdd4d345dd4f71f9c9dcf0bf500f855ea800c0": {
+      "raw": "0300010001b94ba65d1dde0f74f6fc8f4b78527820833f49c6cc58332206834b67429f84a4010000006a473044022039729c72931e81af2d055fb497ccd3b42bdf14544770f622316184b0de0cec2902206e0de7c5797fb73db6aa9ee50420f7adb7bb2821c368688fa1e59f5a5f5191e501210375add90cceec34273c5072e07679f827eb3cc64e16a545e38ff24a42fb924d8efeffffff017e58f405000000001976a91412035297dd4327017e0e5e8caf62f27f94aee03d88ac00000000fd1601030001000000b94ba65d1dde0f74f6fc8f4b78527820833f49c6cc58332206834b67429f84a400000000010015dde7c373a14ad16c091f409198b0f40f831b1f87dc4da5b388e0287ef12d48630e441e36baf164e6a2d24f986a4d0584144f879725722d0336c35c4ceaa36aeb607ae0f69375ea93a7fd20b3e2c0e24df9b3aa82613c9600001976a9144eb62894923a194f0f56ed20e37ba336b680264c88ac77a9fe84dd644ce20f0bd98282626bedd85fc87997e4b7f223e5229e25ae85ead769470503e89d55001d813fcbb8b3a770f97fe0411fbeb28ed0e786225ff0bed8b2eb86a3d95929737b25bd0083ecf0efeeabe74b9127a5436866bc2a38af290d64d05d8b77b8ee428337af47a4ca1cd97c3af59297",
+      "details": {
+        "version": 3,
+        "mnType": 1,
+        "mode": 0,
+        "collateralHash": "a4849f42674b8306223358ccc6493f83207852784b8ffcf6740fde1d5da64bb9",
+        "collateralIndex": 0,
+        "netInfo": {
+          "extended": {
+            "version": 1,
+            "entries": []
+          }
+        },
+        "keyIdOwner": "15dde7c373a14ad16c091f409198b0f40f831b1f",
+        "pubKeyOperator": "87dc4da5b388e0287ef12d48630e441e36baf164e6a2d24f986a4d0584144f879725722d0336c35c4ceaa36aeb607ae0",
+        "keyIdVoting": "f69375ea93a7fd20b3e2c0e24df9b3aa82613c96",
+        "operatorReward": 0,
+        "scriptPayout": "76a9144eb62894923a194f0f56ed20e37ba336b680264c88ac",
+        "inputsHash": "ea85ae259e22e523f2b7e49779c85fd8ed6b628282d90b0fe24c64dd84fea977",
+        "platformNodeId": "d769470503e89d55001d813fcbb8b3a770f97fe0",
+        "platformP2PPort": null,
+        "platformHTTPPort": null,
+        "vchSig": "1fbeb28ed0e786225ff0bed8b2eb86a3d95929737b25bd0083ecf0efeeabe74b9127a5436866bc2a38af290d64d05d8b77b8ee428337af47a4ca1cd97c3af59297"
+      }
     }
   }
 }
