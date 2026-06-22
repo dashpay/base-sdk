@@ -7,7 +7,7 @@
 //! Network information types and trait.
 
 use super::netaddr::{is_bad_port, NetAddr};
-use super::{NetAddrError, ServiceV1, ServiceV2};
+use super::{AddrV2, NetAddrError, ServiceV1, ServiceV2};
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
@@ -16,7 +16,6 @@ use dash_types::{impl_num, impl_type};
 use core::fmt;
 
 /// Maximum entries per purpose.
-#[expect(unused, reason = "consensus constant")]
 const MAX_ENTRIES: usize = 4;
 /// Maximum label length per RFC 1035.
 const DOMAIN_LABEL_MAX: usize = 63;
@@ -149,6 +148,20 @@ pub enum NIError {
     /// The invalid port value.
     port: u16,
   },
+  /// Entry or address type not valid for this purpose.
+  BadType {
+    /// The offending entry type byte.
+    entry_type: u8,
+  },
+  /// Duplicate address:port within the structure.
+  Duplicate,
+  /// Too many entries or purpose groups.
+  MaxLimit {
+    /// Actual count.
+    count: usize,
+    /// Maximum allowed.
+    max: usize,
+  },
   /// Structural integrity violation.
   Malformed,
 }
@@ -158,6 +171,13 @@ impl fmt::Display for NIError {
     match self {
       Self::BadAddr { error } => write!(f, "invalid address: {error}"),
       Self::BadPort { port } => write!(f, "invalid port {port}"),
+      Self::BadType { entry_type } => {
+        write!(f, "unsupported entry type {entry_type}")
+      }
+      Self::Duplicate => f.write_str("duplicate entry"),
+      Self::MaxLimit { count, max } => {
+        write!(f, "too many entries: {count} exceeds limit {max}")
+      }
       Self::Malformed => f.write_str("malformed structure"),
     }
   }
@@ -358,6 +378,79 @@ impl BaseCodec for NetInfoV2 {
   }
 }
 
+impl Checkable for NetInfoV2 {
+  type Error = NIError;
+
+  fn check(&self) -> Option<Self::Error> {
+    if self.version == 0 || self.version > Self::CURRENT_VERSION {
+      return Some(NIError::Malformed);
+    }
+    if self.entries.is_empty() {
+      return Some(NIError::Malformed);
+    }
+    // Duplicate purpose key detection.
+    for i in 0..self.entries.len() {
+      for j in (i + 1)..self.entries.len() {
+        if self.entries[i].0 == self.entries[j].0 {
+          return Some(NIError::Duplicate);
+        }
+      }
+    }
+    // addr:port duplicates across all entries
+    let all: Vec<&NIEntry> = self.entries.iter().flat_map(|(_, g)| g.iter()).collect();
+    for i in 0..all.len() {
+      for j in (i + 1)..all.len() {
+        if all[i] == all[j] {
+          return Some(NIError::Duplicate);
+        }
+      }
+    }
+    for (purpose, group) in &self.entries {
+      if matches!(purpose, NIPurpose::Unknown(_)) {
+        return Some(NIError::Malformed);
+      }
+      if group.is_empty() {
+        return Some(NIError::Malformed);
+      }
+      if group.len() > MAX_ENTRIES {
+        return Some(NIError::MaxLimit {
+          count: group.len(),
+          max: MAX_ENTRIES,
+        });
+      }
+      // addr-only duplicates within purpose group
+      for i in 0..group.len() {
+        for j in (i + 1)..group.len() {
+          if same_addr(&group[i], &group[j]) {
+            return Some(NIError::Duplicate);
+          }
+        }
+      }
+      for entry in group {
+        if let NIEntry::Service(svc) = entry {
+          if matches!(svc.addr, AddrV2::Unknown { .. }) {
+            return Some(NIError::BadType {
+              entry_type: svc.addr.network().to_base(),
+            });
+          }
+        }
+        if matches!(entry, NIEntry::Domain { .. }) && *purpose != NIPurpose::PlatformHttps {
+          return Some(NIError::BadType { entry_type: 0x02 });
+        }
+        if let Some(e) = entry.check() {
+          return Some(e);
+        }
+      }
+    }
+    None
+  }
+}
+
+impl NetInfoV2 {
+  /// Highest supported format version.
+  const CURRENT_VERSION: u8 = 1;
+}
+
 impl fmt::Display for NetInfoV2 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if self.entries.is_empty() {
@@ -413,6 +506,16 @@ impl NITrait for NetInfoV2 {
 
   fn stores_platform(&self) -> bool {
     true
+  }
+}
+
+/// Returns `true` when two entries share the same address,
+/// ignoring port.
+fn same_addr(a: &NIEntry, b: &NIEntry) -> bool {
+  match (a, b) {
+    (NIEntry::Service(sa), NIEntry::Service(sb)) => sa.addr == sb.addr,
+    (NIEntry::Domain { name: na, .. }, NIEntry::Domain { name: nb, .. }) => na == nb,
+    _ => false,
   }
 }
 
@@ -498,6 +601,17 @@ pub enum NetInfo {
   Extended(NetInfoV2),
 }
 
+impl Checkable for NetInfo {
+  type Error = NIError;
+
+  fn check(&self) -> Option<Self::Error> {
+    match self {
+      Self::Legacy(v1) => v1.check(),
+      Self::Extended(v2) => v2.check(),
+    }
+  }
+}
+
 impl fmt::Display for NetInfo {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -549,7 +663,7 @@ impl NITrait for NetInfo {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::types::AddrV2;
+  use crate::types::{AddrV1, AddrV2};
 
   use dash_types::codec::{BaseCodec, Checkable};
   use hex_literal::hex;
@@ -597,6 +711,71 @@ mod tests {
   fn nientry_unknown_type_fails() {
     let wire = hex!("ff");
     assert!(NIEntry::decode(&mut &wire[..]).is_err());
+  }
+
+  #[rstest]
+  #[case::single_ipv4(
+    &hex!(
+      "01"            // version=1
+      "01"            // purpose_count=1
+      "00"            // purpose=CoreP2p
+      "01"            // entry_count=1
+      "01"            // entry_type=Service
+      "0104 01020304" // ipv4 1.2.3.4
+      "270f"          // port=9999
+    ),
+    NetInfoV2 {
+      version: 1,
+      entries: vec![(
+        NIPurpose::CoreP2p,
+        vec![NIEntry::Service(ServiceV2 {
+          addr: AddrV2::Ipv4([1, 2, 3, 4]),
+          port: 9999,
+        })],
+      )],
+    },
+  )]
+  #[case::multi_purpose(
+    &hex!(
+      "01"                       // version=1
+      "02"                       // purpose_count=2
+      "00"                       // purpose=CoreP2p
+      "01"                       // entry_count=1
+      "01"                       // entry_type=Service
+      "0104 c0a80001"            // ipv4 192.168.0.1
+      "238e"                     // port=9102
+      "02"                       // purpose=PlatformHttps
+      "01"                       // entry_count=1
+      "02"                       // entry_type=Domain
+      "0b6578616d706c652e636f6d" // "example.com"
+      "01bb"                     // port=443
+    ),
+    NetInfoV2 {
+      version: 1,
+      entries: vec![
+        (
+          NIPurpose::CoreP2p,
+          vec![NIEntry::Service(ServiceV2 {
+            addr: AddrV2::Ipv4([192, 168, 0, 1]),
+            port: 9102,
+          })],
+        ),
+        (
+          NIPurpose::PlatformHttps,
+          vec![NIEntry::Domain {
+            name: b"example.com".to_vec(),
+            port: 443,
+          }],
+        ),
+      ],
+    },
+  )]
+  fn netinfov2_roundtrip(#[case] wire: &[u8], #[case] expected: NetInfoV2) {
+    let decoded = NetInfoV2::decode(&mut &wire[..]).unwrap();
+    assert_eq!(decoded, expected);
+    let mut buf = Vec::new();
+    decoded.encode(&mut buf);
+    assert_eq!(buf, wire);
   }
 
   #[rstest]
@@ -688,5 +867,208 @@ mod tests {
     );
     assert_eq!(fqdn254.len(), 254);
     assert_eq!(check_domain(fqdn254.as_bytes()), Some(NIError::Malformed),);
+  }
+
+  #[rstest]
+  #[case::valid("1.2.3.4", 9999, None)]
+  #[case::bad_port("1.2.3.4", 0, Some(NIError::BadAddr { error: NetAddrError::BadPort { port: 0 } }))]
+  #[case::null_addr_raw("[::0]", 9999, Some(NIError::BadAddr { error: NetAddrError::BadRange { value: 0 } }))]
+  #[case::ipv6_valid("[2001::1]", 9999, None)]
+  fn check_v1(#[case] addr_str: &str, #[case] port: u16, #[case] expected: Option<NIError>) {
+    let addr: AddrV1 = addr_str.parse().unwrap();
+    let v1 = NetInfoV1(ServiceV1 { addr, port });
+    assert_eq!(v1.check(), expected);
+  }
+
+  fn svc(addr: AddrV2, port: u16) -> NIEntry {
+    NIEntry::Service(ServiceV2 { addr, port })
+  }
+
+  fn dom(name: &[u8], port: u16) -> NIEntry {
+    NIEntry::Domain {
+      name: name.to_vec(),
+      port,
+    }
+  }
+
+  fn valid_v2() -> NetInfoV2 {
+    NetInfoV2 {
+      version: 1,
+      entries: vec![(NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)])],
+    }
+  }
+
+  #[rstest]
+  #[case::zero(0, Some(NIError::Malformed))]
+  #[case::current(1, None)]
+  #[case::future(2, Some(NIError::Malformed))]
+  fn check_v2_version(#[case] version: u8, #[case] expected: Option<NIError>) {
+    let mut v2 = valid_v2();
+    v2.version = version;
+    assert_eq!(v2.check(), expected);
+  }
+
+  #[rstest]
+  #[case::empty_group(
+    NIPurpose::CoreP2p,
+    vec![],
+    Some(NIError::Malformed),
+  )]
+  #[case::unknown_purpose(
+    NIPurpose::Unknown(99),
+    vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)],
+    Some(NIError::Malformed),
+  )]
+  #[case::domain_wrong_purpose(
+    NIPurpose::CoreP2p,
+    vec![dom(b"example.com", 443)],
+    Some(NIError::BadType { entry_type: 0x02 }),
+  )]
+  #[case::unknown_network(
+    NIPurpose::CoreP2p,
+    vec![svc(AddrV2::Unknown { network: 99, addr: vec![1, 2] }, 9999)],
+    Some(NIError::BadType { entry_type: 99 }),
+  )]
+  #[case::delegates_entry_error(
+    NIPurpose::CoreP2p,
+    vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 0)],
+    Some(NIError::BadAddr { error: NetAddrError::BadPort { port: 0 } }),
+  )]
+  #[case::duplicate_addr_same_group(
+    NIPurpose::CoreP2p,
+    vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999), svc(AddrV2::Ipv4([1, 2, 3, 4]), 8888)],
+    Some(NIError::Duplicate),
+  )]
+  fn check_v2_group(#[case] purpose: NIPurpose, #[case] group: Vec<NIEntry>, #[case] expected: Option<NIError>) {
+    let v2 = NetInfoV2 {
+      version: 1,
+      entries: vec![(purpose, group)],
+    };
+    assert_eq!(v2.check(), expected);
+  }
+
+  #[rstest]
+  #[case::empty(vec![], Some(NIError::Malformed))]
+  #[case::duplicate_purpose_key(
+    vec![
+      (NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([10, 0, 0, 1]), 9999)]),
+      (NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([10, 0, 0, 2]), 9999)]),
+    ],
+    Some(NIError::Duplicate),
+  )]
+  #[case::duplicate_addr_port_cross_group(
+    vec![
+      (NIPurpose::CoreP2p, vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)]),
+      (NIPurpose::PlatformP2p, vec![svc(AddrV2::Ipv4([1, 2, 3, 4]), 9999)]),
+    ],
+    Some(NIError::Duplicate),
+  )]
+  fn check_v2_structure(#[case] entries: Vec<(NIPurpose, Vec<NIEntry>)>, #[case] expected: Option<NIError>) {
+    let v2 = NetInfoV2 { version: 1, entries };
+    assert_eq!(v2.check(), expected);
+  }
+
+  #[rstest]
+  fn check_v2_too_many_entries() {
+    let v2 = NetInfoV2 {
+      version: 1,
+      entries: vec![(
+        NIPurpose::CoreP2p,
+        (0..MAX_ENTRIES + 1)
+          .map(|i| svc(AddrV2::Ipv4([10, 0, 0, i as u8 + 1]), 9999))
+          .collect(),
+      )],
+    };
+    assert_eq!(
+      v2.check(),
+      Some(NIError::MaxLimit {
+        count: MAX_ENTRIES + 1,
+        max: MAX_ENTRIES,
+      })
+    );
+  }
+
+  #[rstest]
+  fn trait_v2_entries() {
+    let v2 = valid_v2();
+    let all: Vec<_> = v2.entries(None).collect();
+    assert_eq!(all.len(), 1);
+    let core: Vec<_> = v2.entries(Some(NIPurpose::CoreP2p)).collect();
+    assert_eq!(core.len(), 1);
+    let plat: Vec<_> = v2.entries(Some(NIPurpose::PlatformP2p)).collect();
+    assert!(plat.is_empty());
+  }
+
+  #[rstest]
+  fn trait_v2_primary() {
+    let v2 = valid_v2();
+    let primary = v2.primary().unwrap();
+    assert_eq!(primary.addr, AddrV2::Ipv4([1, 2, 3, 4]));
+    assert_eq!(primary.port, 9999);
+  }
+
+  #[rstest]
+  fn trait_v2_empty() {
+    let empty = NetInfoV2 {
+      version: 1,
+      entries: vec![],
+    };
+    assert!(empty.is_empty());
+    assert!(!empty.has_entries(NIPurpose::CoreP2p));
+    assert!(empty.primary().is_none());
+    assert!(!valid_v2().is_empty());
+    assert!(valid_v2().has_entries(NIPurpose::CoreP2p));
+    assert!(valid_v2().stores_platform());
+  }
+
+  #[rstest]
+  fn trait_v1_entries() {
+    let v1 = NetInfoV1(ServiceV1 {
+      addr: "1.2.3.4".parse().unwrap(),
+      port: 9999,
+    });
+    assert!(!v1.is_empty());
+    assert!(v1.has_entries(NIPurpose::CoreP2p));
+    assert!(!v1.has_entries(NIPurpose::PlatformP2p));
+    assert!(!v1.stores_platform());
+    let all: Vec<_> = v1.entries(None).collect();
+    assert_eq!(all.len(), 1);
+    let plat: Vec<_> = v1.entries(Some(NIPurpose::PlatformP2p)).collect();
+    assert!(plat.is_empty());
+    assert!(v1.primary().is_some());
+  }
+
+  #[rstest]
+  fn trait_v1_empty() {
+    let empty = NetInfoV1(ServiceV1 {
+      addr: AddrV1::default(),
+      port: 0,
+    });
+    assert!(empty.is_empty());
+    assert!(!empty.has_entries(NIPurpose::CoreP2p));
+    assert!(empty.primary().is_none());
+    let all: Vec<_> = empty.entries(None).collect();
+    assert!(all.is_empty());
+  }
+
+  #[rstest]
+  fn trait_dispatch_legacy() {
+    let v1 = NetInfo::Legacy(NetInfoV1(ServiceV1 {
+      addr: "1.2.3.4".parse().unwrap(),
+      port: 9999,
+    }));
+    assert!(!v1.is_empty());
+    assert!(v1.has_entries(NIPurpose::CoreP2p));
+    assert!(!v1.stores_platform());
+    assert!(v1.primary().is_some());
+  }
+
+  #[rstest]
+  fn trait_dispatch_extended() {
+    let v2 = NetInfo::Extended(valid_v2());
+    assert!(!v2.is_empty());
+    assert!(v2.has_entries(NIPurpose::CoreP2p));
+    assert!(v2.stores_platform());
+    assert!(v2.primary().is_some());
   }
 }
