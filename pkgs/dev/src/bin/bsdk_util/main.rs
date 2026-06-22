@@ -8,6 +8,7 @@
 
 mod bspcheck;
 mod logging;
+mod platform;
 mod policy;
 
 use clap::{Parser, Subcommand};
@@ -68,6 +69,18 @@ struct Cli {
 enum Command {
   /// Verify every block in a linearized chain.
   Bspcheck {
+    /// Number of verification threads (0 = auto).
+    #[arg(short = 'j', long, default_value_t = 0)]
+    threads: usize,
+
+    /// Max memory for block data in MiB (0 = auto).
+    #[arg(short = 'm', long, default_value_t = 0)]
+    memory: u64,
+
+    /// Minimum seconds between progress reports.
+    #[arg(short = 'r', long, default_value_t = 5)]
+    report_freq: u64,
+
     /// Continue processing after errors instead of aborting.
     #[arg(short = 'n', long)]
     no_fastfail: bool,
@@ -96,7 +109,13 @@ fn main() -> ExitCode {
   );
 
   let result = match cli.command {
-    Command::Bspcheck { file, no_fastfail } => bspcheck::run(&app, &file, no_fastfail),
+    Command::Bspcheck {
+      threads,
+      memory,
+      report_freq,
+      no_fastfail,
+      file,
+    } => bspcheck::run(&app, &file, threads, memory, report_freq, no_fastfail),
   };
 
   match result {

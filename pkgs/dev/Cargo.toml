@@ -22,7 +22,7 @@ std = [
 ]
 full = ["std", "serde"]
 serde = ["dep:serde", "dash-primitives/serde", "dash-types/serde"]
-bin = ["full", "dep:chrono", "dep:clap", "dep:rayon"]
+bin = ["full", "dep:chrono", "dep:clap", "dep:rayon", "dep:sysinfo"]
 _internal = []
 
 [build-dependencies]
@@ -57,6 +57,9 @@ serde = { version = "1", default-features = false, features = [
   "alloc",
 ], optional = true }
 serde_json = { version = "1", optional = true }
+sysinfo = { version = "0.33", default-features = false, features = [
+  "system",
+], optional = true }
 
 [lints]
 workspace = true

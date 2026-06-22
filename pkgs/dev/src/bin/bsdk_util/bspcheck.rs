@@ -25,10 +25,14 @@ use std::time::Instant;
 /// Errors that can occur during chain verification.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BootstrapError {
+  /// A resource or configuration error during initialization.
+  Config(String),
   /// An I/O error occurred while reading the input stream.
   Io(String),
   /// The input contained no frames at all.
   EmptyInput,
+  /// A frame payload exceeds the maximum allowed size.
+  OversizedFrame { block: u64, size: u32, max: u32 },
   /// A block's raw bytes could not be decoded into a `Block`.
   Decode { block: u64, error: DecodeError },
   /// Aggregate error after `--no-fastfail` finishes with failures.
@@ -38,8 +42,12 @@ pub enum BootstrapError {
 impl fmt::Display for BootstrapError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
+      Self::Config(e) => write!(f, "configuration error: {e}"),
       Self::Io(e) => write!(f, "i/o error: {e}"),
       Self::EmptyInput => write!(f, "empty input"),
+      Self::OversizedFrame { block, size, max } => {
+        write!(f, "block {block}: frame size {size} exceeds maximum {max}")
+      }
       Self::Decode { block, error } => write!(f, "block {block}: decode failed: {error}"),
       Self::Summary { errors } => write!(f, "{errors} block(s) failed verification"),
     }
@@ -56,9 +64,11 @@ impl From<io::Error> for BootstrapError {
 
 mod diskfmt {
   use super::BootstrapError;
+  use crate::policy;
   use crate::Application;
 
   use std::io::{self, Read};
+  use std::time::{Duration, Instant};
 
   #[derive(Clone, Debug, Eq, Hash, PartialEq)]
   pub struct FrameHeader {
@@ -86,26 +96,80 @@ mod diskfmt {
 
   pub type Chunk = Vec<(u64, Vec<u8>)>;
 
-  /// Read all frames sequentially into memory. Returns `(frames, total_bytes,
-  /// reached_eof)`.
-  pub fn read_all(reader: &mut impl Read, app: &Application) -> Result<(Chunk, u64, bool), BootstrapError> {
+  /// Result of a single chunk read: frames, bytes consumed, whether
+  /// EOF was reached, and an optional pre-read header that did not
+  /// fit in this chunk's budget.
+  pub struct ChunkResult {
+    pub frames: Chunk,
+    pub bytes: u64,
+    pub eof: bool,
+    pub pending: Option<FrameHeader>,
+  }
+
+  /// Read frames into a chunk, stopping at `budget_bytes`. A
+  /// `pending` header from a previous call is consumed first,
+  /// avoiding stream misalignment at chunk boundaries.
+  pub fn read_chunk(
+    reader: &mut impl Read,
+    start_index: u64,
+    budget_bytes: u64,
+    report_secs: u64,
+    app: &Application,
+    pending: Option<FrameHeader>,
+  ) -> Result<ChunkResult, BootstrapError> {
     let mut frames = Vec::new();
     let mut cumulative: u64 = 0;
-    let mut index: u64 = 0;
+    let mut index = start_index;
+    let mut last_log_time = Instant::now();
+    let mut last_log_index = start_index;
+    let throttle_duration = Duration::from_secs(report_secs);
+    let mut next_header = pending;
 
     loop {
-      let header = match read_frame_header(reader)? {
+      let header = match next_header.take() {
         Some(h) => h,
-        None => return Ok((frames, cumulative, true)),
+        None => match read_frame_header(reader)? {
+          Some(h) => h,
+          None => {
+            return Ok(ChunkResult {
+              frames,
+              bytes: cumulative,
+              eof: true,
+              pending: None,
+            });
+          }
+        },
       };
+
+      if header.size > policy::MAX_FRAME_SIZE {
+        return Err(BootstrapError::OversizedFrame {
+          block: index,
+          size: header.size,
+          max: policy::MAX_FRAME_SIZE,
+        });
+      }
+
+      let frame_bytes = policy::FRAME_HEADER_LEN + header.size as u64;
+      if !frames.is_empty() && cumulative + frame_bytes > budget_bytes {
+        return Ok(ChunkResult {
+          frames,
+          bytes: cumulative,
+          eof: false,
+          pending: Some(header),
+        });
+      }
 
       let mut data = vec![0u8; header.size as usize];
       reader.read_exact(&mut data)?;
-      cumulative += 8 + header.size as u64;
+      cumulative += frame_bytes;
       frames.push((index, data));
 
-      if (index + 1) % 10000 == 0 {
+      let blocks_since_log = index - last_log_index;
+      let time_since_log = last_log_time.elapsed();
+      if blocks_since_log >= policy::REPORT_BLOCK_INTERVAL && time_since_log >= throttle_duration {
         crate::logging::log_msg(app, &format!("Read {} blocks from input", index + 1));
+        last_log_time = Instant::now();
+        last_log_index = index;
       }
 
       index += 1;
@@ -118,9 +182,40 @@ fn verify_block(index: u64, data: &[u8]) -> Result<(), BootstrapError> {
   Ok(())
 }
 
-pub fn run(app: &Application, file: &str, no_fastfail: bool) -> Result<(), BootstrapError> {
+pub fn run(
+  app: &Application,
+  file: &str,
+  threads: usize,
+  memory_mib: u64,
+  report_freq: u64,
+  no_fastfail: bool,
+) -> Result<(), BootstrapError> {
   let start = Instant::now();
   let from_stdin = file == "-";
+
+  let max_threads = crate::platform::system_threads();
+  let effective_threads = if threads == 0 {
+    policy::default_threads()
+  } else {
+    threads.clamp(1, max_threads)
+  };
+  let pool = rayon::ThreadPoolBuilder::new()
+    .num_threads(effective_threads)
+    .build()
+    .map_err(|e| BootstrapError::Config(format!("failed to create thread pool: {e}")))?;
+  let thread_count = pool.current_num_threads();
+
+  let budget_mib = if memory_mib == 0 {
+    policy::default_memory_mib()
+  } else {
+    memory_mib
+  };
+  let budget_bytes = budget_mib.saturating_mul(1024 * 1024);
+
+  logging::log_msg(
+    app,
+    &format!("Threads: {thread_count}, memory budget: {budget_mib} MiB, report every {report_freq}s"),
+  );
 
   let (input, _file_size): (Box<dyn Read>, Option<u64>) = if from_stdin {
     logging::log_msg(app, "Reading from stdin (streaming)");
@@ -145,16 +240,40 @@ pub fn run(app: &Application, file: &str, no_fastfail: bool) -> Result<(), Boots
     ),
   );
 
+  if first_header.size > policy::MAX_FRAME_SIZE {
+    return Err(BootstrapError::OversizedFrame {
+      block: 0,
+      size: first_header.size,
+      max: policy::MAX_FRAME_SIZE,
+    });
+  }
+
   let mut genesis_data = vec![0u8; first_header.size as usize];
   reader.read_exact(&mut genesis_data)?;
+  let _genesis_bytes = policy::FRAME_HEADER_LEN + first_header.size as u64;
 
-  verify_chunks(app, &mut reader, genesis_data, no_fastfail, start)
+  logging::log_msg(app, &format!("Dispatching verification across {thread_count} threads"));
+
+  verify_chunks(
+    app,
+    &pool,
+    &mut reader,
+    genesis_data,
+    budget_bytes,
+    report_freq,
+    no_fastfail,
+    start,
+  )
 }
 
+#[expect(clippy::too_many_arguments)]
 fn verify_chunks(
   app: &Application,
+  pool: &rayon::ThreadPool,
   reader: &mut BufReader<Box<dyn Read>>,
   genesis_data: Vec<u8>,
+  budget_bytes: u64,
+  report_secs: u64,
   no_fastfail: bool,
   start: Instant,
 ) -> Result<(), BootstrapError> {
@@ -178,42 +297,83 @@ fn verify_chunks(
 
   drop(genesis_data);
 
-  let (chunk, _chunk_bytes, _reached_eof) = diskfmt::read_all(reader, app)?;
+  let mut block_index: u64 = 1;
+  let mut chunk_num: u64 = 0;
+  let mut pending_header: Option<diskfmt::FrameHeader> = None;
 
-  chunk.par_iter().for_each(|(idx, data)| {
+  loop {
     if !no_fastfail && interrupted.load(Ordering::Acquire) {
-      return;
+      break;
     }
 
-    match verify_block(*idx, data) {
-      Ok(()) => {
-        ok_count.fetch_add(1, Ordering::Relaxed);
-      }
-      Err(e) => {
-        logging::log_msg(app, &format!("Error: {e}"));
-        error_count.fetch_add(1, Ordering::Relaxed);
-        if !no_fastfail {
-          interrupted.store(true, Ordering::Release);
-          logging::log_msg(app, "Interrupting remaining blocks");
-          let mut guard = first_error.lock().unwrap_or_else(|p| p.into_inner());
-          if guard.is_none() {
-            *guard = Some(e);
+    let cr = diskfmt::read_chunk(
+      reader,
+      block_index,
+      budget_bytes,
+      report_secs,
+      app,
+      pending_header.take(),
+    )?;
+
+    if cr.frames.is_empty() {
+      break;
+    }
+
+    let chunk_len = cr.frames.len() as u64;
+    let reached_eof = cr.eof;
+    pending_header = cr.pending;
+
+    pool.install(|| {
+      cr.frames.par_iter().for_each(|(idx, data)| {
+        if !no_fastfail && interrupted.load(Ordering::Acquire) {
+          return;
+        }
+
+        match verify_block(*idx, data) {
+          Ok(()) => {
+            ok_count.fetch_add(1, Ordering::Relaxed);
+          }
+          Err(e) => {
+            logging::log_msg(app, &format!("Error: {e}"));
+            error_count.fetch_add(1, Ordering::Relaxed);
+            if !no_fastfail {
+              interrupted.store(true, Ordering::Release);
+              logging::log_msg(app, "Interrupting remaining blocks");
+              let mut guard = first_error.lock().unwrap_or_else(|p| p.into_inner());
+              if guard.is_none() {
+                *guard = Some(e);
+              }
+            }
           }
         }
-      }
+      });
+    });
+
+    logging::log_msg(
+      app,
+      &format!(
+        "Chunk {chunk_num}: verified {chunk_len} blocks ({ok} ok)",
+        ok = ok_count.load(Ordering::Relaxed)
+      ),
+    );
+
+    block_index += chunk_len;
+    chunk_num += 1;
+
+    if reached_eof || (!no_fastfail && interrupted.load(Ordering::Acquire)) {
+      break;
     }
-  });
+  }
 
   let ok = ok_count.load(Ordering::Relaxed);
   let errs = error_count.load(Ordering::Relaxed);
   let verified = ok + errs;
-  let total = chunk.len() as u64 + 1;
-  let skipped = total - verified;
+  let abandoned = block_index.saturating_sub(verified);
 
   let runtime = logging::format_runtime(start.elapsed());
   logging::log_msg(app, &format!("Verified: {ok}/{verified} blocks in {runtime}"));
-  if skipped > 0 {
-    logging::log_msg(app, &format!("Skipped: {skipped} blocks (interrupted)"));
+  if abandoned > 0 {
+    logging::log_msg(app, &format!("Abandoned: {abandoned} blocks (interrupted)"));
   }
 
   if errs > 0 {
