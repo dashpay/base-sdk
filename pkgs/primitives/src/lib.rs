@@ -52,5 +52,5 @@ pub use transaction::{
   OutPoint, Transaction, TxHash, TxIn, TxInvalid, TxOut, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD,
 };
 pub use types::{
-  AddrV1, AddrV2, ExtendedNetInfo, NetInfo, NetInfoEntry, NetInfoPurpose, NetworkType, ServiceV1, ServiceV2,
+  AddrV1, AddrV2, ExtendedNetInfo, NetAddr, NetInfo, NetInfoEntry, NetInfoPurpose, NetworkType, ServiceV1, ServiceV2,
 };
