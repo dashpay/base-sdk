@@ -306,8 +306,55 @@ impl NITrait for NetInfoV1 {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfo {
-  /// ADDRv1 ServiceV1 (18 bytes).
-  Legacy(ServiceV1),
+  /// ADDRv1 service (18 bytes).
+  Legacy(NetInfoV1),
   /// Extended format (v3+) with purpose-grouped entries.
   Extended(NetInfoV2),
+}
+
+impl fmt::Display for NetInfo {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Legacy(v1) => v1.fmt(f),
+      Self::Extended(v2) => v2.fmt(f),
+    }
+  }
+}
+
+impl NITrait for NetInfo {
+  fn entries(&self, purpose: Option<NIPurpose>) -> impl Iterator<Item = NIEntry> + '_ {
+    let (a, b) = match self {
+      Self::Legacy(v1) => (Some(v1.entries(purpose)), None),
+      Self::Extended(v2) => (None, Some(v2.entries(purpose))),
+    };
+    a.into_iter().flatten().chain(b.into_iter().flatten())
+  }
+
+  fn primary(&self) -> Option<ServiceV2> {
+    match self {
+      Self::Legacy(v1) => v1.primary(),
+      Self::Extended(v2) => v2.primary(),
+    }
+  }
+
+  fn is_empty(&self) -> bool {
+    match self {
+      Self::Legacy(v1) => v1.is_empty(),
+      Self::Extended(v2) => v2.is_empty(),
+    }
+  }
+
+  fn has_entries(&self, purpose: NIPurpose) -> bool {
+    match self {
+      Self::Legacy(v1) => v1.has_entries(purpose),
+      Self::Extended(v2) => v2.has_entries(purpose),
+    }
+  }
+
+  fn stores_platform(&self) -> bool {
+    match self {
+      Self::Legacy(v1) => v1.stores_platform(),
+      Self::Extended(v2) => v2.stores_platform(),
+    }
+  }
 }

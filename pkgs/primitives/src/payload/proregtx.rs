@@ -13,7 +13,7 @@ use super::{
 use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::{KeyId, Script};
-use crate::types::{NetInfo, NetInfoV2, ServiceV1};
+use crate::types::{NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsPublicKeyBytes;
@@ -104,7 +104,7 @@ impl BaseCodec for ProRegTx {
     let net_info = if version >= 3 {
       NetInfo::Extended(NetInfoV2::decode(data)?)
     } else {
-      NetInfo::Legacy(ServiceV1::decode(data)?)
+      NetInfo::Legacy(NetInfoV1(ServiceV1::decode(data)?))
     };
     let key_id_owner = KeyId::decode(data)?;
     let pub_key_operator = BlsPublicKeyBytes::decode(data)?;
