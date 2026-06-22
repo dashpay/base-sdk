@@ -69,7 +69,7 @@ impl_p2p!(AddrV2Entry);
 
 impl fmt::Display for AddrV2Entry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{:?}:{}", self.addr.network, self.port)
+    write!(f, "{:?}:{}", self.addr.network(), self.port)
   }
 }
 

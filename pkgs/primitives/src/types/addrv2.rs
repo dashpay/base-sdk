@@ -26,7 +26,7 @@ pub enum NetworkType {
   /// Tor v3 hidden service.
   TorV3,
   /// I2P.
-  I2P,
+  I2p,
   /// CJDNS.
   Cjdns,
   /// Unknown network type.
@@ -39,7 +39,7 @@ impl NumCodec<u8> for NetworkType {
       1 => Self::Ipv4,
       2 => Self::Ipv6,
       4 => Self::TorV3,
-      5 => Self::I2P,
+      5 => Self::I2p,
       6 => Self::Cjdns,
       other => Self::Unknown(other),
     }
@@ -50,7 +50,7 @@ impl NumCodec<u8> for NetworkType {
       Self::Ipv4 => 1,
       Self::Ipv6 => 2,
       Self::TorV3 => 4,
-      Self::I2P => 5,
+      Self::I2p => 5,
       Self::Cjdns => 6,
       Self::Unknown(v) => *v,
     }
@@ -66,7 +66,7 @@ impl NetworkType {
       Self::Ipv4 => Some(4),
       Self::Ipv6 => Some(16),
       Self::TorV3 => Some(32),
-      Self::I2P => Some(32),
+      Self::I2p => Some(32),
       Self::Cjdns => Some(16),
       Self::Unknown(_) => None,
     }
@@ -79,7 +79,7 @@ impl fmt::Display for NetworkType {
       Self::Ipv4 => f.write_str("ipv4"),
       Self::Ipv6 => f.write_str("ipv6"),
       Self::TorV3 => f.write_str("torv3"),
-      Self::I2P => f.write_str("i2p"),
+      Self::I2p => f.write_str("i2p"),
       Self::Cjdns => f.write_str("cjdns"),
       Self::Unknown(v) => write!(f, "unknown({v})"),
     }
@@ -89,14 +89,25 @@ impl fmt::Display for NetworkType {
 /// BIP155 network address.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct AddrV2 {
-  /// Network transport type.
-  pub network: NetworkType,
-  /// Raw address bytes (length depends on network type).
-  pub addr: Vec<u8>,
+pub enum AddrV2 {
+  /// IPv4 address (4 bytes).
+  Ipv4([u8; 4]),
+  /// IPv6 address (16 bytes).
+  Ipv6([u8; 16]),
+  /// Onion hidden service (32 bytes).
+  TorV3([u8; 32]),
+  /// I2P address (32 bytes).
+  I2p([u8; 32]),
+  /// CJDNS address (16 bytes).
+  Cjdns([u8; 16]),
+  /// Unknown network type with raw address bytes.
+  Unknown {
+    /// Wire network ID.
+    network: u8,
+    /// Raw address bytes.
+    addr: Vec<u8>,
+  },
 }
-
-impl_type!(AddrV2);
 
 impl BaseCodec for AddrV2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -111,19 +122,84 @@ impl BaseCodec for AddrV2 {
         });
       }
     }
-    let addr = codec::read_bytes(data, len)?.to_vec();
-    Ok(Self { network, addr })
+    let raw = codec::read_bytes(data, len)?;
+    match network {
+      NetworkType::Ipv4 => {
+        let mut buf = [0u8; 4];
+        buf.copy_from_slice(raw);
+        Ok(Self::Ipv4(buf))
+      }
+      NetworkType::Ipv6 => {
+        let mut buf = [0u8; 16];
+        buf.copy_from_slice(raw);
+        // BIP155: fc00::/8 is CJDNS, not generic IPv6.
+        if buf[0] == 0xfc {
+          Ok(Self::Cjdns(buf))
+        } else {
+          Ok(Self::Ipv6(buf))
+        }
+      }
+      NetworkType::TorV3 => {
+        let mut buf = [0u8; 32];
+        buf.copy_from_slice(raw);
+        Ok(Self::TorV3(buf))
+      }
+      NetworkType::I2p => {
+        let mut buf = [0u8; 32];
+        buf.copy_from_slice(raw);
+        Ok(Self::I2p(buf))
+      }
+      NetworkType::Cjdns => {
+        let mut buf = [0u8; 16];
+        buf.copy_from_slice(raw);
+        Ok(Self::Cjdns(buf))
+      }
+      NetworkType::Unknown(n) => Ok(Self::Unknown {
+        network: n,
+        addr: raw.to_vec(),
+      }),
+    }
   }
 
   fn encode(&self, buf: &mut Vec<u8>) {
-    self.network.to_base().encode(buf);
-    self.addr.encode(buf);
+    self.network().to_base().encode(buf);
+    let bytes = self.bytes();
+    codec::write_compact_size(bytes.len(), buf);
+    buf.extend_from_slice(bytes);
+  }
+}
+
+impl_type!(AddrV2);
+
+impl AddrV2 {
+  /// Returns the BIP155 network type for this address.
+  pub fn network(&self) -> NetworkType {
+    match self {
+      Self::Ipv4(_) => NetworkType::Ipv4,
+      Self::Ipv6(_) => NetworkType::Ipv6,
+      Self::TorV3(_) => NetworkType::TorV3,
+      Self::I2p(_) => NetworkType::I2p,
+      Self::Cjdns(_) => NetworkType::Cjdns,
+      Self::Unknown { network, .. } => NetworkType::Unknown(*network),
+    }
+  }
+
+  /// Raw address bytes.
+  pub fn bytes(&self) -> &[u8] {
+    match self {
+      Self::Ipv4(b) => b,
+      Self::Ipv6(b) => b,
+      Self::TorV3(b) => b,
+      Self::I2p(b) => b,
+      Self::Cjdns(b) => b,
+      Self::Unknown { addr, .. } => addr,
+    }
   }
 }
 
 impl fmt::Display for AddrV2 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.network)
+    write!(f, "{}", self.network())
   }
 }
 
