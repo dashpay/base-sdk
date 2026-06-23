@@ -9,12 +9,12 @@
 use crate::hash_impl;
 
 use dash_types::codec::NumCodec;
-use dash_types::impl_num;
+use dash_types::{impl_num, TypeId};
 
 use core::fmt;
 
 /// Network address type (BIP155).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum NetworkType {
   /// IPv4.
   Ipv4,

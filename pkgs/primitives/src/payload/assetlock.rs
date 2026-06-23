@@ -11,12 +11,12 @@ use crate::prelude::*;
 use crate::transaction::TxOut;
 
 use dash_types::codec::Checkable;
-use dash_types::Unencodable;
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
 /// AssetLock: L1-to-Platform (type 8).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct AssetLock {

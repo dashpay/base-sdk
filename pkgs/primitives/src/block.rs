@@ -14,7 +14,7 @@ use bitcoin_hashes::sha256d;
 use dash_num::{make_hash, Hash256};
 use dash_pow::hash as pow_hash;
 use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable};
-use dash_types::Unencodable;
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -41,7 +41,7 @@ make_hash! {
 hash_impl!(MerkleRoot);
 
 /// A block header.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct BlockHeader {
@@ -116,7 +116,7 @@ impl fmt::Display for BlockInvalid {
 }
 
 /// A Dash block: header followed by a vector of transactions.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Block {
   /// Block header (80 bytes).

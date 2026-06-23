@@ -14,7 +14,7 @@ use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
 use dash_num::Hash256;
 use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable, NumCodec};
-use dash_types::{impl_num, Unencodable};
+use dash_types::{impl_num, TypeId, Unencodable};
 use hex_conservative::DisplayHex;
 
 use core::fmt;
@@ -29,7 +29,7 @@ const MIN_URL_LEN: usize = 4;
 const PROPOSAL_NAME_CHARS: &[u8] = b"-_abcdefghijklmnopqrstuvwxyz0123456789";
 
 /// Governance object type codes.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum GovObjectType {
   /// Budget proposal.
   Proposal,
@@ -147,7 +147,7 @@ pub enum GovData {
 /// || type(i32) || masternode_outpoint(36)
 /// || sig(CompactSize + bytes)
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovObject {
@@ -223,7 +223,7 @@ impl GovObject {
 }
 
 /// Governance vote outcome.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TypeId)]
 pub enum VoteOutcome {
   /// No vote cast.
   None,
@@ -276,7 +276,7 @@ impl fmt::Display for VoteOutcome {
 }
 
 /// Governance vote signal type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TypeId)]
 pub enum VoteSignal {
   /// No signal.
   None,
@@ -340,7 +340,7 @@ impl fmt::Display for VoteSignal {
 /// || outcome(u32) || signal(u32) || time(i64)
 /// || sig(CompactSize + bytes)
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovVote {

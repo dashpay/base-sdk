@@ -16,7 +16,7 @@ use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable, NumCodec};
-use dash_types::{impl_type, Unencodable};
+use dash_types::{impl_type, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -35,7 +35,7 @@ make_hash! {
 hash_impl!(TxHash);
 
 /// A reference to a previous transaction output.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct OutPoint {
@@ -61,7 +61,7 @@ impl fmt::Display for OutPoint {
 }
 
 /// A transaction input.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct TxIn {
@@ -86,7 +86,7 @@ impl fmt::Display for TxIn {
 }
 
 /// A transaction output.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct TxOut {
@@ -176,7 +176,7 @@ impl fmt::Display for TxInvalid {
 ///
 /// Special transactions (type != Spend, version >= 3) carry an `extra_payload`
 /// decoded separately by payload-specific decoders.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Transaction {

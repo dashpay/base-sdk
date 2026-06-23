@@ -25,7 +25,7 @@ use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
-use dash_types::{impl_num, Unencodable};
+use dash_types::{impl_num, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -59,7 +59,7 @@ make_hash! {
 hash_impl!(InputsHash);
 
 /// Dash transaction type, encoded in the upper 16 bits of the version field.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum TxType {
   /// Spend transaction (includes legacy coinbase).
   Spend,
@@ -142,7 +142,7 @@ impl fmt::Display for TxType {
 }
 
 /// Masternode type, used in provider registration and update transactions.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum MnType {
   /// Regular masternode.
   Regular,

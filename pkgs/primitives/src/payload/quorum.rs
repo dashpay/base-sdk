@@ -14,7 +14,7 @@ use crate::support::{DynBitset, LlmqType};
 use dash_num::{make_hash, Hash256};
 use dash_pkc::{BlsPublicKeyBytes, BlsSignatureBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
-use dash_types::Unencodable;
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -32,7 +32,7 @@ hash_impl!(QuorumVvecHash);
 /// - v2: legacy + indexed (quorum_index)
 /// - v3: basic
 /// - v4: basic + indexed (quorum_index)
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Commitment {
@@ -118,7 +118,7 @@ impl fmt::Display for Commitment {
 }
 
 /// Tx-level wrapper for Commitment (type 6).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct FinalCommitment {

@@ -13,6 +13,7 @@ use crate::TxHash;
 
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::Checkable;
+use dash_types::TypeId;
 
 use core::fmt;
 
@@ -20,7 +21,7 @@ use core::fmt;
 ///
 /// - v1: LegacyBLS
 /// - v2: BasicBLS
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProUpRevTx {

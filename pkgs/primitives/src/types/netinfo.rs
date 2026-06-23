@@ -12,7 +12,7 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{impl_num, impl_type, Unencodable};
+use dash_types::{impl_num, impl_type, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -50,7 +50,7 @@ const TLDS_BAD: &[&str] = &[
 const TLDS_PRIVACY: &[&str] = &[".i2p", ".onion"];
 
 /// Purpose tag for an extended network info entry.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum NIPurpose {
   /// Core P2P port.
   CoreP2p,
@@ -98,7 +98,7 @@ impl fmt::Display for NIPurpose {
 }
 
 /// Type tag for an extended network info entry.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum NIEntryCode {
   /// BIP155 address + port.
   Service,
@@ -192,7 +192,7 @@ impl fmt::Display for NIError {
 impl std::error::Error for NIError {}
 
 /// A single network info entry within a purpose group.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NIEntry {
@@ -343,7 +343,7 @@ pub trait NITrait: fmt::Display {
 ///
 /// Contains a versioned list of purpose-grouped network entries (core P2P,
 /// platform P2P, platform HTTPS).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct NetInfoV2 {
@@ -529,7 +529,7 @@ fn same_addr(a: &NIEntry, b: &NIEntry) -> bool {
 }
 
 /// Legacy network information wrapper.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NetInfoV1(pub ServiceV1);

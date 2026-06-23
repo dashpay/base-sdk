@@ -10,12 +10,12 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{impl_num, impl_type, Unencodable};
+use dash_types::{impl_num, impl_type, TypeId, Unencodable};
 
 use core::fmt;
 
 /// LLMQ type (quorum size/threshold configuration).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum LlmqType {
   /// 50 members, 60% threshold.
   Llmq50_60,
@@ -108,7 +108,7 @@ impl fmt::Display for LlmqType {
 }
 
 /// Revocation reason for provider update revocation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum RevocationReason {
   /// No specific reason.
   NotSpecified,
@@ -161,7 +161,7 @@ impl fmt::Display for RevocationReason {
 }
 
 /// LSB-first dynamic bitset.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(into = "DynBitsetSerde"))]
 pub struct DynBitset {

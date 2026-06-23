@@ -12,7 +12,7 @@ use crate::{hash_impl, MerkleRoot};
 use bitcoin_units::BlockHeight;
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
-use dash_types::Unencodable;
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -21,7 +21,7 @@ use core::fmt;
 /// - v1: base fields (version, height, merkle_root_mn_list)
 /// - v2: adds merkle_root_quorums
 /// - v3: adds ChainLock proof and credit pool balance
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct CoinbaseCommitment {
