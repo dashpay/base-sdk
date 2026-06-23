@@ -35,9 +35,23 @@ def main() -> int:
     cmd += ["--manifest-path", str(manifest_path)]
     result = subprocess.run(  # noqa: S603
       cmd,
+      capture_output=True,
       check=False,
       cwd=str(repo_root),
+      text=True,
     )
+    if result.stdout:
+      sys.stdout.write(result.stdout)
+    if result.stderr:
+      # Filter nightly-only rustfmt warnings that appear on stable.
+      filtered = "\n".join(
+        ln for ln in result.stderr.splitlines()
+        if not (ln.startswith("Warning:") and (
+          "unstable features" in ln or "has been stabilized" in ln
+        ))
+      )
+      if filtered.strip():
+        sys.stderr.write(filtered + "\n")
     if result.returncode != 0:
       failed = True
 
