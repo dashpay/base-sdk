@@ -3,10 +3,18 @@ name: Deploy docs
 on:
   push:
     branches: [develop]
+  pull_request:
+    paths:
+      - pkgs/**
+      - contrib/samples/**
+      - contrib/zen/**
+      - contrib/build_docs.py
+      - docs/zen/**
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -60,6 +68,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     needs: build
     runs-on: ubuntu-24.04-arm
 
