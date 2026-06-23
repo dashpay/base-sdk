@@ -13,8 +13,9 @@ extern crate alloc;
 use bitcoin_consensus_encoding::encode_to_vec;
 use bitcoin_units::Amount;
 use dash_num::{Arith256, CompactTarget};
-use dash_primitives::hash::double_sha256;
-use dash_primitives::{BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType};
+use dash_primitives::{
+  double_sha256, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
+};
 use hex_conservative::FromHex;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
