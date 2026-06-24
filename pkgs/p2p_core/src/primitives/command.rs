@@ -6,6 +6,7 @@
 
 //! Twelve-byte null-padded command string for P2P message dispatch.
 
+use dash_primitives::hash_impl;
 use dash_types::impl_bytes;
 
 use core::fmt;
@@ -16,6 +17,8 @@ use core::fmt;
 pub struct CommandString([u8; 12]);
 
 impl_bytes!(12, CommandString);
+
+hash_impl!(CommandString);
 
 impl CommandString {
   /// Builds a command string from a static `&str` at compile time.

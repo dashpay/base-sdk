@@ -9,6 +9,7 @@
 use crate::codec::impl_p2p;
 use crate::prelude::*;
 
+use dash_primitives::hash_impl;
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 use core::fmt;
@@ -46,6 +47,8 @@ impl BaseCodec for UserAgent {
     self.0.encode(buf);
   }
 }
+
+hash_impl!(UserAgent);
 
 impl UserAgent {
   /// Creates a new user agent from raw bytes.

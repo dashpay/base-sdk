@@ -9,6 +9,7 @@
 use crate::codec::codec_p2p;
 
 use dash_num::Hash256;
+use dash_primitives::hash_impl;
 use dash_types::codec::NumCodec;
 use dash_types::impl_num;
 
@@ -64,6 +65,8 @@ impl NumCodec<u32> for InvType {
 }
 
 impl_num!(InvType, u32);
+
+hash_impl!(InvType);
 
 impl fmt::Display for InvType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

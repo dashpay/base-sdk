@@ -6,12 +6,17 @@
 
 //! Dash service flag bitfield.
 
+use dash_primitives::hash_impl;
+use dash_types::make_num;
+
 use core::ops;
 
-dash_types::make_num! {
+make_num! {
   /// Bitfield advertised in `version` messages describing node capabilities.
   ServiceFlags, u64, 8
 }
+
+hash_impl!(ServiceFlags);
 
 impl ServiceFlags {
   /// No services.

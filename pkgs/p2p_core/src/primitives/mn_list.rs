@@ -10,7 +10,9 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
 use dash_pkc::{BlsPublicKeyBytes, BlsSignatureBytes};
-use dash_primitives::{BlockHash, Commitment, KeyId, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash};
+use dash_primitives::{
+  hash_impl, BlockHash, Commitment, KeyId, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash,
+};
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, NumCodec};
 
 use core::fmt;
@@ -100,6 +102,8 @@ impl BaseCodec for SimplifiedMnListEntry {
     }
   }
 }
+
+hash_impl!(SimplifiedMnListEntry);
 
 impl fmt::Display for SimplifiedMnListEntry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

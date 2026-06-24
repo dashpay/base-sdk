@@ -10,7 +10,7 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::{CompressionState, ProtocolVersion};
 
-use dash_primitives::BlockHash;
+use dash_primitives::{hash_impl, BlockHash};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 /// Maximum headers per message.
@@ -63,6 +63,8 @@ impl BaseCodec for Headers2 {
     }
   }
 }
+
+hash_impl!(Headers2);
 
 #[cfg(all(test, feature = "serde"))]
 mod tests {

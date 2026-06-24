@@ -10,13 +10,16 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
 use bitcoin_units::BlockHeight;
-use dash_primitives::BlockHash;
+use dash_primitives::{hash_impl, BlockHash};
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
+use dash_types::make_num;
 
-dash_types::make_num! {
+make_num! {
   /// BIP157 filter type, encoded as a single byte on the wire.
   FilterType, u8, 1
 }
+
+hash_impl!(FilterType);
 
 impl FilterType {
   /// Basic filter (the only type defined by BIP158).
@@ -52,6 +55,8 @@ impl BaseCodec for GetCFilters {
     self.stop_hash.encode(buf);
   }
 }
+
+hash_impl!(GetCFilters);
 
 /// A single compact block filter.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -100,6 +105,8 @@ impl BaseCodec for GetCFHeaders {
     self.stop_hash.encode(buf);
   }
 }
+
+hash_impl!(GetCFHeaders);
 
 /// Response carrying filter headers and their hashes.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

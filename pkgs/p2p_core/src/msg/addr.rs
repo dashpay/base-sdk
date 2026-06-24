@@ -10,7 +10,7 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::ServiceFlags;
 
-use dash_primitives::{AddrV2, ServiceV1};
+use dash_primitives::{hash_impl, AddrV2, ServiceV1};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 use core::fmt;
@@ -66,6 +66,8 @@ impl BaseCodec for AddrV2Entry {
 }
 
 impl_p2p!(AddrV2Entry);
+
+hash_impl!(AddrV2Entry);
 
 impl fmt::Display for AddrV2Entry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -10,7 +10,7 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::ProtocolVersion;
 
-use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
+use dash_primitives::{hash_impl, BlockHash, BlockHeader, MerkleRoot};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 /// Maximum headers per message.
@@ -79,3 +79,5 @@ impl BaseCodec for Headers {
     }
   }
 }
+
+hash_impl!(Headers);

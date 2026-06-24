@@ -6,10 +6,15 @@
 
 //! Dash protocol version constants.
 
-dash_types::make_num! {
+use dash_primitives::hash_impl;
+use dash_types::make_num;
+
+make_num! {
   /// Protocol version exchanged during the handshake.
   ProtocolVersion, u32, 4
 }
+
+hash_impl!(ProtocolVersion);
 
 impl ProtocolVersion {
   /// Current protocol version.
