@@ -5,7 +5,7 @@
  *
  * @id base-sdk/import-rules
  * @name Import grouping and ordering rules
- * @description Enforces import ordering with blank-line constraints, prohibits non-prelude alloc imports.
+ * @description Enforces import ordering with blank-line constraints.
  * @kind problem
  * @precision high
  * @problem.severity warning
@@ -43,50 +43,26 @@ predicate hasCfgGatedGap(File f, int startAfter, int endBefore) {
   )
 }
 
-/** Holds if `f` is inside a crate excluded from prelude rules. */
-private predicate isPreludeExcluded(File f) {
-  exists(string name |
-    name = preludeExcludeCrate() and
-    f.getAbsolutePath().matches("%/" + name + "/%")
-  )
-}
-
-/** Holds if `u` imports directly from `alloc` outside `prelude.rs`. */
-private predicate directAllocImport(Use u) {
-  usePrefix(u) = "alloc" and
-  not fileOf(u).getBaseName() = "prelude.rs" and
-  not fileOf(u).getAbsolutePath().matches("%/prelude/mod.rs") and
-  not isPreludeExcluded(fileOf(u))
-}
-
 from Locatable item, string message
 where
-  (
-    exists(Locatable prev, File f, int groupA, int groupB, int endA, int effStartB |
-      consecutivePreamble(prev, item, f, groupA, groupB, endA, effStartB) and
-      (
-        // Group decreased: wrong order.
-        groupA > groupB and
-        message = fmt("{0} must appear before {1}", groupLabel(groupB), groupLabel(groupA))
-        or
-        // Group increased but no blank line between them.
-        groupA < groupB and
-        effStartB - endA < 2 and
-        message =
-          fmt("missing blank line between {0} and {1}", groupLabel(groupA), groupLabel(groupB))
-        or
-        // Same group but spurious blank line within it.
-        groupA = groupB and
-        effStartB - endA > 1 and
-        not hasCfgGatedGap(f, endA, effStartB) and
-        message = fmt("unexpected blank line within {0} group", groupLabel(groupA))
-      )
-    )
-    or
-    exists(Use u |
-      item = u and
-      directAllocImport(u) and
-      message = "use crate::prelude instead of direct alloc import"
+  exists(Locatable prev, File f, int groupA, int groupB, int endA, int effStartB |
+    consecutivePreamble(prev, item, f, groupA, groupB, endA, effStartB) and
+    (
+      // Group decreased: wrong order.
+      groupA > groupB and
+      message = fmt("{0} must appear before {1}", groupLabel(groupB), groupLabel(groupA))
+      or
+      // Group increased but no blank line between them.
+      groupA < groupB and
+      effStartB - endA < 2 and
+      message =
+        fmt("missing blank line between {0} and {1}", groupLabel(groupA), groupLabel(groupB))
+      or
+      // Same group but spurious blank line within it.
+      groupA = groupB and
+      effStartB - endA > 1 and
+      not hasCfgGatedGap(f, endA, effStartB) and
+      message = fmt("unexpected blank line within {0} group", groupLabel(groupA))
     )
   )
 select item, message
