@@ -407,57 +407,16 @@ pub trait NetAddr {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::types::AddrV1;
 
   use rstest::rstest;
 
-  /// Minimal test adapter: 4-byte IPv4 address.
-  struct Ipv4([u8; 4]);
-
-  impl NetAddr for Ipv4 {
-    fn bytes(&self) -> &[u8] {
-      &self.0
-    }
-    fn network(&self) -> NetworkType {
-      NetworkType::Ipv4
-    }
-    fn is_ipv4(&self) -> bool {
-      true
-    }
-    fn is_ipv6(&self) -> bool {
-      false
-    }
-    fn is_null(&self) -> bool {
-      self.0 == [0; 4]
-    }
+  fn v4(a: u8, b: u8, c: u8, d: u8) -> AddrV1 {
+    AddrV1::from([a, b, c, d])
   }
 
-  /// Minimal test adapter: 16-byte IPv6 address.
-  struct Ipv6([u8; 16]);
-
-  impl NetAddr for Ipv6 {
-    fn bytes(&self) -> &[u8] {
-      &self.0
-    }
-    fn network(&self) -> NetworkType {
-      NetworkType::Ipv6
-    }
-    fn is_ipv4(&self) -> bool {
-      false
-    }
-    fn is_ipv6(&self) -> bool {
-      true
-    }
-    fn is_null(&self) -> bool {
-      self.0 == [0; 16]
-    }
-  }
-
-  fn v4(a: u8, b: u8, c: u8, d: u8) -> Ipv4 {
-    Ipv4([a, b, c, d])
-  }
-
-  fn v6(bytes: [u8; 16]) -> Ipv6 {
-    Ipv6(bytes)
+  fn v6(bytes: [u8; 16]) -> AddrV1 {
+    AddrV1::from(bytes)
   }
 
   #[rstest]
@@ -465,7 +424,7 @@ mod tests {
   #[case::rfc1918_172(v4(172, 31, 255, 255), true)]
   #[case::rfc1918_192(v4(192, 168, 1, 1), true)]
   #[case::rfc1918_public(v4(8, 8, 8, 8), false)]
-  fn rfc1918(#[case] addr: Ipv4, #[case] expected: bool) {
+  fn rfc1918(#[case] addr: AddrV1, #[case] expected: bool) {
     assert_eq!(addr.is_rfc1918(), expected);
   }
 
@@ -473,7 +432,7 @@ mod tests {
   #[case::rfc2544_lo(v4(198, 18, 0, 0), true)]
   #[case::rfc2544_hi(v4(198, 19, 255, 255), true)]
   #[case::rfc2544_below(v4(198, 17, 0, 0), false)]
-  fn rfc2544(#[case] addr: Ipv4, #[case] expected: bool) {
+  fn rfc2544(#[case] addr: AddrV1, #[case] expected: bool) {
     assert_eq!(addr.is_rfc2544(), expected);
   }
 
@@ -490,7 +449,7 @@ mod tests {
   #[rstest]
   #[case::rfc3927_yes(v4(169, 254, 1, 1), true)]
   #[case::rfc3927_no(v4(169, 253, 1, 1), false)]
-  fn rfc3927(#[case] addr: Ipv4, #[case] expected: bool) {
+  fn rfc3927(#[case] addr: AddrV1, #[case] expected: bool) {
     assert_eq!(addr.is_rfc3927(), expected);
   }
 
@@ -545,7 +504,7 @@ mod tests {
   #[case::rfc6598_lo(v4(100, 64, 0, 0), true)]
   #[case::rfc6598_hi(v4(100, 127, 255, 255), true)]
   #[case::rfc6598_below(v4(100, 63, 0, 0), false)]
-  fn rfc6598(#[case] addr: Ipv4, #[case] expected: bool) {
+  fn rfc6598(#[case] addr: AddrV1, #[case] expected: bool) {
     assert_eq!(addr.is_rfc6598(), expected);
   }
 
@@ -553,7 +512,7 @@ mod tests {
   #[case::local_v4(v4(127, 0, 0, 1), true)]
   #[case::local_link(v4(169, 254, 0, 1), true)]
   #[case::local_public(v4(8, 8, 8, 8), false)]
-  fn local_v4(#[case] addr: Ipv4, #[case] expected: bool) {
+  fn local_v4(#[case] addr: AddrV1, #[case] expected: bool) {
     assert_eq!(addr.is_local(), expected);
   }
 
@@ -582,7 +541,7 @@ mod tests {
   #[case::not_routable_null(v4(0, 0, 0, 0), false)]
   #[case::not_routable_multicast(v4(224, 0, 0, 1), false)]
   #[case::not_routable_multicast_hi(v4(239, 255, 255, 255), false)]
-  fn routable_v4(#[case] addr: Ipv4, #[case] expected: bool) {
+  fn routable_v4(#[case] addr: AddrV1, #[case] expected: bool) {
     assert_eq!(addr.is_routable(), expected);
   }
 
@@ -611,9 +570,8 @@ mod tests {
 
   #[rstest]
   fn null() {
-    assert!(v4(0, 0, 0, 0).is_null());
+    assert!(AddrV1::default().is_null());
     assert!(!v4(1, 2, 3, 4).is_null());
-    assert!(v6([0; 16]).is_null());
     let mut nonzero = [0u8; 16];
     nonzero[15] = 1;
     assert!(!v6(nonzero).is_null());

@@ -72,6 +72,15 @@ impl AddrV1 {
   }
 }
 
+impl From<[u8; 4]> for AddrV1 {
+  fn from(octets: [u8; 4]) -> Self {
+    let mut arr = [0u8; 16];
+    arr[..12].copy_from_slice(&IPV4_MAPPED_PREFIX);
+    arr[12..].copy_from_slice(&octets);
+    Self(arr)
+  }
+}
+
 impl From<AddrV1> for [u8; 16] {
   fn from(val: AddrV1) -> Self {
     val.0
