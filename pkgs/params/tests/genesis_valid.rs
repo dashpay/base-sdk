@@ -7,7 +7,8 @@
 //! Genesis validation test.
 
 use bitcoin_consensus_encoding::encode_to_vec;
-use dash_params::types::{Block, ChainParams, MerkleRoot};
+use dash_params::types::ChainParams;
+use dash_primitives::{Block, MerkleRoot};
 use hex_literal::hex;
 use rstest::rstest;
 

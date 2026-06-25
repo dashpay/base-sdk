@@ -45,3 +45,12 @@ rules:
         - /pkgs/**/prelude/mod.rs
         - /contrib/samples/**
     pattern-regex: '\buse\s+crate::prelude::[^*]'
+
+  - id: use-pub-roots-only
+    message: "pub use re-exports belong in lib.rs or mod.rs, not in leaf modules"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+      exclude: ["**/lib.rs", "**/mod.rs"]
+    pattern-regex: '^\s*pub\s+use\s'

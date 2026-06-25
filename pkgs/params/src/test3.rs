@@ -9,6 +9,10 @@
 use crate::prelude::*;
 use crate::types::*;
 
+use dash_num::{Arith256, Hash256};
+use dash_primitives::{
+  double_sha256, Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
+};
 use hex_literal::hex;
 
 /// Returns the testnet genesis block.
