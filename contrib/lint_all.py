@@ -16,7 +16,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
-from common import RETCODE_ERR, RETCODE_PASS, RETCODE_SKIP
+from common import (
+  ANSI_BOLD,
+  ANSI_GREEN,
+  ANSI_RED,
+  ANSI_RESET,
+  RETCODE_ERR,
+  RETCODE_PASS,
+  RETCODE_SKIP,
+  format_table,
+)
 
 
 @dataclass
@@ -34,16 +43,9 @@ class LintResult:
     return "pass" if self.retcode == RETCODE_PASS else "fail"
 
 
-GREEN = "\033[32m"
-RED = "\033[31m"
-BOLD = "\033[1m"
-DIM = "\033[2m"
-RESET = "\033[0m"
-
-
 def _print_stream(prefix: str, line: str, *, is_stderr: bool) -> None:
-  color = RED if is_stderr else GREEN
-  print(f"{color}({prefix}){RESET} {line}")
+  color = ANSI_RED if is_stderr else ANSI_GREEN
+  print(f"{color}({prefix}){ANSI_RESET} {line}")
 
 
 async def _read_stream(
@@ -92,48 +94,22 @@ def _discover_linters(lint_dir: Path) -> list[Path]:
   return sorted(lint_dir.glob("lint_*.py"))
 
 
-def _format_table(results: list[LintResult]) -> str:
-  status_icons = {
-    "pass": f"{GREEN}pass{RESET}",
-    "fail": f"{RED}fail{RESET}",
-    "skip": f"{DIM}skip{RESET}",
-  }
+_STATUS_COLORS = {"pass": ANSI_GREEN, "fail": ANSI_RED}
 
+
+def _results_table(results: list[LintResult]) -> str:
   headers = ("name", "time", "stdout", "stderr", "status")
-  rows: list[tuple[str, str, str, str, str]] = []
-  for r in results:
-    rows.append(
-      (
-        r.name,
-        f"{r.elapsed:.2f}s",
-        str(len(r.stdout_lines)),
-        str(len(r.stderr_lines)),
-        r.status,
-      )
+  rows: list[tuple[str, ...]] = [
+    (
+      r.name,
+      f"{r.elapsed:.2f}s",
+      str(len(r.stdout_lines)),
+      str(len(r.stderr_lines)),
+      r.status,
     )
-
-  widths = [len(h) for h in headers]
-  for row in rows:
-    for i, cell in enumerate(row):
-      widths[i] = max(widths[i], len(cell))
-
-  def fmt_row(cells: tuple[str, ...], *, color: bool = False) -> str:
-    parts: list[str] = []
-    for i, cell in enumerate(cells):
-      if color and i == len(cells) - 1:
-        display = status_icons.get(cell, cell)
-        parts.append(f" {display}{' ' * (widths[i] - len(cell))} ")
-      else:
-        parts.append(f" {cell:<{widths[i]}} ")
-    return f"|{'|'.join(parts)}|"
-
-  lines: list[str] = []
-  lines.append(fmt_row(headers))
-  lines.append("|" + "|".join("-" * (w + 2) for w in widths) + "|")
-  for row in rows:
-    lines.append(fmt_row(row, color=True))
-
-  return "\n".join(lines)
+    for r in results
+  ]
+  return format_table(headers, rows, _STATUS_COLORS)
 
 
 async def _main() -> int:
@@ -145,12 +121,12 @@ async def _main() -> int:
     print("no lint_*.py scripts found", file=sys.stderr)
     return RETCODE_ERR
 
-  print(f"{BOLD}running {len(scripts)} linter(s)...{RESET}\n")
+  print(f"{ANSI_BOLD}running {len(scripts)} linter(s)...{ANSI_RESET}\n")
 
   results = await asyncio.gather(*[_run_linter(s) for s in scripts])
   results = list(results)
 
-  print(f"\n{_format_table(results)}\n")
+  print(f"\n{_results_table(results)}\n")
 
   return (
     RETCODE_ERR if any(r.status == "fail" for r in results) else RETCODE_PASS
