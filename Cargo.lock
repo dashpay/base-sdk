@@ -282,6 +282,7 @@ dependencies = [
  "dash-num",
  "dash-pow",
  "dash-primitives",
+ "dash-types",
  "hex-literal",
  "rstest",
 ]
