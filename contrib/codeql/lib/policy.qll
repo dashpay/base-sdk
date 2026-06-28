@@ -12,22 +12,29 @@ import lib.source_lines
 import lib.traits
 import rust
 
-/** Folds the derive token text extraction for join efficiency. */
-pragma[nomagic]
-private predicate deriveTokenText(TypeItem t, string text) {
-  exists(Attr a |
+/** Holds if `t` carries `#[derive(...name...)]` detected via source-line scanning. */
+bindingset[name]
+predicate hasDerive(TypeItem t, string name) {
+  exists(Attr a, int srcLine, string relPath, string content |
     a = t.getAnAttr() and
-    a.getMeta().getPath().getSegment().getIdentifier().getText() = "derive" and
-    text = a.getMeta().getTokenTree().toAbbreviatedString()
+    (
+      a.getMeta().getPath().getText() = "derive" or
+      a.getMeta().getPath().getText() = "cfg_attr"
+    ) and
+    fileRelPath(fileOf(t), relPath) and
+    sourceLineContent(relPath, srcLine, content) and
+    content.regexpMatch(".*\\b" + name + "\\b.*") and
+    srcLine >= a.getLocation().getStartLine() and
+    srcLine <= a.getLocation().getEndLine()
   )
 }
 
-/** Holds if `t` carries `#[derive(Unencodable)]` or `#[derive(dash_types::Unencodable)]`. */
+/** Holds if `t` is a non-wire type (Unencodable derive, or has __CodecMarker w/o Hashable). */
 predicate isNotEncodable(TypeItem t) {
-  exists(string text |
-    deriveTokenText(t, text) and
-    text.regexpMatch(".*\\bUnencodable\\b.*")
-  )
+  hasDerive(t, "Unencodable")
+  or
+  implementsTrait(t, "__CodecMarker") and
+  not implementsTrait(t, "Hashable")
 }
 
 /** Holds if `t` holds secret or security-sensitive material. */
@@ -206,9 +213,20 @@ predicate isSerdeExempt(TypeItem t) {
   not implementsTrait(t, "PartialEq")
 }
 
-/** Holds if file `f` is in a crate evaluated by decl ordering. */
-predicate isEvaluatedCrate(File f) {
-  f.getAbsolutePath().matches("%/pkgs/types/%") or
+/** Holds if file `f` is in a crate subject to codec and ordering rules. */
+predicate isEnforcedCrate(File f) {
+  f.getAbsolutePath().matches("%/pkgs/num/%")
+  or
+  f.getAbsolutePath().matches("%/pkgs/types/%") and
+  not f.getAbsolutePath().matches("%/pkgs/types/marker/%")
+  or
+  f.getAbsolutePath().matches("%/pkgs/primitives/%")
+  or
+  f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
+}
+
+/** Holds if file `f` is in a crate that can derive `Unencodable`. */
+predicate isUnencodableCrate(File f) {
   f.getAbsolutePath().matches("%/pkgs/primitives/%") or
   f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
 }

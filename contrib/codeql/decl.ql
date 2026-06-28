@@ -43,7 +43,7 @@ where
     (t instanceof Struct or t instanceof Enum) and
     not isSerdeInternalType(t) and
     not isNotEncodable(t) and
-    isEvaluatedCrate(fileOf(t)) and
+    isEnforcedCrate(fileOf(t)) and
     name = t.getName().getText() and
     exists(DeclSlot badSlot, int badLine, DeclSlot priorSlot |
       outOfOrder(t, badSlot, badLine, priorSlot, item) and
