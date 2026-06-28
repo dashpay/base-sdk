@@ -7,12 +7,12 @@
 //! Twelve-byte null-padded command string for P2P message dispatch.
 
 use dash_primitives::hash_impl;
-use dash_types::impl_bytes;
+use dash_types::{impl_bytes, TypeId};
 
 use core::fmt;
 
 /// A 12-byte, null-padded ASCII command identifying a P2P message type.
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CommandString([u8; 12]);
 

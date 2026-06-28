@@ -11,7 +11,7 @@ use crate::prelude::*;
 
 use dash_primitives::hash_impl;
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::Unencodable;
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -19,7 +19,7 @@ use core::fmt;
 const MAX_USER_AGENT: usize = 256;
 
 /// CompactSize-prefixed user agent bytestring.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 pub struct UserAgent(Vec<u8>);
 
 impl_p2p!(UserAgent);

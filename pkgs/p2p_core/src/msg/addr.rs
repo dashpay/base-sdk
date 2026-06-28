@@ -12,11 +12,12 @@ use crate::primitives::ServiceFlags;
 
 use dash_primitives::{hash_impl, AddrV2, ServiceV1};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::TypeId;
 
 use core::fmt;
 
 /// Timestamped v1 address entry used in `addr` messages.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct TimestampedAddr {
   /// Seconds since Unix epoch.
@@ -30,7 +31,7 @@ pub struct TimestampedAddr {
 codec_p2p!(TimestampedAddr { time, services, addr });
 
 /// BIP155 timestamped v2 address entry used in `addrv2` messages.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AddrV2Entry {
   /// Seconds since Unix epoch.
@@ -76,7 +77,7 @@ impl fmt::Display for AddrV2Entry {
 }
 
 /// V1 address announcement carrying timestamped addresses.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Addr {
   /// Timestamped v1 address entries.
@@ -86,7 +87,7 @@ pub struct Addr {
 codec_p2p!(Addr { addrs });
 
 /// BIP155 v2 address announcement.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AddrV2Msg {
   /// BIP155 address entries.

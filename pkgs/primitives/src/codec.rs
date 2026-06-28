@@ -10,6 +10,9 @@
 pub const MAX_SPTX_PAYLOAD_SIZE: usize = 10_240;
 
 /// Blanket `Hashable<Hash = Hash256>` via SHA256d of wire encoding.
+///
+/// Also asserts that the type implements `TypeId`, producing a
+/// compile error if `#[derive(TypeId)]` was omitted.
 #[macro_export]
 macro_rules! hash_impl {
   ($($ty:ty),* $(,)?) => { $(
@@ -25,6 +28,11 @@ macro_rules! hash_impl {
         )
       }
     }
+
+    const _: () = {
+      fn _assert<T: $crate::__private::dash_types::codec::BaseCodec + $crate::__private::dash_types::codec::TypeId>() {}
+      fn _check() { _assert::<$ty>(); }
+    };
   )* };
 }
 

@@ -14,11 +14,12 @@ use dash_primitives::{
   hash_impl, BlockHash, Commitment, KeyId, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash,
 };
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, NumCodec};
+use dash_types::TypeId;
 
 use core::fmt;
 
 /// A single entry in the simplified masternode list.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct SimplifiedMnListEntry {
@@ -112,7 +113,7 @@ impl fmt::Display for SimplifiedMnListEntry {
 }
 
 /// Deleted quorum identifier (type + hash).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct DeletedQuorum {
@@ -128,7 +129,7 @@ codec_p2p!(DeletedQuorum { llmq_type, hash });
 ///
 /// Each entry maps a BLS signature to the indices (within
 /// `new_quorums`) of the quorums it covers.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct QuorumClSig {
@@ -141,7 +142,7 @@ pub struct QuorumClSig {
 codec_p2p!(QuorumClSig { sig, index_set });
 
 /// Full masternode list diff payload.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct MnListDiffPayload {
@@ -202,7 +203,7 @@ impl fmt::Display for MnListDiffPayload {
 }
 
 /// Requests a masternode list diff between two blocks.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetMnListDiff {
   /// Base block hash (beginning of range).
@@ -217,7 +218,7 @@ codec_p2p!(GetMnListDiff {
 });
 
 /// Response carrying the masternode list diff.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct MnListDiff {
   /// The full diff payload.
