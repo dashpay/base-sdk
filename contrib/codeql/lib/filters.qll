@@ -64,13 +64,17 @@ predicate hasUnexpandedDerive(TypeItem t) {
   not exists(t.getADeriveMacroExpansion())
 }
 
+/** Holds if `t` is defined in a build script. */
+predicate isBuildScript(TypeItem t) { fileOf(t).getAbsolutePath().matches("%/build.rs") }
+
 /** Holds if `t` is a source type eligible for any check. */
 predicate isSourceType(TypeItem t) {
   (t instanceof Struct or t instanceof Enum or t instanceof Union) and
   fileOf(t).fromSource() and
-  not isTestCode(t) and
+  not isBuildScript(t) and
+  not isLocalType(t) and
   not isMacroGenerated(t) and
-  not isLocalType(t)
+  not isTestCode(t)
 }
 
 /** Holds if struct `s` has exactly one unnamed (tuple) field. */

@@ -234,8 +234,11 @@ dependencies = [
  "dash-types",
  "hex-conservative",
  "json5",
+ "proc-macro2",
  "serde",
  "serde_json",
+ "syn",
+ "xxhash-rust",
 ]
 
 [[package]]
