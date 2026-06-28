@@ -49,6 +49,11 @@ predicate fileRelPath(File f, string relPath) {
   relPath = f.getAbsolutePath().regexpCapture(".*/(pkgs/.*)", 1)
 }
 
+/** Holds if module `m` is not nested inside another module. */
+predicate isRootModule(Module m) {
+  not exists(Module enclosing | m.getParentNode() = enclosing.getItemList())
+}
+
 /** Gets the first path segment of use declaration `u`. */
 string usePrefix(Use u) {
   result = rootPath(u.getUseTree().getPath()).getSegment().getIdentifier().getText()

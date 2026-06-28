@@ -62,6 +62,7 @@ graph LR
   num --> p2p_core
   script --> primitives
   script --> p2p_core
+  pkc --> p2p_core
   pow -.-> primitives
   pow -.-> params
   primitives --> params

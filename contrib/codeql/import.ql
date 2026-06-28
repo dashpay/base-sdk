@@ -65,4 +65,13 @@ where
       message = fmt("unexpected blank line within {0} group", groupLabel(groupA))
     )
   )
+  or
+  // Foreign module re-export from {lib,mod}.rs.
+  exists(Use u |
+    item = u and
+    fileRelPath(fileOf(u), _) and
+    isForeignReexport(u) and
+    not isMacroReexport(u) and
+    message = "pub use " + usePrefix(u) + ":: re-exports from a foreign crate"
+  )
 select item, message

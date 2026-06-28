@@ -45,17 +45,17 @@ pub fn hex_to_96(s: &str) -> [u8; 96] {
   decode_hex(s).try_into().unwrap()
 }
 
-pub fn hash_from_hex(s: &str) -> dash_pkc::Hash256 {
-  dash_pkc::Hash256::from_hex(s).unwrap()
+pub fn hash_from_hex(s: &str) -> dash_num::Hash256 {
+  dash_num::Hash256::from_hex(s).unwrap()
 }
 
-pub fn make_id(i: u32) -> dash_pkc::Hash256 {
+pub fn make_id(i: u32) -> dash_num::Hash256 {
   let mut bytes = [0u8; 32];
   bytes[28..32].copy_from_slice(&i.to_be_bytes());
-  dash_pkc::Hash256::from_bytes(bytes)
+  dash_num::Hash256::from_bytes(bytes)
 }
 
-pub fn sequential_ids(n: usize) -> Vec<dash_pkc::Hash256> {
+pub fn sequential_ids(n: usize) -> Vec<dash_num::Hash256> {
   (1..=n).map(|i| make_id(i as u32)).collect()
 }
 
