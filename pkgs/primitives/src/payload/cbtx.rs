@@ -12,6 +12,7 @@ use crate::{hash_impl, MerkleRoot};
 use bitcoin_units::BlockHeight;
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
+use dash_types::Unencodable;
 
 use core::fmt;
 
@@ -93,7 +94,7 @@ impl BaseCodec for CoinbaseCommitment {
 }
 
 /// Coinbase commitment validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum CbTxInvalid {
   /// `bad-cbtx-version`
   BadVersion { version: u16 },

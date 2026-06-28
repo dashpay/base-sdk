@@ -14,6 +14,7 @@ use crate::support::{DynBitset, LlmqType};
 use dash_num::{make_hash, Hash256};
 use dash_pkc::{BlsPublicKeyBytes, BlsSignatureBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::Unencodable;
 
 use core::fmt;
 
@@ -148,7 +149,7 @@ impl BaseCodec for FinalCommitment {
 }
 
 /// Final commitment validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum CommitmentInvalid {
   /// `bad-qc-quorum-index`
   BadQuorumIndex,

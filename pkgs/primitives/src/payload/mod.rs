@@ -25,7 +25,7 @@ use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
-use dash_types::impl_num;
+use dash_types::{impl_num, Unencodable};
 
 use core::fmt;
 
@@ -185,7 +185,7 @@ impl fmt::Display for MnType {
 }
 
 /// Provider transaction validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum ProTxInvalid {
   /// `bad-protx-version`
   BadVersion { version: u16 },
@@ -279,7 +279,7 @@ pub use quorum::{Commitment, CommitmentInvalid, FinalCommitment, QuorumVvecHash}
 ///
 /// Provides a unified dispatch over all Dash special transaction types. Unknown
 /// or future types are stored as opaque bytes for forward compatibility.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum SpecialPayload {
   /// Masternode registration (type 1).
@@ -310,7 +310,7 @@ pub enum SpecialPayload {
 }
 
 /// Error decoding a special payload.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Unencodable)]
 pub struct PayloadError {
   /// Which transaction type was being decoded.
   pub tx_type: TxType,
@@ -325,7 +325,7 @@ impl fmt::Display for PayloadError {
 }
 
 /// Structural check failure for a special payload.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Unencodable)]
 pub enum PayloadInvalid {
   /// Provider transaction check failed.
   ProTx(ProTxInvalid),

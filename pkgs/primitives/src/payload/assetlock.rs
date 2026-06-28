@@ -11,6 +11,7 @@ use crate::prelude::*;
 use crate::transaction::TxOut;
 
 use dash_types::codec::Checkable;
+use dash_types::Unencodable;
 
 use core::fmt;
 
@@ -31,7 +32,7 @@ codec_payload!(AssetLock {
 });
 
 /// Asset lock validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum AssetLockInvalid {
   /// `bad-assetlocktx-version`
   BadVersion { version: u8 },

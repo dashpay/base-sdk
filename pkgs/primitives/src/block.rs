@@ -14,6 +14,7 @@ use bitcoin_hashes::sha256d;
 use dash_num::{make_hash, Hash256};
 use dash_pow::hash as pow_hash;
 use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable};
+use dash_types::Unencodable;
 
 use core::fmt;
 
@@ -88,7 +89,7 @@ impl fmt::Display for BlockHeader {
 }
 
 /// Block validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum BlockInvalid {
   /// `bad-blk-length`
   BadBlockLength { size: usize },

@@ -11,6 +11,7 @@ use crate::codec::codec_payload;
 
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::Checkable;
+use dash_types::Unencodable;
 
 use core::fmt;
 
@@ -43,7 +44,7 @@ codec_payload!(AssetUnlock {
 });
 
 /// Asset unlock validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum AssetUnlockInvalid {
   /// `bad-assetunlocktx-version`
   BadVersion { version: u8 },

@@ -10,7 +10,7 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{impl_num, impl_type};
+use dash_types::{impl_num, impl_type, Unencodable};
 
 use core::fmt;
 
@@ -175,7 +175,7 @@ impl_type!(DynBitset);
 
 /// Serde helper for [`DynBitset`] that validates on deserialisation.
 #[cfg(feature = "serde")]
-#[derive(Clone, Debug, Eq, Hash, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable, ::serde::Serialize, ::serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DynBitsetSerde {
   num_bits: u64,
@@ -314,7 +314,7 @@ impl<'de> serde::Deserialize<'de> for DynBitset {
 }
 
 /// Iterator over set bit indices in a [`DynBitset`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Unencodable)]
 pub struct DynBitsetIterator<'a> {
   bitset: &'a DynBitset,
   index: u64,

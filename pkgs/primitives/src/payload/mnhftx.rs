@@ -11,6 +11,7 @@ use crate::codec::codec_payload;
 
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::Checkable;
+use dash_types::Unencodable;
 
 use core::fmt;
 
@@ -40,7 +41,7 @@ codec_payload!(MnHardFork {
 });
 
 /// MNHF signal validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum MnHardForkInvalid {
   /// `bad-mnhf-version`
   BadVersion { version: u8 },

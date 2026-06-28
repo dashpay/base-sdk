@@ -14,7 +14,7 @@ use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
 use dash_num::Hash256;
 use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable, NumCodec};
-use dash_types::impl_num;
+use dash_types::{impl_num, Unencodable};
 use hex_conservative::DisplayHex;
 
 use core::fmt;
@@ -84,7 +84,7 @@ impl fmt::Display for GovObjectType {
 ///   "end_epoch": 1703000000
 /// }
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Proposal {
   /// Short name (max 40 chars, lowercase alphanum + `-_`).
@@ -113,7 +113,7 @@ pub struct Proposal {
 ///   "proposal_hashes": "hash1|hash2"
 /// }
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Trigger {
@@ -128,7 +128,7 @@ pub struct Trigger {
 }
 
 /// Decoded governance object data payload.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum GovData {
   /// Budget proposal.
@@ -390,7 +390,7 @@ impl Hashable for GovVote {
 }
 
 /// Governance proposal validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum ProposalInvalid {
   /// Name is empty.
   NameEmpty,

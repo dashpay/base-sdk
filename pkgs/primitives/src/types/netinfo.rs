@@ -12,7 +12,7 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{impl_num, impl_type};
+use dash_types::{impl_num, impl_type, Unencodable};
 
 use core::fmt;
 
@@ -602,7 +602,7 @@ impl NITrait for NetInfoV1 {
 }
 
 /// Masternode network info: legacy ServiceV1 or structured extended format.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfo {

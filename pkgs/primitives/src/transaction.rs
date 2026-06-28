@@ -16,7 +16,7 @@ use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable, NumCodec};
-use dash_types::impl_type;
+use dash_types::{impl_type, Unencodable};
 
 use core::fmt;
 
@@ -128,7 +128,7 @@ impl fmt::Display for TxOut {
 }
 
 /// Transaction validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum TxInvalid {
   /// `bad-txns-vin-empty`
   EmptyInputs,
