@@ -22,6 +22,14 @@ rules:
       include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
     pattern-regex: 'derive\([^)]*(?<!:)serde::'
 
+  - id: enum-bare-unknown
+    message: "Unknown variant must carry the raw value"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: '(?m)^\s+Unknown\s*[,}=]'
+
   - id: prelude-no-use-alloc
     message: "use crate::prelude instead of alloc:: directly"
     severity: ERROR
