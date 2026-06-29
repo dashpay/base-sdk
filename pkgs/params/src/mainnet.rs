@@ -11,7 +11,7 @@ use crate::types::*;
 
 use dash_num::{Arith256, Hash256};
 use dash_primitives::{
-  double_sha256, Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
+  Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
 };
 use hex_literal::hex;
 
@@ -51,20 +51,19 @@ pub fn genesis() -> Block {
     extra_payload: Vec::new(),
   };
 
-  let buf = bitcoin_consensus_encoding::encode_to_vec(&coinbase);
-  let merkle_root = MerkleRoot::from(double_sha256(&buf));
-
-  Block {
+  let mut block = Block {
     header: BlockHeader {
       version: 1,
       prev_hash: BlockHash::default(),
-      merkle_root,
+      merkle_root: MerkleRoot::default(),
       time: 1_390_095_618,
       bits: 0x1e0f_fff0,
       nonce: 28_917_698,
     },
     transactions: vec![coinbase],
-  }
+  };
+  block.header.merkle_root = block.merkle().0;
+  block
 }
 
 pub const PARAMS: ChainParams = ChainParams {

@@ -39,8 +39,10 @@ fn genesis_block_hash_matches(
 ) {
   // The merkle root stored in the header must match the expected
   // value (txid of the single coinbase transaction).
-  let merkle_root = genesis.header.merkle_root;
-  assert_eq!(merkle_root, expected_merkle_root);
+  assert_eq!(genesis.header.merkle_root, expected_merkle_root);
+  let (root, mutated) = genesis.merkle();
+  assert_eq!(root, expected_merkle_root);
+  assert!(!mutated);
 
   // PoW hash the 80-byte header and verify it matches the genesis
   // hash declared in the consensus parameters.

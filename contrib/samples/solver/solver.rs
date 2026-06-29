@@ -13,9 +13,8 @@ extern crate alloc;
 use bitcoin_consensus_encoding::encode_to_vec;
 use bitcoin_units::Amount;
 use dash_num::{Arith256, CompactTarget};
-use dash_primitives::{
-  double_sha256, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
-};
+use dash_primitives::{BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType};
+use dash_types::codec::Hashable;
 use hex_conservative::FromHex;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -66,8 +65,7 @@ pub fn merkle_root(script_sig_hex: &str, script_pubkey_hex: &str, amount_duffs: 
   let sig_bytes = Vec::<u8>::from_hex(script_sig_hex).map_err(|e| format!("invalid scriptSig hex: {e}"))?;
   let pk_bytes = Vec::<u8>::from_hex(script_pubkey_hex).map_err(|e| format!("invalid scriptPubKey hex: {e}"))?;
   let coinbase = build_coinbase(sig_bytes, pk_bytes, amount_duffs)?;
-  let tx_buf = encode_to_vec(&coinbase);
-  let root = MerkleRoot::from(double_sha256(&tx_buf));
+  let root = MerkleRoot::from_bytes(*coinbase.hash().as_bytes());
   Ok(format!("{root}"))
 }
 
@@ -90,8 +88,7 @@ pub fn scanhash(
   let pk_bytes = Vec::<u8>::from_hex(script_pubkey_hex).map_err(|e| format!("invalid scriptPubKey hex: {e}"))?;
 
   let coinbase = build_coinbase(sig_bytes, pk_bytes, amount_duffs)?;
-  let tx_buf = encode_to_vec(&coinbase);
-  let merkle_root = MerkleRoot::from(double_sha256(&tx_buf));
+  let merkle_root = MerkleRoot::from_bytes(*coinbase.hash().as_bytes());
 
   let header = BlockHeader {
     version,

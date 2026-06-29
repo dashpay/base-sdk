@@ -20,7 +20,9 @@ macro_rules! hash_impl {
         use $crate::__private::dash_types::codec::BaseCodec;
         let mut buf = ::alloc::vec::Vec::new();
         self.encode(&mut buf);
-        $crate::double_sha256(&buf)
+        $crate::__private::dash_num::Hash256::from_bytes(
+          $crate::__private::bitcoin_hashes::sha256d::Hash::hash(&buf).to_byte_array(),
+        )
       }
     }
   )* };
