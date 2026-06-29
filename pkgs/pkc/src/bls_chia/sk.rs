@@ -60,7 +60,7 @@ impl SecretKey {
     PublicKey::from_inner(aff)
   }
 
-  /// Sign a 32-byte message hash using the legacy scheme (no DST, Shallue–van
+  /// Sign a 32-byte message hash using the legacy scheme (no DST, Shallue-van
   /// de Woestijne hash-to-G2).
   #[expect(unsafe_code, reason = "blst C FFI")]
   pub fn sign(&self, msg: &[u8; 32]) -> Signature {

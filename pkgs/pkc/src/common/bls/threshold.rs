@@ -40,7 +40,7 @@ pub(crate) fn interpolate_g2(ids: &[blst_fr], points: &[blst_p2]) -> blst_p2 {
   let n = ids.len();
 
   // Compute Lagrange coefficients at x=0:
-  //   λ_i = ∏_{j≠i} id_j / (id_j - id_i)
+  //   L_i = prod_{j!=i} id_j / (id_j - id_i)
   let coeffs = compute_lagrange_coeffs(ids);
 
   let mut result = blst_p2::default();
@@ -64,7 +64,7 @@ fn compute_lagrange_coeffs(ids: &[blst_fr]) -> Vec<blst_fr> {
   let mut coeffs = Vec::with_capacity(n);
 
   for i in 0..n {
-    // λ_i = ∏_{j≠i} ids[j] / (ids[j] - ids[i])
+    // L_i = prod_{j!=i} ids[j] / (ids[j] - ids[i])
     let mut num = fr_one();
     let mut den = fr_one();
 
