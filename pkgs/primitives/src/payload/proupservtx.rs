@@ -9,13 +9,12 @@
 use super::proregtx::{check_platform_fields, PlatformNodeId};
 use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::codec::impl_payload;
-use crate::prelude::*;
 use crate::script::Script;
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsSignatureBytes;
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 
 use core::fmt;
 
@@ -97,7 +96,7 @@ impl BaseCodec for ProUpServTx {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     if self.version >= 2 {
       self.mn_type.to_base().encode(buf);

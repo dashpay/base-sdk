@@ -158,13 +158,79 @@ pub fn read_compact_size(data: &mut &[u8], limit: usize) -> Result<usize, Decode
   Ok(n)
 }
 
+/// Append-only byte buffer used by [`BaseCodec::encode`].
+pub trait EncodeBuf {
+  /// Appends a single byte.
+  fn push(&mut self, byte: u8);
+
+  /// Appends a byte slice.
+  fn extend_from_slice(&mut self, data: &[u8]);
+}
+
+impl EncodeBuf for Vec<u8> {
+  fn push(&mut self, byte: u8) {
+    self.push(byte);
+  }
+
+  fn extend_from_slice(&mut self, data: &[u8]) {
+    self.extend_from_slice(data);
+  }
+}
+
+/// Fixed-size encode buffer backed by `[u8; N]`.
+///
+/// # Panics
+///
+/// Writing more than `N` bytes (via the [`EncodeBuf`] impl) panics with an
+/// index-out-of-bounds.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct ArrayBuf<const N: usize> {
+  buf: [u8; N],
+  len: usize,
+}
+
+impl<const N: usize> ArrayBuf<N> {
+  /// Creates an empty buffer.
+  pub const fn new() -> Self {
+    Self { buf: [0u8; N], len: 0 }
+  }
+
+  /// Returns the written bytes as a fixed array.
+  ///
+  /// # Panics
+  ///
+  /// Panics if exactly `N` bytes were not written.
+  pub fn into_array(self) -> [u8; N] {
+    assert!(self.len == N, "expected {N} bytes, wrote {}", self.len);
+    self.buf
+  }
+}
+
+impl<const N: usize> Default for ArrayBuf<N> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl<const N: usize> EncodeBuf for ArrayBuf<N> {
+  fn push(&mut self, byte: u8) {
+    self.buf[self.len] = byte;
+    self.len += 1;
+  }
+
+  fn extend_from_slice(&mut self, data: &[u8]) {
+    self.buf[self.len..self.len + data.len()].copy_from_slice(data);
+    self.len += data.len();
+  }
+}
+
 /// Encodes a `usize` as a CompactSize integer.
-pub fn write_compact_size(value: usize, buf: &mut Vec<u8>) {
+pub fn write_compact_size(value: usize, buf: &mut impl EncodeBuf) {
   write_compact_u64(value as u64, buf);
 }
 
 /// Encodes a `u64` as a CompactSize integer.
-pub fn write_compact_u64(value: u64, buf: &mut Vec<u8>) {
+pub fn write_compact_u64(value: u64, buf: &mut impl EncodeBuf) {
   match value {
     0..=0xFC => buf.push(value as u8),
     0xFD..=0xFFFF => {
@@ -201,7 +267,7 @@ pub trait BaseCodec: Sized {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError>;
 
   /// Encodes into the buffer.
-  fn encode(&self, buf: &mut Vec<u8>);
+  fn encode(&self, buf: &mut impl EncodeBuf);
 }
 
 impl BaseCodec for u8 {
@@ -209,7 +275,7 @@ impl BaseCodec for u8 {
     Ok(take::<1>(data)?[0])
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.push(*self);
   }
 }
@@ -219,7 +285,7 @@ impl BaseCodec for i8 {
     Ok(take::<1>(data)?[0] as i8)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.push(*self as u8);
   }
 }
@@ -229,7 +295,7 @@ impl BaseCodec for u16 {
     take::<2>(data).map(Self::from_le_bytes)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.extend_from_slice(&self.to_le_bytes());
   }
 }
@@ -239,7 +305,7 @@ impl BaseCodec for i16 {
     take::<2>(data).map(Self::from_le_bytes)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.extend_from_slice(&self.to_le_bytes());
   }
 }
@@ -249,7 +315,7 @@ impl BaseCodec for u32 {
     take::<4>(data).map(Self::from_le_bytes)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.extend_from_slice(&self.to_le_bytes());
   }
 }
@@ -259,7 +325,7 @@ impl BaseCodec for i32 {
     take::<4>(data).map(Self::from_le_bytes)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.extend_from_slice(&self.to_le_bytes());
   }
 }
@@ -269,7 +335,7 @@ impl BaseCodec for u64 {
     take::<8>(data).map(Self::from_le_bytes)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.extend_from_slice(&self.to_le_bytes());
   }
 }
@@ -279,7 +345,7 @@ impl BaseCodec for i64 {
     take::<8>(data).map(Self::from_le_bytes)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.extend_from_slice(&self.to_le_bytes());
   }
 }
@@ -297,7 +363,7 @@ impl BaseCodec for bool {
     }
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.push(u8::from(*self));
   }
 }
@@ -307,7 +373,7 @@ impl<const N: usize> BaseCodec for [u8; N] {
     take::<N>(data)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     buf.extend_from_slice(self);
   }
 }
@@ -328,7 +394,7 @@ impl<T: BaseCodec> BaseCodec for Vec<T> {
     Ok(items)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     write_compact_size(self.len(), buf);
     for item in self {
       item.encode(buf);
@@ -342,7 +408,7 @@ impl BaseCodec for String {
     Self::from_utf8(bytes).map_err(|_| DecodeError::InvalidUtf8)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     write_compact_size(self.len(), buf);
     buf.extend_from_slice(self.as_bytes());
   }

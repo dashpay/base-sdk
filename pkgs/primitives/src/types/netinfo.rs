@@ -10,7 +10,7 @@ use super::netaddr::{is_bad_port, NetAddr};
 use super::{AddrV2, NetAddrError, ServiceV1, ServiceV2};
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 use dash_types::{impl_num, impl_type};
 
 use core::fmt;
@@ -220,7 +220,7 @@ impl BaseCodec for NIEntry {
     }
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     match self {
       Self::Service(svc) => {
         NIEntryCode::Service.to_base().encode(buf);
@@ -365,7 +365,7 @@ impl BaseCodec for NetInfoV2 {
     Ok(Self { version, entries })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     codec::write_compact_size(self.entries.len(), buf);
     for (purpose, group) in &self.entries {
@@ -532,7 +532,7 @@ impl BaseCodec for NetInfoV1 {
     Ok(Self(ServiceV1::decode(data)?))
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.0.encode(buf);
   }
 }

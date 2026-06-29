@@ -8,9 +8,8 @@
 
 use super::addrv2::{AddrV2, ServiceV2};
 use super::netaddr::{NetAddr, NetAddrError, NetworkType};
-use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::{impl_bytes, impl_type, type_cvrt};
 
 use core::fmt;
@@ -223,7 +222,7 @@ impl BaseCodec for ServiceV1 {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.addr.encode(buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
   }
@@ -293,6 +292,7 @@ pub(super) fn split_service_str(s: &str) -> Result<(&str, u16), NetAddrError> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
+  use crate::prelude::*;
 
   use hex_literal::hex;
   use rstest::rstest;

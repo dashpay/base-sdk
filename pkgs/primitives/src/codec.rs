@@ -31,7 +31,7 @@ macro_rules! codec_type {
         })
       }
 
-      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+      fn encode(&self, buf: &mut impl $crate::__private::dash_types::codec::EncodeBuf) {
         $($crate::__private::dash_types::codec::BaseCodec::encode(&self.$field, buf);)+
       }
     }

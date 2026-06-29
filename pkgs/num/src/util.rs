@@ -18,7 +18,7 @@ macro_rules! impl_hash {
           .map(Self::from_bytes)
       }
 
-      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+      fn encode(&self, buf: &mut impl $crate::__private::dash_types::codec::EncodeBuf) {
         buf.extend_from_slice(self.as_bytes());
       }
     }

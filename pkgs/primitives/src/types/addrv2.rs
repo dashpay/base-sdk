@@ -12,7 +12,7 @@ use super::util::{base16_dec, base16_enc, base32r_dec, base32r_enc};
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 use dash_types::{impl_type, type_cvrt};
 
 use core::fmt;
@@ -97,7 +97,7 @@ impl BaseCodec for AddrV2 {
     }
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.network().to_base().encode(buf);
     let bytes = self.bytes();
     codec::write_compact_size(bytes.len(), buf);
@@ -343,7 +343,7 @@ impl BaseCodec for ServiceV2 {
     Ok(Self { addr, port })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.addr.encode(buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
   }

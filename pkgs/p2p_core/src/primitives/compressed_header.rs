@@ -9,7 +9,7 @@
 use crate::prelude::*;
 
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
-use dash_types::codec::{BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
 
 // Bitfield layout (1 byte):
 //   bits 0-2: version offset (0 = full version present, 1-7 = MRU cache index)
@@ -134,7 +134,7 @@ impl CompressionState {
   }
 
   /// Encodes one header in compressed form, advancing the state.
-  pub fn encode_header(&mut self, header: &BlockHeader, buf: &mut Vec<u8>) {
+  pub fn encode_header(&mut self, header: &BlockHeader, buf: &mut impl EncodeBuf) {
     let mut flags: u8 = 0;
 
     let version_offset = match self.find_version(header.version) {

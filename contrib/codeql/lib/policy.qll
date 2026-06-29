@@ -100,10 +100,11 @@ string requiredTrait() { result = ["Clone", "Debug", "Eq", "Hash", "PartialEq"] 
 /** Gets a required serde trait name. */
 string requiredSerdeTrait() { result = ["Serialize", "Deserialize"] }
 
-/** Holds if `t` is codec infrastructure (decoder or encoder wrappers). */
+/** Holds if `t` is codec infrastructure (decoder, encoder, or buffer types). */
 predicate isCodecType(TypeItem t) {
   t.getName().getText().matches("%Decoder%") or
-  t.getName().getText().matches("%Encoder%")
+  t.getName().getText().matches("%Encoder%") or
+  t.getName().getText() = "ArrayBuf"
 }
 
 /** Holds if `t` is a source type eligible for the "must derive" check. */

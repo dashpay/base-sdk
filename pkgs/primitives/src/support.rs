@@ -8,7 +8,7 @@
 
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf, NumCodec};
 use dash_types::{impl_num, impl_type};
 
 use core::fmt;
@@ -202,7 +202,7 @@ impl BaseCodec for DynBitset {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     codec::write_compact_u64(self.num_bits, buf);
     let required = (self.num_bits as usize).div_ceil(8);
     let src = &self.data;

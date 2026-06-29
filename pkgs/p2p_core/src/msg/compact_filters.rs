@@ -11,7 +11,7 @@ use crate::prelude::*;
 
 use bitcoin_units::BlockHeight;
 use dash_primitives::BlockHash;
-use dash_types::codec::{BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
 
 dash_types::make_num! {
   /// BIP157 filter type, encoded as a single byte on the wire.
@@ -46,7 +46,7 @@ impl BaseCodec for GetCFilters {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.filter_type.0.encode(buf);
     self.start_height.to_u32().encode(buf);
     self.stop_hash.encode(buf);
@@ -94,7 +94,7 @@ impl BaseCodec for GetCFHeaders {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.filter_type.0.encode(buf);
     self.start_height.to_u32().encode(buf);
     self.stop_hash.encode(buf);

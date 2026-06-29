@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::primitives::{CompressionState, ProtocolVersion};
 
 use dash_primitives::BlockHash;
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 /// Maximum headers per message.
 const MAX_HEADERS: usize = 2_000;
@@ -55,7 +55,7 @@ impl BaseCodec for Headers2 {
     Ok(Self { headers })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     codec::write_compact_size(self.headers.len(), buf);
     let mut state = CompressionState::new();
     for h in &self.headers {

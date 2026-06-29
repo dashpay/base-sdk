@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::primitives::ServiceFlags;
 
 use dash_primitives::{AddrV2, ServiceV1};
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 use core::fmt;
 
@@ -57,7 +57,7 @@ impl BaseCodec for AddrV2Entry {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.time.encode(buf);
     codec::write_compact_u64(self.services.0, buf);
     self.addr.encode(buf);

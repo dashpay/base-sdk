@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::primitives::ProtocolVersion;
 
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 /// Maximum headers per message.
 const MAX_HEADERS: usize = 2_000;
@@ -66,7 +66,7 @@ impl BaseCodec for Headers {
     Ok(Self { headers })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     codec::write_compact_size(self.headers.len(), buf);
     for h in &self.headers {
       h.version.encode(buf);

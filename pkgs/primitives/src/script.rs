@@ -8,7 +8,7 @@
 
 use crate::prelude::*;
 
-use dash_types::codec::{BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
 use dash_types::{impl_type, make_bytes};
 
 use core::fmt;
@@ -26,7 +26,7 @@ impl BaseCodec for Script {
     Vec::decode(data).map(Self)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.0.encode(buf);
   }
 }

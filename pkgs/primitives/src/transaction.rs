@@ -14,7 +14,7 @@ use crate::script::Script;
 
 use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 use dash_types::impl_type;
 
 use core::fmt;
@@ -110,7 +110,7 @@ impl BaseCodec for TxOut {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.value.to_sat().encode(buf);
     self.script_pubkey.encode(buf);
   }
@@ -213,7 +213,7 @@ impl BaseCodec for Transaction {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.raw_version().encode(buf);
     self.inputs.encode(buf);
     self.outputs.encode(buf);

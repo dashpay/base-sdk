@@ -306,7 +306,7 @@ macro_rules! define_hash {
         $crate::__private::dash_types::codec::take::<$n>(data).map(Self::from_bytes)
       }
 
-      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+      fn encode(&self, buf: &mut impl crate::__private::dash_types::codec::EncodeBuf) {
         buf.extend_from_slice(&self.0);
       }
     }

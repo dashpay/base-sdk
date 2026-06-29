@@ -7,12 +7,11 @@
 //! CoinbaseCommitment coinbase commitment payload (type 5).
 
 use crate::codec::impl_payload;
-use crate::prelude::*;
 use crate::MerkleRoot;
 
 use bitcoin_units::BlockHeight;
 use dash_pkc::BlsSignatureBytes;
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
 
 use core::fmt;
 
@@ -74,7 +73,7 @@ impl BaseCodec for CoinbaseCommitment {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.height.to_u32().encode(buf);
     self.merkle_root_mn_list.encode(buf);

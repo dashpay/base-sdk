@@ -30,7 +30,7 @@ macro_rules! impl_num {
         })
       }
 
-      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
         buf.extend_from_slice(
           &<Self as $crate::codec::NumCodec<$uint>>::to_base(self)
             .to_le_bytes(),

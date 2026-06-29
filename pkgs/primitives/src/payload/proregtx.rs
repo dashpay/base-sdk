@@ -17,7 +17,7 @@ use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::TxHash;
 
 use dash_pkc::BlsPublicKeyBytes;
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 
 use core::fmt;
 
@@ -143,7 +143,7 @@ impl BaseCodec for ProRegTx {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.mn_type.to_base().encode(buf);
     self.mode.encode(buf);

@@ -8,12 +8,11 @@
 
 use super::QuorumHash;
 use crate::codec::impl_payload;
-use crate::prelude::*;
 use crate::support::{DynBitset, LlmqType};
 
 use dash_num::{make_hash, Hash256};
 use dash_pkc::{BlsPublicKeyBytes, BlsSignatureBytes};
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 
 use core::fmt;
 
@@ -82,7 +81,7 @@ impl BaseCodec for Commitment {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.llmq_type.to_base().encode(buf);
     self.quorum_hash.encode(buf);
@@ -136,7 +135,7 @@ impl BaseCodec for FinalCommitment {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.height.to_u32().encode(buf);
     self.commitment.encode(buf);

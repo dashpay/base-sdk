@@ -9,7 +9,7 @@
 use crate::codec::impl_p2p;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 
 use core::fmt;
 
@@ -42,7 +42,7 @@ impl BaseCodec for UserAgent {
     Ok(Self(raw.to_vec()))
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.0.encode(buf);
   }
 }
