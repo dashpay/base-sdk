@@ -66,6 +66,15 @@ predicate isMacroReexport(Use u) {
 }
 
 /**
+ * Holds if `u` is an allowlisted re-export of a marker subcrate
+ * through its owning crate (e.g. `dash-types-marker` via `dash-types`).
+ */
+private predicate isAllowlistedReexport(Use u) {
+  usePrefix(u) = "dash_types_marker" and
+  fileOf(u).getAbsolutePath().matches("%pkgs/types/%")
+}
+
+/**
  * Holds if `u` is a `pub use` that re-exports from a foreign crate.
  * The first path segment is not `crate`/`self`/`super` and does not
  * match a sibling `mod` or a root-level `mod` in the same file.
@@ -74,6 +83,7 @@ predicate isMacroReexport(Use u) {
  */
 predicate isForeignReexport(Use u) {
   isPublicUse(u) and
+  not isAllowlistedReexport(u) and
   exists(string prefix |
     prefix = usePrefix(u) and
     not prefix = "crate" and

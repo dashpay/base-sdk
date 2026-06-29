@@ -432,3 +432,19 @@ pub trait Hashable {
   /// Computes the canonical hash of this value.
   fn hash(&self) -> Self::Hash;
 }
+
+/// Marker trait for codec coverage enforcement.
+///
+/// Implemented automatically for all `Codec` types via blanket impl, and
+/// manually via `#[derive(Unencodable)]` for non-wire types.
+#[doc(hidden)]
+pub trait __CodecMarker {}
+
+/// Guard trait preventing `Unencodable` on wire types.
+///
+/// Both `#[derive(Unencodable)]` and the blanket over `BaseCodec` implement
+/// this trait; any type carrying both triggers a compiler error.
+#[doc(hidden)]
+pub trait __UnencodableMarker {}
+
+impl<T: BaseCodec> __UnencodableMarker for T {}

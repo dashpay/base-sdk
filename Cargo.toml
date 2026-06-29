@@ -9,6 +9,7 @@ members = [
   "pkgs/primitives",
   "pkgs/script",
   "pkgs/types",
+  "pkgs/types/marker",
 ]
 resolver = "2"
 
