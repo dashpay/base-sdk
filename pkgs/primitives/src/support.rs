@@ -207,6 +207,7 @@ impl BaseCodec for DynBitset {
     let required = (self.num_bits as usize).div_ceil(8);
     let src = &self.data;
     let take = src.len().min(required);
+    // nosemgrep: codec-no-raw-extend
     buf.extend_from_slice(&src[..take]);
     // Pad with zero bytes if data is shorter than required.
     for _ in take..required {

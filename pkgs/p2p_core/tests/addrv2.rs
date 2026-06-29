@@ -164,21 +164,11 @@ fn addr_v1_wire_vector() {
 /// round-trip correctly.
 #[rstest]
 fn addrv2_all_bip155_network_types() {
-  let torv3_bytes: [u8; 32] = {
-    let v = Vec::<u8>::from_hex("79bcc625184b05194975c28b66b66b0469f7f6556fb1ac3189a79b40dda32f1f")
-      .unwrap_or_else(|e| panic!("bad hex: {e}"));
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&v);
-    arr
-  };
+  let torv3_bytes: [u8; 32] = <[u8; 32]>::from_hex("79bcc625184b05194975c28b66b66b0469f7f6556fb1ac3189a79b40dda32f1f")
+    .unwrap_or_else(|e| panic!("bad hex: {e}"));
 
-  let i2p_bytes: [u8; 32] = {
-    let v = Vec::<u8>::from_hex("a2894dabaec08c0051a481a6dac88b64f98232ae42d4b6fd2fa81952dfe36a87")
-      .unwrap_or_else(|e| panic!("bad hex: {e}"));
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&v);
-    arr
-  };
+  let i2p_bytes: [u8; 32] = <[u8; 32]>::from_hex("a2894dabaec08c0051a481a6dac88b64f98232ae42d4b6fd2fa81952dfe36a87")
+    .unwrap_or_else(|e| panic!("bad hex: {e}"));
 
   let original = AddrV2Msg {
     addrs: vec![

@@ -1,4 +1,19 @@
 rules:
+  - id: codec-no-raw-extend
+    message: "use .encode() instead of extend_from_slice for codec buffers"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include:
+        - /pkgs/primitives/src/**/*.rs
+        - /pkgs/p2p_core/src/**/*.rs
+    patterns:
+      - pattern-regex: '\.extend_from_slice\([^)]*\)'
+      - pattern-not-regex: "to_be_bytes"
+      - pattern-not-regex: '\.as_bytes\(\)'
+      - pattern-not-regex: '&self\.0'
+      - pattern-not-regex: "encode_to_vec"
+
   - id: derive-no-debug-secret
     message: "secret type must not derive Debug; impl manually to redact contents"
     severity: ERROR
