@@ -207,17 +207,26 @@ impl BaseCodec for DynBitset {
     let required = (self.num_bits as usize).div_ceil(8);
     let src = &self.data;
     let take = src.len().min(required);
-    // nosemgrep: codec-no-raw-extend
-    buf.extend_from_slice(&src[..take]);
+    if take > 0 {
+      // nosemgrep: codec-no-raw-extend
+      buf.extend_from_slice(&src[..take - 1]);
+      // Mask padding bits only when the last source byte is
+      // also the final output byte (take == required).
+      let last_byte = if take == required {
+        let remainder = (self.num_bits % 8) as u32;
+        if remainder != 0 {
+          src[take - 1] & ((1u8 << remainder) - 1)
+        } else {
+          src[take - 1]
+        }
+      } else {
+        src[take - 1]
+      };
+      buf.push(last_byte);
+    }
     // Pad with zero bytes if data is shorter than required.
     for _ in take..required {
       buf.push(0);
-    }
-    // Clear padding bits in the final byte.
-    let remainder = (self.num_bits % 8) as u32;
-    if remainder != 0 && required > 0 {
-      let last = buf.len() - 1;
-      buf[last] &= (1u8 << remainder) - 1;
     }
   }
 }
