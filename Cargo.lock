@@ -261,6 +261,7 @@ dependencies = [
  "dash-dev",
  "dash-num",
  "dash-params",
+ "dash-pkc",
  "dash-primitives",
  "dash-script",
  "dash-types",

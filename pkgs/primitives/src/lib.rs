@@ -35,7 +35,6 @@ pub use block::{
   Block, BlockHash, BlockHeader, BlockInvalid, MerkleRoot, MAX_DIP0001_BLOCK_SIZE, MAX_LEGACY_BLOCK_SIZE,
 };
 pub use codec::MAX_SPTX_PAYLOAD_SIZE;
-pub use dash_pkc::{BlsPublicKeyBytes, BlsSignatureBytes, EcdsaPublicKeyBytes, EcdsaSignatureBytes};
 pub use gov::{
   GovData, GovObject, GovObjectType, GovVote, Proposal, ProposalInvalid, Trigger, VoteOutcome, VoteSignal,
 };

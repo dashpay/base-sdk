@@ -21,9 +21,52 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
   from collections.abc import Callable
 
+# ANSI escape codes for terminal output.
+ANSI_BOLD = "\033[1m"
+ANSI_DIM = "\033[2m"
+ANSI_GREEN = "\033[32m"
+ANSI_RED = "\033[31m"
+ANSI_RESET = "\033[0m"
+
+# Assumed base branch for codebase.
+DEFAULT_BASE = "develop"
+
+# Return codes.
 RETCODE_ERR = 1
 RETCODE_PASS = 0
 RETCODE_SKIP = 77
+
+
+def format_table(
+  headers: tuple[str, ...],
+  rows: list[tuple[str, ...]],
+  status_colors: dict[str, str] | None = None,
+) -> str:
+  """Render a markdown table with optional color on the last column."""
+  colors = status_colors or {}
+  widths = [
+    max(len(h), *(len(r[i]) for r in rows), 0) for i, h in enumerate(headers)
+  ]
+
+  def fmt(cells: tuple[str, ...], *, color: bool = False) -> str:
+    parts: list[str] = []
+    for i, cell in enumerate(cells):
+      pre = post = ""
+      if color and i == len(cells) - 1 and colors:
+        pre = colors.get(cell, ANSI_DIM)
+        post = ANSI_RESET
+      pad = widths[i] - len(cell)
+      parts.append(f" {pre}{cell}{post}{' ' * pad} ")
+    return f"|{'|'.join(parts)}|"
+
+  sep = "|" + "|".join("-" * (w + 2) for w in widths) + "|"
+  return "\n".join(
+    [
+      fmt(headers),
+      sep,
+      *(fmt(r, color=True) for r in rows),
+    ]
+  )
 
 
 def find_up(

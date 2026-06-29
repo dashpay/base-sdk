@@ -1,0 +1,132 @@
+rules:
+  - id: codec-no-raw-extend
+    message: "use .encode() instead of extend_from_slice for codec buffers"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include:
+        - /pkgs/primitives/src/**/*.rs
+        - /pkgs/p2p_core/src/**/*.rs
+    patterns:
+      - pattern-regex: '\.extend_from_slice\([^)]*\)'
+      - pattern-not-regex: "to_be_bytes"
+      - pattern-not-regex: '\.as_bytes\(\)'
+      - pattern-not-regex: '&self\.0'
+      - pattern-not-regex: "encode_to_vec"
+
+  - id: derive-no-debug-secret
+    message: "secret type must not derive Debug; impl manually to redact contents"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: |
+      (?sx)
+      \#\[derive\( [^)]* \bDebug\b [^)]* \)\]
+      \s*
+      (?: \#\[ [^\]]* \] \s* )*         # skip intermediate attributes
+      (?: pub (?: \( [^)]* \) )? \s+ )? # optional visibility
+      (?:struct|enum) \s+
+      \w* (?:Secret|Private|Seed|Password|Mnemonic|Share(?!d)) \w*
+
+  - id: derive-serde-disambiguate
+    message: "use ::serde:: instead of serde:: in derive attributes"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: 'derive\([^)]*(?<!:)serde::'
+
+  - id: enum-bare-unknown
+    message: "Unknown variant must carry the raw value"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: '(?m)^\s+Unknown\s*[,}=]'
+
+  - id: impl-no-into
+    message: "implement From instead of Into; the blanket impl provides Into automatically"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: '\bimpl\b[^{]*\bInto\s*<.*>\s+for\b'
+
+  - id: prelude-no-use-alloc
+    message: "use crate::prelude instead of alloc:: directly"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs]
+      exclude:
+        - /pkgs/**/prelude.rs
+        - /pkgs/**/prelude/mod.rs
+        - /contrib/samples/**
+    pattern-regex: '\buse\s+(::)?alloc(::|\s)'
+
+  - id: prelude-use-wildcards-only
+    message: "use crate::prelude::* instead of named imports from prelude"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs]
+      exclude:
+        - /pkgs/**/prelude.rs
+        - /pkgs/**/prelude/mod.rs
+        - /contrib/samples/**
+    pattern-regex: '\buse\s+crate::prelude::[^*]'
+
+  - id: style-no-get-prefix
+    message: "getters omit the get_ prefix"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+      exclude: [/pkgs/**/tests/**, /pkgs/**/bench/**]
+    patterns:
+      - pattern-either:
+          - pattern: |
+              fn $FN(&self, ...) { ... }
+          - pattern: |
+              fn $FN(&self) { ... }
+          - pattern: |
+              fn $FN(&mut self, ...) { ... }
+          - pattern: |
+              fn $FN(&mut self) { ... }
+          - pattern: |
+              fn $FN(&self, ...) -> $RET { ... }
+          - pattern: |
+              fn $FN(&self) -> $RET { ... }
+          - pattern: |
+              fn $FN(&mut self, ...) -> $RET { ... }
+          - pattern: |
+              fn $FN(&mut self) -> $RET { ... }
+      - metavariable-regex:
+          metavariable: $FN
+          regex: "get_[a-z].*"
+
+  - id: style-no-separator-comments
+    message: "decorative separator comments are not permitted"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: '^\s*//[/!]?\s*[-=]{4,}|^\s*//\s+--\s'
+
+  - id: style-latin1-source
+    message: "source files must contain only Latin-1 characters"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: '[^\x00-\xFF]'
+
+  - id: use-pub-roots-only
+    message: "pub use re-exports belong in lib.rs or mod.rs, not in leaf modules"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+      exclude: ["**/lib.rs", "**/mod.rs"]
+    pattern-regex: '^\s*pub\s+use\s'

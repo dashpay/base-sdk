@@ -291,6 +291,6 @@ def main(argv: list[str] | None = None) -> int:
 if __name__ == "__main__":
   try:
     sys.exit(main())
-  except Exception as exc:
+  except Exception as exc:  # noqa: BLE001
     print(exc, file=sys.stderr)
     sys.exit(RETCODE_ERR)

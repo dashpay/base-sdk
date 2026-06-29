@@ -92,7 +92,7 @@ pub(super) fn hash_to_g2(msg: &[u8; 32]) -> blst_p2 {
   let mut sum = blst_p2::default();
   unsafe { blst_p2_add_or_double(&mut sum, &p0, &p1) };
 
-  // Step 5: clear the cofactor via Budroni–Pintore.
+  // Step 5: clear the cofactor via Budroni-Pintore.
   mul_cof_b12(&sum)
 }
 

@@ -418,7 +418,7 @@ impl Arith256 {
       return Self::ONE;
     }
     let d = self.wrapping_inc();
-    // !self = 2^256 - 1 - self, so (!self) / (self + 1) + 1 ≈ 2^256 / (self + 1)
+    // !self = 2^256 - 1 - self, so (!self) / (self + 1) + 1 ~ 2^256 / (self + 1)
     self.bitwise_not().div_rem(d).0.wrapping_inc()
   }
 

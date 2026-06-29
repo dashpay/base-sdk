@@ -13,7 +13,7 @@ use dash_types::impl_num;
 
 use core::fmt;
 
-/// Compact difficulty target — a newtype around the consensus `nBits` u32.
+/// Compact difficulty target -- a newtype around the consensus `nBits` u32.
 ///
 /// Construct directly via `CompactTarget(0x1d00ffff)`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]

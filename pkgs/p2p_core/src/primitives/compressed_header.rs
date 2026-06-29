@@ -177,7 +177,7 @@ impl CompressionState {
     buf.push(flags);
 
     if version_offset == 0 {
-      buf.extend_from_slice(&header.version.to_le_bytes());
+      header.version.encode(buf);
       self.save_version_mru(header.version);
     } else {
       let pos = (version_offset - 1) as usize;
@@ -185,21 +185,21 @@ impl CompressionState {
     }
 
     if need_prev_hash {
-      buf.extend_from_slice(&header.prev_hash.to_bytes());
+      header.prev_hash.encode(buf);
     }
 
-    buf.extend_from_slice(&header.merkle_root.to_bytes());
+    header.merkle_root.encode(buf);
 
     match time_delta {
-      Some(d) => buf.extend_from_slice(&d.to_le_bytes()),
-      None => buf.extend_from_slice(&header.time.to_le_bytes()),
+      Some(d) => d.encode(buf),
+      None => header.time.encode(buf),
     }
 
     if need_nbits {
-      buf.extend_from_slice(&header.bits.to_le_bytes());
+      header.bits.encode(buf);
     }
 
-    buf.extend_from_slice(&header.nonce.to_le_bytes());
+    header.nonce.encode(buf);
     self.prev_header = Some(*header);
   }
 }

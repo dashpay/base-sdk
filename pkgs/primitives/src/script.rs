@@ -82,7 +82,7 @@ impl KeyId {
   pub fn to_base58c(&self, prefix: u8) -> alloc::string::String {
     let mut payload = Vec::with_capacity(21);
     payload.push(prefix);
-    payload.extend_from_slice(self.as_bytes());
+    self.encode(&mut payload);
     base58ck::encode_check(&payload)
   }
 }

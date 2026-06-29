@@ -36,37 +36,6 @@ predicate outOfOrder(
   )
 }
 
-/** Holds if `v` is a bare `Unknown` variant without associated data. */
-predicate bareUnknownVariant(Enum e, Variant v) {
-  isSourceType(e) and
-  v = e.getVariantList().getAVariant() and
-  v.getName().getText() = "Unknown" and
-  not exists(v.getFieldList())
-}
-
-/** Gets the NumCodec type parameter for enum `e`. */
-string numCodecType(Enum e) {
-  exists(Impl i |
-    fileOf(i) = fileOf(e) and
-    implSelfName(i) = e.getName().getText() and
-    implTraitName(i) = "NumCodec" and
-    result =
-      i.getTrait()
-          .(PathTypeRepr)
-          .getPath()
-          .getSegment()
-          .getGenericArgList()
-          .getGenericArg(0)
-          .(TypeArg)
-          .getTypeRepr()
-          .(PathTypeRepr)
-          .getPath()
-          .getSegment()
-          .getIdentifier()
-          .getText()
-  )
-}
-
 from Locatable item, string message
 where
   exists(TypeItem t, string name |
@@ -82,20 +51,6 @@ where
         fmt("{0} {1} appears after {2}", name,
           fmt("{0} (slot {1})", badSlot.toString(), badSlot.getOrder().toString()),
           fmt("{0} (slot {1})", priorSlot.toString(), priorSlot.getOrder().toString()))
-    )
-  )
-  or
-  exists(Enum e |
-    bareUnknownVariant(e, item) and
-    (
-      exists(string ty |
-        ty = numCodecType(e) and
-        message =
-          fmt("{0}::Unknown must carry the raw value (e.g. Unknown({1}))", e.getName().getText(), ty)
-      )
-      or
-      not exists(numCodecType(e)) and
-      message = fmt("{0}::Unknown must carry the raw value", e.getName().getText())
     )
   )
 select item, message

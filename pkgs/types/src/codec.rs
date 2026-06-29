@@ -47,6 +47,8 @@ pub enum DecodeError {
     /// Number of bytes left over.
     remaining: usize,
   },
+  /// Decoded bytes are not valid UTF-8.
+  InvalidUtf8,
 }
 
 impl fmt::Display for DecodeError {
@@ -67,6 +69,7 @@ impl fmt::Display for DecodeError {
       Self::TrailingBytes { remaining } => {
         write!(f, "{remaining} trailing bytes after decode")
       }
+      Self::InvalidUtf8 => write!(f, "invalid utf-8 in string"),
     }
   }
 }
@@ -330,6 +333,18 @@ impl<T: BaseCodec> BaseCodec for Vec<T> {
     for item in self {
       item.encode(buf);
     }
+  }
+}
+
+impl BaseCodec for String {
+  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
+    let bytes = Vec::<u8>::decode(data)?;
+    Self::from_utf8(bytes).map_err(|_| DecodeError::InvalidUtf8)
+  }
+
+  fn encode(&self, buf: &mut Vec<u8>) {
+    write_compact_size(self.len(), buf);
+    buf.extend_from_slice(self.as_bytes());
   }
 }
 

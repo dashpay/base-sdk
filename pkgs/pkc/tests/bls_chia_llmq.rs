@@ -11,8 +11,8 @@
 
 mod common;
 
+use dash_num::Hash256;
 use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, threshold, PublicKey, SecretKey, Signature};
-use dash_pkc::Hash256;
 use hex_conservative::DisplayHex;
 
 #[test]

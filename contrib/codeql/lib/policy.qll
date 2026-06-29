@@ -205,12 +205,6 @@ predicate isSerdeExempt(TypeItem t) {
   not implementsTrait(t, "PartialEq")
 }
 
-/** Crate directory names excluded from prelude enforcement. */
-string preludeExcludeCrate() {
-  result = "samples/parser" or
-  result = "samples/solver"
-}
-
 /** Holds if file `f` is in a crate evaluated by decl ordering. */
 predicate isEvaluatedCrate(File f) {
   f.getAbsolutePath().matches("%/pkgs/types/%") or

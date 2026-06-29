@@ -7,12 +7,7 @@
 //! Shared type definitions for chain parameters.
 
 pub(crate) use bitcoin_units::BlockHeight;
-
-pub use dash_num::{Arith256, Hash256};
-pub use dash_primitives::double_sha256;
-pub use dash_primitives::{
-  Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
-};
+use dash_num::{Arith256, Hash256};
 
 /// P2P network message start bytes (magic).
 pub type MessageStart = [u8; 4];

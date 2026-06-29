@@ -101,7 +101,7 @@ impl BaseCodec for AddrV2 {
     self.network().to_base().encode(buf);
     let bytes = self.bytes();
     codec::write_compact_size(bytes.len(), buf);
-    buf.extend_from_slice(bytes);
+    buf.extend_from_slice(bytes); // nosemgrep: codec-no-raw-extend
   }
 }
 

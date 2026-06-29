@@ -13,7 +13,7 @@ use crate::TxHash;
 
 use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
-use dash_types::codec::{self, BaseCodec, Checkable, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, NumCodec};
 use dash_types::impl_num;
 use hex_conservative::DisplayHex;
 
@@ -190,17 +190,16 @@ impl GovObject {
     let data_hex = self.data.to_lower_hex_string();
 
     let mut buf = Vec::new();
-    buf.extend_from_slice(self.hash_parent.as_bytes());
-    buf.extend_from_slice(&self.revision.to_le_bytes());
-    buf.extend_from_slice(&self.time.to_le_bytes());
+    self.hash_parent.encode(&mut buf);
+    self.revision.encode(&mut buf);
+    self.time.encode(&mut buf);
     // data hex is serialized as a string (CompactSize + bytes)
-    codec::write_compact_size(data_hex.len(), &mut buf);
-    buf.extend_from_slice(data_hex.as_bytes());
+    data_hex.encode(&mut buf);
     // outpoint + dummy padding for legacy hash compat
-    buf.extend_from_slice(self.masternode_outpoint.hash.as_bytes());
-    buf.extend_from_slice(&self.masternode_outpoint.index.to_le_bytes());
-    buf.push(0x00);
-    buf.extend_from_slice(&0xFFFF_FFFFu32.to_le_bytes());
+    self.masternode_outpoint.hash.encode(&mut buf);
+    self.masternode_outpoint.index.encode(&mut buf);
+    0u8.encode(&mut buf);
+    0xFFFF_FFFFu32.encode(&mut buf);
     self.sig.encode(&mut buf);
 
     TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
@@ -365,14 +364,14 @@ impl GovVote {
   pub fn hash(&self) -> TxHash {
     let mut buf = Vec::new();
     // outpoint + dummy padding for legacy hash compat
-    buf.extend_from_slice(self.masternode_outpoint.hash.as_bytes());
-    buf.extend_from_slice(&self.masternode_outpoint.index.to_le_bytes());
-    buf.push(0x00);
-    buf.extend_from_slice(&0xFFFF_FFFFu32.to_le_bytes());
-    buf.extend_from_slice(self.parent_hash.as_bytes());
-    buf.extend_from_slice(&self.signal.to_base().to_le_bytes());
-    buf.extend_from_slice(&self.outcome.to_base().to_le_bytes());
-    buf.extend_from_slice(&self.time.to_le_bytes());
+    self.masternode_outpoint.hash.encode(&mut buf);
+    self.masternode_outpoint.index.encode(&mut buf);
+    0u8.encode(&mut buf);
+    0xFFFF_FFFFu32.encode(&mut buf);
+    self.parent_hash.encode(&mut buf);
+    self.signal.encode(&mut buf);
+    self.outcome.encode(&mut buf);
+    self.time.encode(&mut buf);
 
     TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
   }

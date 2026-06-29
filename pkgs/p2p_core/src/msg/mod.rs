@@ -145,7 +145,7 @@ macro_rules! define_network_messages {
             }
           )*
           $( Self::$pe_variant => {} )*
-          $( Self::$s_variant(raw) => buf.extend_from_slice(raw), )*
+          $( Self::$s_variant(raw) => buf.extend_from_slice(raw), )* // nosemgrep: codec-no-raw-extend
           $( Self::$se_variant => {} )*
         }
       }

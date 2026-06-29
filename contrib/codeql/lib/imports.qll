@@ -54,6 +54,46 @@ predicate isPublicMod(Module m) {
 }
 
 /**
+ * Holds if `u` lives inside a crate-root `__private` module
+ * (intentional crate-level re-exports for macro support).
+ */
+predicate isMacroReexport(Use u) {
+  exists(Module priv |
+    priv.getName().getText() = "__private" and
+    u.getParentNode() = priv.getItemList() and
+    isRootModule(priv)
+  )
+}
+
+/**
+ * Holds if `u` is a `pub use` that re-exports from a foreign crate.
+ * The first path segment is not `crate`/`self`/`super` and does not
+ * match a sibling `mod` or a root-level `mod` in the same file.
+ * The root-level fallback covers macro-wrapped declarations whose
+ * AST parent differs from the use site.
+ */
+predicate isForeignReexport(Use u) {
+  isPublicUse(u) and
+  exists(string prefix |
+    prefix = usePrefix(u) and
+    not prefix = "crate" and
+    not prefix = "self" and
+    not prefix = "super" and
+    not exists(Module m |
+      m.getName().getText() = prefix and
+      (
+        // Direct sibling in the same scope.
+        m.getParentNode() = u.getParentNode()
+        or
+        // Root-level module in the same file (covers macro-wrapped decls).
+        fileOf(m) = fileOf(u) and
+        isRootModule(m)
+      )
+    )
+  )
+}
+
+/**
  * Gets the use-declaration base group (ignoring pub/priv).
  * 2 = crate/super, 3 = external, 4 = alloc/core/std.
  */

@@ -6,6 +6,7 @@
 
 //! Reusable serde helpers for `#[serde(with = "...")]`.
 
+// nosemgrep: use-pub-roots-only
 pub use crate::hex::serde as hex;
 
 /// UTF-8 serde for `Vec<u8>` fields that hold text.

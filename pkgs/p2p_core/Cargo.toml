@@ -6,10 +6,11 @@ license = "MIT"
 
 [features]
 default = []
-std = ["dash-primitives/std", "dash-script/std", "dash-types/std"]
+std = ["dash-pkc/std", "dash-primitives/std", "dash-script/std", "dash-types/std"]
 serde = [
   "dep:serde",
   "dash-num/serde",
+  "dash-pkc/serde",
   "dash-primitives/serde",
   "dash-script/serde",
   "dash-types/serde",
@@ -26,6 +27,7 @@ bitcoin-units = { version = "0.3", default-features = false, features = [
   "alloc",
 ] }
 dash-num = { version = "0.0.0", path = "../num" }
+dash-pkc = { version = "0.0.0", path = "../pkc" }
 dash-script = { version = "0.0.0", path = "../script" }
 dash-params = { version = "0.0.0", path = "../params" }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
