@@ -1,0 +1,32 @@
+rules:
+  - id: derive-serde-disambiguate
+    message: "use ::serde:: instead of serde:: in derive attributes"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    pattern-regex: 'derive\([^)]*(?<!:)serde::'
+
+  - id: prelude-no-use-alloc
+    message: "use crate::prelude instead of alloc:: directly"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs]
+      exclude:
+        - /pkgs/**/prelude.rs
+        - /pkgs/**/prelude/mod.rs
+        - /contrib/samples/**
+    pattern-regex: '\buse\s+(::)?alloc(::|\s)'
+
+  - id: prelude-use-wildcards-only
+    message: "use crate::prelude::* instead of named imports from prelude"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs]
+      exclude:
+        - /pkgs/**/prelude.rs
+        - /pkgs/**/prelude/mod.rs
+        - /contrib/samples/**
+    pattern-regex: '\buse\s+crate::prelude::[^*]'

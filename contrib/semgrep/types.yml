@@ -1,5 +1,5 @@
 rules:
-  - id: no-newtype-in-types
+  - id: types-macro-no-codec
     message: "do not define newtypes in dash-types; use the owning crate instead"
     severity: ERROR
     languages: [rust]
