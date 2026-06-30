@@ -20,6 +20,12 @@ mod prelude;
 mod primitives;
 mod v2;
 
+#[doc(hidden)]
+pub mod __private {
+  pub use dash_primitives;
+  pub use dash_types;
+}
+
 pub use error::P2pDecodeError;
 pub use msg::{
   Addr, AddrV2Entry, AddrV2Msg, CFCheckpt, CFHeaders, CFilter, DashNetworkMessage, FilterType, GetCFCheckpt,

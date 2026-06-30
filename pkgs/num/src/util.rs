@@ -10,11 +10,11 @@
 #[macro_export]
 macro_rules! impl_hash {
   ($base:ty, $($name:ident),* $(,)?) => { $(
-    impl dash_types::codec::BaseCodec for $name {
+    impl $crate::__private::dash_types::codec::BaseCodec for $name {
       fn decode(
         data: &mut &[u8],
-      ) -> Result<Self, dash_types::codec::DecodeError> {
-        dash_types::codec::take::<{ <$base>::LEN }>(data)
+      ) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
+        $crate::__private::dash_types::codec::take::<{ <$base>::LEN }>(data)
           .map(Self::from_bytes)
       }
 
@@ -23,7 +23,7 @@ macro_rules! impl_hash {
       }
     }
 
-    dash_types::impl_type!($name);
+    $crate::__private::dash_types::impl_type!($name);
   )* };
 }
 

@@ -53,6 +53,22 @@ rules:
       include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
     pattern-regex: '\bimpl\b[^{]*\bInto\s*<.*>\s+for\b'
 
+  - id: macro-no-bare-foreign-crate
+    message: >
+      rooted foreign-crate paths (::crate::) in macros must route
+      through $crate::__private for hygiene
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include:
+        - /pkgs/**/*.rs
+      exclude:
+        - /pkgs/types/marker/**
+    patterns:
+      - pattern-regex: '(?<![:\w])::[a-z_0-9]+::'
+      - pattern-not-regex: "::(?:core|alloc|std|serde)::"
+      - pattern-not-regex: '\$crate::__private::'
+
   - id: prelude-no-use-alloc
     message: "use crate::prelude instead of alloc:: directly"
     severity: ERROR

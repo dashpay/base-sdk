@@ -28,6 +28,7 @@ pub mod util;
 #[doc(hidden)]
 pub mod __private {
   pub use bitcoin_consensus_encoding;
+  pub use dash_types;
 }
 
 pub use arith::ArithInt;

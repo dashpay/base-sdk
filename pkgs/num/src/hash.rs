@@ -301,9 +301,9 @@ macro_rules! define_hash {
       }
     }
 
-    impl dash_types::codec::BaseCodec for $name {
-      fn decode(data: &mut &[u8]) -> Result<Self, dash_types::codec::DecodeError> {
-        dash_types::codec::take::<$n>(data).map(Self::from_bytes)
+    impl $crate::__private::dash_types::codec::BaseCodec for $name {
+      fn decode(data: &mut &[u8]) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
+        $crate::__private::dash_types::codec::take::<$n>(data).map(Self::from_bytes)
       }
 
       fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
@@ -311,7 +311,7 @@ macro_rules! define_hash {
       }
     }
 
-    dash_types::impl_type!($name);
+    $crate::__private::dash_types::impl_type!($name);
 
     #[cfg(feature = "serde")]
     impl ::serde::Serialize for $name {

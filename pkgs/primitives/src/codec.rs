@@ -12,7 +12,7 @@ pub const MAX_SPTX_PAYLOAD_SIZE: usize = 10_240;
 /// Generates `Encodable` + `Decodable` with payload size limit.
 macro_rules! impl_payload {
   ($ty:ty) => {
-    ::dash_types::impl_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE);
+    $crate::__private::dash_types::impl_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE);
   };
 }
 pub(crate) use impl_payload;

@@ -130,7 +130,7 @@ macro_rules! impl_type {
     $crate::impl_type!($ty, $crate::MAX_SER_SIZE);
   };
   ($ty:ty, $max:expr) => {
-    impl ::bitcoin_consensus_encoding::Encodable for $ty {
+    impl $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
       type Encoder<'e> = $crate::VecEncoder;
       fn encoder(&self) -> Self::Encoder<'_> {
         let mut buf = ::alloc::vec::Vec::new();
@@ -139,7 +139,7 @@ macro_rules! impl_type {
       }
     }
 
-    impl ::bitcoin_consensus_encoding::Decodable for $ty {
+    impl $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
       type Decoder = $crate::BufferDecoder<$ty>;
       fn decoder() -> Self::Decoder {
         $crate::BufferDecoder::new(<$ty as $crate::codec::BaseCodec>::decode, $max)
