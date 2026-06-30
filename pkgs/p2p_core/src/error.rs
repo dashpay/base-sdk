@@ -9,11 +9,12 @@
 use crate::prelude::*;
 
 use dash_types::codec::DecodeError;
+use dash_types::Unencodable;
 
 use core::fmt;
 
 /// An error encountered during P2P message decoding.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 pub enum P2pDecodeError {
   /// Underlying consensus decoding error.
   Consensus(String),

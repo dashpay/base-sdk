@@ -11,6 +11,7 @@ use crate::prelude::*;
 
 use dash_primitives::hash_impl;
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::Unencodable;
 
 use core::fmt;
 
@@ -24,7 +25,7 @@ pub struct UserAgent(Vec<u8>);
 impl_p2p!(UserAgent);
 
 /// The user agent exceeds the 256-byte limit.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Unencodable)]
 pub struct UserAgentTooLong {
   /// Actual length in bytes.
   pub len: usize,

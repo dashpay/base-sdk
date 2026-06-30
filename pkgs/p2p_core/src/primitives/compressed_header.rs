@@ -9,7 +9,8 @@
 use crate::prelude::*;
 
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
-use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, Hashable};
+use dash_types::Unencodable;
 
 // Bitfield layout (1 byte):
 //   bits 0-2: version offset (0 = full version present, 1-7 = MRU cache index)
@@ -30,7 +31,7 @@ const MAX_VERSION_CACHE: usize = 7;
 /// delta-encoded against its predecessor and a shared MRU version
 /// cache. Create one `CompressionState` per `headers2` message and
 /// feed headers through it in order.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CompressionState {
   /// MRU version cache (front = most recently used).
@@ -93,7 +94,7 @@ impl CompressionState {
       BlockHash::decode(sl)?
     } else {
       match &self.prev_header {
-        Some(prev) => prev.prev_hash,
+        Some(prev) => prev.hash(),
         None => BlockHash::default(),
       }
     };
@@ -144,7 +145,7 @@ impl CompressionState {
     flags |= version_offset & VERSION_OFFSET_MASK;
 
     let need_prev_hash = match &self.prev_header {
-      Some(prev) => header.prev_hash != prev.prev_hash,
+      Some(prev) => header.prev_hash != prev.hash(),
       None => true,
     };
     if need_prev_hash {

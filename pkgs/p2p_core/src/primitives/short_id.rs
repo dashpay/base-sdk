@@ -8,6 +8,8 @@
 
 use crate::primitives::CommandString;
 
+use dash_types::Unencodable;
+
 // Maps between V2 1-byte short IDs and command strings.
 //
 // Bitcoin occupies IDs 0-32 (lower half), Dash occupies 128-168
@@ -107,7 +109,7 @@ static DASH_IDS: [&str; DASH_COUNT] = [
 ];
 
 /// A resolved V2 short ID.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ShortId(pub u8);
 
