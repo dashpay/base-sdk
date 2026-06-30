@@ -257,6 +257,11 @@ pub trait NumCodec<N>: Sized {
   fn to_base(&self) -> N;
 }
 
+/// Stable per-type identifier derived from the type name.
+pub trait TypeId {
+  const TYPE_ID: u32;
+}
+
 /// Cursor-based encode/decode for consensus wire types.
 pub trait BaseCodec: Sized {
   /// Decodes from the cursor, advancing it past consumed bytes.
@@ -448,3 +453,32 @@ pub trait __CodecMarker {}
 pub trait __UnencodableMarker {}
 
 impl<T: BaseCodec> __UnencodableMarker for T {}
+
+cfg_if::cfg_if! {
+  if #[cfg(feature = "serde")] {
+    pub trait Codec:
+      BaseCodec
+        + Hashable
+        + TypeId
+        + ::serde::Serialize
+        + ::serde::de::DeserializeOwned
+    {
+    }
+
+    impl<
+        T: BaseCodec
+          + Hashable
+          + TypeId
+          + ::serde::Serialize
+          + ::serde::de::DeserializeOwned,
+      > Codec for T
+    {
+    }
+  } else {
+    pub trait Codec: BaseCodec + Hashable + TypeId {}
+
+    impl<T: BaseCodec + Hashable + TypeId> Codec for T {}
+  }
+}
+
+impl<T: Codec> __CodecMarker for T {}

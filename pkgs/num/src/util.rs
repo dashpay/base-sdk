@@ -37,7 +37,7 @@ macro_rules! make_hash {
     $name:ident
   ) => {
     $(#[$attr])*
-    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::__private::dash_types::TypeId)]
     #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(transparent))]
     pub struct $name($base);

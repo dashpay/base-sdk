@@ -41,7 +41,7 @@ macro_rules! make_bytes {
     $name:ident, $n:literal
   ) => {
     $(#[$attr])*
-    #[derive(Clone, Copy, Eq, Hash, PartialEq)]
+    #[derive(Clone, Copy, Eq, Hash, PartialEq, $crate::TypeId)]
     pub struct $name(pub [u8; $n]);
 
     $crate::impl_bytes!($n, $name);
