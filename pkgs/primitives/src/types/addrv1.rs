@@ -8,6 +8,7 @@
 
 use super::addrv2::{AddrV2, ServiceV2};
 use super::netaddr::{NetAddr, NetAddrError, NetworkType};
+use crate::hash_impl;
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::{impl_bytes, impl_type, type_cvrt};
@@ -46,6 +47,8 @@ impl Checkable for AddrV1 {
     None
   }
 }
+
+hash_impl!(AddrV1);
 
 impl AddrV1 {
   /// Returns the inner byte array.
@@ -238,6 +241,8 @@ impl Checkable for ServiceV1 {
     self.addr.check()
   }
 }
+
+hash_impl!(ServiceV1);
 
 impl fmt::Display for ServiceV1 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

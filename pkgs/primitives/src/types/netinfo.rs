@@ -8,6 +8,7 @@
 
 use super::netaddr::{is_bad_port, NetAddr};
 use super::{AddrV2, NetAddrError, ServiceV1, ServiceV2};
+use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
@@ -83,6 +84,8 @@ impl NumCodec<u8> for NIPurpose {
 
 impl_num!(NIPurpose, u8);
 
+hash_impl!(NIPurpose);
+
 impl fmt::Display for NIPurpose {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -124,6 +127,8 @@ impl NumCodec<u8> for NIEntryCode {
 }
 
 impl_num!(NIEntryCode, u8);
+
+hash_impl!(NIEntryCode);
 
 impl fmt::Display for NIEntryCode {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -302,6 +307,8 @@ impl Checkable for NIEntry {
   }
 }
 
+hash_impl!(NIEntry);
+
 impl fmt::Display for NIEntry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -446,6 +453,8 @@ impl Checkable for NetInfoV2 {
   }
 }
 
+hash_impl!(NetInfoV2);
+
 impl NetInfoV2 {
   /// Highest supported format version.
   const CURRENT_VERSION: u8 = 1;
@@ -547,6 +556,8 @@ impl Checkable for NetInfoV1 {
     None
   }
 }
+
+hash_impl!(NetInfoV1);
 
 impl fmt::Display for NetInfoV1 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -9,6 +9,7 @@
 use super::addrv1::{AddrV1, ServiceV1};
 use super::netaddr::{NetAddr, NetAddrError, NetworkType};
 use super::util::{base16_dec, base16_enc, base32r_dec, base32r_enc};
+use crate::hash_impl;
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
@@ -152,6 +153,8 @@ impl Checkable for AddrV2 {
     None
   }
 }
+
+hash_impl!(AddrV2);
 
 impl AddrV2 {
   /// Returns the BIP155 network type for this address.
@@ -364,6 +367,8 @@ impl Checkable for ServiceV2 {
     self.addr.check()
   }
 }
+
+hash_impl!(ServiceV2);
 
 impl fmt::Display for ServiceV2 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -7,7 +7,7 @@
 //! CoinbaseCommitment coinbase commitment payload (type 5).
 
 use crate::codec::impl_payload;
-use crate::MerkleRoot;
+use crate::{hash_impl, MerkleRoot};
 
 use bitcoin_units::BlockHeight;
 use dash_pkc::BlsSignatureBytes;
@@ -143,6 +143,8 @@ impl Checkable for CoinbaseCommitment {
     None
   }
 }
+
+hash_impl!(CoinbaseCommitment);
 
 impl fmt::Display for CoinbaseCommitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

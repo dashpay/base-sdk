@@ -14,10 +14,11 @@ use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::{KeyId, Script};
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
-use crate::TxHash;
+use crate::{hash_impl, TxHash};
 
 use dash_pkc::BlsPublicKeyBytes;
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::make_bytes;
 
 use core::fmt;
 
@@ -251,16 +252,20 @@ impl Checkable for ProRegTx {
   }
 }
 
+hash_impl!(ProRegTx);
+
 impl fmt::Display for ProRegTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
   }
 }
 
-dash_types::make_bytes! {
+make_bytes! {
   /// Platform node identifier for Evo masternodes.
   PlatformNodeId, 20
 }
+
+hash_impl!(PlatformNodeId);
 
 #[cfg(all(test, feature = "serde"))]
 mod tests {

@@ -7,14 +7,15 @@
 //! Dash transaction with version/type packing and optional extra payload for
 //! special transactions.
 
-use crate::codec_type;
 use crate::payload::TxType;
 use crate::prelude::*;
 use crate::script::Script;
+use crate::{codec_type, hash_impl};
 
+use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable, NumCodec};
 use dash_types::impl_type;
 
 use core::fmt;
@@ -30,6 +31,8 @@ make_hash! {
   /// SHA256d hash of a serialized transaction.
   TxHash
 }
+
+hash_impl!(TxHash);
 
 /// A reference to a previous transaction output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -115,6 +118,8 @@ impl BaseCodec for TxOut {
     self.script_pubkey.encode(buf);
   }
 }
+
+hash_impl!(TxOut);
 
 impl fmt::Display for TxOut {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -294,6 +299,16 @@ impl Checkable for Transaction {
     }
 
     None
+  }
+}
+
+impl Hashable for Transaction {
+  type Hash = TxHash;
+
+  fn hash(&self) -> TxHash {
+    let mut buf = Vec::new();
+    self.encode(&mut buf);
+    TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
   }
 }
 

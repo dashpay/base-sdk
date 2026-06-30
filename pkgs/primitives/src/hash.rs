@@ -16,9 +16,3 @@ use dash_num::Hash256;
 pub fn double_sha256(data: &[u8]) -> Hash256 {
   Hash256::from_bytes(sha256d::Hash::hash(data).to_byte_array())
 }
-
-/// Computes the transaction hash (SHA256d of the raw serialized
-/// transaction).
-pub fn tx_hash(raw_tx: &[u8]) -> crate::TxHash {
-  crate::TxHash::from_bytes(sha256d::Hash::hash(raw_tx).to_byte_array())
-}

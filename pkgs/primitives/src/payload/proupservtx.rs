@@ -11,7 +11,7 @@ use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_
 use crate::codec::impl_payload;
 use crate::script::Script;
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
-use crate::TxHash;
+use crate::{hash_impl, TxHash};
 
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
@@ -174,6 +174,8 @@ impl Checkable for ProUpServTx {
     None
   }
 }
+
+hash_impl!(ProUpServTx);
 
 impl fmt::Display for ProUpServTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

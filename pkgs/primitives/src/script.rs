@@ -6,6 +6,7 @@
 
 //! Variable-length script with CompactSize-prefixed consensus encoding.
 
+use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
@@ -30,6 +31,8 @@ impl BaseCodec for Script {
     self.0.encode(buf);
   }
 }
+
+hash_impl!(Script);
 
 impl Script {
   /// Creates a new script from raw bytes.
@@ -76,6 +79,8 @@ make_bytes! {
   /// 20-byte public key hash (RIPEMD-160 of SHA-256).
   KeyId, 20
 }
+
+hash_impl!(KeyId);
 
 impl KeyId {
   /// Encode as a Base58Check string with the given version prefix.

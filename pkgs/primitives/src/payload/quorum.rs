@@ -8,6 +8,7 @@
 
 use super::QuorumHash;
 use crate::codec::impl_payload;
+use crate::hash_impl;
 use crate::support::{DynBitset, LlmqType};
 
 use dash_num::{make_hash, Hash256};
@@ -21,6 +22,8 @@ make_hash! {
   /// Quorum verification vector hash.
   QuorumVvecHash
 }
+
+hash_impl!(QuorumVvecHash);
 
 /// DKG session output for one LLMQ.
 ///
@@ -97,6 +100,8 @@ impl BaseCodec for Commitment {
   }
 }
 
+hash_impl!(Commitment);
+
 impl Commitment {
   /// Returns true if this is an indexed commitment (version 2 or 4).
   #[inline]
@@ -168,6 +173,8 @@ impl Checkable for FinalCommitment {
     None
   }
 }
+
+hash_impl!(FinalCommitment);
 
 impl fmt::Display for FinalCommitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

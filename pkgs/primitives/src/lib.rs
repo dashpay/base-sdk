@@ -26,6 +26,7 @@ mod types;
 
 #[doc(hidden)]
 pub mod __private {
+  pub use dash_num;
   pub use dash_types;
 }
 #[cfg(feature = "serde")]
@@ -38,7 +39,7 @@ pub use codec::MAX_SPTX_PAYLOAD_SIZE;
 pub use gov::{
   GovData, GovObject, GovObjectType, GovVote, Proposal, ProposalInvalid, Trigger, VoteOutcome, VoteSignal,
 };
-pub use hash::{double_sha256, tx_hash};
+pub use hash::double_sha256;
 pub use payload::{
   AssetLock, AssetLockInvalid, AssetUnlock, AssetUnlockInvalid, CbTxInvalid, CoinbaseCommitment, Commitment,
   CommitmentInvalid, FinalCommitment, InputsHash, MnHardFork, MnHardForkInvalid, MnType, PayloadError, PayloadInvalid,

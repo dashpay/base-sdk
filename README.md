@@ -63,7 +63,7 @@ graph LR
   script --> primitives
   script --> p2p_core
   pkc --> p2p_core
-  pow -.-> primitives
+  pow --> primitives
   pow -.-> params
   primitives --> params
   primitives --> p2p_core

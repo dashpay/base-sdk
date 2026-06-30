@@ -423,3 +423,12 @@ pub trait Checkable {
   #[must_use]
   fn check(&self) -> Option<Self::Error>;
 }
+
+/// Canonical hashed representation.
+pub trait Hashable {
+  /// The hash output type.
+  type Hash;
+
+  /// Computes the canonical hash of this value.
+  fn hash(&self) -> Self::Hash;
+}

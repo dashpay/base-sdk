@@ -219,6 +219,7 @@ newtype TDeclSlot =
   TNumCodecImpl() or
   TBaseCodecImpl() or
   TCheckableImpl() or
+  THashableImpl() or
   TInherentImpl() or
   TTraitImpl()
 
@@ -234,9 +235,11 @@ class DeclSlot extends TDeclSlot {
     or
     this = TCheckableImpl() and result = 3
     or
-    this = TInherentImpl() and result = 4
+    this = THashableImpl() and result = 4
     or
-    this = TTraitImpl() and result = 5
+    this = TInherentImpl() and result = 5
+    or
+    this = TTraitImpl() and result = 6
   }
 
   /** Gets the human-readable label. */
@@ -249,6 +252,8 @@ class DeclSlot extends TDeclSlot {
     result = "BaseCodec/Encodable/Decodable impl"
     or
     this = TCheckableImpl() and result = "Checkable impl"
+    or
+    this = THashableImpl() and result = "Hashable impl"
     or
     this = TInherentImpl() and result = "inherent impl"
     or
@@ -267,6 +272,8 @@ DeclSlot traitSlot(string traitName) {
   traitName = "Decodable" and result = TBaseCodecImpl()
   or
   traitName = "Checkable" and result = TCheckableImpl()
+  or
+  traitName = "Hashable" and result = THashableImpl()
 }
 
 /** Gets the slot for trait `trait`. */

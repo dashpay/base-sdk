@@ -6,6 +6,7 @@
 
 //! Protocol support types for special transaction payloads.
 
+use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf, NumCodec};
@@ -84,6 +85,8 @@ impl NumCodec<u8> for LlmqType {
 
 impl_num!(LlmqType, u8);
 
+hash_impl!(LlmqType);
+
 impl fmt::Display for LlmqType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -142,6 +145,8 @@ impl NumCodec<u16> for RevocationReason {
 }
 
 impl_num!(RevocationReason, u16);
+
+hash_impl!(RevocationReason);
 
 impl fmt::Display for RevocationReason {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -230,6 +235,8 @@ impl BaseCodec for DynBitset {
     }
   }
 }
+
+hash_impl!(DynBitset);
 
 impl DynBitset {
   /// Returns the bit at the given index.

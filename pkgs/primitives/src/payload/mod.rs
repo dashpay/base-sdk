@@ -19,6 +19,7 @@ mod prouprevtx;
 mod proupservtx;
 mod quorum;
 
+use crate::hash_impl;
 use crate::prelude::*;
 use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
@@ -47,11 +48,15 @@ make_hash! {
   QuorumHash
 }
 
+hash_impl!(QuorumHash);
+
 make_hash! {
   Hash256,
   /// Hash of serialized transaction inputs.
   InputsHash
 }
+
+hash_impl!(InputsHash);
 
 /// Dash transaction type, encoded in the upper 16 bits of the version field.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -116,6 +121,8 @@ impl NumCodec<u16> for TxType {
 
 impl_num!(TxType, u16);
 
+hash_impl!(TxType);
+
 impl fmt::Display for TxType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -164,6 +171,8 @@ impl NumCodec<u16> for MnType {
 }
 
 impl_num!(MnType, u16);
+
+hash_impl!(MnType);
 
 impl fmt::Display for MnType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
