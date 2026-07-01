@@ -6,12 +6,15 @@
 
 //! Dash block (header + transactions).
 
-use crate::codec_type;
 use crate::prelude::*;
-use crate::transaction::{Transaction, TxInvalid};
+use crate::transaction::{Transaction, TxHash, TxInvalid};
+use crate::{codec_base, codec_type, hash_impl};
 
+use bitcoin_hashes::sha256d;
 use dash_num::{make_hash, Hash256};
-use dash_types::codec::Checkable;
+use dash_pow::hash as pow_hash;
+use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable};
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -27,14 +30,18 @@ make_hash! {
   BlockHash
 }
 
+hash_impl!(BlockHash);
+
 make_hash! {
   Hash256,
   /// Merkle tree root hash.
   MerkleRoot
 }
 
+hash_impl!(MerkleRoot);
+
 /// A block header.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct BlockHeader {
@@ -52,7 +59,7 @@ pub struct BlockHeader {
   pub nonce: u32,
 }
 
-codec_type!(BlockHeader {
+codec_base!(BlockHeader {
   version,
   prev_hash,
   merkle_root,
@@ -60,6 +67,16 @@ codec_type!(BlockHeader {
   bits,
   nonce,
 });
+
+impl Hashable for BlockHeader {
+  type Hash = BlockHash;
+
+  fn hash(&self) -> BlockHash {
+    let mut buf = ArrayBuf::<80>::new();
+    self.encode(&mut buf);
+    BlockHash::from(pow_hash(&buf.into_array()))
+  }
+}
 
 impl fmt::Display for BlockHeader {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -72,7 +89,7 @@ impl fmt::Display for BlockHeader {
 }
 
 /// Block validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum BlockInvalid {
   /// `bad-blk-length`
   BadBlockLength { size: usize },
@@ -99,7 +116,7 @@ impl fmt::Display for BlockInvalid {
 }
 
 /// A Dash block: header followed by a vector of transactions.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Block {
   /// Block header (80 bytes).
@@ -154,6 +171,49 @@ impl Checkable for Block {
   }
 }
 
+/// Computes the merkle root from a list of transaction hashes.
+///
+/// Returns `(root, mutated)` where `mutated` is `true` when a
+/// duplicated last-element pair was detected (CVE-2012-2459).
+fn compute_merkle_root(leaves: &[TxHash]) -> (MerkleRoot, bool) {
+  if leaves.is_empty() {
+    return (MerkleRoot::default(), false);
+  }
+
+  let mut hashes: Vec<Hash256> = leaves.iter().map(|h| Hash256::from_bytes(*h.as_bytes())).collect();
+  let mut mutated = false;
+
+  while hashes.len() > 1 {
+    let len = hashes.len();
+    let half = len.div_ceil(2);
+    for i in 0..half {
+      let left = i * 2;
+      let right = if left + 1 < len { left + 1 } else { left };
+      if left != right && hashes[left] == hashes[right] {
+        mutated = true;
+      }
+      let mut combined = [0u8; 64];
+      combined[..32].copy_from_slice(hashes[left].as_bytes());
+      combined[32..].copy_from_slice(hashes[right].as_bytes());
+      hashes[i] = Hash256::from_bytes(sha256d::Hash::hash(&combined).to_byte_array());
+    }
+    hashes.truncate(half);
+  }
+
+  (MerkleRoot::from_bytes(*hashes[0].as_bytes()), mutated)
+}
+
+impl Block {
+  /// Computes the merkle root from the block's transactions.
+  ///
+  /// Returns `(root, mutated)` where `mutated` is `true` when the
+  /// tree contains a duplicated-pair anomaly (CVE-2012-2459).
+  pub fn merkle(&self) -> (MerkleRoot, bool) {
+    let leaves: Vec<TxHash> = self.transactions.iter().map(|tx| tx.hash()).collect();
+    compute_merkle_root(&leaves)
+  }
+}
+
 impl fmt::Display for Block {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "Block {{ txs: {} }}", self.transactions.len())
@@ -176,9 +236,11 @@ mod tests {
       if let Some(e) = details.check() {
         panic!("{label}: check: {e}");
       }
-      let pow_hash = crate::BlockHash::from(dash_pow::hash(&raw[..80]));
       let expected = crate::BlockHash::from_hex(label).unwrap();
-      assert_eq!(pow_hash, expected, "{label}: pow hash");
+      assert_eq!(details.header.hash(), expected, "{label}: pow hash");
+      let (root, mutated) = details.merkle();
+      assert_eq!(root, details.header.merkle_root, "{label}: merkle root");
+      assert!(!mutated, "{label}: merkle mutated");
     });
     assert_serde_rt("blocks", &items);
   }

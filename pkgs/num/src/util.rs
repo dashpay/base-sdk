@@ -10,20 +10,20 @@
 #[macro_export]
 macro_rules! impl_hash {
   ($base:ty, $($name:ident),* $(,)?) => { $(
-    impl dash_types::codec::BaseCodec for $name {
+    impl $crate::__private::dash_types::codec::BaseCodec for $name {
       fn decode(
         data: &mut &[u8],
-      ) -> Result<Self, dash_types::codec::DecodeError> {
-        dash_types::codec::take::<{ <$base>::LEN }>(data)
+      ) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
+        $crate::__private::dash_types::codec::take::<{ <$base>::LEN }>(data)
           .map(Self::from_bytes)
       }
 
-      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+      fn encode(&self, buf: &mut impl $crate::__private::dash_types::codec::EncodeBuf) {
         buf.extend_from_slice(self.as_bytes());
       }
     }
 
-    dash_types::impl_type!($name);
+    $crate::__private::dash_types::impl_type!($name);
   )* };
 }
 
@@ -37,7 +37,7 @@ macro_rules! make_hash {
     $name:ident
   ) => {
     $(#[$attr])*
-    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::__private::dash_types::TypeId)]
     #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     #[cfg_attr(feature = "serde", serde(transparent))]
     pub struct $name($base);

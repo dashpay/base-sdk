@@ -7,12 +7,12 @@
 //! CoinbaseCommitment coinbase commitment payload (type 5).
 
 use crate::codec::impl_payload;
-use crate::prelude::*;
-use crate::MerkleRoot;
+use crate::{hash_impl, MerkleRoot};
 
 use bitcoin_units::BlockHeight;
 use dash_pkc::BlsSignatureBytes;
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -21,7 +21,7 @@ use core::fmt;
 /// - v1: base fields (version, height, merkle_root_mn_list)
 /// - v2: adds merkle_root_quorums
 /// - v3: adds ChainLock proof and credit pool balance
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct CoinbaseCommitment {
@@ -74,7 +74,7 @@ impl BaseCodec for CoinbaseCommitment {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.height.to_u32().encode(buf);
     self.merkle_root_mn_list.encode(buf);
@@ -94,7 +94,7 @@ impl BaseCodec for CoinbaseCommitment {
 }
 
 /// Coinbase commitment validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum CbTxInvalid {
   /// `bad-cbtx-version`
   BadVersion { version: u16 },
@@ -144,6 +144,8 @@ impl Checkable for CoinbaseCommitment {
     None
   }
 }
+
+hash_impl!(CoinbaseCommitment);
 
 impl fmt::Display for CoinbaseCommitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

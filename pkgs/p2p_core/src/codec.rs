@@ -12,7 +12,7 @@ pub(crate) const MAX_P2P_PAYLOAD_SIZE: usize = 3_145_728;
 /// Generates `Encodable` + `Decodable` with P2P payload size limit.
 macro_rules! impl_p2p {
   ($ty:ty) => {
-    ::dash_types::impl_type!($ty, crate::codec::MAX_P2P_PAYLOAD_SIZE);
+    $crate::__private::dash_types::impl_type!($ty, crate::codec::MAX_P2P_PAYLOAD_SIZE);
   };
 }
 pub(crate) use impl_p2p;
@@ -21,7 +21,7 @@ pub(crate) use impl_p2p;
 /// with P2P payload size limit.
 macro_rules! codec_p2p {
   ($ty:ty { $($field:ident),+ $(,)? }) => {
-    ::dash_primitives::codec_type!($ty, crate::codec::MAX_P2P_PAYLOAD_SIZE, { $($field),+ });
+    $crate::__private::dash_primitives::codec_type!($ty, crate::codec::MAX_P2P_PAYLOAD_SIZE, { $($field),+ });
   };
 }
 pub(crate) use codec_p2p;

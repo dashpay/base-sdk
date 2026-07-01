@@ -6,13 +6,15 @@
 
 //! Network address types and classification.
 
+use crate::hash_impl;
+
 use dash_types::codec::NumCodec;
-use dash_types::impl_num;
+use dash_types::{impl_num, TypeId};
 
 use core::fmt;
 
 /// Network address type (BIP155).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum NetworkType {
   /// IPv4.
   Ipv4,
@@ -53,6 +55,8 @@ impl NumCodec<u8> for NetworkType {
 }
 
 impl_num!(NetworkType, u8);
+
+hash_impl!(NetworkType);
 
 impl NetworkType {
   /// Expected byte length for a known network type, or `None`

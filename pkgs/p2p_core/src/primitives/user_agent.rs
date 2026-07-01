@@ -9,7 +9,9 @@
 use crate::codec::impl_p2p;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_primitives::hash_impl;
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -17,13 +19,13 @@ use core::fmt;
 const MAX_USER_AGENT: usize = 256;
 
 /// CompactSize-prefixed user agent bytestring.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 pub struct UserAgent(Vec<u8>);
 
 impl_p2p!(UserAgent);
 
 /// The user agent exceeds the 256-byte limit.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Unencodable)]
 pub struct UserAgentTooLong {
   /// Actual length in bytes.
   pub len: usize,
@@ -42,10 +44,12 @@ impl BaseCodec for UserAgent {
     Ok(Self(raw.to_vec()))
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.0.encode(buf);
   }
 }
+
+hash_impl!(UserAgent);
 
 impl UserAgent {
   /// Creates a new user agent from raw bytes.

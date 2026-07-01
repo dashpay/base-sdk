@@ -14,10 +14,11 @@ use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::script::{KeyId, Script};
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
-use crate::TxHash;
+use crate::{hash_impl, TxHash};
 
 use dash_pkc::BlsPublicKeyBytes;
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::{make_bytes, TypeId};
 
 use core::fmt;
 
@@ -26,7 +27,7 @@ use core::fmt;
 /// - v1: LegacyBLS
 /// - v2: BasicBLS
 /// - v3: ExtAddr (extended network info)
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProRegTx {
@@ -143,7 +144,7 @@ impl BaseCodec for ProRegTx {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.mn_type.to_base().encode(buf);
     self.mode.encode(buf);
@@ -251,16 +252,20 @@ impl Checkable for ProRegTx {
   }
 }
 
+hash_impl!(ProRegTx);
+
 impl fmt::Display for ProRegTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
   }
 }
 
-dash_types::make_bytes! {
+make_bytes! {
   /// Platform node identifier for Evo masternodes.
   PlatformNodeId, 20
 }
+
+hash_impl!(PlatformNodeId);
 
 #[cfg(all(test, feature = "serde"))]
 mod tests {

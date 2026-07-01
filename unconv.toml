@@ -9,6 +9,7 @@ types = [
   "fix",
   "lint",
   "misc",
+  "perf",
   "refac",
   "test",
 ]

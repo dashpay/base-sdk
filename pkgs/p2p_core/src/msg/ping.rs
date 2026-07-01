@@ -8,8 +8,10 @@
 
 use crate::codec::codec_p2p;
 
+use dash_types::TypeId;
+
 /// Keepalive request carrying a random nonce.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Ping {
   /// Random nonce echoed back in the corresponding `Pong`.
@@ -20,7 +22,7 @@ pub struct Ping {
 codec_p2p!(Ping { nonce });
 
 /// Keepalive response echoing the nonce from a `Ping`.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Pong {
   /// Nonce from the original `Ping`.

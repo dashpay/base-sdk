@@ -9,19 +9,47 @@
 /// Maximum special-transaction payload size over the wire (10 KiB).
 pub const MAX_SPTX_PAYLOAD_SIZE: usize = 10_240;
 
+/// Blanket `Hashable<Hash = Hash256>` via SHA256d of wire encoding.
+///
+/// Also asserts that the type implements `TypeId`, producing a
+/// compile error if `#[derive(TypeId)]` was omitted.
+#[macro_export]
+macro_rules! hash_impl {
+  ($($ty:ty),* $(,)?) => { $(
+    impl $crate::__private::dash_types::codec::Hashable for $ty {
+      type Hash = $crate::__private::dash_num::Hash256;
+
+      fn hash(&self) -> Self::Hash {
+        use $crate::__private::dash_types::codec::BaseCodec;
+        let mut buf = ::alloc::vec::Vec::new();
+        self.encode(&mut buf);
+        $crate::__private::dash_num::Hash256::from_bytes(
+          $crate::__private::bitcoin_hashes::sha256d::Hash::hash(&buf).to_byte_array(),
+        )
+      }
+    }
+
+    const _: () = {
+      fn _assert<T: $crate::__private::dash_types::codec::BaseCodec + $crate::__private::dash_types::codec::TypeId>() {}
+      fn _check() { _assert::<$ty>(); }
+    };
+  )* };
+}
+
 /// Generates `Encodable` + `Decodable` with payload size limit.
 macro_rules! impl_payload {
   ($ty:ty) => {
-    ::dash_types::impl_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE);
+    $crate::__private::dash_types::impl_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE);
   };
 }
 pub(crate) use impl_payload;
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` for flat structs.
+/// Generates `BaseCodec` + `Encodable` + `Decodable` for flat structs
+/// without `Hashable`.
 #[macro_export]
-macro_rules! codec_type {
+macro_rules! codec_base {
   ($ty:ty { $($field:ident),+ $(,)? }) => {
-    $crate::codec_type!($ty, $crate::__private::dash_types::MAX_SER_SIZE, { $($field),+ });
+    $crate::codec_base!($ty, $crate::__private::dash_types::MAX_SER_SIZE, { $($field),+ });
   };
   ($ty:ty, $max:expr, { $($field:ident),+ $(,)? }) => {
     impl $crate::__private::dash_types::codec::BaseCodec for $ty {
@@ -31,7 +59,7 @@ macro_rules! codec_type {
         })
       }
 
-      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+      fn encode(&self, buf: &mut impl $crate::__private::dash_types::codec::EncodeBuf) {
         $($crate::__private::dash_types::codec::BaseCodec::encode(&self.$field, buf);)+
       }
     }
@@ -40,11 +68,26 @@ macro_rules! codec_type {
   };
 }
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` for flat structs
-/// with payload size limit.
+/// Generates `BaseCodec` + `Encodable` + `Decodable` + `Hashable` for
+/// flat structs.
+#[macro_export]
+macro_rules! codec_type {
+  ($ty:ty { $($field:ident),+ $(,)? }) => {
+    $crate::codec_base!($ty { $($field),+ });
+    $crate::hash_impl!($ty);
+  };
+  ($ty:ty, $max:expr, { $($field:ident),+ $(,)? }) => {
+    $crate::codec_base!($ty, $max, { $($field),+ });
+    $crate::hash_impl!($ty);
+  };
+}
+
+/// Generates `BaseCodec` + `Encodable` + `Decodable` + `Hashable` for
+/// flat structs with payload size limit.
 macro_rules! codec_payload {
   ($ty:ty { $($field:ident),+ $(,)? }) => {
-    $crate::codec_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE, { $($field),+ });
+    $crate::codec_base!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE, { $($field),+ });
+    $crate::hash_impl!($ty);
   };
 }
 pub(crate) use codec_payload;

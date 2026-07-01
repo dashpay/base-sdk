@@ -11,13 +11,14 @@ use crate::primitives::{ProtocolVersion, ServiceFlags, UserAgent};
 
 use dash_num::Hash256;
 use dash_primitives::ServiceV1;
+use dash_types::TypeId;
 
 use core::fmt;
 
 /// Network address with service flags (used inside the version message).
 ///
 /// Wire format: `u64 services` + `[u8; 16] addr` + `u16 BE port`.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct VersionAddr {
   /// Advertised services.
@@ -38,7 +39,7 @@ impl fmt::Display for VersionAddr {
 ///
 /// Dash extends the Bitcoin version message with two additional
 /// fields for masternode authentication.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Version {
   /// Sender's protocol version.

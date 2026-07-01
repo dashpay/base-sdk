@@ -6,15 +6,16 @@
 
 //! Protocol support types for special transaction payloads.
 
+use crate::hash_impl;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError, NumCodec};
-use dash_types::{impl_num, impl_type};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf, NumCodec};
+use dash_types::{impl_num, impl_type, TypeId, Unencodable};
 
 use core::fmt;
 
 /// LLMQ type (quorum size/threshold configuration).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum LlmqType {
   /// 50 members, 60% threshold.
   Llmq50_60,
@@ -84,6 +85,8 @@ impl NumCodec<u8> for LlmqType {
 
 impl_num!(LlmqType, u8);
 
+hash_impl!(LlmqType);
+
 impl fmt::Display for LlmqType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -105,7 +108,7 @@ impl fmt::Display for LlmqType {
 }
 
 /// Revocation reason for provider update revocation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum RevocationReason {
   /// No specific reason.
   NotSpecified,
@@ -143,6 +146,8 @@ impl NumCodec<u16> for RevocationReason {
 
 impl_num!(RevocationReason, u16);
 
+hash_impl!(RevocationReason);
+
 impl fmt::Display for RevocationReason {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -156,7 +161,7 @@ impl fmt::Display for RevocationReason {
 }
 
 /// LSB-first dynamic bitset.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(into = "DynBitsetSerde"))]
 pub struct DynBitset {
@@ -170,7 +175,7 @@ impl_type!(DynBitset);
 
 /// Serde helper for [`DynBitset`] that validates on deserialisation.
 #[cfg(feature = "serde")]
-#[derive(Clone, Debug, Eq, Hash, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable, ::serde::Serialize, ::serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DynBitsetSerde {
   num_bits: u64,
@@ -202,25 +207,36 @@ impl BaseCodec for DynBitset {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     codec::write_compact_u64(self.num_bits, buf);
     let required = (self.num_bits as usize).div_ceil(8);
     let src = &self.data;
     let take = src.len().min(required);
-    // nosemgrep: codec-no-raw-extend
-    buf.extend_from_slice(&src[..take]);
+    if take > 0 {
+      // nosemgrep: codec-no-raw-extend
+      buf.extend_from_slice(&src[..take - 1]);
+      // Mask padding bits only when the last source byte is
+      // also the final output byte (take == required).
+      let last_byte = if take == required {
+        let remainder = (self.num_bits % 8) as u32;
+        if remainder != 0 {
+          src[take - 1] & ((1u8 << remainder) - 1)
+        } else {
+          src[take - 1]
+        }
+      } else {
+        src[take - 1]
+      };
+      buf.push(last_byte);
+    }
     // Pad with zero bytes if data is shorter than required.
     for _ in take..required {
       buf.push(0);
     }
-    // Clear padding bits in the final byte.
-    let remainder = (self.num_bits % 8) as u32;
-    if remainder != 0 && required > 0 {
-      let last = buf.len() - 1;
-      buf[last] &= (1u8 << remainder) - 1;
-    }
   }
 }
+
+hash_impl!(DynBitset);
 
 impl DynBitset {
   /// Returns the bit at the given index.
@@ -298,7 +314,7 @@ impl<'de> serde::Deserialize<'de> for DynBitset {
 }
 
 /// Iterator over set bit indices in a [`DynBitset`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Unencodable)]
 pub struct DynBitsetIterator<'a> {
   bitset: &'a DynBitset,
   index: u64,

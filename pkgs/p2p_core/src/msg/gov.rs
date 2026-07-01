@@ -10,13 +10,14 @@ use crate::codec::codec_p2p;
 use crate::prelude::*;
 
 use dash_num::Hash256;
+use dash_types::TypeId;
 
 /// Requests governance objects and votes from a peer.
 ///
 /// When `hash` is zero, the peer responds with all governance
 /// objects. When non-zero, it responds with votes for that
 /// specific object.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GovSync {
   /// Object hash (zero for full sync).

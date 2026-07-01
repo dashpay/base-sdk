@@ -48,7 +48,9 @@ def _discover_ql_sources(query_dir: Path) -> list[Path]:
   )
 
 
-_SOURCE_KEYWORDS = ("Serialize", "Deserialize", "#[cfg")
+_SOURCE_KEYWORDS = (
+    "Serialize", "Deserialize", "Unencodable", "TypeId", "#[cfg",
+)
 
 
 def _generate_source_lines(

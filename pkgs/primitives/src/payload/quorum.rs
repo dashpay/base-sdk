@@ -8,12 +8,13 @@
 
 use super::QuorumHash;
 use crate::codec::impl_payload;
-use crate::prelude::*;
+use crate::hash_impl;
 use crate::support::{DynBitset, LlmqType};
 
 use dash_num::{make_hash, Hash256};
 use dash_pkc::{BlsPublicKeyBytes, BlsSignatureBytes};
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -23,13 +24,15 @@ make_hash! {
   QuorumVvecHash
 }
 
+hash_impl!(QuorumVvecHash);
+
 /// DKG session output for one LLMQ.
 ///
 /// - v1: legacy
 /// - v2: legacy + indexed (quorum_index)
 /// - v3: basic
 /// - v4: basic + indexed (quorum_index)
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Commitment {
@@ -82,7 +85,7 @@ impl BaseCodec for Commitment {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.llmq_type.to_base().encode(buf);
     self.quorum_hash.encode(buf);
@@ -97,6 +100,8 @@ impl BaseCodec for Commitment {
     self.members_sig.encode(buf);
   }
 }
+
+hash_impl!(Commitment);
 
 impl Commitment {
   /// Returns true if this is an indexed commitment (version 2 or 4).
@@ -113,7 +118,7 @@ impl fmt::Display for Commitment {
 }
 
 /// Tx-level wrapper for Commitment (type 6).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct FinalCommitment {
@@ -136,7 +141,7 @@ impl BaseCodec for FinalCommitment {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     self.height.to_u32().encode(buf);
     self.commitment.encode(buf);
@@ -144,7 +149,7 @@ impl BaseCodec for FinalCommitment {
 }
 
 /// Final commitment validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum CommitmentInvalid {
   /// `bad-qc-quorum-index`
   BadQuorumIndex,
@@ -169,6 +174,8 @@ impl Checkable for FinalCommitment {
     None
   }
 }
+
+hash_impl!(FinalCommitment);
 
 impl fmt::Display for FinalCommitment {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

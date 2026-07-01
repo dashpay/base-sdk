@@ -10,14 +10,15 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::ProtocolVersion;
 
-use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_primitives::{hash_impl, BlockHash, BlockHeader, MerkleRoot};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::TypeId;
 
 /// Maximum headers per message.
 const MAX_HEADERS: usize = 2_000;
 
 /// Requests block headers starting from a locator.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetHeaders {
   /// Protocol version.
@@ -38,7 +39,7 @@ codec_p2p!(GetHeaders {
 ///
 /// Each header is followed by a CompactSize transaction count
 /// (always zero, since full blocks are not included).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Headers {
   /// Block headers.
@@ -66,7 +67,7 @@ impl BaseCodec for Headers {
     Ok(Self { headers })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     codec::write_compact_size(self.headers.len(), buf);
     for h in &self.headers {
       h.version.encode(buf);
@@ -79,3 +80,5 @@ impl BaseCodec for Headers {
     }
   }
 }
+
+hash_impl!(Headers);

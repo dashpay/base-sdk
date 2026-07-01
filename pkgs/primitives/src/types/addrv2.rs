@@ -9,11 +9,12 @@
 use super::addrv1::{AddrV1, ServiceV1};
 use super::netaddr::{NetAddr, NetAddrError, NetworkType};
 use super::util::{base16_dec, base16_enc, base32r_dec, base32r_enc};
+use crate::hash_impl;
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{impl_type, type_cvrt};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::{impl_type, type_cvrt, TypeId};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};
@@ -23,7 +24,7 @@ use core::str::FromStr;
 const MAX_ADDR_LEN: usize = 512;
 
 /// BIP155 network address.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum AddrV2 {
   /// IPv4 address (4 bytes).
@@ -97,7 +98,7 @@ impl BaseCodec for AddrV2 {
     }
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.network().to_base().encode(buf);
     let bytes = self.bytes();
     codec::write_compact_size(bytes.len(), buf);
@@ -152,6 +153,8 @@ impl Checkable for AddrV2 {
     None
   }
 }
+
+hash_impl!(AddrV2);
 
 impl AddrV2 {
   /// Returns the BIP155 network type for this address.
@@ -325,7 +328,7 @@ impl FromStr for AddrV2 {
 }
 
 /// BIP155 network service (address + port).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct ServiceV2 {
   /// Typed network address.
@@ -343,7 +346,7 @@ impl BaseCodec for ServiceV2 {
     Ok(Self { addr, port })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.addr.encode(buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
   }
@@ -364,6 +367,8 @@ impl Checkable for ServiceV2 {
     self.addr.check()
   }
 }
+
+hash_impl!(ServiceV2);
 
 impl fmt::Display for ServiceV2 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

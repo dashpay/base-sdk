@@ -19,12 +19,13 @@ mod prouprevtx;
 mod proupservtx;
 mod quorum;
 
+use crate::hash_impl;
 use crate::prelude::*;
 use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{Checkable, NumCodec};
-use dash_types::impl_num;
+use dash_types::{impl_num, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -47,14 +48,18 @@ make_hash! {
   QuorumHash
 }
 
+hash_impl!(QuorumHash);
+
 make_hash! {
   Hash256,
   /// Hash of serialized transaction inputs.
   InputsHash
 }
 
+hash_impl!(InputsHash);
+
 /// Dash transaction type, encoded in the upper 16 bits of the version field.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum TxType {
   /// Spend transaction (includes legacy coinbase).
   Spend,
@@ -116,6 +121,8 @@ impl NumCodec<u16> for TxType {
 
 impl_num!(TxType, u16);
 
+hash_impl!(TxType);
+
 impl fmt::Display for TxType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -135,7 +142,7 @@ impl fmt::Display for TxType {
 }
 
 /// Masternode type, used in provider registration and update transactions.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum MnType {
   /// Regular masternode.
   Regular,
@@ -165,6 +172,8 @@ impl NumCodec<u16> for MnType {
 
 impl_num!(MnType, u16);
 
+hash_impl!(MnType);
+
 impl fmt::Display for MnType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -176,7 +185,7 @@ impl fmt::Display for MnType {
 }
 
 /// Provider transaction validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum ProTxInvalid {
   /// `bad-protx-version`
   BadVersion { version: u16 },
@@ -270,7 +279,7 @@ pub use quorum::{Commitment, CommitmentInvalid, FinalCommitment, QuorumVvecHash}
 ///
 /// Provides a unified dispatch over all Dash special transaction types. Unknown
 /// or future types are stored as opaque bytes for forward compatibility.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum SpecialPayload {
   /// Masternode registration (type 1).
@@ -301,7 +310,7 @@ pub enum SpecialPayload {
 }
 
 /// Error decoding a special payload.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Unencodable)]
 pub struct PayloadError {
   /// Which transaction type was being decoded.
   pub tx_type: TxType,
@@ -316,7 +325,7 @@ impl fmt::Display for PayloadError {
 }
 
 /// Structural check failure for a special payload.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Unencodable)]
 pub enum PayloadInvalid {
   /// Provider transaction check failed.
   ProTx(ProTxInvalid),

@@ -10,13 +10,16 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 
 use bitcoin_units::BlockHeight;
-use dash_primitives::BlockHash;
-use dash_types::codec::{BaseCodec, DecodeError};
+use dash_primitives::{hash_impl, BlockHash};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{make_num, TypeId};
 
-dash_types::make_num! {
+make_num! {
   /// BIP157 filter type, encoded as a single byte on the wire.
   FilterType, u8, 1
 }
+
+hash_impl!(FilterType);
 
 impl FilterType {
   /// Basic filter (the only type defined by BIP158).
@@ -24,7 +27,7 @@ impl FilterType {
 }
 
 /// Requests compact filters for a range of blocks.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetCFilters {
   /// Filter type (0 = basic).
@@ -46,15 +49,17 @@ impl BaseCodec for GetCFilters {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.filter_type.0.encode(buf);
     self.start_height.to_u32().encode(buf);
     self.stop_hash.encode(buf);
   }
 }
 
+hash_impl!(GetCFilters);
+
 /// A single compact block filter.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CFilter {
   /// Filter type.
@@ -72,7 +77,7 @@ codec_p2p!(CFilter {
 });
 
 /// Requests compact filter headers for a range of blocks.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetCFHeaders {
   /// Filter type.
@@ -94,15 +99,17 @@ impl BaseCodec for GetCFHeaders {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.filter_type.0.encode(buf);
     self.start_height.to_u32().encode(buf);
     self.stop_hash.encode(buf);
   }
 }
 
+hash_impl!(GetCFHeaders);
+
 /// Response carrying filter headers and their hashes.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CFHeaders {
   /// Filter type.
@@ -123,7 +130,7 @@ codec_p2p!(CFHeaders {
 });
 
 /// Requests evenly-spaced compact filter checkpoints.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetCFCheckpt {
   /// Filter type.
@@ -135,7 +142,7 @@ pub struct GetCFCheckpt {
 codec_p2p!(GetCFCheckpt { filter_type, stop_hash });
 
 /// Response carrying filter header checkpoints at 1000-block intervals.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CFCheckpt {
   /// Filter type.

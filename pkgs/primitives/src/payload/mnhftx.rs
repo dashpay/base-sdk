@@ -11,6 +11,7 @@ use crate::codec::codec_payload;
 
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::Checkable;
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
@@ -18,7 +19,7 @@ use core::fmt;
 pub const VERSIONBITS_NUM_BITS: u8 = 29;
 
 /// MnHardFork -- hard-fork signal (type 7).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct MnHardFork {
@@ -40,7 +41,7 @@ codec_payload!(MnHardFork {
 });
 
 /// MNHF signal validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum MnHardForkInvalid {
   /// `bad-mnhf-version`
   BadVersion { version: u8 },

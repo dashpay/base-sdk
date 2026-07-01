@@ -9,7 +9,8 @@
 use crate::prelude::*;
 
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot};
-use dash_types::codec::{BaseCodec, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, Hashable};
+use dash_types::Unencodable;
 
 // Bitfield layout (1 byte):
 //   bits 0-2: version offset (0 = full version present, 1-7 = MRU cache index)
@@ -30,13 +31,16 @@ const MAX_VERSION_CACHE: usize = 7;
 /// delta-encoded against its predecessor and a shared MRU version
 /// cache. Create one `CompressionState` per `headers2` message and
 /// feed headers through it in order.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CompressionState {
   /// MRU version cache (front = most recently used).
   pub version_cache: Vec<i32>,
   /// Previous fully-resolved header.
   pub prev_header: Option<BlockHeader>,
+  /// Cached block hash of `prev_header`.
+  #[cfg_attr(feature = "serde", serde(skip))]
+  prev_block_hash: Option<BlockHash>,
 }
 
 impl CompressionState {
@@ -45,6 +49,7 @@ impl CompressionState {
     Self {
       version_cache: Vec::with_capacity(MAX_VERSION_CACHE),
       prev_header: None,
+      prev_block_hash: None,
     }
   }
 
@@ -65,6 +70,14 @@ impl CompressionState {
   /// Finds the cache position (0-based) for a version, if cached.
   fn find_version(&self, version: i32) -> Option<usize> {
     self.version_cache.iter().position(|&v| v == version)
+  }
+
+  /// Returns cached hash, recomputing from `prev_header` if the cache is cold.
+  fn prev_hash(&mut self) -> Option<BlockHash> {
+    if self.prev_block_hash.is_none() {
+      self.prev_block_hash = self.prev_header.as_ref().map(|h| h.hash());
+    }
+    self.prev_block_hash
   }
 
   /// Decodes one compressed header, advancing the slice and state.
@@ -92,10 +105,7 @@ impl CompressionState {
     let prev_hash = if flags & FLAG_PREV_HASH != 0 {
       BlockHash::decode(sl)?
     } else {
-      match &self.prev_header {
-        Some(prev) => prev.prev_hash,
-        None => BlockHash::default(),
-      }
+      self.prev_hash().unwrap_or_default()
     };
 
     let merkle_root = MerkleRoot::decode(sl)?;
@@ -129,12 +139,13 @@ impl CompressionState {
       bits,
       nonce,
     };
+    self.prev_block_hash = Some(header.hash());
     self.prev_header = Some(header);
     Ok(header)
   }
 
   /// Encodes one header in compressed form, advancing the state.
-  pub fn encode_header(&mut self, header: &BlockHeader, buf: &mut Vec<u8>) {
+  pub fn encode_header(&mut self, header: &BlockHeader, buf: &mut impl EncodeBuf) {
     let mut flags: u8 = 0;
 
     let version_offset = match self.find_version(header.version) {
@@ -143,8 +154,8 @@ impl CompressionState {
     };
     flags |= version_offset & VERSION_OFFSET_MASK;
 
-    let need_prev_hash = match &self.prev_header {
-      Some(prev) => header.prev_hash != prev.prev_hash,
+    let need_prev_hash = match self.prev_hash() {
+      Some(hash) => header.prev_hash != hash,
       None => true,
     };
     if need_prev_hash {
@@ -200,6 +211,7 @@ impl CompressionState {
     }
 
     header.nonce.encode(buf);
+    self.prev_block_hash = Some(header.hash());
     self.prev_header = Some(*header);
   }
 }

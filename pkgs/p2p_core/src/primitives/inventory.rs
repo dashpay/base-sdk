@@ -9,13 +9,14 @@
 use crate::codec::codec_p2p;
 
 use dash_num::Hash256;
+use dash_primitives::hash_impl;
 use dash_types::codec::NumCodec;
-use dash_types::impl_num;
+use dash_types::{impl_num, TypeId};
 
 use core::fmt;
 
 /// Inventory object type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum InvType {
   /// Error / not used.
   Error,
@@ -65,6 +66,8 @@ impl NumCodec<u32> for InvType {
 
 impl_num!(InvType, u32);
 
+hash_impl!(InvType);
+
 impl fmt::Display for InvType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -81,7 +84,7 @@ impl fmt::Display for InvType {
 }
 
 /// An inventory vector: a typed 32-byte hash.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Inventory {
   /// Object type.

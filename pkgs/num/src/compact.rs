@@ -41,6 +41,8 @@ impl NumCodec<u32> for CompactTarget {
   }
 }
 
+impl_num!(CompactTarget, u32);
+
 impl CompactTarget {
   /// Decode this compact (nBits) representation into a 256-bit target value.
   pub const fn decode(self) -> DecodedTarget {
@@ -107,5 +109,3 @@ impl Arith256 {
     CompactTarget(compact)
   }
 }
-
-impl_num!(CompactTarget, u32);

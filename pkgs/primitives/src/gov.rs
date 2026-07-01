@@ -6,15 +6,15 @@
 
 //! Governance object and vote types as defined by the Dash protocol.
 
-use crate::codec_type;
 use crate::prelude::*;
 use crate::transaction::OutPoint;
-use crate::TxHash;
+use crate::{codec_base, hash_impl, TxHash};
 
 use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
-use dash_types::codec::{BaseCodec, Checkable, NumCodec};
-use dash_types::impl_num;
+use dash_num::Hash256;
+use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable, NumCodec};
+use dash_types::{impl_num, TypeId, Unencodable};
 use hex_conservative::DisplayHex;
 
 use core::fmt;
@@ -29,7 +29,7 @@ const MIN_URL_LEN: usize = 4;
 const PROPOSAL_NAME_CHARS: &[u8] = b"-_abcdefghijklmnopqrstuvwxyz0123456789";
 
 /// Governance object type codes.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum GovObjectType {
   /// Budget proposal.
   Proposal,
@@ -59,6 +59,8 @@ impl NumCodec<i32> for GovObjectType {
 
 impl_num!(GovObjectType, i32);
 
+hash_impl!(GovObjectType);
+
 impl fmt::Display for GovObjectType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -82,7 +84,7 @@ impl fmt::Display for GovObjectType {
 ///   "end_epoch": 1703000000
 /// }
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Proposal {
   /// Short name (max 40 chars, lowercase alphanum + `-_`).
@@ -111,7 +113,7 @@ pub struct Proposal {
 ///   "proposal_hashes": "hash1|hash2"
 /// }
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Trigger {
@@ -126,7 +128,7 @@ pub struct Trigger {
 }
 
 /// Decoded governance object data payload.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum GovData {
   /// Budget proposal.
@@ -145,7 +147,7 @@ pub enum GovData {
 /// || type(i32) || masternode_outpoint(36)
 /// || sig(CompactSize + bytes)
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovObject {
@@ -169,7 +171,7 @@ pub struct GovObject {
   pub sig: Vec<u8>,
 }
 
-codec_type!(GovObject {
+codec_base!(GovObject {
   hash_parent,
   revision,
   time,
@@ -180,13 +182,15 @@ codec_type!(GovObject {
   sig,
 });
 
-impl GovObject {
+impl Hashable for GovObject {
+  type Hash = Hash256;
+
   /// Computes the canonical governance object hash.
   ///
   /// The hash input differs from the wire format: `collateral_hash` and
   /// `object_type` are excluded, and `data` is hex-encoded as ASCII bytes
   /// before hashing.
-  pub fn hash(&self) -> TxHash {
+  fn hash(&self) -> Hash256 {
     let data_hex = self.data.to_lower_hex_string();
 
     let mut buf = Vec::new();
@@ -202,9 +206,11 @@ impl GovObject {
     0xFFFF_FFFFu32.encode(&mut buf);
     self.sig.encode(&mut buf);
 
-    TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
+    Hash256::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
   }
+}
 
+impl GovObject {
   /// Returns the data as a UTF-8 string, if valid.
   pub fn data_as_string(&self) -> Option<&str> {
     core::str::from_utf8(&self.data).ok()
@@ -217,7 +223,7 @@ impl GovObject {
 }
 
 /// Governance vote outcome.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TypeId)]
 pub enum VoteOutcome {
   /// No vote cast.
   None,
@@ -255,6 +261,8 @@ impl NumCodec<u32> for VoteOutcome {
 
 impl_num!(VoteOutcome, u32);
 
+hash_impl!(VoteOutcome);
+
 impl fmt::Display for VoteOutcome {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -268,7 +276,7 @@ impl fmt::Display for VoteOutcome {
 }
 
 /// Governance vote signal type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TypeId)]
 pub enum VoteSignal {
   /// No signal.
   None,
@@ -310,6 +318,8 @@ impl NumCodec<u32> for VoteSignal {
 
 impl_num!(VoteSignal, u32);
 
+hash_impl!(VoteSignal);
+
 impl fmt::Display for VoteSignal {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -330,7 +340,7 @@ impl fmt::Display for VoteSignal {
 /// || outcome(u32) || signal(u32) || time(i64)
 /// || sig(CompactSize + bytes)
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct GovVote {
@@ -349,7 +359,7 @@ pub struct GovVote {
   pub sig: Vec<u8>,
 }
 
-codec_type!(GovVote {
+codec_base!(GovVote {
   masternode_outpoint,
   parent_hash,
   outcome,
@@ -358,11 +368,13 @@ codec_type!(GovVote {
   sig,
 });
 
-impl GovVote {
+impl Hashable for GovVote {
+  type Hash = Hash256;
+
   /// Computes the canonical vote hash, including dummy padding after the
   /// outpoint for legacy compatibility.
-  pub fn hash(&self) -> TxHash {
-    let mut buf = Vec::new();
+  fn hash(&self) -> Hash256 {
+    let mut buf = ArrayBuf::<89>::new();
     // outpoint + dummy padding for legacy hash compat
     self.masternode_outpoint.hash.encode(&mut buf);
     self.masternode_outpoint.index.encode(&mut buf);
@@ -373,12 +385,12 @@ impl GovVote {
     self.outcome.encode(&mut buf);
     self.time.encode(&mut buf);
 
-    TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
+    Hash256::from_bytes(sha256d::Hash::hash(&buf.into_array()).to_byte_array())
   }
 }
 
 /// Governance proposal validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum ProposalInvalid {
   /// Name is empty.
   NameEmpty,
@@ -531,7 +543,7 @@ mod tests {
       obj.encode(&mut encoded);
       assert_eq!(encoded, raw, "{label}: encode");
 
-      let expected_hash = TxHash::from_hex(label).unwrap();
+      let expected_hash = Hash256::from_hex(label).unwrap();
       assert_eq!(obj.hash(), expected_hash, "{label}: hash");
     });
     assert_serde_rt(section, &items);

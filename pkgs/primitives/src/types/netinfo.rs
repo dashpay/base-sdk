@@ -8,10 +8,11 @@
 
 use super::netaddr::{is_bad_port, NetAddr};
 use super::{AddrV2, NetAddrError, ServiceV1, ServiceV2};
+use crate::hash_impl;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::{impl_num, impl_type};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::{impl_num, impl_type, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -49,7 +50,7 @@ const TLDS_BAD: &[&str] = &[
 const TLDS_PRIVACY: &[&str] = &[".i2p", ".onion"];
 
 /// Purpose tag for an extended network info entry.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum NIPurpose {
   /// Core P2P port.
   CoreP2p,
@@ -83,6 +84,8 @@ impl NumCodec<u8> for NIPurpose {
 
 impl_num!(NIPurpose, u8);
 
+hash_impl!(NIPurpose);
+
 impl fmt::Display for NIPurpose {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -95,7 +98,7 @@ impl fmt::Display for NIPurpose {
 }
 
 /// Type tag for an extended network info entry.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
 pub enum NIEntryCode {
   /// BIP155 address + port.
   Service,
@@ -124,6 +127,8 @@ impl NumCodec<u8> for NIEntryCode {
 }
 
 impl_num!(NIEntryCode, u8);
+
+hash_impl!(NIEntryCode);
 
 impl fmt::Display for NIEntryCode {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -187,7 +192,7 @@ impl fmt::Display for NIError {
 impl std::error::Error for NIError {}
 
 /// A single network info entry within a purpose group.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NIEntry {
@@ -220,7 +225,7 @@ impl BaseCodec for NIEntry {
     }
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     match self {
       Self::Service(svc) => {
         NIEntryCode::Service.to_base().encode(buf);
@@ -302,6 +307,8 @@ impl Checkable for NIEntry {
   }
 }
 
+hash_impl!(NIEntry);
+
 impl fmt::Display for NIEntry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -336,7 +343,7 @@ pub trait NITrait: fmt::Display {
 ///
 /// Contains a versioned list of purpose-grouped network entries (core P2P,
 /// platform P2P, platform HTTPS).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct NetInfoV2 {
@@ -365,7 +372,7 @@ impl BaseCodec for NetInfoV2 {
     Ok(Self { version, entries })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     codec::write_compact_size(self.entries.len(), buf);
     for (purpose, group) in &self.entries {
@@ -446,6 +453,8 @@ impl Checkable for NetInfoV2 {
   }
 }
 
+hash_impl!(NetInfoV2);
+
 impl NetInfoV2 {
   /// Highest supported format version.
   const CURRENT_VERSION: u8 = 1;
@@ -520,7 +529,7 @@ fn same_addr(a: &NIEntry, b: &NIEntry) -> bool {
 }
 
 /// Legacy network information wrapper.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NetInfoV1(pub ServiceV1);
@@ -532,7 +541,7 @@ impl BaseCodec for NetInfoV1 {
     Ok(Self(ServiceV1::decode(data)?))
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.0.encode(buf);
   }
 }
@@ -547,6 +556,8 @@ impl Checkable for NetInfoV1 {
     None
   }
 }
+
+hash_impl!(NetInfoV1);
 
 impl fmt::Display for NetInfoV1 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -591,7 +602,7 @@ impl NITrait for NetInfoV1 {
 }
 
 /// Masternode network info: legacy ServiceV1 or structured extended format.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub enum NetInfo {

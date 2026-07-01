@@ -10,14 +10,15 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::primitives::{CompressionState, ProtocolVersion};
 
-use dash_primitives::BlockHash;
-use dash_types::codec::{self, BaseCodec, DecodeError};
+use dash_primitives::{hash_impl, BlockHash};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::TypeId;
 
 /// Maximum headers per message.
 const MAX_HEADERS: usize = 2_000;
 
 /// Requests compressed block headers starting from a locator.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct GetHeaders2 {
   /// Protocol version.
@@ -35,7 +36,7 @@ codec_p2p!(GetHeaders2 {
 });
 
 /// Response carrying DIP-0025 delta-compressed block headers.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Headers2 {
   /// Fully resolved block headers (decompressed).
@@ -55,7 +56,7 @@ impl BaseCodec for Headers2 {
     Ok(Self { headers })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     codec::write_compact_size(self.headers.len(), buf);
     let mut state = CompressionState::new();
     for h in &self.headers {
@@ -63,6 +64,8 @@ impl BaseCodec for Headers2 {
     }
   }
 }
+
+hash_impl!(Headers2);
 
 #[cfg(all(test, feature = "serde"))]
 mod tests {

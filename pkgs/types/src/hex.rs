@@ -19,7 +19,7 @@ macro_rules! impl_bytes {
         $crate::codec::take::<$n>(data).map(|b| Self(b))
       }
 
-      fn encode(&self, buf: &mut ::alloc::vec::Vec<u8>) {
+      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
         buf.extend_from_slice(self.as_bytes());
       }
     }
@@ -41,7 +41,7 @@ macro_rules! make_bytes {
     $name:ident, $n:literal
   ) => {
     $(#[$attr])*
-    #[derive(Clone, Copy, Eq, Hash, PartialEq)]
+    #[derive(Clone, Copy, Eq, Hash, PartialEq, $crate::TypeId)]
     pub struct $name(pub [u8; $n]);
 
     $crate::impl_bytes!($n, $name);

@@ -11,11 +11,12 @@ use crate::codec::codec_payload;
 
 use dash_pkc::BlsSignatureBytes;
 use dash_types::codec::Checkable;
+use dash_types::{TypeId, Unencodable};
 
 use core::fmt;
 
 /// AssetUnlock: Platform-to-L1 (type 9).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct AssetUnlock {
@@ -43,7 +44,7 @@ codec_payload!(AssetUnlock {
 });
 
 /// Asset unlock validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum AssetUnlockInvalid {
   /// `bad-assetunlocktx-version`
   BadVersion { version: u8 },

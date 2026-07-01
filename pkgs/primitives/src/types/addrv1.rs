@@ -8,10 +8,10 @@
 
 use super::addrv2::{AddrV2, ServiceV2};
 use super::netaddr::{NetAddr, NetAddrError, NetworkType};
-use crate::prelude::*;
+use crate::hash_impl;
 
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError};
-use dash_types::{impl_bytes, impl_type, type_cvrt};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
+use dash_types::{impl_bytes, impl_type, type_cvrt, TypeId};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};
@@ -21,7 +21,7 @@ use core::str::FromStr;
 const IPV4_MAPPED_PREFIX: [u8; 12] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
 
 /// ADDRv1 IPv4-mapped IPv6 address (16 bytes).
-#[derive(Clone, Copy, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Default, Eq, Hash, PartialEq, TypeId)]
 pub struct AddrV1(pub [u8; 16]);
 
 impl_bytes!(16, AddrV1);
@@ -47,6 +47,8 @@ impl Checkable for AddrV1 {
     None
   }
 }
+
+hash_impl!(AddrV1);
 
 impl AddrV1 {
   /// Returns the inner byte array.
@@ -203,7 +205,7 @@ type_cvrt!(TryFrom<AddrV2> for AddrV1, NetAddrError, |addr| {
 });
 
 /// Legacy network address (ADDRv1 format, 18 bytes).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ServiceV1 {
@@ -223,7 +225,7 @@ impl BaseCodec for ServiceV1 {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.addr.encode(buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
   }
@@ -239,6 +241,8 @@ impl Checkable for ServiceV1 {
     self.addr.check()
   }
 }
+
+hash_impl!(ServiceV1);
 
 impl fmt::Display for ServiceV1 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -293,6 +297,7 @@ pub(super) fn split_service_str(s: &str) -> Result<(&str, u16), NetAddrError> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
+  use crate::prelude::*;
 
   use hex_literal::hex;
   use rstest::rstest;

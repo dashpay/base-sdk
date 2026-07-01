@@ -9,13 +9,13 @@
 use super::proregtx::{check_platform_fields, PlatformNodeId};
 use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::codec::impl_payload;
-use crate::prelude::*;
 use crate::script::Script;
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
-use crate::TxHash;
+use crate::{hash_impl, TxHash};
 
 use dash_pkc::BlsSignatureBytes;
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::TypeId;
 
 use core::fmt;
 
@@ -24,7 +24,7 @@ use core::fmt;
 /// - v1: LegacyBLS (no mn_type field)
 /// - v2: BasicBLS (adds mn_type)
 /// - v3: ExtAddr (extended network info)
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct ProUpServTx {
@@ -97,7 +97,7 @@ impl BaseCodec for ProUpServTx {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
     if self.version >= 2 {
       self.mn_type.to_base().encode(buf);
@@ -175,6 +175,8 @@ impl Checkable for ProUpServTx {
     None
   }
 }
+
+hash_impl!(ProUpServTx);
 
 impl fmt::Display for ProUpServTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

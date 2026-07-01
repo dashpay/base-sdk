@@ -6,15 +6,16 @@
 
 //! Variable-length script with CompactSize-prefixed consensus encoding.
 
+use crate::hash_impl;
 use crate::prelude::*;
 
-use dash_types::codec::{BaseCodec, DecodeError};
-use dash_types::{impl_type, make_bytes};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{impl_type, make_bytes, TypeId};
 
 use core::fmt;
 
 /// A variable-length script, CompactSize-prefixed on the wire.
-#[derive(Clone, Eq, Hash, PartialEq, Default)]
+#[derive(Clone, Eq, Hash, PartialEq, Default, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Script(#[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))] pub Vec<u8>);
@@ -26,10 +27,12 @@ impl BaseCodec for Script {
     Vec::decode(data).map(Self)
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.0.encode(buf);
   }
 }
+
+hash_impl!(Script);
 
 impl Script {
   /// Creates a new script from raw bytes.
@@ -76,6 +79,8 @@ make_bytes! {
   /// 20-byte public key hash (RIPEMD-160 of SHA-256).
   KeyId, 20
 }
+
+hash_impl!(KeyId);
 
 impl KeyId {
   /// Encode as a Base58Check string with the given version prefix.

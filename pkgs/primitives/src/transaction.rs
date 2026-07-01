@@ -7,15 +7,16 @@
 //! Dash transaction with version/type packing and optional extra payload for
 //! special transactions.
 
-use crate::codec_type;
 use crate::payload::TxType;
 use crate::prelude::*;
 use crate::script::Script;
+use crate::{codec_type, hash_impl};
 
+use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, NumCodec};
-use dash_types::impl_type;
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable, NumCodec};
+use dash_types::{impl_type, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -31,8 +32,10 @@ make_hash! {
   TxHash
 }
 
+hash_impl!(TxHash);
+
 /// A reference to a previous transaction output.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct OutPoint {
@@ -58,7 +61,7 @@ impl fmt::Display for OutPoint {
 }
 
 /// A transaction input.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct TxIn {
@@ -83,7 +86,7 @@ impl fmt::Display for TxIn {
 }
 
 /// A transaction output.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct TxOut {
@@ -110,11 +113,13 @@ impl BaseCodec for TxOut {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.value.to_sat().encode(buf);
     self.script_pubkey.encode(buf);
   }
 }
+
+hash_impl!(TxOut);
 
 impl fmt::Display for TxOut {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -123,7 +128,7 @@ impl fmt::Display for TxOut {
 }
 
 /// Transaction validation failure.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum TxInvalid {
   /// `bad-txns-vin-empty`
   EmptyInputs,
@@ -171,7 +176,7 @@ impl fmt::Display for TxInvalid {
 ///
 /// Special transactions (type != Spend, version >= 3) carry an `extra_payload`
 /// decoded separately by payload-specific decoders.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Transaction {
@@ -213,7 +218,7 @@ impl BaseCodec for Transaction {
     })
   }
 
-  fn encode(&self, buf: &mut Vec<u8>) {
+  fn encode(&self, buf: &mut impl EncodeBuf) {
     self.raw_version().encode(buf);
     self.inputs.encode(buf);
     self.outputs.encode(buf);
@@ -294,6 +299,16 @@ impl Checkable for Transaction {
     }
 
     None
+  }
+}
+
+impl Hashable for Transaction {
+  type Hash = TxHash;
+
+  fn hash(&self) -> TxHash {
+    let mut buf = Vec::new();
+    self.encode(&mut buf);
+    TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
   }
 }
 

@@ -10,7 +10,7 @@ use crate::prelude::*;
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec, Decodable, Decoder, Encodable};
 use dash_primitives::{Transaction, TxHash};
-use dash_types::codec::{BaseCodec, Checkable};
+use dash_types::codec::{BaseCodec, Checkable, Hashable};
 
 use core::fmt::{Debug, Display};
 
@@ -55,14 +55,14 @@ where
   assert_eq!(encode_to_vec(&decoded), raw, "{label}: encode");
 }
 
-/// Asserts that `SHA256d(raw)` matches `label` interpreted as a hex
-/// txid.
+/// Asserts that the transaction hash matches `label` interpreted as
+/// a hex txid.
 ///
 /// # Panics
 ///
 /// Panics on txid mismatch.
 fn assert_txid(raw: &[u8], label: &str) {
-  let computed = dash_primitives::tx_hash(raw);
+  let computed = decode_tx(raw).hash();
   let expected = TxHash::from_hex(label).unwrap_or_else(|e| panic!("{label}: bad txid hex: {e}"));
   assert_eq!(computed, expected, "{label}: txid mismatch");
 }

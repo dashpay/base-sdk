@@ -12,6 +12,7 @@ use crate::primitives::ShortId;
 use crate::primitives::{GetMnListDiff, MnListDiff};
 
 use bitcoin_consensus_encoding as encoding;
+use dash_types::Unencodable;
 
 pub mod addr;
 pub mod compact_filters;
@@ -80,7 +81,7 @@ macro_rules! define_network_messages {
     /// not-yet-implemented messages use `Vec<u8>` to hold the raw
     /// payload so callers can identify *what* was received (for
     /// logging) without needing a full decoder.
-    #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+    #[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
     #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     pub enum DashNetworkMessage {
       $( $(#[$p_doc])* $p_variant($p_type), )*
