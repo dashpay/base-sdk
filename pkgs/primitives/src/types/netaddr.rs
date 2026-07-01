@@ -352,7 +352,7 @@ pub trait NetAddr {
     b.len() == 16 && b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b && b[4..12] == [0; 8]
   }
 
-  /// RFC 6145: IPv6 translation (::ffff:0:0:0/96).
+  /// RFC 6145: IPv4-translated IPv6 (::ffff:0:0:0/96).
   fn is_rfc6145(&self) -> bool {
     if !self.is_ipv6() {
       return false;
@@ -370,12 +370,70 @@ pub trait NetAddr {
     b.len() == 4 && b[0] == 100 && (b[1] & 0xc0) == 64
   }
 
-  /// Returns `true` when the address is globally routable.
-  fn is_routable(&self) -> bool {
-    if self.is_null() {
+  /// RFC 4291: IPv4-mapped IPv6 (::ffff:0:0/96).
+  fn is_rfc4291(&self) -> bool {
+    if !self.is_ipv6() {
       return false;
     }
-    if self.is_local() {
+    let b = self.bytes();
+    b.len() == 16 && b[0..10] == [0; 10] && b[10] == 0xff && b[11] == 0xff
+  }
+
+  /// RFC 4862: IPv6 stateless address autoconfiguration (fe80::/64).
+  fn is_rfc4862(&self) -> bool {
+    if !self.is_ipv6() {
+      return false;
+    }
+    let b = self.bytes();
+    b.len() == 16 && b[0] == 0xfe && b[1] == 0x80 && b[2..8] == [0; 6]
+  }
+
+  /// RFC 5737: documentation IPv4 (TEST-NET-1/2/3).
+  fn is_rfc5737(&self) -> bool {
+    if !self.is_ipv4() {
+      return false;
+    }
+    let b = self.bytes();
+    b.len() == 4
+      && ((b[0] == 192 && b[1] == 0 && b[2] == 2)
+        || (b[0] == 198 && b[1] == 51 && b[2] == 100)
+        || (b[0] == 203 && b[1] == 0 && b[2] == 113))
+  }
+
+  /// RFC 6666: discard prefix (100::/64).
+  fn is_rfc6666(&self) -> bool {
+    if !self.is_ipv6() {
+      return false;
+    }
+    let b = self.bytes();
+    b.len() == 16 && b[0] == 0x01 && b[1] == 0x00 && b[2..8] == [0; 6]
+  }
+
+  /// RFC 6890: IETF protocol assignments (192.0.0.0/24).
+  fn is_rfc6890(&self) -> bool {
+    if !self.is_ipv4() {
+      return false;
+    }
+    let b = self.bytes();
+    b.len() == 4 && b[0] == 192 && b[1] == 0 && b[2] == 0
+  }
+
+  /// RFC 7343: ORCHIDv2 IPv6 (2001:20::/28).
+  fn is_rfc7343(&self) -> bool {
+    if !self.is_ipv6() {
+      return false;
+    }
+    let b = self.bytes();
+    b.len() == 16 && b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x00 && (b[3] & 0xf0) == 0x20
+  }
+
+  /// Returns `true` when the address is globally routable.
+  ///
+  /// This classification matches the reference implementation's `IsRoutable()`
+  /// and is used in consensus-adjacent paths (masternode registration and
+  /// service validation).
+  fn is_routable(&self) -> bool {
+    if self.is_null() {
       return false;
     }
     if self.is_privacy_net() {
@@ -383,278 +441,301 @@ pub trait NetAddr {
     }
     if self.is_ipv4() {
       let b = self.bytes();
-      if b.len() == 4 && (b[0] == 0 || b[0] >= 224) {
+      // 0/8 (current-net), 127/8 (loopback), 255.255.255.255 (broadcast)
+      if b.len() == 4 && (b[0] == 0 || b[0] == 127 || b == [255, 255, 255, 255]) {
         return false;
       }
-      return !self.is_rfc1918() && !self.is_rfc2544() && !self.is_rfc3927() && !self.is_rfc6598();
+      return !self.is_rfc1918()
+        && !self.is_rfc2544()
+        && !self.is_rfc3927()
+        && !self.is_rfc5737()
+        && !self.is_rfc6598();
     }
     if self.is_ipv6() {
       let b = self.bytes();
-      // ff00::/8 multicast
-      if b.len() == 16 && b[0] == 0xff {
+      // ::1 loopback
+      if b.len() == 16 && b[..15] == [0; 15] && b[15] == 1 {
         return false;
       }
       return !self.is_rfc3849()
         && !self.is_rfc4193()
         && !self.is_rfc4843()
-        && !self.is_rfc6052()
-        && !self.is_rfc6145();
+        && !self.is_rfc4862()
+        && !self.is_rfc7343();
     }
     false
   }
+
+  /// Returns `true` when a node can plausibly connect to this address.
+  ///
+  /// This is a strict superset of the ranges excluded by
+  /// [`is_routable`](Self::is_routable) and additionally covers RFC ranges
+  /// that the reference implementation does not yet classify. Unlike
+  /// `is_routable`, this function is **not** consensus-stable and may evolve
+  /// as new RFCs are published.
+  fn is_reachable(&self) -> bool {
+    if !self.is_routable() || self.is_local() {
+      return false;
+    }
+    if self.is_ipv4() {
+      let b = self.bytes();
+      // RFC 1112: multicast (224.0.0.0/4), reserved (240.0.0.0/4)
+      if b.len() == 4 && b[0] >= 224 {
+        return false;
+      }
+      return !self.is_rfc6890();
+    }
+    if self.is_ipv6() {
+      let b = self.bytes();
+      // RFC 4291 §2.7: multicast (ff00::/8)
+      if b.len() == 16 && b[0] == 0xff {
+        return false;
+      }
+      return !self.is_rfc4291() && !self.is_rfc6052() && !self.is_rfc6145() && !self.is_rfc6666();
+    }
+    true
+  }
 }
 
+#[expect(clippy::unwrap_used, reason = "test code")]
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::types::{AddrV1, AddrV2};
 
   use rstest::rstest;
 
-  /// Minimal test adapter: 4-byte IPv4 address.
-  struct Ipv4([u8; 4]);
+  use core::str::FromStr;
 
-  impl NetAddr for Ipv4 {
-    fn bytes(&self) -> &[u8] {
-      &self.0
-    }
-    fn network(&self) -> NetworkType {
-      NetworkType::Ipv4
-    }
-    fn is_ipv4(&self) -> bool {
-      true
-    }
-    fn is_ipv6(&self) -> bool {
-      false
-    }
-    fn is_null(&self) -> bool {
-      self.0 == [0; 4]
-    }
-  }
-
-  /// Minimal test adapter: 16-byte IPv6 address.
-  struct Ipv6([u8; 16]);
-
-  impl NetAddr for Ipv6 {
-    fn bytes(&self) -> &[u8] {
-      &self.0
-    }
-    fn network(&self) -> NetworkType {
-      NetworkType::Ipv6
-    }
-    fn is_ipv4(&self) -> bool {
-      false
-    }
-    fn is_ipv6(&self) -> bool {
-      true
-    }
-    fn is_null(&self) -> bool {
-      self.0 == [0; 16]
-    }
-  }
-
-  fn v4(a: u8, b: u8, c: u8, d: u8) -> Ipv4 {
-    Ipv4([a, b, c, d])
-  }
-
-  fn v6(bytes: [u8; 16]) -> Ipv6 {
-    Ipv6(bytes)
+  fn addr(s: &str) -> AddrV1 {
+    AddrV1::from_str(s).unwrap()
   }
 
   #[rstest]
-  #[case::rfc1918_10(v4(10, 0, 0, 1), true)]
-  #[case::rfc1918_172(v4(172, 31, 255, 255), true)]
-  #[case::rfc1918_192(v4(192, 168, 1, 1), true)]
-  #[case::rfc1918_public(v4(8, 8, 8, 8), false)]
-  fn rfc1918(#[case] addr: Ipv4, #[case] expected: bool) {
-    assert_eq!(addr.is_rfc1918(), expected);
+  #[case::rfc1918_10("10.0.0.1", true)]
+  #[case::rfc1918_172("172.31.255.255", true)]
+  #[case::rfc1918_192("192.168.1.1", true)]
+  #[case::rfc1918_public("8.8.8.8", false)]
+  fn rfc1918(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_rfc1918(), expected);
   }
 
   #[rstest]
-  #[case::rfc2544_lo(v4(198, 18, 0, 0), true)]
-  #[case::rfc2544_hi(v4(198, 19, 255, 255), true)]
-  #[case::rfc2544_below(v4(198, 17, 0, 0), false)]
-  fn rfc2544(#[case] addr: Ipv4, #[case] expected: bool) {
-    assert_eq!(addr.is_rfc2544(), expected);
+  #[case::rfc2544_lo("198.18.0.0", true)]
+  #[case::rfc2544_hi("198.19.255.255", true)]
+  #[case::rfc2544_below("198.17.0.0", false)]
+  fn rfc2544(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_rfc2544(), expected);
   }
 
   #[rstest]
   fn rfc3849() {
-    let mut b = [0u8; 16];
-    b[0] = 0x20;
-    b[1] = 0x01;
-    b[2] = 0x0d;
-    b[3] = 0xb8;
-    assert!(v6(b).is_rfc3849());
+    assert!(addr("[2001:db8::1]").is_rfc3849());
   }
 
   #[rstest]
-  #[case::rfc3927_yes(v4(169, 254, 1, 1), true)]
-  #[case::rfc3927_no(v4(169, 253, 1, 1), false)]
-  fn rfc3927(#[case] addr: Ipv4, #[case] expected: bool) {
-    assert_eq!(addr.is_rfc3927(), expected);
+  #[case::rfc3927_yes("169.254.1.1", true)]
+  #[case::rfc3927_no("169.253.1.1", false)]
+  fn rfc3927(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_rfc3927(), expected);
   }
 
   #[rstest]
   fn rfc4193() {
-    let mut b = [0u8; 16];
-    b[0] = 0xfc;
-    assert!(v6(b).is_rfc4193());
-    b[0] = 0xfd;
-    assert!(v6(b).is_rfc4193());
-    b[0] = 0xfe;
-    assert!(!v6(b).is_rfc4193());
+    assert!(addr("[fc00::1]").is_rfc4193());
+    assert!(addr("[fd00::1]").is_rfc4193());
+    assert!(!addr("[fe00::1]").is_rfc4193());
   }
 
   #[rstest]
   fn rfc4843() {
-    let mut b = [0u8; 16];
-    b[0] = 0x20;
-    b[1] = 0x01;
-    b[2] = 0x00;
-    b[3] = 0x10;
-    assert!(v6(b).is_rfc4843());
-    b[3] = 0x1f;
-    assert!(v6(b).is_rfc4843());
-    b[3] = 0x20;
-    assert!(!v6(b).is_rfc4843());
+    assert!(addr("[2001:10::1]").is_rfc4843());
+    assert!(addr("[2001:1f::1]").is_rfc4843());
+    assert!(!addr("[2001:20::1]").is_rfc4843());
   }
 
   #[rstest]
   fn rfc6052() {
-    let mut b = [0u8; 16];
-    b[0] = 0x00;
-    b[1] = 0x64;
-    b[2] = 0xff;
-    b[3] = 0x9b;
-    assert!(v6(b).is_rfc6052());
-    b[4] = 1;
-    assert!(!v6(b).is_rfc6052());
+    assert!(addr("[64:ff9b::1]").is_rfc6052());
+    assert!(!addr("[64:ff9b:1::1]").is_rfc6052());
   }
 
   #[rstest]
   fn rfc6145() {
-    let mut b = [0u8; 16];
-    b[8] = 0xff;
-    b[9] = 0xff;
-    assert!(v6(b).is_rfc6145());
-    b[0] = 1;
-    assert!(!v6(b).is_rfc6145());
+    assert!(addr("[::ffff:0:0:1]").is_rfc6145());
+    assert!(!addr("[1::ffff:0:0:1]").is_rfc6145());
   }
 
   #[rstest]
-  #[case::rfc6598_lo(v4(100, 64, 0, 0), true)]
-  #[case::rfc6598_hi(v4(100, 127, 255, 255), true)]
-  #[case::rfc6598_below(v4(100, 63, 0, 0), false)]
-  fn rfc6598(#[case] addr: Ipv4, #[case] expected: bool) {
-    assert_eq!(addr.is_rfc6598(), expected);
+  #[case::rfc6598_lo("100.64.0.0", true)]
+  #[case::rfc6598_hi("100.127.255.255", true)]
+  #[case::rfc6598_below("100.63.0.0", false)]
+  fn rfc6598(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_rfc6598(), expected);
   }
 
   #[rstest]
-  #[case::local_v4(v4(127, 0, 0, 1), true)]
-  #[case::local_link(v4(169, 254, 0, 1), true)]
-  #[case::local_public(v4(8, 8, 8, 8), false)]
-  fn local_v4(#[case] addr: Ipv4, #[case] expected: bool) {
-    assert_eq!(addr.is_local(), expected);
+  #[case::local_v4("127.0.0.1", true)]
+  #[case::local_link("169.254.0.1", true)]
+  #[case::local_public("8.8.8.8", false)]
+  fn local_v4(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_local(), expected);
   }
 
   #[rstest]
   fn local_v6() {
-    let mut loopback = [0u8; 16];
-    loopback[15] = 1;
-    assert!(v6(loopback).is_local());
-
-    let mut link_local = [0u8; 16];
-    link_local[0] = 0xfe;
-    link_local[1] = 0x80;
-    assert!(v6(link_local).is_local());
-
-    let mut global = [0u8; 16];
-    global[0] = 0x20;
-    global[1] = 0x01;
-    global[15] = 1;
-    assert!(!v6(global).is_local());
+    assert!(addr("[::1]").is_local());
+    assert!(addr("[fe80::1]").is_local());
+    assert!(!addr("[2001::1]").is_local());
   }
 
   #[rstest]
-  #[case::routable_v4(v4(8, 8, 8, 8), true)]
-  #[case::not_routable_loopback(v4(127, 0, 0, 1), false)]
-  #[case::not_routable_private(v4(10, 0, 0, 1), false)]
-  #[case::not_routable_null(v4(0, 0, 0, 0), false)]
-  #[case::not_routable_multicast(v4(224, 0, 0, 1), false)]
-  #[case::not_routable_multicast_hi(v4(239, 255, 255, 255), false)]
-  fn routable_v4(#[case] addr: Ipv4, #[case] expected: bool) {
-    assert_eq!(addr.is_routable(), expected);
+  #[case::routable_v4("8.8.8.8", true)]
+  #[case::not_routable_loopback("127.0.0.1", false)]
+  #[case::not_routable_private("10.0.0.1", false)]
+  #[case::not_routable_null("0.0.0.0", false)]
+  #[case::routable_multicast("224.0.0.1", true)]
+  #[case::routable_multicast_hi("239.255.255.255", true)]
+  #[case::not_routable_broadcast("255.255.255.255", false)]
+  fn routable_v4(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_routable(), expected);
   }
 
   #[rstest]
   fn routable_v6() {
-    let mut global = [0u8; 16];
-    global[0] = 0x20;
-    global[1] = 0x01;
-    global[15] = 1;
-    assert!(v6(global).is_routable());
+    assert!(addr("[2001::1]").is_routable());
+    assert!(!addr("[2001:db8::1]").is_routable());
+    assert!(!addr("[2001:10::1]").is_routable());
+    assert!(!addr("[2001:20::1]").is_routable());
+    assert!(!addr("[fe80::1]").is_routable());
+    assert!(addr("[ff02::1]").is_routable());
+  }
 
-    let mut doc = [0u8; 16];
-    doc[0] = 0x20;
-    doc[1] = 0x01;
-    doc[2] = 0x0d;
-    doc[3] = 0xb8;
-    doc[15] = 1;
-    assert!(!v6(doc).is_routable());
+  #[rstest]
+  #[case::test_net_1("192.0.2.1", false)]
+  #[case::test_net_2("198.51.100.1", false)]
+  #[case::test_net_3("203.0.113.1", false)]
+  fn routable_rfc5737(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_routable(), expected);
+  }
 
-    let mut mcast = [0u8; 16];
-    mcast[0] = 0xff;
-    mcast[1] = 0x02;
-    mcast[15] = 1;
-    assert!(!v6(mcast).is_routable());
+  #[rstest]
+  #[case::ietf_proto("192.0.0.1", true)]
+  #[case::nat64("[64:ff9b::1]", true)]
+  #[case::siit("[::ffff:0:0:1]", true)]
+  #[case::discard_v6("[100::1]", true)]
+  fn routable_matches_upstream(#[case] s: &str, #[case] expected: bool) {
+    // Routable per the reference implementation but excluded by is_reachable().
+    assert_eq!(addr(s).is_routable(), expected);
   }
 
   #[rstest]
   fn null() {
-    assert!(v4(0, 0, 0, 0).is_null());
-    assert!(!v4(1, 2, 3, 4).is_null());
-    assert!(v6([0; 16]).is_null());
-    let mut nonzero = [0u8; 16];
-    nonzero[15] = 1;
-    assert!(!v6(nonzero).is_null());
+    assert!(AddrV1::default().is_null());
+    assert!(!addr("1.2.3.4").is_null());
+    assert!(!addr("[::1]").is_null());
   }
 
   #[rstest]
   fn invariant_rfc1918_implies_ipv4() {
-    let addr = v4(10, 0, 0, 1);
-    if addr.is_rfc1918() {
-      assert!(addr.is_ipv4());
+    let a = addr("10.0.0.1");
+    if a.is_rfc1918() {
+      assert!(a.is_ipv4());
     }
   }
 
   #[rstest]
   fn invariant_rfc3849_implies_ipv6() {
-    let mut b = [0u8; 16];
-    b[0] = 0x20;
-    b[1] = 0x01;
-    b[2] = 0x0d;
-    b[3] = 0xb8;
-    let addr = v6(b);
-    if addr.is_rfc3849() {
-      assert!(addr.is_ipv6());
+    let a = addr("[2001:db8::1]");
+    if a.is_rfc3849() {
+      assert!(a.is_ipv6());
     }
   }
 
   #[rstest]
   fn invariant_rfc4193_implies_ipv6() {
-    let mut b = [0u8; 16];
-    b[0] = 0xfc;
-    let addr = v6(b);
-    if addr.is_rfc4193() {
-      assert!(addr.is_ipv6());
+    let a = addr("[fc00::1]");
+    if a.is_rfc4193() {
+      assert!(a.is_ipv6());
     }
   }
 
   #[rstest]
   fn invariant_local_implies_not_routable() {
-    let addr = v4(127, 0, 0, 1);
-    if addr.is_local() {
-      assert!(!addr.is_routable());
+    let a = addr("127.0.0.1");
+    if a.is_local() {
+      assert!(!a.is_routable());
     }
+  }
+
+  #[rstest]
+  #[case::mapped_yes("[::ffff:8.8.8.8]", true)]
+  #[case::mapped_no("[2001::1]", false)]
+  fn rfc4291(#[case] s: &str, #[case] expected: bool) {
+    // AddrV1 treats ::ffff:x.x.x.x as IPv4, test via AddrV2.
+    let a = AddrV2::from_str(s).unwrap();
+    assert_eq!(a.is_rfc4291(), expected);
+  }
+
+  #[rstest]
+  #[case::link_local("[fe80::1]", true)]
+  #[case::link_local_boundary("[fe80:1::1]", false)]
+  #[case::not_link_local("[fe81::1]", false)]
+  fn rfc4862(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_rfc4862(), expected);
+  }
+
+  #[rstest]
+  #[case::test_net_1("192.0.2.1", true)]
+  #[case::test_net_2("198.51.100.1", true)]
+  #[case::test_net_3("203.0.113.1", true)]
+  #[case::not_test_net("192.0.1.1", false)]
+  #[case::not_test_net_2("203.0.114.1", false)]
+  fn rfc5737(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_rfc5737(), expected);
+  }
+
+  #[rstest]
+  fn rfc6666() {
+    assert!(addr("[100::1]").is_rfc6666());
+    assert!(!addr("[100:1::1]").is_rfc6666());
+  }
+
+  #[rstest]
+  #[case::ietf_yes("192.0.0.170", true)]
+  #[case::ietf_no("192.0.1.1", false)]
+  fn rfc6890(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_rfc6890(), expected);
+  }
+
+  #[rstest]
+  fn rfc7343() {
+    assert!(addr("[2001:20::1]").is_rfc7343());
+    assert!(addr("[2001:2f::1]").is_rfc7343());
+    assert!(!addr("[2001:30::1]").is_rfc7343());
+  }
+
+  #[rstest]
+  #[case::ietf_proto("192.0.0.1", false)]
+  #[case::nat64("[64:ff9b::1]", false)]
+  #[case::siit("[::ffff:0:0:1]", false)]
+  #[case::discard_v6("[100::1]", false)]
+  #[case::multicast_v4("224.0.0.1", false)]
+  #[case::multicast_v4_hi("239.255.255.255", false)]
+  #[case::reserved_v4("240.0.0.1", false)]
+  #[case::multicast_v6("[ff02::1]", false)]
+  #[case::public_v4("8.8.8.8", true)]
+  #[case::public_v6("[2001::1]", true)]
+  #[case::link_local_64("[fe80::1]", false)]
+  #[case::link_local_10("[fe80:40::1]", false)]
+  fn reachable(#[case] s: &str, #[case] expected: bool) {
+    assert_eq!(addr(s).is_reachable(), expected);
+  }
+
+  #[rstest]
+  fn reachable_ipv4_mapped_v6() {
+    // AddrV1 treats ::ffff:x.x.x.x as IPv4, test via AddrV2.
+    let a = AddrV2::from_str("[::ffff:8.8.8.8]").unwrap();
+    assert!(!a.is_reachable());
   }
 }
