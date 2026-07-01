@@ -235,8 +235,11 @@ function getScriptSigHex() {
 
 /** @returns {number} */
 function parseBits() {
-  const v = bitsInput.value.trim();
+  let v = bitsInput.value.trim();
   if (bitsMode === "hex") {
+    if (v.startsWith("0x") || v.startsWith("0X")) {
+      v = v.slice(2);
+    }
     return RE_HEX.test(v) ? parseInt(v, 16) : NaN;
   }
   return RE_DIGITS.test(v) ? parseInt(v, 10) : NaN;
