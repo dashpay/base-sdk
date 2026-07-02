@@ -6,7 +6,7 @@
 
 //! Emits a `TypeId` collision-check table from workspace sources.
 
-#![expect(clippy::unwrap_used, clippy::panic, reason = "build script")]
+#![expect(clippy::expect_used, clippy::unwrap_used, clippy::panic, reason = "build script")]
 
 use proc_macro2::{TokenStream, TokenTree};
 use syn::visit::{visit_item_enum, visit_item_macro, visit_item_struct, Visit};
@@ -61,6 +61,8 @@ fn main() {
       }
     }
   }
+
+  built::write_built_file().expect("failed to write built.rs metadata");
 }
 
 #[derive(Default)]

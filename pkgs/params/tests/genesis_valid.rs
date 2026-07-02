@@ -6,15 +6,11 @@
 
 //! Genesis validation test.
 
-use bitcoin_consensus_encoding::encode_to_vec;
 use dash_params::types::ChainParams;
-use dash_primitives::{Block, MerkleRoot};
+use dash_primitives::{Block, BlockHash, MerkleRoot};
+use dash_types::codec::Hashable;
 use hex_literal::hex;
 use rstest::rstest;
-
-fn header_bytes(block: &Block) -> Vec<u8> {
-  encode_to_vec(&block.header)
-}
 
 #[rstest]
 #[case::mainnet(
@@ -46,7 +42,6 @@ fn genesis_block_hash_matches(
 
   // PoW hash the 80-byte header and verify it matches the genesis
   // hash declared in the consensus parameters.
-  let raw = header_bytes(&genesis);
-  let pow_hash = dash_pow::hash(&raw);
-  assert_eq!(pow_hash, params.consensus.hash_genesis_block);
+  let expected = BlockHash::from(params.consensus.hash_genesis_block);
+  assert_eq!(genesis.header.hash(), expected);
 }

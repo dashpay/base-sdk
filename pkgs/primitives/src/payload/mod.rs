@@ -339,6 +339,8 @@ pub enum PayloadInvalid {
   AssetUnlock(AssetUnlockInvalid),
   /// Quorum commitment check failed.
   Commitment(CommitmentInvalid),
+  /// Unrecognized special transaction.
+  UnknownType(TxType),
 }
 
 impl fmt::Display for PayloadInvalid {
@@ -350,6 +352,7 @@ impl fmt::Display for PayloadInvalid {
       Self::AssetLock(e) => e.fmt(f),
       Self::AssetUnlock(e) => e.fmt(f),
       Self::Commitment(e) => e.fmt(f),
+      Self::UnknownType(t) => write!(f, "bad-txns-type: {t}"),
     }
   }
 }
@@ -374,6 +377,11 @@ impl Checkable for SpecialPayload {
 }
 
 impl SpecialPayload {
+  /// Returns `true` for unrecognized transaction types.
+  pub fn is_unknown(&self) -> bool {
+    matches!(self, Self::Unknown { .. })
+  }
+
   /// Decodes a payload from its transaction type and raw bytes.
   ///
   /// Returns `Unknown` for unrecognized types rather than an error, ensuring

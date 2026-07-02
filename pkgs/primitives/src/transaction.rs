@@ -7,7 +7,7 @@
 //! Dash transaction with version/type packing and optional extra payload for
 //! special transactions.
 
-use crate::payload::TxType;
+use crate::payload::{PayloadError, PayloadInvalid, TxType};
 use crate::prelude::*;
 use crate::script::Script;
 use crate::{codec_type, hash_impl};
@@ -150,6 +150,10 @@ pub enum TxInvalid {
   NullPrevout { index: usize },
   /// `bad-txns-payload-not-allowed`
   PayloadNotAllowed,
+  /// `bad-txns-payload-decode`
+  PayloadDecode(PayloadError),
+  /// `bad-txns-payload-check`
+  PayloadCheck(PayloadInvalid),
 }
 
 impl fmt::Display for TxInvalid {
@@ -165,6 +169,8 @@ impl fmt::Display for TxInvalid {
       Self::BadCoinbaseScriptLength { len } => write!(f, "bad-cb-length: {len}"),
       Self::NullPrevout { index } => write!(f, "bad-txns-prevout-null: input {index}"),
       Self::PayloadNotAllowed => write!(f, "bad-txns-payload-not-allowed"),
+      Self::PayloadDecode(e) => write!(f, "bad-txns-payload-decode: {e}"),
+      Self::PayloadCheck(e) => write!(f, "bad-txns-payload-check: {e}"),
     }
   }
 }
@@ -295,6 +301,20 @@ impl Checkable for Transaction {
         if input.prevout.is_null() {
           return Some(TxInvalid::NullPrevout { index: i });
         }
+      }
+    }
+
+    if let Some(result) = self.decode_payload() {
+      match result {
+        Ok(ref payload) if payload.is_unknown() => {
+          return Some(TxInvalid::PayloadCheck(PayloadInvalid::UnknownType(self.tx_type)));
+        }
+        Ok(payload) => {
+          if let Some(e) = payload.check() {
+            return Some(TxInvalid::PayloadCheck(e));
+          }
+        }
+        Err(e) => return Some(TxInvalid::PayloadDecode(e)),
       }
     }
 

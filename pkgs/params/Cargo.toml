@@ -21,6 +21,7 @@ bitcoin-consensus-encoding = { version = "0.2", default-features = false, featur
   "alloc",
 ] }
 dash-pow = { version = "0.0.0", path = "../pow" }
+dash-types = { version = "0.0.0", path = "../types", default-features = false }
 hex-literal = "0.4"
 rstest = "0.25"
 

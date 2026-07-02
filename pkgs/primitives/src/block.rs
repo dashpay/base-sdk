@@ -11,7 +11,7 @@ use crate::transaction::{Transaction, TxHash, TxInvalid};
 use crate::{codec_base, codec_type, hash_impl};
 
 use bitcoin_hashes::sha256d;
-use dash_num::{make_hash, Hash256};
+use dash_num::{make_hash, Arith256, CompactTarget, Hash256};
 use dash_pow::hash as pow_hash;
 use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable};
 use dash_types::{TypeId, Unencodable};
@@ -91,6 +91,10 @@ impl fmt::Display for BlockHeader {
 /// Block validation failure.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Unencodable)]
 pub enum BlockInvalid {
+  /// Decoded target is negative, zero, overflows, or the hash exceeds it.
+  BadProofOfWork,
+  /// Computed merkle root does not match the header.
+  BadMerkleRoot,
   /// `bad-blk-length`
   BadBlockLength { size: usize },
   /// `bad-cb-missing`
@@ -106,6 +110,8 @@ pub enum BlockInvalid {
 impl fmt::Display for BlockInvalid {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
+      Self::BadProofOfWork => write!(f, "bad-proof-of-work"),
+      Self::BadMerkleRoot => write!(f, "bad-merkle-root"),
       Self::BadBlockLength { size } => write!(f, "bad-blk-length: {size} bytes"),
       Self::MissingCoinbase => write!(f, "bad-cb-missing"),
       Self::MultipleCoinbases { index } => write!(f, "bad-cb-multiple: tx {index}"),
@@ -131,6 +137,17 @@ impl Checkable for Block {
   type Error = BlockInvalid;
 
   fn check(&self) -> Option<Self::Error> {
+    let pow_hash = Arith256::from(Hash256::from(self.header.hash()));
+    let decoded = CompactTarget(self.header.bits).decode();
+    if decoded.negative || decoded.value.is_zero() || decoded.overflow || pow_hash > decoded.value {
+      return Some(BlockInvalid::BadProofOfWork);
+    }
+
+    let (root, _mutated) = self.merkle();
+    if root != self.header.merkle_root {
+      return Some(BlockInvalid::BadMerkleRoot);
+    }
+
     if self.transactions.is_empty() {
       return Some(BlockInvalid::BadBlockLength { size: 0 });
     }
