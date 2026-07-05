@@ -109,12 +109,12 @@ mod magic {
   use super::BootstrapError;
   use crate::Application;
 
-  use dash_params::types::{ChainParams, MessageStart};
+  use dash_params::{ChainParams, MessageStart, Network};
 
   const KNOWN_NETWORKS: &[&ChainParams] = &[
-    &dash_params::main::PARAMS,
-    &dash_params::test3::PARAMS,
-    &dash_params::regtest::PARAMS,
+    Network::Main.chain(),
+    Network::Testnet3.chain(),
+    Network::Regtest.chain(),
   ];
 
   fn detect(magic: MessageStart) -> Result<&'static ChainParams, BootstrapError> {
@@ -438,7 +438,7 @@ fn verify_chunks(
   app: &Application,
   pool: &rayon::ThreadPool,
   reader: &mut BufReader<Box<dyn Read>>,
-  params: &dash_params::types::ChainParams,
+  params: &dash_params::ChainParams,
   genesis_data: Vec<u8>,
   budget_bytes: u64,
   report_secs: u64,

@@ -66,7 +66,7 @@ pub fn genesis() -> Block {
   block
 }
 
-pub const PARAMS: ChainParams = ChainParams {
+pub static PARAMS: ChainParams = ChainParams {
   consensus: ConsensusParams {
     hash_genesis_block: Hash256::new(hex!("000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e")),
     subsidy_halving_interval: 150,
