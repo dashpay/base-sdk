@@ -16,6 +16,8 @@ mod bip324;
 mod codec;
 mod command;
 mod error;
+#[macro_use]
+mod macros;
 mod magic;
 mod msg;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]

@@ -7,13 +7,13 @@
 //! BIP324 V2 message framing.
 
 use crate::command::CommandString;
-use crate::msg::DashNetworkMessage;
+use crate::msg::P2pMsg;
 use crate::prelude::*;
 use crate::short_id::ShortId;
 use crate::P2pDecodeError;
 
-/// Encodes a `DashNetworkMessage` into V2 framed bytes.
-pub fn encode_v2(msg: &DashNetworkMessage, buf: &mut Vec<u8>) {
+/// Encodes a `P2pMsg` into V2 framed bytes.
+pub fn encode_v2(msg: &P2pMsg, buf: &mut Vec<u8>) {
   match msg.short_id() {
     Some(id) => {
       buf.push(id.0);
@@ -28,8 +28,8 @@ pub fn encode_v2(msg: &DashNetworkMessage, buf: &mut Vec<u8>) {
   msg.encode_payload(buf);
 }
 
-/// Decodes V2 framed bytes into a `DashNetworkMessage`.
-pub fn decode_v2(payload: &[u8]) -> Result<DashNetworkMessage, P2pDecodeError> {
+/// Decodes V2 framed bytes into a `P2pMsg`.
+pub fn decode_v2(payload: &[u8]) -> Result<P2pMsg, P2pDecodeError> {
   if payload.is_empty() {
     return Err(P2pDecodeError::Consensus(String::from(
       "unexpected eof: needed 1 byte, 0 remaining",
@@ -50,13 +50,13 @@ pub fn decode_v2(payload: &[u8]) -> Result<DashNetworkMessage, P2pDecodeError> {
     let mut cmd_bytes = [0u8; 12];
     cmd_bytes.copy_from_slice(&rest[..12]);
     let cmd = CommandString::from_bytes(cmd_bytes);
-    DashNetworkMessage::decode_payload(&cmd, &rest[12..])
+    P2pMsg::decode_payload(&cmd, &rest[12..])
   } else {
     // Short ID: resolve to command, then decode payload.
     let sid = ShortId(short_id);
     let cmd = sid
       .to_command()
       .ok_or(P2pDecodeError::UnknownShortId { id: short_id })?;
-    DashNetworkMessage::decode_payload(&cmd, rest)
+    P2pMsg::decode_payload(&cmd, rest)
   }
 }
