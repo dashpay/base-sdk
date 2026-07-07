@@ -5,9 +5,6 @@
 //
 
 //! BIP324 V2 message framing.
-//!
-//! Handles the 1-byte short-ID dispatch layer that sits between
-//! the raw message payload and the BIP324 encrypted transport.
 
 use crate::command::CommandString;
 use crate::msg::DashNetworkMessage;
@@ -16,10 +13,6 @@ use crate::short_id::ShortId;
 use crate::P2pDecodeError;
 
 /// Encodes a `DashNetworkMessage` into V2 framed bytes.
-///
-/// The result is ready to pass to `bip324::Payload::genuine()`.
-///
-/// Format: `[1-byte short_id] [optional 12-byte command] [payload]`
 pub fn encode_v2(msg: &DashNetworkMessage, buf: &mut Vec<u8>) {
   match msg.short_id() {
     Some(id) => {
@@ -36,8 +29,6 @@ pub fn encode_v2(msg: &DashNetworkMessage, buf: &mut Vec<u8>) {
 }
 
 /// Decodes V2 framed bytes into a `DashNetworkMessage`.
-///
-/// `payload` is the decrypted content from `bip324::Payload::contents()`.
 pub fn decode_v2(payload: &[u8]) -> Result<DashNetworkMessage, P2pDecodeError> {
   if payload.is_empty() {
     return Err(P2pDecodeError::Consensus(String::from(
