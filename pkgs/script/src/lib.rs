@@ -15,6 +15,7 @@ extern crate std;
 mod addrs;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
+mod sigops;
 
 use crate::opcode::Opcode as Op;
 use crate::prelude::*;
@@ -29,6 +30,7 @@ pub use addrs::AddrParams;
 pub use dash_pkc::__private::__PubKeyHash as PubKeyHash;
 pub use dash_types::__private::__ScriptHash as ScriptHash;
 pub use opcode::Opcode;
+pub use sigops::legacy_sigop_count;
 
 /// RIPEMD-160(SHA-256) output length in bytes.
 const HASH160_LEN: usize = 20;
@@ -179,48 +181,6 @@ pub fn derive_address(script: &[u8], p2pkh_version: u8, p2sh_version: u8) -> Opt
     }
     ScriptKind::OpReturn | ScriptKind::Unknown(_) => None,
   }
-}
-
-/// Count legacy signature operations in a script.
-///
-/// Counts `OP_CHECKSIG`, `OP_CHECKSIGVERIFY`, `OP_CHECKMULTISIG` (weighted by
-/// `MAX_PUBKEYS_PER_MULTISIG`), and `OP_CHECKMULTISIGVERIFY`.
-pub fn legacy_sigop_count(script: &[u8]) -> usize {
-  const MAX_PUBKEYS: usize = 20;
-
-  let mut count: usize = 0;
-  let mut i = 0;
-  while i < script.len() {
-    let byte = script[i];
-    if Opcode::is_direct_push(byte) {
-      // skip over pushed data
-      i += 1 + byte as usize;
-      continue;
-    }
-    match Op::from_base(byte) {
-      Op::CheckSig | Op::CheckSigVerify => count += 1,
-      Op::CheckMultiSig | Op::CheckMultiSigVerify => {
-        count += MAX_PUBKEYS;
-      }
-      Op::PushData1 if i + 1 < script.len() => {
-        i += 2 + script[i + 1] as usize;
-        continue;
-      }
-      Op::PushData2 if i + 2 < script.len() => {
-        let n = u16::from_le_bytes([script[i + 1], script[i + 2]]);
-        i += 3 + n as usize;
-        continue;
-      }
-      Op::PushData4 if i + 4 < script.len() => {
-        let n = u32::from_le_bytes([script[i + 1], script[i + 2], script[i + 3], script[i + 4]]);
-        i += 5 + n as usize;
-        continue;
-      }
-      _ => {}
-    }
-    i += 1;
-  }
-  count
 }
 
 #[cfg(test)]
@@ -418,81 +378,5 @@ mod tests {
   #[test]
   fn unknown_script_address_is_none() {
     assert_eq!(derive_address(&[], 76, 16), None);
-  }
-
-  #[test]
-  fn sigop_empty_script() {
-    assert_eq!(legacy_sigop_count(&[]), 0);
-  }
-
-  #[test]
-  fn sigop_single_checksig() {
-    let script = [Op::CheckSig.to_base()];
-    assert_eq!(legacy_sigop_count(&script), 1);
-  }
-
-  #[test]
-  fn sigop_single_checksigverify() {
-    let script = [Op::CheckSigVerify.to_base()];
-    assert_eq!(legacy_sigop_count(&script), 1);
-  }
-
-  #[test]
-  fn sigop_checkmultisig_counts_as_20() {
-    let script = [Op::CheckMultiSig.to_base()];
-    assert_eq!(legacy_sigop_count(&script), 20);
-  }
-
-  #[test]
-  fn sigop_checkmultisigverify_counts_as_20() {
-    let script = [Op::CheckMultiSigVerify.to_base()];
-    assert_eq!(legacy_sigop_count(&script), 20);
-  }
-
-  #[test]
-  fn sigop_p2pkh_script() {
-    // P2PKH has one OP_CHECKSIG
-    let script = hex!("76a914000000000000000000000000000000000000000088ac");
-    assert_eq!(legacy_sigop_count(&script), 1);
-  }
-
-  #[test]
-  fn sigop_multisig_then_checksig() {
-    // legacy count: CHECKMULTISIG(20) + CHECKSIG(1) = 21
-    let script = hex!(
-      "51"
-      "1400000000000000000000000000000000000000001400000000000000000000000000000000000000"
-      "52ae"
-      "63ac68"
-    );
-    assert_eq!(legacy_sigop_count(&script), 21);
-  }
-
-  #[test]
-  fn sigop_skips_pushed_data() {
-    // 0xac inside pushed data must not count as OP_CHECKSIG
-    let script = hex!("02acac");
-    assert_eq!(legacy_sigop_count(&script), 0);
-  }
-
-  #[test]
-  fn sigop_skips_pushdata1() {
-    // 0xac inside PUSHDATA1 payload must not count
-    let script = hex!("4c01ac");
-    assert_eq!(legacy_sigop_count(&script), 0);
-  }
-
-  #[test]
-  fn sigop_skips_pushdata2() {
-    // 0xac inside PUSHDATA2 payload must not count
-    let script = hex!("4d0100ac");
-    assert_eq!(legacy_sigop_count(&script), 0);
-  }
-
-  #[test]
-  fn sigop_skips_pushdata4() {
-    // 0xac inside PUSHDATA4 payload must not count
-    let script = hex!("4e01000000ac");
-    assert_eq!(legacy_sigop_count(&script), 0);
   }
 }
