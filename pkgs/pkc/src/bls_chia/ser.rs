@@ -9,7 +9,7 @@
 //! G1 (48 bytes): sign bit at byte[0] & 0x80, no compression indicator.
 //! G2 (96 bytes): legacy component order (c0||c1), sign bit at byte[0] & 0x80.
 
-use crate::bls::blst_ffi::{self, Fp};
+use crate::bls::blst_ffi::{self, Fp, Fp2};
 use crate::bls::BlsError;
 
 use blst::blst_p1_affine;
@@ -111,8 +111,7 @@ pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<blst_p2_affine, BlsError> {
   let decompressed_sign = y_c1_is_larger(&y_c1_bytes);
 
   if (sign == 1) != decompressed_sign {
-    let neg_y = fp2_neg(&out.y);
-    out.y = neg_y;
+    out.y = (-Fp2::from(out.y)).into();
   }
 
   Ok(out)
@@ -127,8 +126,4 @@ fn y_c1_is_larger(y_c1: &[u8]) -> bool {
   );
 
   y_c1.len() >= 48 && y_c1[..48] > HALF_P[..]
-}
-
-fn fp2_neg(a: &blst::blst_fp2) -> blst::blst_fp2 {
-  blst_ffi::fp2_cneg(a, true)
 }

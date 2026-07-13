@@ -26,41 +26,6 @@ pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
   out
 }
 
-pub(crate) fn fp2_add(a: &blst_fp2, b: &blst_fp2) -> blst_fp2 {
-  let mut out = blst_fp2::default();
-  unsafe { blst_fp2_add(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn fp2_cneg(value: &blst_fp2, flag: bool) -> blst_fp2 {
-  let mut out = *value;
-  unsafe { blst_fp2_cneg(&mut out, value, flag) };
-  out
-}
-
-pub(crate) fn fp2_inverse(value: &blst_fp2) -> blst_fp2 {
-  let mut out = blst_fp2::default();
-  unsafe { blst_fp2_inverse(&mut out, value) };
-  out
-}
-
-pub(crate) fn fp2_mul(a: &blst_fp2, b: &blst_fp2) -> blst_fp2 {
-  let mut out = blst_fp2::default();
-  unsafe { blst_fp2_mul(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn fp2_sqr(value: &blst_fp2) -> blst_fp2 {
-  let mut out = blst_fp2::default();
-  unsafe { blst_fp2_sqr(&mut out, value) };
-  out
-}
-
-pub(crate) fn fp2_sqrt(value: &blst_fp2) -> Option<blst_fp2> {
-  let mut out = blst_fp2::default();
-  unsafe { blst_fp2_sqrt(&mut out, value) }.then_some(out)
-}
-
 pub(crate) fn p1_add_or_double(a: &blst_p1, b: &blst_p1) -> blst_p1 {
   let mut out = blst_p1::default();
   unsafe { blst_p1_add_or_double(&mut out, a, b) };
@@ -361,3 +326,115 @@ type_cvrt!(From<[u8; 48]> for Fp, |bytes| {
 type_cvrt!(From<Fp> for blst_fp, |fp| fp.0);
 
 type_cvrt!(From<blst_fp> for Fp, |raw| Self(*raw));
+
+type_cvrt!(From<Fp> for Fp2, |fp| Self::new(*fp, Fp::default()));
+
+/// An element of the quadratic extension field `Fp2 = Fp[u]/(u^2 + 1)`,
+/// written `c0 + c1*u`.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct Fp2(blst_fp2);
+
+impl Fp2 {
+  /// The `c0` (real) component.
+  pub(crate) fn c0(&self) -> Fp {
+    Fp::from(self.0.fp[0])
+  }
+
+  /// The `c1` (coefficient of `u`) component.
+  pub(crate) fn c1(&self) -> Fp {
+    Fp::from(self.0.fp[1])
+  }
+
+  /// Big-endian byte encoding of the `c1` component.
+  pub(crate) fn c1_bendian(&self) -> [u8; 48] {
+    <[u8; 48]>::from(self.c1())
+  }
+
+  /// Multiplicative inverse; the inverse of zero is left unspecified.
+  pub(crate) fn inverse(&self) -> Self {
+    let mut out = blst_fp2::default();
+    unsafe { blst_fp2_inverse(&mut out, &self.0) };
+    Self(out)
+  }
+
+  /// Whether both components are zero.
+  pub(crate) fn is_zero(&self) -> bool {
+    self.0.fp[0].l == [0u64; 6] && self.0.fp[1].l == [0u64; 6]
+  }
+
+  /// Construct from the two base-field components `c0` and `c1`.
+  pub(crate) fn new(c0: Fp, c1: Fp) -> Self {
+    Self(blst_fp2 {
+      fp: [c0.into(), c1.into()],
+    })
+  }
+
+  /// A square root, or `None` when the value is not a quadratic residue.
+  pub(crate) fn sqrt(&self) -> Option<Self> {
+    let mut out = blst_fp2::default();
+    unsafe { blst_fp2_sqrt(&mut out, &self.0) }.then_some(Self(out))
+  }
+
+  /// The square of this element.
+  pub(crate) fn square(&self) -> Self {
+    let mut out = blst_fp2::default();
+    unsafe { blst_fp2_sqr(&mut out, &self.0) };
+    Self(out)
+  }
+
+  /// Return a copy with the `c0` component replaced.
+  pub(crate) fn with_c0(mut self, c0: Fp) -> Self {
+    self.0.fp[0] = c0.into();
+    self
+  }
+
+  /// Return a copy with the `c1` component replaced.
+  pub(crate) fn with_c1(mut self, c1: Fp) -> Self {
+    self.0.fp[1] = c1.into();
+    self
+  }
+}
+
+impl Add for Fp2 {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fp2::default();
+    unsafe { blst_fp2_add(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Mul for Fp2 {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fp2::default();
+    unsafe { blst_fp2_mul(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Neg for Fp2 {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    let mut out = blst_fp2::default();
+    unsafe { blst_fp2_cneg(&mut out, &self.0, true) };
+    Self(out)
+  }
+}
+
+impl Sub for Fp2 {
+  type Output = Self;
+
+  fn sub(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fp2::default();
+    unsafe { blst_fp2_sub(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+type_cvrt!(From<Fp2> for blst_fp2, |fp2| fp2.0);
+
+type_cvrt!(From<blst_fp2> for Fp2, |raw| Self(*raw));
