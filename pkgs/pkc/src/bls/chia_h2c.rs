@@ -232,8 +232,11 @@ fn sw_encode(t: &Fp2) -> G2 {
   let rhs1 = curve_rhs(&x1);
   let rhs2 = curve_rhs(&x2);
 
-  let has_y1 = rhs1.sqrt().is_some();
-  let has_y2 = rhs2.sqrt().is_some();
+  let y1 = rhs1.sqrt();
+  let y2 = rhs2.sqrt();
+
+  let has_y1 = y1.is_some();
+  let has_y2 = y2.is_some();
 
   let xx1: i32 = if has_y1 { 1 } else { -1 };
   let xx2: i32 = if has_y2 { 1 } else { -1 };
@@ -242,12 +245,10 @@ fn sw_encode(t: &Fp2) -> G2 {
   // `index` selects an x whose curve RHS is a quadratic residue, so the sqrt
   // always succeeds; the zero fallback is unreachable but avoids an unwrap panic.
   let (x, mut y) = if index == 0 {
-    let rhs = curve_rhs(&x1);
-    let y = rhs.sqrt().unwrap_or_default();
+    let y = y1.unwrap_or_default();
     (x1, y)
   } else if index == 1 {
-    let rhs = curve_rhs(&x2);
-    let y = rhs.sqrt().unwrap_or_default();
+    let y = y2.unwrap_or_default();
     (x2, y)
   } else {
     let rhs = curve_rhs(&x3);
