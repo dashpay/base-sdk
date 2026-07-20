@@ -9,9 +9,9 @@
   expect(clippy::unwrap_used, reason = "benchmarks rely on trusted test vectors")
 )]
 
-#[cfg(feature = "bls_chia")]
+#[cfg(feature = "bls")]
 mod bls_chia;
-#[cfg(feature = "bls_ietf")]
+#[cfg(feature = "bls")]
 mod bls_ietf;
 #[path = "../tests/common/mod.rs"]
 mod common;
