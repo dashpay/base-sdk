@@ -6,10 +6,9 @@
 
 //! Legacy BLS signature (96-byte G2 point, legacy serialization).
 
-use super::hash;
 use super::pk::PublicKey;
 use super::ser;
-use crate::bls::{blst_ffi, BlsError};
+use crate::bls::{blst_ffi, chia_h2c, BlsError};
 
 use blst::blst_p2_affine;
 
@@ -40,7 +39,7 @@ impl Signature {
   /// Verify against a 32-byte message and public key via pairing check:
   /// e(sig, G1) == e(H(msg), pk).
   pub fn verify(&self, msg: &[u8; 32], pk: &PublicKey) -> Result<(), BlsError> {
-    let h_proj = hash::hash_to_g2(msg);
+    let h_proj = chia_h2c::hash_to_g2(msg);
     let valid = blst_ffi::pairings_equal_with_g1_generator(&self.0, &h_proj, &pk.0);
     if valid {
       Ok(())

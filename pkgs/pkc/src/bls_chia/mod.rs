@@ -7,7 +7,6 @@
 //! Legacy BLS signatures (non-standard hash-to-G2, min-pubkey-size).
 
 mod agg;
-mod hash;
 mod pk;
 mod ser;
 mod sig;
