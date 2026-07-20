@@ -4,7 +4,11 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Shared internals used by multiple BLS modules.
+//! Unified BLS cryptography module.
 
-#[cfg(feature = "bls")]
-pub(crate) mod bls;
+cfg_if::cfg_if! {
+  if #[cfg(feature = "bls")] {
+    #[expect(unsafe_code, reason = "blst C FFI")]
+    pub(crate) mod blst_ffi;
+  }
+}

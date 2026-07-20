@@ -1,0 +1,12 @@
+rules:
+  - id: pkc-no-unsafe-code
+    message: "#[expect(unsafe_code)] is only in blst_ffi"
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include: [/pkgs/pkc/src/**/*.rs]
+    patterns:
+      - pattern-regex: '#!?\[(?:expect|allow)\(unsafe_code'
+      - pattern-not-inside: |
+          #[expect(unsafe_code, ...)]
+          pub(crate) mod blst_ffi;

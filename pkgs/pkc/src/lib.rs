@@ -24,6 +24,7 @@ cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod common;
 
+    pub mod bls;
     pub mod bls_chia;
     pub mod bls_ietf;
   }

@@ -6,15 +6,12 @@
 
 //! IETF BLS12-381 signatures (basic scheme, min-pubkey-size).
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 mod agg;
 mod error;
-#[expect(unsafe_code, reason = "blst C FFI")]
 mod pk;
 mod sig;
 mod sk;
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub mod threshold;
 
 pub use agg::{
