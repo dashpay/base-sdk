@@ -20,12 +20,6 @@ fn p1_affine_generator() -> blst_p1_affine {
   unsafe { *blst_p1_affine_generator() }
 }
 
-pub(crate) fn bendian_from_fp(value: &blst_fp) -> [u8; 48] {
-  let mut out = [0u8; 48];
-  unsafe { blst_bendian_from_fp(out.as_mut_ptr(), value) };
-  out
-}
-
 pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
   let mut out = [0u8; 32];
   unsafe { blst_bendian_from_scalar(out.as_mut_ptr(), scalar) };
@@ -65,36 +59,6 @@ pub(crate) fn fp2_sqr(value: &blst_fp2) -> blst_fp2 {
 pub(crate) fn fp2_sqrt(value: &blst_fp2) -> Option<blst_fp2> {
   let mut out = blst_fp2::default();
   unsafe { blst_fp2_sqrt(&mut out, value) }.then_some(out)
-}
-
-pub(crate) fn fp_add(a: &blst_fp, b: &blst_fp) -> blst_fp {
-  let mut out = blst_fp::default();
-  unsafe { blst_fp_add(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn fp_cneg(value: &blst_fp, flag: bool) -> blst_fp {
-  let mut out = *value;
-  unsafe { blst_fp_cneg(&mut out, value, flag) };
-  out
-}
-
-pub(crate) fn fp_from_bendian(bytes: &[u8; 48]) -> blst_fp {
-  let mut out = blst_fp::default();
-  unsafe { blst_fp_from_bendian(&mut out, bytes.as_ptr()) };
-  out
-}
-
-pub(crate) fn fp_mul(a: &blst_fp, b: &blst_fp) -> blst_fp {
-  let mut out = blst_fp::default();
-  unsafe { blst_fp_mul(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn fp_sub(a: &blst_fp, b: &blst_fp) -> blst_fp {
-  let mut out = blst_fp::default();
-  unsafe { blst_fp_sub(&mut out, a, b) };
-  out
 }
 
 pub(crate) fn p1_add_or_double(a: &blst_p1, b: &blst_p1) -> blst_p1 {
@@ -327,3 +291,73 @@ type_cvrt!(From<Fr> for blst_scalar, |fr| {
   unsafe { blst_scalar_from_fr(&mut out, &fr.0) };
   out
 });
+
+/// An element of the BLS12-381 base field, i.e. an integer reduced
+/// modulo the field prime `p`.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct Fp(blst_fp);
+
+impl Fp {
+  /// Construct from a `u64`, zero-extended into the low limbs.
+  pub(crate) fn from_u64(v: u64) -> Self {
+    let mut bytes = [0u8; 48];
+    bytes[40..48].copy_from_slice(&v.to_be_bytes());
+    Self::from(&bytes)
+  }
+}
+
+impl Add for Fp {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fp::default();
+    unsafe { blst_fp_add(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Mul for Fp {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fp::default();
+    unsafe { blst_fp_mul(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Neg for Fp {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    let mut out = blst_fp::default();
+    unsafe { blst_fp_cneg(&mut out, &self.0, true) };
+    Self(out)
+  }
+}
+
+impl Sub for Fp {
+  type Output = Self;
+
+  fn sub(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fp::default();
+    unsafe { blst_fp_sub(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+type_cvrt!(From<Fp> for [u8; 48], |fp| {
+  let mut out = [0u8; 48];
+  unsafe { blst_bendian_from_fp(out.as_mut_ptr(), &fp.0) };
+  out
+});
+
+type_cvrt!(From<[u8; 48]> for Fp, |bytes| {
+  let mut out = blst_fp::default();
+  unsafe { blst_fp_from_bendian(&mut out, bytes.as_ptr()) };
+  Self(out)
+});
+
+type_cvrt!(From<Fp> for blst_fp, |fp| fp.0);
+
+type_cvrt!(From<blst_fp> for Fp, |raw| Self(*raw));
