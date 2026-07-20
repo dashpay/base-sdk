@@ -35,7 +35,6 @@ bin = [
   "dep:rayon",
   "dep:sysinfo",
 ]
-_internal = []
 
 [build-dependencies]
 built = { version = "0.7", features = ["dependency-tree", "git2"] }

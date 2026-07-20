@@ -11,7 +11,7 @@
 mod common;
 
 #[cfg(feature = "simd")]
-use dash_pow::luffa::{consts::IV, scalar, simd};
+use dash_pow::__private::luffa::{consts::IV, scalar, simd};
 #[cfg(feature = "simd")]
 use rstest::rstest;
 
@@ -68,9 +68,9 @@ fn inject_then_permute() {
 mod kat {
   use super::common;
 
-  use dash_pow::luffa::scalar;
+  use dash_pow::__private::luffa::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::luffa::simd;
+  use dash_pow::__private::luffa::simd;
 
   #[test]
   fn scalar_nist_kat() {

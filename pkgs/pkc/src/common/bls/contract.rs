@@ -15,7 +15,6 @@
 //! order).
 
 /// Marker trait asserting the minimum BLS secret key API.
-#[expect(dead_code, reason = "compile-time contract, not used at runtime")]
 pub(crate) trait BlsSecretKey: Clone + Sized {
   type Error;
   type PublicKey;
@@ -30,7 +29,6 @@ pub(crate) trait BlsSecretKey: Clone + Sized {
 }
 
 /// Marker trait asserting the minimum BLS public key API.
-#[expect(dead_code, reason = "compile-time contract, not used at runtime")]
 pub(crate) trait BlsPublicKey: Clone + Sized {
   type Error;
   type SecretKey;
@@ -41,7 +39,6 @@ pub(crate) trait BlsPublicKey: Clone + Sized {
 }
 
 /// Marker trait asserting the minimum BLS signature API.
-#[expect(dead_code, reason = "compile-time contract, not used at runtime")]
 pub(crate) trait BlsSignature: Clone + Sized {
   type Error;
   type PublicKey;

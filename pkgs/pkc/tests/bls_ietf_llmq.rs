@@ -11,7 +11,6 @@
 //! each step against reference vectors.
 
 #![expect(clippy::unwrap_used, reason = "test code")]
-#![expect(clippy::panic, reason = "test code")]
 
 mod common;
 

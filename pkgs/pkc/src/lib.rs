@@ -12,19 +12,23 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-#[cfg(any(feature = "bls_ietf", feature = "bls_chia"))]
-mod common;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
-#[cfg(feature = "bls_chia")]
-pub mod bls_chia;
-#[cfg(feature = "bls_ietf")]
-pub mod bls_ietf;
 #[cfg(feature = "k256")]
 pub mod k256;
 #[cfg(feature = "std")]
 pub mod worker;
+
+cfg_if::cfg_if! {
+  if #[cfg(feature = "bls")] {
+    mod common;
+
+    pub mod bls;
+    pub mod bls_chia;
+    pub mod bls_ietf;
+  }
+}
 
 dash_types::make_bytes! {
   /// Raw BLS public key bytes (48 bytes, unvalidated).

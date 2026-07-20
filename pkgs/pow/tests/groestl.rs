@@ -11,16 +11,16 @@
 
 mod common;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
-use dash_pow::groestl::{scalar, simd};
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
+use dash_pow::__private::groestl::{scalar, simd};
+#[cfg(feature = "simd")]
 use rstest::rstest;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 use core::simd::Simd;
 
 /// Groestl-512 IV: all zeros except the last word encodes the output size.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn groestl_iv() -> [u64; 16] {
   let mut h = [0u64; 16];
   let out = 512u64;
@@ -29,7 +29,7 @@ fn groestl_iv() -> [u64; 16] {
 }
 
 /// Groestl-512 IV unpacked into the row-wise layout used by the SIMD path.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn groestl_iv_rows() -> [Simd<u8, 16>; 8] {
   let iv = groestl_iv();
   u64_state_to_rows(&iv)
@@ -40,7 +40,7 @@ fn groestl_iv_rows() -> [Simd<u8, 16>; 8] {
 ///
 /// Byte `(row, col)` lives at offset `col * 8 + row` in the flat buffer,
 /// and in `state[col]` at byte position `row`.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn u64_state_to_rows(state: &[u64; 16]) -> [Simd<u8, 16>; 8] {
   core::array::from_fn(|row| {
     let mut bytes = [0u8; 16];
@@ -52,7 +52,7 @@ fn u64_state_to_rows(state: &[u64; 16]) -> [Simd<u8, 16>; 8] {
 }
 
 /// Converts eight row vectors back to a `[u64; 16]` column-major state.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn rows_to_u64_state(rows: &[Simd<u8, 16>; 8]) -> [u64; 16] {
   let mut state = [0u64; 16];
   for (col, slot) in state.iter_mut().enumerate() {
@@ -65,7 +65,7 @@ fn rows_to_u64_state(rows: &[Simd<u8, 16>; 8]) -> [u64; 16] {
   state
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn state_round_trip() {
   let orig = groestl_iv();
@@ -73,7 +73,7 @@ fn state_round_trip() {
 }
 
 /// Creates a 128-byte block filled with a running pattern.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn make_block(fill: u8) -> [u8; 128] {
   let mut b = [0u8; 128];
   for (i, slot) in b.iter_mut().enumerate() {
@@ -82,7 +82,7 @@ fn make_block(fill: u8) -> [u8; 128] {
   b
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[rstest]
 #[case::zeros([0u8; 128])]
 #[case::pattern(make_block(0x37))]
@@ -98,7 +98,7 @@ fn compress(#[case] block: [u8; 128]) {
   assert_eq!(h_scalar, simd_as_u64, "groestl compress diverged");
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn output_transform_agree() {
   // Start from a state produced by compressing one block.
@@ -123,13 +123,12 @@ fn output_transform_agree() {
   assert_eq!(out_scalar, out_simd, "groestl output_transform diverged");
 }
 
-#[cfg(feature = "_internal")]
 mod kat {
   use crate::common;
 
-  use dash_pow::groestl::scalar;
+  use dash_pow::__private::groestl::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::groestl::simd;
+  use dash_pow::__private::groestl::simd;
 
   #[test]
   fn nist_vectors_scalar() {

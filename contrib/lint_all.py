@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import sys
 import time
@@ -26,6 +27,8 @@ from common import (
   RETCODE_SKIP,
   format_table,
 )
+
+_STATUS_COLORS = {"pass": ANSI_GREEN, "fail": ANSI_RED}
 
 
 @dataclass
@@ -48,6 +51,10 @@ def _print_stream(prefix: str, line: str, *, is_stderr: bool) -> None:
   print(f"{color}({prefix}){ANSI_RESET} {line}")
 
 
+def _discover_linters(lint_dir: Path) -> list[Path]:
+  return sorted(lint_dir.glob("lint_*.py"))
+
+
 async def _read_stream(
   stream: asyncio.StreamReader,
   prefix: str,
@@ -62,6 +69,35 @@ async def _read_stream(
     line = raw.decode(errors="replace").rstrip("\n")
     dest.append(line)
     _print_stream(prefix, line, is_stderr=is_stderr)
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+  parser = argparse.ArgumentParser(
+    description="Run contrib/lint/lint_*.py concurrently.",
+  )
+  parser.add_argument(
+    "--exclude",
+    action="append",
+    default=[],
+    metavar="NAME",
+    help=("linter to skip by name"),
+  )
+  return parser.parse_args(argv)
+
+
+def _results_table(results: list[LintResult]) -> str:
+  headers = ("name", "time", "stdout", "stderr", "status")
+  rows: list[tuple[str, ...]] = [
+    (
+      r.name,
+      f"{r.elapsed:.2f}s",
+      str(len(r.stdout_lines)),
+      str(len(r.stderr_lines)),
+      r.status,
+    )
+    for r in results
+  ]
+  return format_table(headers, rows, _STATUS_COLORS)
 
 
 async def _run_linter(script: Path) -> LintResult:
@@ -90,32 +126,12 @@ async def _run_linter(script: Path) -> LintResult:
   return result
 
 
-def _discover_linters(lint_dir: Path) -> list[Path]:
-  return sorted(lint_dir.glob("lint_*.py"))
-
-
-_STATUS_COLORS = {"pass": ANSI_GREEN, "fail": ANSI_RED}
-
-
-def _results_table(results: list[LintResult]) -> str:
-  headers = ("name", "time", "stdout", "stderr", "status")
-  rows: list[tuple[str, ...]] = [
-    (
-      r.name,
-      f"{r.elapsed:.2f}s",
-      str(len(r.stdout_lines)),
-      str(len(r.stderr_lines)),
-      r.status,
-    )
-    for r in results
-  ]
-  return format_table(headers, rows, _STATUS_COLORS)
-
-
 async def _main() -> int:
+  args = _parse_args(sys.argv[1:])
   contrib_dir = Path(__file__).resolve().parent
   lint_dir = contrib_dir / "lint"
-  scripts = _discover_linters(lint_dir)
+  excluded = set(args.exclude)
+  scripts = [s for s in _discover_linters(lint_dir) if s.stem not in excluded]
 
   if not scripts:
     print("no lint_*.py scripts found", file=sys.stderr)

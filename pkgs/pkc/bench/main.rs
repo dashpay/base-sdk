@@ -4,12 +4,14 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-#![expect(clippy::unwrap_used, reason = "benchmarks rely on trusted test vectors")]
-#![expect(clippy::panic, reason = "shared test helpers use panic for missing vectors")]
+#![cfg_attr(
+  any(feature = "bls", feature = "k256"),
+  expect(clippy::unwrap_used, reason = "benchmarks rely on trusted test vectors")
+)]
 
-#[cfg(feature = "bls_chia")]
+#[cfg(feature = "bls")]
 mod bls_chia;
-#[cfg(feature = "bls_ietf")]
+#[cfg(feature = "bls")]
 mod bls_ietf;
 #[path = "../tests/common/mod.rs"]
 mod common;

@@ -10,7 +10,7 @@ import lib.files
 import rust
 
 /** Gets the path from an impl block's trait reference. */
-private Path implTraitPath(Impl i) { result = i.getTrait().(PathTypeRepr).getPath() }
+private Path implTraitPath(Impl i) { result = i.getTraitTy().(PathTypeRepr).getPath() }
 
 /**
  * Holds if `i` implements `traitName` qualified under `crate`

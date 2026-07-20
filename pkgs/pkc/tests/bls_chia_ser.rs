@@ -7,7 +7,6 @@
 //! Serialization format KAT tests for bls_chia.
 
 #![expect(clippy::unwrap_used, reason = "test code")]
-#![expect(clippy::panic, reason = "test code")]
 
 mod common;
 

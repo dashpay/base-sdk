@@ -1,4 +1,5 @@
 name: base-sdk/codeql
 version: 0.0.0
 dependencies:
-  codeql/rust-all: ~0.2.15
+  codeql/rust-all: ~0.2.17
+  codeql/rust-queries: ~0.1.38

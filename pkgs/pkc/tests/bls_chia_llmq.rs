@@ -7,7 +7,6 @@
 //! End-to-end quorum DKG validation for legacy BLS.
 
 #![expect(clippy::unwrap_used, reason = "test code")]
-#![expect(clippy::panic, reason = "test code")]
 
 mod common;
 

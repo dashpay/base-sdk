@@ -4,16 +4,12 @@ version = "0.0.0"
 edition = "2021"
 license = "MIT"
 
-[[bench]]
-name = "pkc"
-path = "bench/main.rs"
-harness = false
-
 [dependencies]
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
 ] }
 blst = { version = "0.3", default-features = false, optional = true }
+cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
 hex-literal = "0.4"
@@ -42,15 +38,82 @@ serde_json = "1"
 [features]
 default = []
 std = ["dep:rayon", "rand_core/getrandom", "dash-types/std"]
-bls_chia = ["dep:blst", "dep:sha2"]
-bls_ietf = ["dep:blst", "dep:sha2"]
+bls = ["dep:blst", "dep:sha2"]
 k256 = ["dep:k256"]
 serde = ["dep:serde", "dash-types/serde"]
-full = ["k256", "bls_ietf", "bls_chia", "serde", "std"]
-_internal = []
+full = ["k256", "bls", "serde", "std"]
 
 [lints]
 workspace = true
 
 [package.rust-version]
 workspace = true
+
+[[bench]]
+name = "pkc"
+path = "bench/main.rs"
+harness = false
+
+[[test]]
+name = "bls_chia_aggregate"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_chia_dh"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_chia_keygen"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_chia_llmq"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_chia_ser"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_chia_sign"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_chia_threshold"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_ietf_aggregate"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_ietf_dh"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_ietf_keygen"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_ietf_llmq"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_ietf_pop"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_ietf_sign"
+required-features = ["bls"]
+
+[[test]]
+name = "bls_ietf_threshold"
+required-features = ["bls"]
+
+[[test]]
+name = "k256_keygen"
+required-features = ["k256"]
+
+[[test]]
+name = "k256_sign"
+required-features = ["k256"]

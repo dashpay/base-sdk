@@ -15,6 +15,7 @@ extern crate std;
 
 mod corpus;
 mod lambda;
+#[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
 #[cfg(feature = "std")]

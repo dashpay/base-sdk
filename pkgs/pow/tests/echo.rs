@@ -11,7 +11,7 @@
 mod common;
 
 #[cfg(feature = "simd")]
-use dash_pow::echo::{scalar, simd};
+use dash_pow::__private::echo::{scalar, simd};
 #[cfg(feature = "simd")]
 use rstest::rstest;
 
@@ -44,9 +44,9 @@ fn compress(#[case] counter: [u32; 4], #[case] block: [u8; 128]) {
 mod kat {
   use super::common;
 
-  use dash_pow::echo::scalar;
+  use dash_pow::__private::echo::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::echo::simd;
+  use dash_pow::__private::echo::simd;
 
   #[test]
   fn scalar_nist_kat() {

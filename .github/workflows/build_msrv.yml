@@ -54,7 +54,7 @@ jobs:
 
       - name: Install CodeQL
         id: setup-codeql
-        uses: github/codeql-action/setup-codeql@v4.36.2
+        uses: github/codeql-action/setup-codeql@v4.37.1
         with:
           tools: linked
 
@@ -85,7 +85,12 @@ jobs:
           key: codeql-packs-${{ hashFiles('contrib/codeql/codeql-pack.lock.yml') }}
 
       - name: Run linters
-        run: python3 contrib/lint_all.py
+        run: python3 contrib/lint_all.py --exclude lint_codeql
+        env:
+          RUSTUP_TOOLCHAIN: 1.85.0
+
+      - name: Run CodeQL
+        run: python3 contrib/lint/lint_codeql.py --with-suite=rust-security-and-quality
         env:
           RUSTUP_TOOLCHAIN: 1.85.0
 
@@ -137,7 +142,7 @@ jobs:
             cargo-build-msrv-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Build workspace
-        run: cargo build --workspace --features full,_internal
+        run: cargo build --workspace --features full
 
       - name: Test workspace
-        run: cargo test --workspace --features full,_internal
+        run: cargo test --workspace --features full

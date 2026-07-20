@@ -15,6 +15,7 @@ import argparse
 import contextlib
 import csv
 import datetime
+import re
 import shutil
 import subprocess
 import sys
@@ -35,6 +36,10 @@ from common import (
   usable_threads,
 )
 
+_SOURCE_KEYWORDS = (
+  "Serialize", "Deserialize", "Unencodable", "TypeId", "#[cfg",
+)
+
 
 def _discover_queries(query_dir: Path) -> list[Path]:
   """Return all .ql files in *query_dir*, sorted by name."""
@@ -46,11 +51,6 @@ def _discover_ql_sources(query_dir: Path) -> list[Path]:
   return sorted(
     [*query_dir.rglob("*.ql"), *query_dir.rglob("*.qll")],
   )
-
-
-_SOURCE_KEYWORDS = (
-    "Serialize", "Deserialize", "Unencodable", "TypeId", "#[cfg",
-)
 
 
 def _generate_source_lines(
@@ -124,6 +124,13 @@ def _print_csv_diagnostics(results_path: Path) -> int:
   return count
 
 
+def _search_suite(parser: argparse.ArgumentParser, name: str) -> str:
+  """Validate CodeQL suite *name* and return its query-suite reference."""
+  if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+    parser.error(f"invalid --with-suite name: {name!r}")
+  return f"codeql/rust-queries:codeql-suites/{name}.qls"
+
+
 @contextlib.contextmanager
 def _workspace_dirs(
   cache_dir: Path,
@@ -166,7 +173,17 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     action="store_true",
     help="persist the database for faster reruns",
   )
-  return parser.parse_args(argv)
+  parser.add_argument(
+    "--with-suite",
+    action="append",
+    default=[],
+    dest="suites",
+    metavar="NAME",
+    help=("run a 'codeql/rust-queries' suite by name (default: none)"),
+  )
+  args = parser.parse_args(argv)
+  args.suites = [_search_suite(parser, name) for name in args.suites]
+  return args
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -277,6 +294,7 @@ def main(argv: list[str] | None = None) -> int:
         "analyze",
         str(active_db),
         *[str(q) for q in queries],
+        *args.suites,
         "--format=csv",
         f"--output={results_path}",
         f"--threads={usable_threads()}",

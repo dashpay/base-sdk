@@ -7,11 +7,11 @@
 //! SIMD Echo-512 implementation.
 
 use super::consts::BLOCK;
-use crate::util::memops::{load_u32_le, store_u32_le};
 #[cfg(not(all(feature = "aes_hw", target_arch = "aarch64")))]
 use crate::util::aes::cpu::{round, round_nk};
 #[cfg(not(all(feature = "aes_hw", target_arch = "aarch64")))]
 use crate::util::aes::simd::xtime_packed_u32;
+use crate::util::memops::{load_u32_le, store_u32_le};
 
 use dash_num::Hash512;
 

@@ -11,11 +11,6 @@ on:
         description: Package directory relative to pkgs/ (e.g. num)
         required: true
         type: string
-      features:
-        description: Cargo features to enable (default full,_internal)
-        required: false
-        type: string
-        default: full,_internal
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -25,8 +20,17 @@ permissions:
 
 jobs:
   nightly:
-    name: ubuntu-24.04-arm (nightly)
+    name: ubuntu-24.04-arm (nightly, ${{ matrix.config.name }})
     runs-on: ubuntu-24.04-arm
+    env:
+      RUSTFLAGS: -D warnings
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { name: full, args: "--features full" }
+          - { name: min, args: "--no-default-features" }
+          - { name: std, args: "--features std" }
 
     steps:
       - name: Checkout
@@ -51,9 +55,6 @@ jobs:
           toolchain: nightly-2026-02-01
           components: clippy, llvm-tools, rustfmt
 
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-
       - name: Manage cargo registry
         uses: actions/cache@v5
         with:
@@ -67,28 +68,34 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-${{ github.sha }}
+          key: cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-${{ matrix.config.name }}-${{ github.sha }}
           restore-keys: |
-            cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-
-
-      - name: Check formatting
-        run: python contrib/lint/lint_rust.py
+            cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-${{ matrix.config.name }}-
 
       - name: Lint package
-        run: cargo clippy -p ${{ inputs.package }} --features ${{ inputs.features }} --tests -- -D warnings
+        run: cargo clippy -p ${{ inputs.package }} ${{ matrix.config.args }} --tests --benches -- -D warnings
 
       - name: Build package
-        run: cargo build -p ${{ inputs.package }} --features ${{ inputs.features }}
+        run: cargo build -p ${{ inputs.package }} ${{ matrix.config.args }}
 
       - name: Test package
-        run: >
-          cargo llvm-cov
-          --package ${{ inputs.package }}
-          --features ${{ inputs.features }}
-          --lcov --output-path lcov.info
+        if: matrix.config.name != 'full'
+        run: cargo test -p ${{ inputs.package }} ${{ matrix.config.args }}
+
+      - name: Install cargo-llvm-cov
+        if: matrix.config.name == 'full'
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Check formatting
+        if: matrix.config.name == 'full'
+        run: python contrib/lint/lint_rust.py
+
+      - name: Test package (with coverage)
+        if: matrix.config.name == 'full'
+        run: cargo llvm-cov ${{ matrix.config.args }} --package ${{ inputs.package }} --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        if: ${{ env.HAS_CODECOV == 'true' }}
+        if: matrix.config.name == 'full' && env.HAS_CODECOV == 'true'
         uses: codecov/codecov-action@v5
         with:
           files: lcov.info
@@ -98,4 +105,4 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Sanity check benchmarks
-        run: cargo bench -p ${{ inputs.package }} --features ${{ inputs.features }} --no-run
+        run: cargo bench ${{ matrix.config.args }} --package ${{ inputs.package }} --no-run

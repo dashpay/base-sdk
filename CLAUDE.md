@@ -42,12 +42,10 @@ default = []
 std = [...]
 full = ["std"]            # add "serde" here only if the crate implements Serialize/Deserialize
 serde = ["dep:serde"]     # only if the crate has serde impls
-_internal = []            # only if we need to expose internals
 ```
 
-No other features should exist unless there is a pressing justification. `_internal` is reserved for test and benchmark
-support. The `serde` feature is only added to crates that actually derive or implement `Serialize`/`Deserialize` on
-public types.
+No other features should exist unless there is a pressing justification. The `serde` feature is only added to crates
+that actually derive or implement `Serialize`/`Deserialize` on public types.
 
 ### Module conventions
 
@@ -122,11 +120,11 @@ dash-num = { version = "0.0.0", path = "../num" }
 
 ## Verification
 
-All changes must pass before merge. Use `full,_internal` for the widest coverage.
+All changes must pass before merge. Use `full` for the widest coverage.
 
 ```sh
 cargo fmt --check
-cargo test --features full,_internal
-cargo bench --features full,_internal
-cargo clippy --features full,_internal --tests
+cargo test --features full
+cargo bench --features full
+cargo clippy --features full --tests
 ```

@@ -7,7 +7,6 @@
 //! Signing, verification, and recovery tests for k256.
 
 #![expect(clippy::unwrap_used, reason = "test code")]
-#![expect(clippy::panic, reason = "test code")]
 
 mod common;
 

@@ -6,24 +6,23 @@
 
 //! JH-512 tests.
 
-#![expect(clippy::unwrap_used, reason = "test code")]
 #![expect(clippy::panic, reason = "test code")]
 
 mod common;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
-use dash_pow::jh::{consts::IV, scalar, simd};
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
+use dash_pow::__private::jh::{consts::IV, scalar, simd};
+#[cfg(feature = "simd")]
 use rstest::rstest;
 
 /// Converts a flat `[u64; 16]` scalar state to eight SIMD rows.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn u64_to_rows(state: &[u64; 16]) -> [simd::Row; 8] {
   core::array::from_fn(|i| simd::row_from_u64_pair([state[i * 2], state[i * 2 + 1]]))
 }
 
 /// Converts eight SIMD rows back to a flat `[u64; 16]` scalar state.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn rows_to_u64(rows: &[simd::Row; 8]) -> [u64; 16] {
   let mut out = [0u64; 16];
   for i in 0..8 {
@@ -35,7 +34,7 @@ fn rows_to_u64(rows: &[simd::Row; 8]) -> [u64; 16] {
 }
 
 /// Flattens the `[[u64; 2]; 8]` IV into a `[u64; 16]` state array.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn flatten_iv() -> [u64; 16] {
   let mut h = [0u64; 16];
   for i in 0..8 {
@@ -46,22 +45,24 @@ fn flatten_iv() -> [u64; 16] {
 }
 
 /// Decodes a 64-byte block as eight little-endian u64 words.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn bytes_to_words(block: &[u8; 64]) -> [u64; 8] {
   core::array::from_fn(|i| {
     let off = i * 8;
-    u64::from_le_bytes(block[off..off + 8].try_into().unwrap())
+    let mut buf = [0u8; 8];
+    buf.copy_from_slice(&block[off..off + 8]);
+    u64::from_le_bytes(buf)
   })
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn row_round_trip() {
   let scalar_iv = flatten_iv();
   assert_eq!(rows_to_u64(&u64_to_rows(&scalar_iv)), scalar_iv);
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn row_round_trip_arbitrary() {
   let mut state = [0u64; 16];
@@ -71,7 +72,7 @@ fn row_round_trip_arbitrary() {
   assert_eq!(rows_to_u64(&u64_to_rows(&state)), state);
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[rstest]
 #[case::zeros([0u8; 64])]
 #[case::pattern({
@@ -97,7 +98,7 @@ fn compress(#[case] block: [u8; 64]) {
   assert_eq!(h_scalar, rows_to_u64(&h_simd), "jh compress diverged");
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn e8_agree() {
   let scalar_iv = flatten_iv();
@@ -117,13 +118,12 @@ fn e8_agree() {
   assert_eq!(h_scalar, rows_to_u64(&h_simd), "jh e8 diverged");
 }
 
-#[cfg(feature = "_internal")]
 mod kat {
   use crate::common;
 
-  use dash_pow::jh::scalar;
+  use dash_pow::__private::jh::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::jh::simd;
+  use dash_pow::__private::jh::simd;
 
   #[test]
   fn nist_vectors_scalar() {

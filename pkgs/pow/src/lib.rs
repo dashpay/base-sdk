@@ -17,55 +17,63 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+mod blake;
+mod bmw;
+mod cubehash;
+mod echo;
+mod groestl;
+mod jh;
+mod keccak;
+mod luffa;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
+mod shavite;
+mod simd_hash;
+mod skein;
 mod util;
-
-use dash_num::Hash256;
 
 #[cfg(feature = "std")]
 pub mod worker;
 
-/// Makes items `pub` when the `_internal` feature is active, otherwise keeps
-/// them crate-private. Used to expose scalar reference implementations and SIMD
-/// internals for testing.
-macro_rules! pub_if_internal {
-  ($(mod $name:ident;)+) => {
-    $(
-      #[cfg(feature = "_internal")]
-      pub mod $name;
-      #[cfg(not(feature = "_internal"))]
-      mod $name;
-    )+
-  };
-  (#[allow(dead_code)] $(mod $name:ident;)+) => {
-    $(
-      #[cfg(feature = "_internal")]
-      #[allow(dead_code, reason = "const evaluation and test validation only")]
-      pub mod $name;
-      #[cfg(not(feature = "_internal"))]
-      #[allow(dead_code, reason = "const evaluation and test validation only")]
-      mod $name;
-    )+
-  };
-}
-
-pub_if_internal! {
-  mod blake;
-  mod bmw;
-  mod cubehash;
-  mod echo;
-  mod groestl;
-  mod jh;
-  mod keccak;
-  mod luffa;
-  mod shavite;
-  mod simd_hash;
-  mod skein;
+#[doc(hidden)]
+pub mod __private {
+  pub mod blake {
+    pub use crate::blake::*;
+  }
+  pub mod bmw {
+    pub use crate::bmw::*;
+  }
+  pub mod cubehash {
+    pub use crate::cubehash::*;
+  }
+  pub mod echo {
+    pub use crate::echo::*;
+  }
+  pub mod groestl {
+    pub use crate::groestl::*;
+  }
+  pub mod jh {
+    pub use crate::jh::*;
+  }
+  pub mod keccak {
+    pub use crate::keccak::*;
+  }
+  pub mod luffa {
+    pub use crate::luffa::*;
+  }
+  pub mod shavite {
+    pub use crate::shavite::*;
+  }
+  pub mod simd_hash {
+    pub use crate::simd_hash::*;
+  }
+  pub mod skein {
+    pub use crate::skein::*;
+  }
 }
 
 /// Computes the Dash proof-of-work hash.
-pub fn hash(data: &[u8]) -> Hash256 {
+pub fn hash(data: &[u8]) -> dash_num::Hash256 {
   let h = blake::hash512(data);
   let h = bmw::hash512(h.as_ref());
   let h = groestl::hash512(h.as_ref());
@@ -79,5 +87,5 @@ pub fn hash(data: &[u8]) -> Hash256 {
   let h = echo::hash512(h.as_ref());
   let mut out = [0u8; 32];
   out.copy_from_slice(&h.as_bytes()[..32]);
-  Hash256::from(out)
+  dash_num::Hash256::from(out)
 }

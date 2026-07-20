@@ -13,7 +13,11 @@
 //!   scalar fallback otherwise. Used by SIMD implementations.
 
 #[cfg(all(feature = "aes_hw", target_arch = "aarch64"))]
+#[expect(unsafe_code, reason = "intrinsics")]
 pub(crate) mod aarch64;
+#[cfg(all(feature = "aes_hw", target_arch = "x86_64"))]
+#[expect(unsafe_code, reason = "intrinsics")]
+pub(crate) mod amd64;
 pub(crate) mod consts;
 #[cfg(any(test, feature = "simd"))]
 pub(crate) mod cpu;
