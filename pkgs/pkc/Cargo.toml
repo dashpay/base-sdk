@@ -4,11 +4,6 @@ version = "0.0.0"
 edition = "2021"
 license = "MIT"
 
-[[bench]]
-name = "pkc"
-path = "bench/main.rs"
-harness = false
-
 [dependencies]
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
@@ -54,3 +49,72 @@ workspace = true
 
 [package.rust-version]
 workspace = true
+
+[[bench]]
+name = "pkc"
+path = "bench/main.rs"
+harness = false
+
+[[test]]
+name = "bls_chia_aggregate"
+required-features = ["bls_chia"]
+
+[[test]]
+name = "bls_chia_dh"
+required-features = ["bls_chia"]
+
+[[test]]
+name = "bls_chia_keygen"
+required-features = ["bls_chia"]
+
+[[test]]
+name = "bls_chia_llmq"
+required-features = ["bls_chia"]
+
+[[test]]
+name = "bls_chia_ser"
+required-features = ["bls_chia"]
+
+[[test]]
+name = "bls_chia_sign"
+required-features = ["bls_chia"]
+
+[[test]]
+name = "bls_chia_threshold"
+required-features = ["bls_chia"]
+
+[[test]]
+name = "bls_ietf_aggregate"
+required-features = ["bls_ietf"]
+
+[[test]]
+name = "bls_ietf_dh"
+required-features = ["bls_ietf"]
+
+[[test]]
+name = "bls_ietf_keygen"
+required-features = ["bls_ietf"]
+
+[[test]]
+name = "bls_ietf_llmq"
+required-features = ["bls_ietf"]
+
+[[test]]
+name = "bls_ietf_pop"
+required-features = ["bls_ietf"]
+
+[[test]]
+name = "bls_ietf_sign"
+required-features = ["bls_ietf"]
+
+[[test]]
+name = "bls_ietf_threshold"
+required-features = ["bls_ietf"]
+
+[[test]]
+name = "k256_keygen"
+required-features = ["k256"]
+
+[[test]]
+name = "k256_sign"
+required-features = ["k256"]
