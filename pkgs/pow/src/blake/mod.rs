@@ -11,10 +11,13 @@
 //! a 512-bit digest. The message length is tracked by a 128-bit counter and
 //! encoded in the padding as big-endian.
 
+#[doc(hidden)]
 pub mod consts;
-pub_if_internal! { mod scalar; }
+#[doc(hidden)]
+pub mod scalar;
 #[cfg(feature = "simd")]
-pub_if_internal! { mod simd; }
+#[doc(hidden)]
+pub mod simd;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "simd")] {

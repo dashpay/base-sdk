@@ -215,8 +215,8 @@ const fn eta(bits: &[u8; 256], r: usize) -> [u8; 256] {
 
 /// Converts one hardware constant to 4 bitslice u64 values.
 ///
-/// Applies lambda then eta per Section 7.2.7, splits even/odd bits, and packs each
-/// 128-bit half as 2 LE-swapped u64.
+/// Applies lambda then eta per Section 7.2.7, splits even/odd bits, and packs
+/// each 128-bit half as 2 LE-swapped u64.
 const fn to_bitslice(hw: &[u8; 32], r: usize) -> [u64; 4] {
   let bits = eta(&lambda(&unpack_bits(hw), r), r);
   let mut out = [0u64; 4];

@@ -6,10 +6,13 @@
 
 //! SHAvite-3-512 hash function.
 
+#[doc(hidden)]
 pub mod consts;
-pub_if_internal! { mod scalar; }
+#[doc(hidden)]
+pub mod scalar;
 #[cfg(feature = "simd")]
-pub_if_internal! { mod simd; }
+#[doc(hidden)]
+pub mod simd;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "simd")] {

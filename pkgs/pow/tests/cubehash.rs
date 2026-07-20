@@ -11,22 +11,22 @@
 
 mod common;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
-use dash_pow::cubehash::{consts::IV, scalar, simd};
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
+use dash_pow::__private::cubehash::{consts::IV, scalar, simd};
+#[cfg(feature = "simd")]
 use rstest::rstest;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 use core::simd::Simd;
 
 /// Converts a flat `[u32; 32]` state into the SIMD `[Simd<u32, 4>; 8]` layout.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn flat_to_vec(flat: &[u32; 32]) -> [Simd<u32, 4>; 8] {
   core::array::from_fn(|i| Simd::from_array([flat[i * 4], flat[i * 4 + 1], flat[i * 4 + 2], flat[i * 4 + 3]]))
 }
 
 /// Converts the SIMD `[Simd<u32, 4>; 8]` layout back to a flat `[u32; 32]`.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn vec_to_flat(v: &[Simd<u32, 4>; 8]) -> [u32; 32] {
   let mut out = [0u32; 32];
   for (i, lane) in v.iter().enumerate() {
@@ -36,14 +36,14 @@ fn vec_to_flat(v: &[Simd<u32, 4>; 8]) -> [u32; 32] {
   out
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn state_round_trip() {
   let orig = IV;
   assert_eq!(vec_to_flat(&flat_to_vec(&orig)), orig);
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[rstest]
 #[case::iv(IV)]
 #[case::mixed({
@@ -59,7 +59,7 @@ fn sixteen_rounds(#[case] init: [u32; 32]) {
   assert_eq!(s, vec_to_flat(&t), "cubehash sixteen_rounds diverged");
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn absorb_block_agree() {
   let block = [0xABu8; 32];
@@ -90,13 +90,12 @@ fn absorb_block_agree() {
   assert_eq!(s_scalar, vec_to_flat(&s_simd), "cubehash absorb_block diverged");
 }
 
-#[cfg(feature = "_internal")]
 mod kat {
   use crate::common;
 
-  use dash_pow::cubehash::scalar;
+  use dash_pow::__private::cubehash::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::cubehash::simd;
+  use dash_pow::__private::cubehash::simd;
 
   #[test]
   fn nist_vectors_scalar() {

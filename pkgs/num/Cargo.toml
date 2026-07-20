@@ -9,7 +9,6 @@ default = []
 std = ["bitcoin-consensus-encoding/std", "dash-types/std"]
 full = ["std", "serde"]
 serde = ["dep:serde", "dash-types/serde"]
-_internal = []
 
 [dependencies]
 bitcoin-consensus-encoding = { version = "0.2", default-features = false }

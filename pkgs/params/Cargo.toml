@@ -8,7 +8,6 @@ license = "MIT"
 default = []
 std = ["dash-primitives/std"]
 full = ["std"]
-_internal = []
 
 [dependencies]
 bitcoin-units = { version = "0.3", default-features = false, features = ["alloc"] }

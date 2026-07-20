@@ -8,7 +8,6 @@ license = "MIT"
 default = []
 std = ["dep:rayon"]
 full = ["std", "aes_hw", "simd"]
-_internal = []
 aes_hw = []
 simd = []
 
@@ -27,53 +26,31 @@ serde_json = "1"
 
 [[test]]
 name = "blake"
-required-features = ["_internal"]
-
 [[test]]
 name = "bmw"
-required-features = ["_internal"]
-
 [[test]]
 name = "cubehash"
-required-features = ["_internal"]
-
 [[test]]
 name = "echo"
-required-features = ["_internal"]
-
 [[test]]
 name = "groestl"
-required-features = ["_internal"]
-
 [[test]]
 name = "jh"
-required-features = ["_internal"]
-
 [[test]]
 name = "keccak"
-required-features = ["_internal"]
-
 [[test]]
 name = "luffa"
-required-features = ["_internal"]
-
 [[test]]
 name = "shavite"
-required-features = ["_internal"]
-
 [[test]]
 name = "simd_hash"
-required-features = ["_internal"]
-
 [[test]]
 name = "skein"
-required-features = ["_internal"]
-
 [[bench]]
 name = "pow"
 path = "bench/main.rs"
 harness = false
-required-features = ["_internal"]
+required-features = ["std", "simd"]
 
 [lints]
 workspace = true

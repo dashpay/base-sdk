@@ -15,9 +15,9 @@ use crate::util::aes::consts::SBOX;
 use dash_num::Hash512;
 
 use core::simd::num::{SimdInt, SimdUint};
-use core::simd::Simd;
 #[cfg(not(all(feature = "aes_hw", target_arch = "aarch64")))]
 use core::simd::simd_swizzle;
+use core::simd::Simd;
 
 type Row = Simd<u8, 16>;
 

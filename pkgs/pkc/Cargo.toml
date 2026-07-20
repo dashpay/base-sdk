@@ -42,7 +42,6 @@ bls_ietf = ["dep:blst", "dep:sha2"]
 k256 = ["dep:k256"]
 serde = ["dep:serde", "dash-types/serde"]
 full = ["k256", "bls_ietf", "bls_chia", "serde", "std"]
-_internal = []
 
 [lints]
 workspace = true

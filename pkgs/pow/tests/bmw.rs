@@ -10,13 +10,13 @@
 
 mod common;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
-use dash_pow::bmw::{consts::IV, scalar, simd};
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
+use dash_pow::__private::bmw::{consts::IV, scalar, simd};
+#[cfg(feature = "simd")]
 use rstest::rstest;
 
 /// Loads a 128-byte block as sixteen little-endian u64 words.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn bytes_to_words(block: &[u8; 128]) -> [u64; 16] {
   core::array::from_fn(|i| {
     let off = i * 8;
@@ -34,7 +34,7 @@ fn bytes_to_words(block: &[u8; 128]) -> [u64; 16] {
 }
 
 /// Creates a 128-byte block filled with a running pattern.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn make_block(fill: u8) -> [u8; 128] {
   let mut b = [0u8; 128];
   for (i, slot) in b.iter_mut().enumerate() {
@@ -43,7 +43,7 @@ fn make_block(fill: u8) -> [u8; 128] {
   b
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[rstest]
 #[case::zeros([0u8; 128])]
 #[case::pattern(make_block(0x13))]
@@ -57,7 +57,7 @@ fn compress(#[case] block: [u8; 128]) {
   assert_eq!(out_scalar, out_simd, "bmw compress diverged");
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn bytes_to_words_round_trip() {
   let block = make_block(0x42);
@@ -69,13 +69,12 @@ fn bytes_to_words_round_trip() {
   assert_eq!(block, reconstructed);
 }
 
-#[cfg(feature = "_internal")]
 mod kat {
   use crate::common;
 
-  use dash_pow::bmw::scalar;
+  use dash_pow::__private::bmw::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::bmw::simd;
+  use dash_pow::__private::bmw::simd;
 
   #[test]
   fn nist_vectors_scalar() {

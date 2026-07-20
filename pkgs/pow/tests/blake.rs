@@ -10,15 +10,15 @@
 
 mod common;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
-use dash_pow::blake::{consts::IV, scalar, simd};
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
+use dash_pow::__private::blake::{consts::IV, scalar, simd};
+#[cfg(feature = "simd")]
 use rstest::rstest;
 
 /// Scalar compress takes `&[u8]` and loads BE words internally. SIMD compress
 /// takes pre-loaded `&[u64; 16]` words. We bridge via `simd::load_message` to
 /// get the same word view.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[rstest]
 #[case::zeros([0u8; 128], 1024, 0)]
 #[case::pattern({
@@ -37,13 +37,12 @@ fn compress(#[case] block: [u8; 128], #[case] t0: u64, #[case] t1: u64) {
   assert_eq!(h_scalar, h_simd, "blake compress diverged");
 }
 
-#[cfg(feature = "_internal")]
 mod kat {
   use crate::common;
 
-  use dash_pow::blake::scalar;
+  use dash_pow::__private::blake::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::blake::simd;
+  use dash_pow::__private::blake::simd;
 
   #[test]
   fn scalar() {

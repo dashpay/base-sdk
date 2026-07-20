@@ -31,7 +31,7 @@ jobs:
     with:
       package: dash-pow
       package_dir: pow
-      features: std,_internal
+      features: std
 
   nightly:
     uses: ./.github/workflows/build_nightly.yml

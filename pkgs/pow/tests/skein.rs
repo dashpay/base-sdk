@@ -10,13 +10,13 @@
 
 mod common;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
-use dash_pow::skein::{consts::IV, scalar, simd};
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
+use dash_pow::__private::skein::{consts::IV, scalar, simd};
+#[cfg(feature = "simd")]
 use rstest::rstest;
 
 /// Decodes a 64-byte block as eight little-endian u64 words.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn bytes_to_words(block: &[u8; 64]) -> [u64; 8] {
   core::array::from_fn(|i| {
     let off = i * 8;
@@ -27,7 +27,7 @@ fn bytes_to_words(block: &[u8; 64]) -> [u64; 8] {
 }
 
 /// Creates a 64-byte block filled with a running pattern.
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 fn make_block(fill: u8) -> [u8; 64] {
   let mut b = [0u8; 64];
   for (i, slot) in b.iter_mut().enumerate() {
@@ -36,14 +36,14 @@ fn make_block(fill: u8) -> [u8; 64] {
   b
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 const MSG: u64 = 48 << 1;
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 const FIRST: u64 = 1 << 7;
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 const FINAL: u64 = 1 << 8;
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[rstest]
 #[case::zeros_single_block([0u8; 64], 0, 64, MSG + FIRST + FINAL, true, true)]
 #[case::pattern_single_block(make_block(0x42), 0, 64, MSG + FIRST + FINAL, true, true)]
@@ -77,7 +77,7 @@ fn ubi(
   assert_eq!(h_scalar, h_simd, "skein ubi diverged");
 }
 
-#[cfg(all(feature = "_internal", feature = "simd"))]
+#[cfg(feature = "simd")]
 #[test]
 fn output_block_agree() {
   // Process empty message through both paths, then compare the output-block step.
@@ -110,13 +110,12 @@ fn output_block_agree() {
   assert_eq!(h_scalar, h_simd, "skein output block diverged");
 }
 
-#[cfg(feature = "_internal")]
 mod kat {
   use crate::common;
 
-  use dash_pow::skein::scalar;
+  use dash_pow::__private::skein::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::skein::simd;
+  use dash_pow::__private::skein::simd;
 
   #[test]
   fn nist_vectors_scalar() {

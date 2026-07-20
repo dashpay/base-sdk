@@ -11,7 +11,7 @@
 mod common;
 
 #[cfg(feature = "simd")]
-use dash_pow::simd_hash::{consts::IV, scalar, simd};
+use dash_pow::__private::simd_hash::{consts::IV, scalar, simd};
 #[cfg(feature = "simd")]
 use rstest::rstest;
 
@@ -41,9 +41,9 @@ fn compress(#[case] last: bool, #[case] block: [u8; 128]) {
 mod kat {
   use super::common;
 
-  use dash_pow::simd_hash::scalar;
+  use dash_pow::__private::simd_hash::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::simd_hash::simd;
+  use dash_pow::__private::simd_hash::simd;
 
   #[test]
   fn scalar_nist_kat() {

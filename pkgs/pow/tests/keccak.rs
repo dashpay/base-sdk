@@ -11,7 +11,7 @@
 mod common;
 
 #[cfg(feature = "simd")]
-use dash_pow::keccak::{scalar, simd};
+use dash_pow::__private::keccak::{scalar, simd};
 #[cfg(feature = "simd")]
 use rstest::rstest;
 
@@ -35,9 +35,9 @@ fn keccak_f1600(#[case] seed: u64) {
 mod kat {
   use super::common;
 
-  use dash_pow::keccak::scalar;
+  use dash_pow::__private::keccak::scalar;
   #[cfg(feature = "simd")]
-  use dash_pow::keccak::simd;
+  use dash_pow::__private::keccak::simd;
 
   #[test]
   fn scalar_nist_kat() {

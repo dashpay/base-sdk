@@ -89,7 +89,6 @@ respective sections.
 | `std`       | Standard library support.                   | Yes                               |
 | `full`      | All non-conflicting features.               | Yes                               |
 | `serde`     | Serialization using `serde`.                | **No** (dependent on feature set) |
-| `_internal` | Exposes internals for tests and benchmarks. | Yes (not part of API contract)    |
 
 ## Is the SDK a full node?
 

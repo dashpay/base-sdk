@@ -80,7 +80,6 @@ All crates support these standard features:
 | `std` | Enable standard library support | _All_ |
 | `serde` | Enable serde serialization (where applicable) | [num](./pkgs/num), [p2p-core](./pkgs/p2p_core), [pkc](./pkgs/pkc), [primitives](./pkgs/primitives), [script](./pkgs/script), [types](./pkgs/types) |
 | `full` | Enables all non-conflicting features | _All_ |
-| `_internal` | Access to package internals, reserved for testing and benchmarks. **Not part of API contract.** | _All_ |
 
 Specific crates define additional features:
 

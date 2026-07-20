@@ -12,10 +12,10 @@ on:
         required: true
         type: string
       features:
-        description: Cargo features to enable (default full,_internal)
+        description: Cargo features to enable (default 'full')
         required: false
         type: string
-        default: full,_internal
+        default: full
     secrets:
       CODECOV_TOKEN:
         required: false

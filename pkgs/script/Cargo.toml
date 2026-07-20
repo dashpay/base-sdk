@@ -13,7 +13,6 @@ std = [
 ]
 full = ["std", "serde"]
 serde = ["dep:serde"]
-_internal = []
 
 [dependencies]
 base58ck = { version = "0.4", default-features = false, features = ["alloc"] }

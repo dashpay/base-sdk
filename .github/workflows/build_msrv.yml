@@ -137,7 +137,7 @@ jobs:
             cargo-build-msrv-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Build workspace
-        run: cargo build --workspace --features full,_internal
+        run: cargo build --workspace --features full
 
       - name: Test workspace
-        run: cargo test --workspace --features full,_internal
+        run: cargo test --workspace --features full
