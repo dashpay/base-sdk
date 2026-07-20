@@ -7,7 +7,6 @@
 //! Threshold split and recovery tests for bls_ietf.
 
 #![expect(clippy::unwrap_used, reason = "test code")]
-#![expect(clippy::panic, reason = "test code")]
 
 mod common;
 

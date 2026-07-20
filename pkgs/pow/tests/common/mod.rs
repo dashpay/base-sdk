@@ -6,7 +6,7 @@
 
 //! Shared NIST KAT helpers.
 
-#![allow(dead_code)]
+#![allow(dead_code, reason = "usage dependent on build flags")]
 #![expect(clippy::expect_used, reason = "test code")]
 
 use hex_conservative::FromHex;

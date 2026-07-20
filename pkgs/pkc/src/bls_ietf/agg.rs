@@ -78,7 +78,6 @@ pub fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) ->
 ///    pk_hash) mod order`
 /// 4. Compute weighted public key: `agg_pk = sum(weight_i * pk_i)`
 /// 5. Verify the aggregate signature against `agg_pk` and the message
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8], pks: &[&PublicKey]) -> Result<(), Error> {
   if pks.is_empty() {
     return Err(Error::EmptyAggregation);

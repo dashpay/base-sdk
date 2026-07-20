@@ -16,7 +16,6 @@ use blst::*;
 use sha2::{Digest, Sha256};
 
 /// Aggregate multiple legacy BLS public keys (simple point addition in G1).
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, Error> {
   if keys.is_empty() {
     return Err(Error::EmptyAggregation);
@@ -34,7 +33,6 @@ pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, Error> {
 }
 
 /// Aggregate multiple legacy BLS signatures (simple point addition in G2).
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, Error> {
   if sigs.is_empty() {
     return Err(Error::EmptyAggregation);
@@ -76,7 +74,6 @@ pub fn fast_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicKey
 ///    pk_hash) mod order`
 /// 4. Compute weighted public key: `agg_pk = sum(weight_i * pk_i)`
 /// 5. Verify the aggregate signature against `agg_pk` and the message
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicKey]) -> Result<(), Error> {
   if pks.is_empty() {
     return Err(Error::EmptyAggregation);

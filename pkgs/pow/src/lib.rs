@@ -38,6 +38,7 @@ macro_rules! pub_if_internal {
       mod $name;
     )+
   };
+  // nosemgrep: attr-requires-reason
   (#[allow(dead_code)] $(mod $name:ident;)+) => {
     $(
       #[cfg(feature = "_internal")]

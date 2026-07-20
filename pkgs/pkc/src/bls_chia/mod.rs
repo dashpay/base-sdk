@@ -6,14 +6,21 @@
 
 //! Legacy BLS signatures (non-standard hash-to-G2, min-pubkey-size).
 
+#[expect(unsafe_code, reason = "blst C FFI")]
 mod agg;
 mod error;
+#[expect(unsafe_code, reason = "blst C FFI")]
 mod hash;
+#[expect(unsafe_code, reason = "blst C FFI")]
 mod pk;
+#[expect(unsafe_code, reason = "blst C FFI")]
 mod ser;
+#[expect(unsafe_code, reason = "blst C FFI")]
 mod sig;
+#[expect(unsafe_code, reason = "blst C FFI")]
 mod sk;
 
+#[expect(unsafe_code, reason = "blst C FFI")]
 pub mod threshold;
 
 pub use agg::{

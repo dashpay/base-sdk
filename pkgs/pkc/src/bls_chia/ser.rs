@@ -17,7 +17,6 @@ use blst::BLST_ERROR;
 use hex_literal::hex;
 
 /// Serialize a G1 affine point to 48 legacy bytes.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(super) fn ser_g1(p: &blst_p1_affine) -> [u8; 48] {
   let mut ietf = [0u8; 48];
   unsafe { blst::blst_p1_affine_compress(ietf.as_mut_ptr(), p) };
@@ -38,7 +37,6 @@ pub(super) fn ser_g1(p: &blst_p1_affine) -> [u8; 48] {
 }
 
 /// Deserialize 48 legacy bytes to a G1 affine point.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<blst_p1_affine, Error> {
   if bytes[0] & 0xc0 == 0xc0 {
     let mut out = blst_p1_affine::default();
@@ -74,7 +72,6 @@ pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<blst_p1_affine, Error> {
 ///
 /// blst:   `[x.c1(48), x.c0(48), y.c1(48), y.c0(48)]`
 /// Legacy: `[x.c0(48), x.c1(48)]`, sign at byte\[0\] bit 7
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(super) fn ser_g2(p: &blst_p2_affine) -> [u8; 96] {
   let mut uncomp = [0u8; 192];
   unsafe { blst::blst_p2_affine_serialize(uncomp.as_mut_ptr(), p) };
@@ -101,7 +98,6 @@ pub(super) fn ser_g2(p: &blst_p2_affine) -> [u8; 96] {
 }
 
 /// Deserialize 96 legacy bytes to a G2 affine point.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<blst_p2_affine, Error> {
   if bytes[0] & 0xc0 == 0xc0 {
     let mut ietf = [0u8; 96];
@@ -158,7 +154,6 @@ fn y_c1_is_larger(y_c1: &[u8]) -> bool {
   y_c1.len() >= 48 && y_c1[..48] > HALF_P[..]
 }
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn fp2_neg(a: &blst::blst_fp2) -> blst::blst_fp2 {
   let mut out = blst::blst_fp2::default();
   unsafe { blst::blst_fp2_cneg(&mut out, a, true) };

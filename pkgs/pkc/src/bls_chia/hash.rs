@@ -72,7 +72,6 @@ fn curve_b() -> blst_fp2 {
 }
 
 /// Hash a 32-byte message to a G2 point using the legacy Dash algorithm.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(super) fn hash_to_g2(msg: &[u8; 32]) -> blst_p2 {
   // Step 1: derive four field elements via SHA-256 with domain prefixes.
   let t00 = hash_to_fp(msg, b"G2_0_c0");
@@ -101,7 +100,6 @@ pub(super) fn hash_to_g2(msg: &[u8; 32]) -> blst_p2 {
 /// Computes `(x^2-x-1)*P + psi((x-1)*P) + psi^2(2*P)`
 /// where `x` is the BLS12-381 curve parameter and `psi`
 /// is the Frobenius endomorphism on the twist.
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn mul_cof_b12(p: &blst_p2) -> blst_p2 {
   // t0 = x·P  (x is negative, so negate after multiplying by |x|)
   let mut t0 = blst_p2::default();
@@ -158,7 +156,6 @@ fn mul_cof_b12(p: &blst_p2) -> blst_p2 {
 /// `psi(x, y) = (conj(x) * PSI_COEFF_X, conj(y) * PSI_COEFF_Y)`
 ///
 /// where `conj(a + b*u) = a - b*u`.
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn psi(p: &blst_p2_affine) -> blst_p2_affine {
   // Conjugate x and y (negate the c1 component of each).
   let mut x = p.x;
@@ -177,7 +174,6 @@ fn psi(p: &blst_p2_affine) -> blst_p2_affine {
   blst_p2_affine { x: rx, y: ry }
 }
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn psi_coeff_x() -> blst_fp2 {
   // PSI_COEFF_X = (0, PSI_COEFF_X_C1)
   let mut c1 = blst_fp::default();
@@ -187,7 +183,6 @@ fn psi_coeff_x() -> blst_fp2 {
   }
 }
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn psi_coeff_y() -> blst_fp2 {
   let mut c0 = blst_fp::default();
   unsafe { blst_fp_from_bendian(&mut c0, PSI_COEFF_Y_C0.as_ptr()) };
@@ -220,7 +215,6 @@ fn hash_to_fp(msg: &[u8; 32], tag: &[u8; 7]) -> blst_fp {
 ///
 /// Splits into `hi * 2^384 + lo`, computes `hi * R + lo` where
 /// `R = 2^384 mod p`.
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn reduce_mod_p(wide: &[u8; 64]) -> blst_fp {
   let mut lo_fp = blst_fp::default();
   unsafe { blst_fp_from_bendian(&mut lo_fp, wide[16..].as_ptr()) };
@@ -242,7 +236,6 @@ fn reduce_mod_p(wide: &[u8; 64]) -> blst_fp {
 }
 
 /// Shallue-van de Woestijne encoding from Fp2 to G2 (not cofactor-cleared).
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn sw_encode(t: &blst_fp2) -> blst_p2 {
   if fp2_is_zero(t) {
     return blst_p2::default();
@@ -340,14 +333,12 @@ fn sw_encode(t: &blst_fp2) -> blst_p2 {
   proj
 }
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn fp_from_bytes(bytes: &[u8; 48]) -> blst_fp {
   let mut fp = blst_fp::default();
   unsafe { blst_fp_from_bendian(&mut fp, bytes.as_ptr()) };
   fp
 }
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn fp_from_u64(v: u64) -> blst_fp {
   let mut buf = [0u8; 48];
   buf[40..48].copy_from_slice(&v.to_be_bytes());
@@ -366,7 +357,6 @@ fn fp2_is_zero(a: &blst_fp2) -> bool {
   a.fp[0].l == [0u64; 6] && a.fp[1].l == [0u64; 6]
 }
 
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn fp2_neg(a: &blst_fp2) -> blst_fp2 {
   let mut out = blst_fp2::default();
   unsafe { blst_fp2_cneg(&mut out, a, true) };
@@ -374,7 +364,6 @@ fn fp2_neg(a: &blst_fp2) -> blst_fp2 {
 }
 
 /// Imaginary component as big-endian bytes for lexicographic comparison.
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn fp2_cmp_c1(a: &blst_fp2) -> [u8; 48] {
   let mut bytes = [0u8; 48];
   unsafe { blst_bendian_from_fp(bytes.as_mut_ptr(), &a.fp[1]) };
@@ -382,7 +371,6 @@ fn fp2_cmp_c1(a: &blst_fp2) -> [u8; 48] {
 }
 
 /// x^3 + b
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn curve_rhs(x: &blst_fp2) -> blst_fp2 {
   let b = curve_b();
   let mut x2 = blst_fp2::default();

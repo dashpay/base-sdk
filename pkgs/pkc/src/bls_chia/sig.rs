@@ -39,7 +39,6 @@ impl Signature {
 
   /// Verify against a 32-byte message and public key via pairing check:
   /// e(sig, G1) == e(H(msg), pk).
-  #[expect(unsafe_code, reason = "blst C FFI")]
   pub fn verify(&self, msg: &[u8; 32], pk: &PublicKey) -> Result<(), Error> {
     let h_proj = hash::hash_to_g2(msg);
     let mut h_aff = blst_p2_affine::default();

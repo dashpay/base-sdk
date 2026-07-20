@@ -6,6 +6,7 @@
 
 //! BLS primitives shared between bls_ietf and bls_chia.
 
+#[expect(dead_code, reason = "compile-time contracts, unused at runtime")]
 pub(crate) mod contract;
 pub(crate) mod threshold;
 
@@ -14,7 +15,6 @@ use crate::prelude::*;
 use dash_num::Hash256;
 
 /// Sum secret key scalars (mod group order) via blst FFI.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Result<[u8; 32], ()> {
   use blst::*;
   use zeroize::Zeroize;
@@ -40,7 +40,6 @@ pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Result<[u8; 32], ()> {
 /// Generate secret key shares from a polynomial with the
 /// given constant term. Returns a Vec of (id, share_bytes)
 /// pairs.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(crate) fn generate_shares(
   sk_bytes: &[u8; 32],
   threshold: usize,

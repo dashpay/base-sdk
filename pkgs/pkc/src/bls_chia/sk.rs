@@ -31,7 +31,6 @@ impl SecretKey {
   }
 
   /// Parse from 32-byte big-endian scalar.
-  #[expect(unsafe_code, reason = "blst C FFI")]
   pub fn from_bytes(bytes: &[u8; 32]) -> Result<Self, Error> {
     let mut scalar = blst_scalar::default();
     unsafe { blst_scalar_from_bendian(&mut scalar, bytes.as_ptr()) };
@@ -43,7 +42,6 @@ impl SecretKey {
   }
 
   /// Serialize to 32 bytes.
-  #[expect(unsafe_code, reason = "blst C FFI")]
   pub fn to_bytes(&self) -> [u8; 32] {
     let mut out = [0u8; 32];
     unsafe { blst_bendian_from_scalar(out.as_mut_ptr(), &self.0) };
@@ -51,7 +49,6 @@ impl SecretKey {
   }
 
   /// Derive the corresponding public key (G1 point).
-  #[expect(unsafe_code, reason = "blst C FFI")]
   pub fn public_key(&self) -> PublicKey {
     let mut pk = blst_p1::default();
     unsafe { blst_sk_to_pk_in_g1(&mut pk, &self.0) };
@@ -62,7 +59,6 @@ impl SecretKey {
 
   /// Sign a 32-byte message hash using the legacy scheme (no DST, Shallue-van
   /// de Woestijne hash-to-G2).
-  #[expect(unsafe_code, reason = "blst C FFI")]
   pub fn sign(&self, msg: &[u8; 32]) -> Signature {
     let h = hash::hash_to_g2(msg);
     // blst_sign_pk_in_g1 applies IETF transformations, do manually instead.

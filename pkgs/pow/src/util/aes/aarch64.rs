@@ -6,8 +6,6 @@
 
 //! aarch64 AES helpers for the fused Groestl round path and packed AES rounds.
 
-#![expect(unsafe_code, reason = "aarch64 AES intrinsics")]
-
 use core::arch::aarch64::{uint8x16_t, vaeseq_u8, vaesmcq_u8, veorq_u8, vqtbl1q_u8};
 #[cfg(feature = "simd")]
 use core::simd::Simd;

@@ -10,8 +10,6 @@
 //! performs the full AES encryption round (SubBytes + ShiftRows + MixColumns +
 //! AddRoundKey) in a single instruction.
 
-#![expect(unsafe_code, reason = "x86_64 AES-NI intrinsics require unsafe")]
-
 use core::arch::x86_64::{
   __m128i, _mm_aesenc_si128, _mm_aesenclast_si128, _mm_set_epi32, _mm_setzero_si128, _mm_shuffle_epi8,
 };

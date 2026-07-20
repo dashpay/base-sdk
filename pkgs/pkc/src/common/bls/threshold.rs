@@ -14,7 +14,6 @@ use dash_num::Hash256;
 
 /// Evaluate a polynomial at `x`. Coefficients are in ascending order:
 /// `coeffs[0] + coeffs[1]*x + ...`.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(crate) fn poly_eval(coeffs: &[blst_fr], x: &blst_fr) -> blst_fr {
   // Horner's method: result = c[n-1], then for each
   // i from n-2..=0: result = result*x + c[i].
@@ -35,7 +34,6 @@ pub(crate) fn poly_eval(coeffs: &[blst_fr], x: &blst_fr) -> blst_fr {
 ///
 /// `ids` and `points` must have the same length >= 1.
 /// Each id must be non-zero and unique.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(crate) fn interpolate_g2(ids: &[blst_fr], points: &[blst_p2]) -> blst_p2 {
   let n = ids.len();
 
@@ -58,7 +56,6 @@ pub(crate) fn interpolate_g2(ids: &[blst_fr], points: &[blst_p2]) -> blst_p2 {
 }
 
 /// Lagrange coefficients at x=0 for the given evaluation points (ids).
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn compute_lagrange_coeffs(ids: &[blst_fr]) -> Vec<blst_fr> {
   let n = ids.len();
   let mut coeffs = Vec::with_capacity(n);
@@ -96,7 +93,6 @@ fn compute_lagrange_coeffs(ids: &[blst_fr]) -> Vec<blst_fr> {
 }
 
 /// The Fr element 1.
-#[expect(unsafe_code, reason = "blst C FFI")]
 fn fr_one() -> blst_fr {
   let mut fr = blst_fr::default();
   let one = [1u64, 0, 0, 0];
@@ -108,7 +104,6 @@ fn fr_one() -> blst_fr {
 ///
 /// `coeffs_g1[0] + coeffs_g1[1]*x + coeffs_g1[2]*x^2 + ...`
 /// Uses Horner's method.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(crate) fn eval_poly_g1(coeffs_g1: &[blst_p1], x: &blst_fr) -> blst_p1 {
   let n = coeffs_g1.len();
   if n == 0 {
@@ -126,7 +121,6 @@ pub(crate) fn eval_poly_g1(coeffs_g1: &[blst_p1], x: &blst_fr) -> blst_p1 {
 }
 
 /// Convert a 32-byte participant ID to a scalar.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub(crate) fn fr_from_hash(id: &Hash256) -> blst_fr {
   let mut scalar = blst_scalar::default();
   unsafe { blst_scalar_from_bendian(&mut scalar, id.as_bytes().as_ptr()) };

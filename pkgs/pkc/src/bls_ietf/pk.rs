@@ -41,7 +41,6 @@ impl PublicKey {
   }
 
   /// Compute a DH shared key: `sk * peer_pk`.
-  #[expect(unsafe_code, reason = "blst C FFI")]
   pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, Error> {
     use blst::*;
     use zeroize::Zeroize;

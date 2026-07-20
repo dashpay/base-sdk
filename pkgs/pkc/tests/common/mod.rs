@@ -6,7 +6,8 @@
 
 //! Shared helpers.
 
-#![allow(dead_code)]
+#![allow(dead_code, reason = "usage dependent on build flags")]
+#![expect(clippy::unwrap_used, clippy::panic, reason = "test code")]
 
 /// Raw JSON file, a map of sub-operation names to arrays or objects.
 pub type VectorFile = serde_json::Value;

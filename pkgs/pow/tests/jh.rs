@@ -6,7 +6,6 @@
 
 //! JH-512 tests.
 
-#![expect(clippy::unwrap_used, reason = "test code")]
 #![expect(clippy::panic, reason = "test code")]
 
 mod common;
@@ -50,7 +49,9 @@ fn flatten_iv() -> [u64; 16] {
 fn bytes_to_words(block: &[u8; 64]) -> [u64; 8] {
   core::array::from_fn(|i| {
     let off = i * 8;
-    u64::from_le_bytes(block[off..off + 8].try_into().unwrap())
+    let mut buf = [0u8; 8];
+    buf.copy_from_slice(&block[off..off + 8]);
+    u64::from_le_bytes(buf)
   })
 }
 

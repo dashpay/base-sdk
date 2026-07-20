@@ -7,4 +7,5 @@
 //! Shared internals used by multiple BLS modules.
 
 #[cfg(any(feature = "bls_ietf", feature = "bls_chia"))]
+#[expect(unsafe_code, reason = "blst C FFI")]
 pub(crate) mod bls;

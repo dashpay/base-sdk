@@ -135,7 +135,6 @@ pub fn split_sk(
 /// # Errors
 ///
 /// Returns `InsufficientShares` if fewer than 2 shares.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, Error> {
   if shares.len() < 2 {
     return Err(Error::InsufficientShares);
@@ -168,7 +167,6 @@ pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, Error> {
 
 /// Derive a public key share by evaluating the master public
 /// key polynomial at the given participant id.
-#[expect(unsafe_code, reason = "blst C FFI")]
 pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<PublicKey, Error> {
   if master_pks.is_empty() {
     return Err(Error::EmptyAggregation);

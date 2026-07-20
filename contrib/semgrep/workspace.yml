@@ -1,4 +1,66 @@
 rules:
+  - id: attr-allow-discouraged
+    message: "allow attributions are discouraged except for dead_code and unused_imports"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    patterns:
+      - pattern-regex: |-
+          (?xm)
+          ^[ \t]*               # line start, optional indent
+          \#!?\[allow\(         # outer #[allow( or inner #![allow(
+          [^)]* \)              # ... through the closing parenthesis
+      - pattern-not-regex: |-
+          (?x)
+          \#!?\[allow\( \s*                    # allow( plus optional whitespace
+          (?: dead_code | unused_imports ) \b  # ... except these two
+
+  - id: attr-inner-roots-only
+    message: "inner attributes (#![...]) are only permitted in crate/module roots"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs]
+      exclude:
+        - "**/lib.rs"
+        - "**/main.rs"
+        - "**/mod.rs"
+        - "**/build.rs"
+        - /pkgs/**/tests/**
+        - /pkgs/**/bench/**
+    pattern-regex: '(?m)^\s*#!\['
+
+  - id: attr-once-per-file
+    message: "one allow/expect attribute is permitted per file"
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+      exclude: ["**/lib.rs", "**/main.rs", "**/mod.rs"]
+    options:
+      generic_multiline: true
+    pattern-regex: |-
+      (?xm)
+      ^[ \t]* \#!?\[ (?: allow | expect ) \(  # a first attribute opens
+      [^\]]* \]                               # ... through its closing ]
+      [\s\S]*?                                # then, lazily, up to
+      ^[ \t]* \#!?\[ (?: allow | expect ) \(  # a second such attribute
+
+  - id: attr-requires-reason
+    message: 'allow/expect attributes must carry a reason = "..."'
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
+    patterns:
+      - pattern-regex: |-
+          (?xm)
+          ^[ \t]*                       # line start, optional indent
+          \#!?\[ (?: allow | expect )   # #[allow / #[expect (or inner #![)
+          \( [^)]* \) \]                # (...) through the closing )]
+      - pattern-not-regex: 'reason\s*='
+
   - id: codec-no-raw-extend
     message: "use .encode() instead of extend_from_slice for codec buffers"
     severity: ERROR
