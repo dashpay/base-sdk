@@ -6,11 +6,10 @@
 
 //! Legacy BLS secret key.
 
-use super::error::Error;
 use super::hash;
 use super::pk::PublicKey;
 use super::sig::Signature;
-use crate::bls::blst_ffi;
+use crate::bls::{blst_ffi, BlsError};
 
 use zeroize::Zeroize;
 
@@ -24,19 +23,29 @@ impl SecretKey {
   /// Derive a secret key from input keying material (>= 32 bytes). Uses the
   /// same IETF key generation as standard BLS, only the signing scheme
   /// differs.
-  pub fn generate(ikm: &[u8]) -> Result<Self, Error> {
-    let sk = blst::min_pk::SecretKey::key_gen(ikm, &[]).map_err(|_| Error::InvalidSecretKey)?;
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when `ikm` is shorter than 32 bytes or the
+  /// derived scalar is not a valid secret key.
+  pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
+    let sk = blst::min_pk::SecretKey::key_gen(ikm, &[]).map_err(|_| BlsError::InvalidSecretKey)?;
     let bytes = sk.to_bytes();
     Self::from_bytes(&bytes)
   }
 
   /// Parse from 32-byte big-endian scalar.
-  pub fn from_bytes(bytes: &[u8; 32]) -> Result<Self, Error> {
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when the scalar is zero or not less than the
+  /// group order.
+  pub fn from_bytes(bytes: &[u8; 32]) -> Result<Self, BlsError> {
     let scalar = blst_ffi::scalar_from_bendian(bytes);
     if blst_ffi::sk_check(&scalar) {
       Ok(Self(scalar))
     } else {
-      Err(Error::InvalidSecretKey)
+      Err(BlsError::InvalidSecretKey)
     }
   }
 

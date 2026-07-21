@@ -6,11 +6,10 @@
 
 //! IETF BLS public key (48-byte compressed G1 point).
 
-use super::error::Error;
 use super::sig::Signature;
 use super::sk::SecretKey;
 use super::DST_POP_PROVE;
-use crate::bls::blst_ffi;
+use crate::bls::{blst_ffi, BlsError};
 
 use blst::min_pk;
 use blst::BLST_ERROR;
@@ -30,10 +29,10 @@ impl PublicKey {
   }
 
   /// Deserialize from 48 compressed bytes.
-  pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, Error> {
+  pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, BlsError> {
     min_pk::PublicKey::from_bytes(bytes)
       .map(Self)
-      .map_err(|_| Error::InvalidPublicKey)
+      .map_err(|_| BlsError::InvalidPublicKey)
   }
 
   /// Serialize to 48 compressed bytes.
@@ -42,10 +41,15 @@ impl PublicKey {
   }
 
   /// Compute a DH shared key: `sk * peer_pk`.
-  pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, Error> {
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::InvalidPublicKey`] when `peer_pk` or the resulting
+  /// point is not a valid public key.
+  pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, BlsError> {
     use zeroize::Zeroize;
     let compressed = peer_pk.0.compress();
-    let aff = blst_ffi::p1_uncompress(&compressed).map_err(|_| Error::InvalidPublicKey)?;
+    let aff = blst_ffi::p1_uncompress(&compressed).map_err(|_| BlsError::InvalidPublicKey)?;
     let mut sk_bytes = sk.to_bytes();
     let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
     let out_aff = blst_ffi::p1_mult(&aff, &sk_scalar.b, blst_ffi::FR_BITS);
@@ -56,13 +60,17 @@ impl PublicKey {
   }
 
   /// Verify a proof of possession against this key.
-  pub fn verify_possession(&self, pop: &Signature) -> Result<(), Error> {
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::VerifyFailed`] if the proof does not verify.
+  pub fn verify_possession(&self, pop: &Signature) -> Result<(), BlsError> {
     let pk_bytes = self.to_bytes();
     let result = pop.0.verify(true, &pk_bytes, DST_POP_PROVE, &[], &self.0, true);
     if result == BLST_ERROR::BLST_SUCCESS {
       Ok(())
     } else {
-      Err(Error::VerifyFailed)
+      Err(BlsError::VerifyFailed)
     }
   }
 }
@@ -76,7 +84,7 @@ impl From<PublicKey> for crate::BlsPublicKeyBytes {
 }
 
 impl TryFrom<crate::BlsPublicKeyBytes> for PublicKey {
-  type Error = super::error::Error;
+  type Error = crate::bls::BlsError;
 
   fn try_from(bytes: crate::BlsPublicKeyBytes) -> Result<Self, Self::Error> {
     Self::from_bytes(&bytes.0)
