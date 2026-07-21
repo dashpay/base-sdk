@@ -82,3 +82,14 @@ fn split_rejects_ids_congruent_mod_order(ietf_sk0: SecretKey) {
     BlsError::DuplicateShareId
   );
 }
+
+/// A verification vector shorter than 2 elements is malformed.
+#[rstest]
+fn derive_pk_share_rejects_short_verification_vector(ietf_sk0: SecretKey) {
+  let pk = ietf_sk0.public_key();
+  let id = common::make_id(1);
+  assert_eq!(
+    threshold::derive_pk_share(&[&pk], &id).unwrap_err(),
+    BlsError::InvalidVerificationVector
+  );
+}

@@ -151,9 +151,15 @@ pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, BlsError> {
 
 /// Derive a public key share by evaluating the master public
 /// key polynomial at the given participant id.
+///
+/// # Errors
+///
+/// Returns `InvalidVerificationVector` if fewer than 2 master keys are
+/// given, or `InvalidShareId` if `id` reduces to zero in the scalar field.
 pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<PublicKey, BlsError> {
-  if master_pks.is_empty() {
-    return Err(BlsError::EmptyAggregation);
+  // Evaluating the verification-vector polynomial needs >= 2 coefficients.
+  if master_pks.len() < 2 {
+    return Err(BlsError::InvalidVerificationVector);
   }
   let coeffs_g1: Vec<G1> = master_pks.iter().map(|pk| pk.0.to_projective()).collect();
 

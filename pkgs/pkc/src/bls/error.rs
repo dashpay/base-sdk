@@ -29,6 +29,8 @@ pub enum BlsError {
   InvalidShareId,
   /// signature bytes are not a valid G2 point
   InvalidSignature,
+  /// verification vector needs at least 2 elements
+  InvalidVerificationVector,
   /// threshold is below 2 or exceeds the number of ids
   ThresholdTooLarge,
   /// signature verification failed
@@ -47,6 +49,7 @@ impl fmt::Display for BlsError {
       Self::InvalidSecretKey => write!(f, "invalid secret key bytes"),
       Self::InvalidShareId => write!(f, "share id reduces to zero in the scalar field"),
       Self::InvalidSignature => write!(f, "invalid signature bytes"),
+      Self::InvalidVerificationVector => write!(f, "verification vector needs at least 2 elements"),
       Self::ThresholdTooLarge => write!(f, "threshold is below 2 or exceeds the number of ids"),
       Self::VerifyFailed => write!(f, "signature verification failed"),
     }

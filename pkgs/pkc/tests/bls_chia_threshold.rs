@@ -63,6 +63,18 @@ fn split_rejects_ids_congruent_mod_order(chia_sk0: SecretKey) {
   );
 }
 
+/// A verification vector shorter than 2 elements is malformed
+/// (polynomial evaluation requires at least 2 coefficients).
+#[rstest]
+fn derive_pk_share_rejects_short_verification_vector(chia_sk0: SecretKey) {
+  let pk = chia_sk0.public_key();
+  let id = common::make_id(1);
+  assert_eq!(
+    threshold::derive_pk_share(&[&pk], &id).unwrap_err(),
+    BlsError::InvalidVerificationVector
+  );
+}
+
 /// Recovery below threshold succeeds but yields a point unrelated to the
 /// master signature; callers must verify recovered signatures.
 #[rstest]
