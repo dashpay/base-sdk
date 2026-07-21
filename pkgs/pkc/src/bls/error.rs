@@ -25,6 +25,8 @@ pub enum BlsError {
   InvalidPublicKey,
   /// secret key bytes are not a valid scalar
   InvalidSecretKey,
+  /// share id reduces to zero in the scalar field
+  InvalidShareId,
   /// signature bytes are not a valid G2 point
   InvalidSignature,
   /// threshold is below 2 or exceeds the number of ids
@@ -43,6 +45,7 @@ impl fmt::Display for BlsError {
       Self::InvalidKeyMaterial => write!(f, "input keying material too short"),
       Self::InvalidPublicKey => write!(f, "invalid public key bytes"),
       Self::InvalidSecretKey => write!(f, "invalid secret key bytes"),
+      Self::InvalidShareId => write!(f, "share id reduces to zero in the scalar field"),
       Self::InvalidSignature => write!(f, "invalid signature bytes"),
       Self::ThresholdTooLarge => write!(f, "threshold is below 2 or exceeds the number of ids"),
       Self::VerifyFailed => write!(f, "signature verification failed"),

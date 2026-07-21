@@ -7,7 +7,11 @@
 //! Shared BLS test constants.
 
 use dash_pkc::{bls_chia::SecretKey as ChiaSk, bls_ietf::SecretKey as IetfSk};
+use hex_literal::hex;
 use rstest::*;
+
+/// BLS12-381 scalar field order r, big-endian.
+pub const GROUP_ORDER: [u8; 32] = hex!("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
 
 /// Fixed 32-byte IKMs for deterministic test keys (all 0x00, 0x01, 0x02, 0x03).
 pub const RSEED: [[u8; 32]; 4] = [[0u8; 32], [1u8; 32], [2u8; 32], [3u8; 32]];

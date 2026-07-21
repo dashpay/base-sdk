@@ -9,7 +9,7 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{Fr, G1Affine, G2Affine, G1, G2};
+use crate::bls::blst_ffi::{G1Affine, G2Affine, G1, G2};
 use crate::bls::BlsError;
 use crate::common::bls::threshold as math;
 use crate::prelude::*;
@@ -92,7 +92,9 @@ impl SignatureShare {
 ///
 /// Returns `ThresholdTooLarge` if `threshold < 2` (a 1-of-n split hands
 /// the master key to every participant), `ids` is empty, or `threshold >
-/// ids.len()`.
+/// ids.len()`; `InvalidShareId` if any id reduces to zero in the scalar
+/// field; `DuplicateShareId` if any ids collide after reduction;
+/// `InvalidSecretKey` if share generation or parsing fails.
 pub fn split_sk(
   sk: &SecretKey,
   threshold: usize,
@@ -103,21 +105,10 @@ pub fn split_sk(
     return Err(BlsError::ThresholdTooLarge);
   }
 
-  // Reject zero IDs.
-  for id in ids {
-    if id.is_null() {
-      return Err(BlsError::ThresholdTooLarge);
-    }
-  }
-
-  // Reject duplicate IDs.
-  for i in 0..ids.len() {
-    for j in (i + 1)..ids.len() {
-      if ids[i] == ids[j] {
-        return Err(BlsError::DuplicateShareId);
-      }
-    }
-  }
+  // An id congruent to zero mod r would make the share equal the master key, and
+  // ids congruent mod r collide during interpolation.
+  let id_refs: Vec<&Hash256> = ids.iter().collect();
+  math::reduce_share_ids(&id_refs)?;
 
   let sk_bytes = Zeroizing::new(sk.to_bytes());
   let raw =
@@ -140,23 +131,19 @@ pub fn split_sk(
 ///
 /// # Errors
 ///
-/// Returns `InsufficientShares` if fewer than 2 shares are provided, or
-/// `DuplicateShareId` if any ids repeat.
+/// Returns `InsufficientShares` if fewer than 2 shares are provided,
+/// `InvalidShareId` if any id reduces to zero, `DuplicateShareId` if any
+/// ids collide after reduction, or `InvalidSignature` if a share or the
+/// recovered point fails to decode.
 pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, BlsError> {
   if shares.len() < 2 {
     return Err(BlsError::InsufficientShares);
   }
 
-  // Check for duplicate IDs
-  for i in 0..shares.len() {
-    for j in (i + 1)..shares.len() {
-      if shares[i].id == shares[j].id {
-        return Err(BlsError::DuplicateShareId);
-      }
-    }
-  }
-
-  let ids: Vec<Fr> = shares.iter().map(|s| math::fr_from_hash(&s.id)).collect();
+  // Reduce and validate ids in the scalar field, rejecting zero-reducing
+  // and (post-reduction) duplicate ids.
+  let id_refs: Vec<&Hash256> = shares.iter().map(|s| &s.id).collect();
+  let ids = math::reduce_share_ids(&id_refs)?;
 
   // Convert min_pk::Signature -> compressed bytes -> G2Affine -> G2.
   let points: Vec<G2> = shares
@@ -191,7 +178,7 @@ pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<Public
     })
     .collect::<Result<Vec<_>, BlsError>>()?;
 
-  let x = math::fr_from_hash(id);
+  let x = math::reduce_id(id)?;
   let result = math::eval_poly_g1(&coeffs_g1, &x);
 
   let bytes = result.to_affine().compress();

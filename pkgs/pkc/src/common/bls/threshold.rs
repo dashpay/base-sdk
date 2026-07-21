@@ -8,6 +8,7 @@
 //! field, used by threshold BLS in both bls_ietf and bls_chia.
 
 use crate::bls::blst_ffi::{self, Fr, Point, G1, G2};
+use crate::bls::BlsError;
 use crate::prelude::*;
 
 use dash_num::Hash256;
@@ -95,4 +96,41 @@ pub(crate) fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
 /// Convert a 32-byte participant ID to a scalar.
 pub(crate) fn fr_from_hash(id: &Hash256) -> Fr {
   Fr::from(&blst_ffi::scalar_from_bendian(id.as_bytes()))
+}
+
+/// Reduce a participant id into the scalar field, rejecting zero.
+///
+/// An id congruent to zero mod `r` evaluates the polynomial at its
+/// constant term, which leaks the master secret in share generation.
+pub(crate) fn reduce_id(id: &Hash256) -> Result<Fr, BlsError> {
+  let fr = fr_from_hash(id);
+  if blst::blst_scalar::from(&fr).b == [0u8; 32] {
+    return Err(BlsError::InvalidShareId);
+  }
+  Ok(fr)
+}
+
+/// Reduce participant ids into the scalar field, rejecting ids that
+/// reduce to zero and duplicates after reduction.
+///
+/// Two distinct hashes congruent mod `r` share a scalar, producing a
+/// zero Lagrange denominator that blst inverts to zero silently; a
+/// raw-byte duplicate check would not catch them.
+pub(crate) fn reduce_share_ids(ids: &[&Hash256]) -> Result<Vec<Fr>, BlsError> {
+  let fr_ids: Vec<Fr> = ids.iter().map(|id| fr_from_hash(id)).collect();
+  let mut reduced: Vec<[u8; 32]> = Vec::with_capacity(fr_ids.len());
+  for fr in &fr_ids {
+    let bytes = blst::blst_scalar::from(fr).b;
+    if bytes == [0u8; 32] {
+      return Err(BlsError::InvalidShareId);
+    }
+    reduced.push(bytes);
+  }
+  reduced.sort_unstable();
+  for pair in reduced.windows(2) {
+    if pair[0] == pair[1] {
+      return Err(BlsError::DuplicateShareId);
+    }
+  }
+  Ok(fr_ids)
 }
