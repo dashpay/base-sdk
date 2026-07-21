@@ -10,7 +10,7 @@
 
 mod common;
 
-use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, verify_aggregates, SecretKey, Signature};
+use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, verify_aggregates, PublicKey, SecretKey, Signature};
 use rstest::*;
 
 /// Key derived from all-zero IKM.
@@ -91,6 +91,32 @@ fn secure_aggregate_order_independent() {
   // verify_aggregates (non-secure) accepts both.
   assert!(verify_aggregates(&agg_a, &msg, &[&pk1, &pk2, &pk3]).is_ok());
   assert!(verify_aggregates(&agg_a, &msg, &[&pk3, &pk1, &pk2]).is_ok());
+}
+
+/// Cancelling keys and signatures to the identity (`P + (-P)`) yields a
+/// point that satisfies the pairing check for any message. The primitives
+/// accept it for backwards compatibility.
+#[rstest]
+fn identity_cancellation_is_not_rejected(sk_seed0: SecretKey) {
+  let msg = [0x11u8; 32];
+  let sig = sk_seed0.sign(&msg);
+  let pk = sk_seed0.public_key();
+
+  let mut neg_sig_bytes = sig.to_bytes();
+  neg_sig_bytes[0] ^= 0x80;
+  let neg_sig = Signature::from_bytes(&neg_sig_bytes).unwrap();
+
+  let mut neg_pk_bytes = pk.to_bytes();
+  neg_pk_bytes[0] ^= 0x80;
+  let neg_pk = PublicKey::from_bytes(&neg_pk_bytes).unwrap();
+
+  // sig + (-sig) = identity signature; pk + (-pk) = identity key.
+  let identity_sig = aggregate_sig(&[&sig, &neg_sig]).unwrap();
+
+  // Verifies for any message; not rejected at this layer.
+  let other = [0x22u8; 32];
+  assert!(verify_aggregates(&identity_sig, &other, &[&pk, &neg_pk]).is_ok());
+  assert!(verify_aggregates(&identity_sig, &msg, &[&pk, &neg_pk]).is_ok());
 }
 
 mod kat {

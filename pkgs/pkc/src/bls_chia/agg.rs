@@ -41,6 +41,10 @@ pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, BlsError> {
 
 /// Verify an aggregated legacy BLS signature over one message and multiple
 /// public keys.
+///
+/// An aggregate that cancels to the identity (e.g. `pk + (-pk)`) is not
+/// rejected here, for backwards compatibility: it is a bare pairing check
+/// that treats infinity as valid (see `identity_cancellation_is_not_rejected`).
 pub fn verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicKey]) -> Result<(), BlsError> {
   if pks.is_empty() {
     return Err(BlsError::EmptyAggregation);

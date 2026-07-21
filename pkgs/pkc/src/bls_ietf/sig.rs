@@ -29,10 +29,17 @@ impl Signature {
   }
 
   /// Deserialize from 96 compressed bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::InvalidSignature`] when the bytes are not a valid
+  /// encoding or the point fails `validate` (identity or non-prime-order).
   pub fn from_bytes(bytes: &[u8; 96]) -> Result<Self, BlsError> {
-    min_pk::Signature::from_bytes(bytes)
-      .map(Self)
-      .map_err(|_| BlsError::InvalidSignature)
+    let sig = min_pk::Signature::from_bytes(bytes).map_err(|_| BlsError::InvalidSignature)?;
+    // blst `from_bytes` checks only encoding and curve; validate also
+    // rejects the identity and non-prime-order points before use.
+    sig.validate(true).map_err(|_| BlsError::InvalidSignature)?;
+    Ok(Self(sig))
   }
 
   /// Serialize to 96 compressed bytes.

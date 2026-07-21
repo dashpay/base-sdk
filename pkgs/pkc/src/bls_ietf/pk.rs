@@ -30,10 +30,17 @@ impl PublicKey {
   }
 
   /// Deserialize from 48 compressed bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::InvalidPublicKey`] when the bytes are not a valid
+  /// encoding or the point fails `validate` (identity or non-prime-order).
   pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, BlsError> {
-    min_pk::PublicKey::from_bytes(bytes)
-      .map(Self)
-      .map_err(|_| BlsError::InvalidPublicKey)
+    let pk = min_pk::PublicKey::from_bytes(bytes).map_err(|_| BlsError::InvalidPublicKey)?;
+    // blst `from_bytes` checks only encoding and curve; validate also
+    // rejects the identity and non-prime-order points before use.
+    pk.validate().map_err(|_| BlsError::InvalidPublicKey)?;
+    Ok(Self(pk))
   }
 
   /// Serialize to 48 compressed bytes.
