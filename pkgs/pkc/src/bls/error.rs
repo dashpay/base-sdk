@@ -27,7 +27,7 @@ pub enum BlsError {
   InvalidSecretKey,
   /// signature bytes are not a valid G2 point
   InvalidSignature,
-  /// threshold exceeds total or is zero
+  /// threshold is below 2 or exceeds the number of ids
   ThresholdTooLarge,
   /// signature verification failed
   VerifyFailed,
@@ -44,7 +44,7 @@ impl fmt::Display for BlsError {
       Self::InvalidPublicKey => write!(f, "invalid public key bytes"),
       Self::InvalidSecretKey => write!(f, "invalid secret key bytes"),
       Self::InvalidSignature => write!(f, "invalid signature bytes"),
-      Self::ThresholdTooLarge => write!(f, "threshold exceeds total or is zero"),
+      Self::ThresholdTooLarge => write!(f, "threshold is below 2 or exceeds the number of ids"),
       Self::VerifyFailed => write!(f, "signature verification failed"),
     }
   }

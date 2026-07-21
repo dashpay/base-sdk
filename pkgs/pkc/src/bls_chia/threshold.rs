@@ -85,20 +85,21 @@ impl SignatureShare {
   }
 }
 
-/// Split a secret key into shares for the given participant
-/// IDs, requiring `threshold` shares to recover.
+/// Split a secret key into shares for the given participant IDs, requiring
+/// `threshold` shares to recover.
 ///
 /// # Errors
 ///
-/// Returns `ThresholdTooLarge` if `threshold > ids.len()` or
-/// either is zero.
+/// Returns `ThresholdTooLarge` if `threshold < 2` (a 1-of-n split hands
+/// the master key to every participant), `ids` is empty, or `threshold >
+/// ids.len()`.
 pub fn split_sk(
   sk: &SecretKey,
   threshold: usize,
   ids: &[Hash256],
   rng: &mut impl rand_core::CryptoRngCore,
 ) -> Result<Vec<SecretKeyShare>, BlsError> {
-  if threshold == 0 || ids.is_empty() || threshold > ids.len() {
+  if threshold < 2 || ids.is_empty() || threshold > ids.len() {
     return Err(BlsError::ThresholdTooLarge);
   }
 
