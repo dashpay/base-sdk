@@ -71,6 +71,23 @@ mod kat {
   }
 }
 
+/// The identity passes the subgroup check yet verifies any message, so the
+/// decoder rejects the canonical infinity encoding for both public keys and
+/// signatures.
+#[test]
+fn rejects_identity_public_key() {
+  let mut bytes = [0u8; 48];
+  bytes[0] = 0xc0; // compressed identity marker
+  assert!(dash_pkc::bls_chia::PublicKey::from_bytes(&bytes).is_err());
+}
+
+#[test]
+fn rejects_identity_signature() {
+  let mut bytes = [0u8; 96];
+  bytes[0] = 0xc0; // compressed identity marker
+  assert!(dash_pkc::bls_chia::Signature::from_bytes(&bytes).is_err());
+}
+
 /// Only bit 7 of byte 0 is the legacy sign flag. Stray high bits are
 /// masked in G1 (the reference masks them too) but rejected in G2, where
 /// the reference reads them as an out-of-range `x >= p` coordinate.

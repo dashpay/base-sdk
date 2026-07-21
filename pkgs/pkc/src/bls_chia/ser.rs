@@ -34,9 +34,14 @@ pub(super) fn ser_g1(p: &G1Affine) -> [u8; 48] {
 }
 
 /// Deserialize 48 legacy bytes to a G1 affine point.
+///
+/// No prime-order subgroup check is performed on the legacy path, for
+/// backwards compatibility: checking here would reject keys the legacy
+/// format accepts.
 pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<G1Affine, BlsError> {
-  if bytes[0] & 0xc0 == 0xc0 {
-    return G1Affine::uncompress(bytes).map_err(|_| BlsError::InvalidPublicKey);
+  // Reject the all-zero encoding and the infinity marker.
+  if bytes.iter().all(|&b| b == 0) || bytes[0] & 0xc0 == 0xc0 {
+    return Err(BlsError::InvalidPublicKey);
   }
 
   let sign = (bytes[0] >> 7) & 1;
@@ -84,11 +89,14 @@ pub(super) fn ser_g2(p: &G2Affine) -> [u8; 96] {
 }
 
 /// Deserialize 96 legacy bytes to a G2 affine point.
+///
+/// No prime-order subgroup check is performed on the legacy path, for
+/// backwards compatibility: checking here would reject signatures the legacy
+/// format accepts.
 pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<G2Affine, BlsError> {
-  if bytes[0] & 0xc0 == 0xc0 {
-    let mut ietf = [0u8; 96];
-    ietf[0] = 0xc0;
-    return G2Affine::uncompress(&ietf).map_err(|_| BlsError::InvalidSignature);
+  // Reject the all-zero encoding and the infinity marker.
+  if bytes.iter().all(|&b| b == 0) || bytes[0] & 0xc0 == 0xc0 {
+    return Err(BlsError::InvalidSignature);
   }
 
   let sign = (bytes[0] >> 7) & 1;

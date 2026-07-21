@@ -26,6 +26,11 @@ impl PublicKey {
   }
 
   /// Deserialize from 48 legacy-format bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::InvalidPublicKey`] when the bytes do not decode to a
+  /// valid public key (identity marker, all-zero buffer, or malformed input).
   pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, BlsError> {
     ser::deser_g1(bytes).map(Self)
   }
