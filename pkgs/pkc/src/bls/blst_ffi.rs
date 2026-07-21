@@ -16,12 +16,14 @@ use core::ptr::null_mut;
 /// Bit-length for scalars known to be reduced mod q (< 2^255).
 pub(crate) const FR_BITS: usize = 255;
 
+/// Serialize a scalar to its 32-byte big-endian encoding.
 pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
   let mut out = [0u8; 32];
   unsafe { blst_bendian_from_scalar(out.as_mut_ptr(), scalar) };
   out
 }
 
+/// Pairing check `e(lhs_g2, G1) == e(rhs_g2, rhs_g1)`
 pub(crate) fn pairings_equal_with_g1_generator(lhs_g2: &G2Affine, rhs_g2: &G2, rhs_g1: &G1Affine) -> bool {
   let lhs_g2_aff = blst_p2_affine::from(*lhs_g2);
   let rhs_g2_aff = blst_p2_affine::from(rhs_g2.to_affine());
@@ -36,16 +38,20 @@ pub(crate) fn pairings_equal_with_g1_generator(lhs_g2: &G2Affine, rhs_g2: &G2, r
   }
 }
 
+/// Interpret 32 big-endian bytes as a 256-bit scalar.
 pub(crate) fn scalar_from_bendian(bytes: &[u8; 32]) -> blst_scalar {
   let mut scalar = blst_scalar::default();
   unsafe { blst_scalar_from_bendian(&mut scalar, bytes.as_ptr()) };
   scalar
 }
 
+/// Whether the scalar is a valid BLS secret key, i.e. non-zero and less
+/// than the group order.
 pub(crate) fn sk_check(sk: &blst_scalar) -> bool {
   unsafe { blst_sk_check(sk) }
 }
 
+/// Derive the G1 public key `sk * G1_generator` for a secret-key scalar.
 pub(crate) fn sk_to_pk2_in_g1(sk: &blst_scalar) -> G1Affine {
   let mut aff = blst_p1_affine::default();
   unsafe { blst_sk_to_pk2_in_g1(null_mut(), &mut aff, sk) };
