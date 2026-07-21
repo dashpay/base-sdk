@@ -7,7 +7,10 @@
 //! Bridging routines for unsafe blst FFI operations.
 
 use blst::*;
+use dash_types::type_cvrt;
+use zeroize::Zeroize;
 
+use core::ops::{Add, Mul, Neg, Sub};
 use core::ptr::null_mut;
 
 /// Bit-length for scalars known to be reduced mod q (< 2^255).
@@ -94,42 +97,6 @@ pub(crate) fn fp_sub(a: &blst_fp, b: &blst_fp) -> blst_fp {
   out
 }
 
-pub(crate) fn fr_add(a: &blst_fr, b: &blst_fr) -> blst_fr {
-  let mut out = blst_fr::default();
-  unsafe { blst_fr_add(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn fr_from_scalar(scalar: &blst_scalar) -> blst_fr {
-  let mut out = blst_fr::default();
-  unsafe { blst_fr_from_scalar(&mut out, scalar) };
-  out
-}
-
-pub(crate) fn fr_from_uint64(value: &[u64; 4]) -> blst_fr {
-  let mut out = blst_fr::default();
-  unsafe { blst_fr_from_uint64(&mut out, value.as_ptr()) };
-  out
-}
-
-pub(crate) fn fr_inverse(value: &blst_fr) -> blst_fr {
-  let mut out = blst_fr::default();
-  unsafe { blst_fr_inverse(&mut out, value) };
-  out
-}
-
-pub(crate) fn fr_mul(a: &blst_fr, b: &blst_fr) -> blst_fr {
-  let mut out = blst_fr::default();
-  unsafe { blst_fr_mul(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn fr_sub(a: &blst_fr, b: &blst_fr) -> blst_fr {
-  let mut out = blst_fr::default();
-  unsafe { blst_fr_sub(&mut out, a, b) };
-  out
-}
-
 pub(crate) fn p1_add_or_double(a: &blst_p1, b: &blst_p1) -> blst_p1 {
   let mut out = blst_p1::default();
   unsafe { blst_p1_add_or_double(&mut out, a, b) };
@@ -150,9 +117,13 @@ pub(crate) fn p1_from_affine(point: &blst_p1_affine) -> blst_p1 {
 
 pub(crate) fn p1_mult(point: &blst_p1_affine, scalar: &[u8], nbits: usize) -> blst_p1_affine {
   let proj = p1_from_affine(point);
+  p1_to_affine(&p1_mult_projective(&proj, scalar, nbits))
+}
+
+pub(crate) fn p1_mult_projective(point: &blst_p1, scalar: &[u8], nbits: usize) -> blst_p1 {
   let mut out = blst_p1::default();
-  unsafe { blst_p1_mult(&mut out, &proj, scalar.as_ptr(), nbits) };
-  p1_to_affine(&out)
+  unsafe { blst_p1_mult(&mut out, point, scalar.as_ptr(), nbits) };
+  out
 }
 
 pub(crate) fn p1_to_affine(point: &blst_p1) -> blst_p1_affine {
@@ -267,12 +238,6 @@ pub(crate) fn scalar_from_bendian(bytes: &[u8; 32]) -> blst_scalar {
   scalar
 }
 
-pub(crate) fn scalar_from_fr(value: &blst_fr) -> blst_scalar {
-  let mut out = blst_scalar::default();
-  unsafe { blst_scalar_from_fr(&mut out, value) };
-  out
-}
-
 pub(crate) fn sk_check(sk: &blst_scalar) -> bool {
   unsafe { blst_sk_check(sk) }
 }
@@ -282,3 +247,83 @@ pub(crate) fn sk_to_pk2_in_g1(sk: &blst_scalar) -> blst_p1_affine {
   unsafe { blst_sk_to_pk2_in_g1(null_mut(), &mut aff, sk) };
   aff
 }
+
+/// A scalar of the BLS12-381 scalar field, i.e. an integer reduced modulo the
+/// group order `r`.
+#[derive(Clone, Copy, Default)]
+pub(crate) struct Fr(blst_fr);
+
+impl Fr {
+  /// Multiplicative inverse; the inverse of zero is left unspecified.
+  pub(crate) fn inverse(&self) -> Self {
+    let mut out = blst_fr::default();
+    unsafe { blst_fr_inverse(&mut out, &self.0) };
+    Self(out)
+  }
+
+  /// The multiplicative identity, one.
+  pub(crate) fn one() -> Self {
+    let mut out = blst_fr::default();
+    let one = [1u64, 0, 0, 0];
+    unsafe { blst_fr_from_uint64(&mut out, one.as_ptr()) };
+    Self(out)
+  }
+}
+
+impl Add for Fr {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fr::default();
+    unsafe { blst_fr_add(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Mul for Fr {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fr::default();
+    unsafe { blst_fr_mul(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Neg for Fr {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    let mut out = blst_fr::default();
+    unsafe { blst_fr_cneg(&mut out, &self.0, true) };
+    Self(out)
+  }
+}
+
+impl Sub for Fr {
+  type Output = Self;
+
+  fn sub(self, rhs: Self) -> Self::Output {
+    let mut out = blst_fr::default();
+    unsafe { blst_fr_sub(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Zeroize for Fr {
+  fn zeroize(&mut self) {
+    self.0.l.zeroize();
+  }
+}
+
+type_cvrt!(From<blst_scalar> for Fr, |s| {
+  let mut out = blst_fr::default();
+  unsafe { blst_fr_from_scalar(&mut out, s) };
+  Self(out)
+});
+
+type_cvrt!(From<Fr> for blst_scalar, |fr| {
+  let mut out = blst_scalar::default();
+  unsafe { blst_scalar_from_fr(&mut out, &fr.0) };
+  out
+});

@@ -43,6 +43,9 @@ predicate isSecretType(TypeItem t) {
   // Exclude types whose name contains "Shared" (e.g. SharedState),
   // which match the Share substring but are not secret holders.
   not t.getName().getText().regexpMatch(".*Shared.*")
+  or
+  // Scalar field wrapper holding secret key material
+  t.getName().getText() = "Fr"
 }
 
 /** Holds if `t` is an iterator type (name ends with Iterator or Iter). */
