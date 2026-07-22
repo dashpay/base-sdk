@@ -219,6 +219,43 @@ pub(crate) trait BlsScheme {
     Self::sk_from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
   }
 
+  /// Split a secret key into `threshold`-of-`ids.len()` shares, handing each
+  /// id and share key to `into_share` to build the caller's share type.
+  ///
+  /// # Errors
+  ///
+  /// Returns `ThresholdTooLarge` when `threshold < 2` (a 1-of-n split hands
+  /// the master key to every participant), `ids` is empty, or `threshold >
+  /// ids.len()`; `InvalidShareId`/`DuplicateShareId` on bad ids;
+  /// `InvalidSecretKey` when share generation or parsing fails.
+  fn split_sk<S>(
+    sk: &Self::InnerSk,
+    threshold: usize,
+    ids: &[Hash256],
+    rng: &mut impl rand_core::CryptoRngCore,
+    mut into_share: impl FnMut(Hash256, Self::InnerSk) -> S,
+  ) -> Result<Vec<S>, BlsError> {
+    if threshold < 2 || ids.is_empty() || threshold > ids.len() {
+      return Err(BlsError::ThresholdTooLarge);
+    }
+
+    // An id congruent to zero mod r would make the share equal the master
+    // key, and ids congruent mod r collide during interpolation.
+    let id_refs: Vec<&Hash256> = ids.iter().collect();
+    reduce_share_ids(&id_refs)?;
+
+    let sk_bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let raw = generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
+
+    raw
+      .into_iter()
+      .map(|share| {
+        let inner = Self::sk_from_bytes(&share.secret).map_err(|_| BlsError::InvalidSecretKey)?;
+        Ok(into_share(share.id, inner))
+      })
+      .collect()
+  }
+
   /// Recover a full signature from threshold shares by interpolation.
   ///
   /// # Errors
@@ -271,7 +308,7 @@ pub(crate) trait BlsScheme {
 }
 
 /// Sum secret key scalars (mod group order).
-pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
+fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
   let mut acc = Fr::default();
   for bytes in key_bytes {
     let mut scalar = blst_ffi::scalar_from_bendian(bytes);
@@ -289,11 +326,11 @@ pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
 
 /// A generated share: participant id paired with its secret scalar bytes,
 /// zeroized on drop. A custom `Debug` redacts the secret scalar.
-pub(crate) struct RawShare {
+struct RawShare {
   /// Participant identifier.
-  pub(crate) id: Hash256,
+  id: Hash256,
   /// Secret scalar bytes, zeroized on drop.
-  pub(crate) secret: Zeroizing<[u8; 32]>,
+  secret: Zeroizing<[u8; 32]>,
 }
 
 impl core::fmt::Debug for RawShare {
@@ -308,7 +345,7 @@ impl core::fmt::Debug for RawShare {
 /// Generate secret key shares from a polynomial with the
 /// given constant term. Returns a Vec of (id, share_bytes)
 /// pairs.
-pub(crate) fn generate_shares(
+fn generate_shares(
   sk_bytes: &[u8; 32],
   threshold: usize,
   ids: &[Hash256],
@@ -354,7 +391,7 @@ pub(crate) fn generate_shares(
 
 /// Evaluate a polynomial at `x`. Coefficients are in ascending order:
 /// `coeffs[0] + coeffs[1]*x + ...`.
-pub(crate) fn poly_eval(coeffs: &[Fr], x: &Fr) -> Fr {
+fn poly_eval(coeffs: &[Fr], x: &Fr) -> Fr {
   // Horner's method: result = c[n-1], then for each
   // i from n-2..=0: result = result*x + c[i].
   let n = coeffs.len();
@@ -372,7 +409,7 @@ pub(crate) fn poly_eval(coeffs: &[Fr], x: &Fr) -> Fr {
 ///
 /// `ids` and `points` must have the same length >= 1.
 /// Each id must be non-zero and unique.
-pub(crate) fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
+fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   let n = ids.len();
 
   // Compute Lagrange coefficients at x=0:
@@ -419,7 +456,7 @@ fn compute_lagrange_coeffs(ids: &[Fr]) -> Vec<Fr> {
 ///
 /// `coeffs_g1[0] + coeffs_g1[1]*x + coeffs_g1[2]*x^2 + ...`
 /// Uses Horner's method.
-pub(crate) fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
+fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
   let n = coeffs_g1.len();
   if n == 0 {
     return G1::identity();
@@ -433,7 +470,7 @@ pub(crate) fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
 }
 
 /// Convert a 32-byte participant ID to a scalar.
-pub(crate) fn fr_from_hash(id: &Hash256) -> Fr {
+fn fr_from_hash(id: &Hash256) -> Fr {
   Fr::from(&blst_ffi::scalar_from_bendian(id.as_bytes()))
 }
 
@@ -441,7 +478,7 @@ pub(crate) fn fr_from_hash(id: &Hash256) -> Fr {
 ///
 /// An id congruent to zero mod `r` evaluates the polynomial at its
 /// constant term, which leaks the master secret in share generation.
-pub(crate) fn reduce_id(id: &Hash256) -> Result<Fr, BlsError> {
+fn reduce_id(id: &Hash256) -> Result<Fr, BlsError> {
   let fr = fr_from_hash(id);
   if blst::blst_scalar::from(&fr).b == [0u8; 32] {
     return Err(BlsError::InvalidShareId);
@@ -455,7 +492,7 @@ pub(crate) fn reduce_id(id: &Hash256) -> Result<Fr, BlsError> {
 /// Two distinct hashes congruent mod `r` share a scalar, producing a
 /// zero Lagrange denominator that blst inverts to zero silently; a
 /// raw-byte duplicate check would not catch them.
-pub(crate) fn reduce_share_ids(ids: &[&Hash256]) -> Result<Vec<Fr>, BlsError> {
+fn reduce_share_ids(ids: &[&Hash256]) -> Result<Vec<Fr>, BlsError> {
   let fr_ids: Vec<Fr> = ids.iter().map(|id| fr_from_hash(id)).collect();
   let mut reduced: Vec<[u8; 32]> = Vec::with_capacity(fr_ids.len());
   for fr in &fr_ids {

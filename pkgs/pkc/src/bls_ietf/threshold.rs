@@ -9,12 +9,11 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::scheme_ops::{self, BlsScheme};
+use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScIetf};
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use zeroize::Zeroizing;
 
 /// Secret key share for threshold signing.
 #[derive(Clone)]
@@ -100,28 +99,9 @@ pub fn split_sk(
   ids: &[Hash256],
   rng: &mut impl rand_core::CryptoRngCore,
 ) -> Result<Vec<SecretKeyShare>, BlsError> {
-  if threshold < 2 || ids.is_empty() || threshold > ids.len() {
-    return Err(BlsError::ThresholdTooLarge);
-  }
-
-  // An id congruent to zero mod r would make the share equal the master key, and
-  // ids congruent mod r collide during interpolation.
-  let id_refs: Vec<&Hash256> = ids.iter().collect();
-  scheme_ops::reduce_share_ids(&id_refs)?;
-
-  let sk_bytes = Zeroizing::new(sk.to_bytes());
-  let raw = scheme_ops::generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
-
-  raw
-    .into_iter()
-    .map(|share| {
-      let share_sk = SecretKey::from_bytes(&share.secret).map_err(|_| BlsError::InvalidSecretKey)?;
-      Ok(SecretKeyShare {
-        id: share.id,
-        sk: share_sk,
-      })
-    })
-    .collect()
+  BlsScIetf::split_sk(&sk.0, threshold, ids, rng, |id, inner| {
+    SecretKeyShare::new(id, SecretKey::from_inner(inner))
+  })
 }
 
 /// Recover a full signature from threshold signature shares via Lagrange

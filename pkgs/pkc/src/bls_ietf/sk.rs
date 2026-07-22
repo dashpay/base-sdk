@@ -33,6 +33,10 @@ pub enum Scheme {
 pub struct SecretKey(pub(super) min_pk::SecretKey);
 
 impl SecretKey {
+  pub(super) fn from_inner(inner: min_pk::SecretKey) -> Self {
+    Self(inner)
+  }
+
   /// Derive a secret key from input keying material.
   ///
   /// # Errors

@@ -60,5 +60,5 @@ pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicK
 /// Sum multiple secret keys (mod group order).
 pub fn aggregate_sk(keys: &[&SecretKey]) -> Result<SecretKey, BlsError> {
   let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
-  BlsScChia::aggregate_sk(&inner).map(SecretKey)
+  BlsScChia::aggregate_sk(&inner).map(SecretKey::from_inner)
 }

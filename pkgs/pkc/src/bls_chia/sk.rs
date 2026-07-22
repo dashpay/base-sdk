@@ -18,6 +18,10 @@ use core::fmt;
 pub struct SecretKey(pub(super) blst::blst_scalar);
 
 impl SecretKey {
+  pub(super) fn from_inner(inner: blst::blst_scalar) -> Self {
+    Self(inner)
+  }
+
   /// Derive a secret key from input keying material (>= 32 bytes). Uses the
   /// same IETF key generation as standard BLS, only the signing scheme
   /// differs.
