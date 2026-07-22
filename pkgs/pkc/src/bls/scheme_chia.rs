@@ -16,7 +16,6 @@ use crate::prelude::*;
 use blst::min_pk;
 use dash_num::Hash256;
 use hex_literal::hex;
-use sha2::{Digest, Sha256};
 use zeroize::Zeroize;
 
 /// y.c1 > (p-1)/2, matching the legacy sign convention.
@@ -113,6 +112,22 @@ impl BlsScheme for BlsScChia {
     legacy
   }
 
+  /// The legacy public key is already an affine G1 point.
+  fn pk_to_g1(pk: &Self::InnerPk) -> Result<G1, BlsError> {
+    Ok(pk.to_projective())
+  }
+
+  /// The legacy public key is an affine G1 point; no re-validation.
+  fn g1_to_pk(point: G1) -> Result<Self::InnerPk, BlsError> {
+    Ok(point.to_affine())
+  }
+
+  /// Decode the legacy encoding through `pk_from_bytes`, which rejects the
+  /// infinity marker and the all-zero buffer before the point is weighted.
+  fn secure_agg_point(pk_bytes: &[u8; 48]) -> Result<G1, BlsError> {
+    Self::pk_to_g1(&Self::pk_from_bytes(pk_bytes)?)
+  }
+
   /// Decode a G2 point from the legacy 96-byte format.
   ///
   /// No prime-order subgroup check is performed on the legacy path, for
@@ -203,16 +218,6 @@ impl BlsScheme for BlsScChia {
     }
   }
 
-  /// Multiply the peer public key by the secret scalar.
-  fn dh_exchange(sk: &Self::InnerSk, peer_pk: &Self::InnerPk) -> Result<Self::InnerPk, BlsError> {
-    let mut sk_bytes = Self::sk_to_bytes(sk);
-    let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
-    let out_aff = peer_pk.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS);
-    sk_bytes.zeroize();
-    sk_scalar.b.zeroize();
-    Ok(out_aff)
-  }
-
   /// Sum the public keys in G1.
   fn aggregate_pk(pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError> {
     if pks.is_empty() {
@@ -246,43 +251,6 @@ impl BlsScheme for BlsScChia {
     Self::verify(sig, msg, &agg_pk)
   }
 
-  /// Hash-weight each key before summing, then verify (rogue-key safe).
-  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
-    if pks.is_empty() {
-      return Err(BlsError::EmptyAggregation);
-    }
-
-    let mut sorted: Vec<[u8; 48]> = pks.iter().map(|pk| Self::pk_to_bytes(pk)).collect();
-    sorted.sort();
-
-    let mut hasher = Sha256::new();
-    for pk_bytes in &sorted {
-      hasher.update(pk_bytes);
-    }
-    let pk_hash: [u8; 32] = hasher.finalize().into();
-
-    let mut acc = G1::identity();
-
-    for (i, pk_bytes) in sorted.iter().enumerate() {
-      // weight = SHA256(i_as_4_bytes_be || pk_hash) mod order
-      let mut weight_hasher = Sha256::new();
-      let idx_bytes = (i as u32).to_be_bytes();
-      weight_hasher.update(idx_bytes);
-      weight_hasher.update(pk_hash);
-      let weight_hash: [u8; 32] = weight_hasher.finalize().into();
-
-      // blst_p1_mult reduces internally.
-      let weight = blst_ffi::scalar_from_bendian(&weight_hash);
-
-      let pk = Self::pk_from_bytes(pk_bytes)?;
-      acc = acc + pk.to_projective().mul_scalar(&weight.b, 256);
-    }
-
-    let agg_pk = acc.to_affine();
-
-    Self::verify(sig, msg, &agg_pk)
-  }
-
   /// Lagrange-interpolate the share signatures in G2 at x=0.
   fn recover_sig_shares(ids: &[&Hash256], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
     if sigs.len() < 2 {
@@ -296,20 +264,6 @@ impl BlsScheme for BlsScChia {
 
     let recovered = scheme_ops::interpolate_g2(&reduced, &points);
     Ok(recovered.to_affine())
-  }
-
-  /// Evaluate the master verification-vector polynomial in G1 at `id`.
-  fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &Hash256) -> Result<Self::InnerPk, BlsError> {
-    // Evaluating the verification-vector polynomial needs >= 2 coefficients.
-    if master_pks.len() < 2 {
-      return Err(BlsError::InvalidVerificationVector);
-    }
-    let coeffs_g1: Vec<_> = master_pks.iter().map(|pk| pk.to_projective()).collect();
-
-    let x = scheme_ops::reduce_id(id)?;
-    let result = scheme_ops::eval_poly_g1(&coeffs_g1, &x);
-
-    Ok(result.to_affine())
   }
 }
 

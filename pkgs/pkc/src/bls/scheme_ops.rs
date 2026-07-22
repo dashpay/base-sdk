@@ -11,9 +11,16 @@ use super::error::BlsError;
 use crate::prelude::*;
 
 use dash_num::Hash256;
+use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
 use core::fmt::Debug;
+
+/// Multiplier width for the secure-aggregation weights.
+///
+/// The weight is an unreduced SHA-256 digest, so it needs the full width
+/// rather than [`blst_ffi::FR_BITS`].
+const WEIGHT_BITS: usize = 256;
 
 /// BLS operations tied to a specific scheme.
 pub(crate) trait BlsScheme {
@@ -60,6 +67,20 @@ pub(crate) trait BlsScheme {
   /// Serialize a public key to its 48-byte encoding.
   fn pk_to_bytes(pk: &Self::InnerPk) -> [u8; 48];
 
+  /// Lift a public key to a projective G1 point.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidPublicKey` when the key cannot be decoded to a point.
+  fn pk_to_g1(pk: &Self::InnerPk) -> Result<G1, BlsError>;
+
+  /// Lower a projective G1 point back to a public key.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidPublicKey` when the point is not a valid key.
+  fn g1_to_pk(point: G1) -> Result<Self::InnerPk, BlsError>;
+
   /// Parse a signature from its 96-byte encoding.
   ///
   /// # Errors
@@ -86,7 +107,15 @@ pub(crate) trait BlsScheme {
   ///
   /// Returns `InvalidPublicKey` when the peer key or the product point
   /// is invalid.
-  fn dh_exchange(sk: &Self::InnerSk, peer_pk: &Self::InnerPk) -> Result<Self::InnerPk, BlsError>;
+  fn dh_exchange(sk: &Self::InnerSk, peer_pk: &Self::InnerPk) -> Result<Self::InnerPk, BlsError> {
+    let point = Self::pk_to_g1(peer_pk)?;
+    let mut sk_bytes = Self::sk_to_bytes(sk);
+    let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
+    let product = point.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS);
+    sk_bytes.zeroize();
+    sk_scalar.b.zeroize();
+    Self::g1_to_pk(product)
+  }
 
   /// Aggregate public keys into one.
   ///
@@ -112,13 +141,54 @@ pub(crate) trait BlsScheme {
   /// when the aggregate does not verify.
   fn fast_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError>;
 
+  /// Decode a sorted input public key from its 48-byte encoding to a G1 point
+  /// for secure aggregation.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidPublicKey` when the bytes do not decode to a point.
+  fn secure_agg_point(pk_bytes: &[u8; 48]) -> Result<G1, BlsError>;
+
   /// Verify an aggregate with public-key weighting to resist rogue keys.
+  ///
+  /// Each key is weighted by `SHA256(index || SHA256(sorted pk bytes))` so a
+  /// signer cannot cancel an honest key with a crafted rogue one.
   ///
   /// # Errors
   ///
   /// Returns `EmptyAggregation` when no keys are given, `InvalidPublicKey`
   /// when a key fails to decode, or `VerifyFailed` on mismatch.
-  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError>;
+  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+    if pks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+
+    // Sort by serialized key so the weighting order is deterministic and
+    // independent of the order the caller supplied.
+    let mut sorted: Vec<[u8; 48]> = pks.iter().map(|pk| Self::pk_to_bytes(pk)).collect();
+    sorted.sort_unstable();
+
+    let mut hasher = Sha256::new();
+    for pk_bytes in &sorted {
+      hasher.update(pk_bytes);
+    }
+    let pk_hash: [u8; 32] = hasher.finalize().into();
+
+    let mut acc = G1::identity();
+    for (i, pk_bytes) in sorted.iter().enumerate() {
+      // weight = SHA256(i_as_4_bytes_be || pk_hash), reduced by blst_p1_mult.
+      let mut weight_hasher = Sha256::new();
+      weight_hasher.update((i as u32).to_be_bytes());
+      weight_hasher.update(pk_hash);
+      let weight_hash: [u8; 32] = weight_hasher.finalize().into();
+      let weight = blst_ffi::scalar_from_bendian(&weight_hash);
+
+      acc = acc + Self::secure_agg_point(pk_bytes)?.mul_scalar(&weight.b, WEIGHT_BITS);
+    }
+
+    let agg_pk = Self::g1_to_pk(acc)?;
+    Self::verify(sig, msg, &agg_pk)
+  }
 
   /// Sum multiple secret keys (mod group order).
   ///
@@ -151,7 +221,21 @@ pub(crate) trait BlsScheme {
   /// Returns `InvalidVerificationVector` when fewer than two keys are
   /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
-  fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &Hash256) -> Result<Self::InnerPk, BlsError>;
+  fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &Hash256) -> Result<Self::InnerPk, BlsError> {
+    // Evaluating the verification-vector polynomial needs >= 2 coefficients.
+    if master_pks.len() < 2 {
+      return Err(BlsError::InvalidVerificationVector);
+    }
+    let coeffs_g1 = master_pks
+      .iter()
+      .map(|pk| Self::pk_to_g1(pk))
+      .collect::<Result<Vec<_>, BlsError>>()?;
+
+    let x = reduce_id(id)?;
+    let result = eval_poly_g1(&coeffs_g1, &x);
+
+    Self::g1_to_pk(result)
+  }
 }
 
 /// Sum secret key scalars (mod group order).
