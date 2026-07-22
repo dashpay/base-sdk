@@ -7,10 +7,10 @@
 //! Lagrange interpolation and polynomial evaluation over the BLS12-381 scalar
 //! field, used by threshold BLS in both bls_ietf and bls_chia.
 
-use crate::bls::blst_ffi::{self, Fr};
+use crate::bls::blst_ffi::{self, Fr, Point, G1};
 use crate::prelude::*;
 
-use blst::{blst_p1, blst_p2};
+use blst::blst_p2;
 use dash_num::Hash256;
 
 /// Evaluate a polynomial at `x`. Coefficients are in ascending order:
@@ -81,16 +81,15 @@ fn compute_lagrange_coeffs(ids: &[Fr]) -> Vec<Fr> {
 ///
 /// `coeffs_g1[0] + coeffs_g1[1]*x + coeffs_g1[2]*x^2 + ...`
 /// Uses Horner's method.
-pub(crate) fn eval_poly_g1(coeffs_g1: &[blst_p1], x: &Fr) -> blst_p1 {
+pub(crate) fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
   let n = coeffs_g1.len();
   if n == 0 {
-    return blst_p1::default();
+    return G1::identity();
   }
   let x_scalar = blst::blst_scalar::from(x);
   let mut result = coeffs_g1[n - 1];
   for i in (0..n - 1).rev() {
-    let tmp = blst_ffi::p1_mult_projective(&result, &x_scalar.b, blst_ffi::FR_BITS);
-    result = blst_ffi::p1_add_or_double(&tmp, &coeffs_g1[i]);
+    result = result.mul_scalar(&x_scalar.b, blst_ffi::FR_BITS) + coeffs_g1[i];
   }
   result
 }

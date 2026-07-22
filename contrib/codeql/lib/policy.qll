@@ -202,6 +202,11 @@ predicate isSuppressed(TypeItem t, string trait) {
   or
   // Opaque types: suppress Hash
   isOpaqueType(t) and trait = "Hash"
+  or
+  // Projective point wrappers hold non-canonical coordinates: suppress Eq and PartialEq
+  isOpaqueType(t) and
+  t.getName().getText() = ["G1"] and
+  trait = ["Eq", "PartialEq"]
 }
 
 /** Holds if `t` is exempt from serde derivation requirements. */

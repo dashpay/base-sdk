@@ -9,7 +9,8 @@
 use super::sig::Signature;
 use super::sk::SecretKey;
 use super::DST_POP_PROVE;
-use crate::bls::{blst_ffi, BlsError};
+use crate::bls::blst_ffi::{self, G1Affine};
+use crate::bls::BlsError;
 
 use blst::min_pk;
 use blst::BLST_ERROR;
@@ -49,11 +50,10 @@ impl PublicKey {
   pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, BlsError> {
     use zeroize::Zeroize;
     let compressed = peer_pk.0.compress();
-    let aff = blst_ffi::p1_uncompress(&compressed).map_err(|_| BlsError::InvalidPublicKey)?;
+    let aff = G1Affine::uncompress(&compressed).map_err(|_| BlsError::InvalidPublicKey)?;
     let mut sk_bytes = sk.to_bytes();
     let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
-    let out_aff = blst_ffi::p1_mult(&aff, &sk_scalar.b, blst_ffi::FR_BITS);
-    let out_bytes = blst_ffi::p1_affine_compress(&out_aff);
+    let out_bytes = aff.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS).compress();
     sk_bytes.zeroize();
     sk_scalar.b.zeroize();
     Self::from_bytes(&out_bytes)

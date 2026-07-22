@@ -10,11 +10,12 @@ use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
 use super::DST;
-use crate::bls::{blst_ffi, BlsError};
+use crate::bls::blst_ffi::{self, G1Affine, Point, G1};
+use crate::bls::BlsError;
 use crate::prelude::*;
 
 use blst::min_pk;
-use blst::{blst_p1, BLST_ERROR};
+use blst::BLST_ERROR;
 use sha2::{Digest, Sha256};
 
 /// Aggregate multiple public keys into one.
@@ -92,7 +93,7 @@ pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8], pks: &[&PublicKey])
   }
   let pk_hash: [u8; 32] = hasher.finalize().into();
 
-  let mut acc = blst_p1::default();
+  let mut acc = G1::identity();
 
   for (i, pk_bytes) in sorted.iter().enumerate() {
     // weight = SHA256(i_as_4_bytes_be || pk_hash) mod order
@@ -105,14 +106,11 @@ pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8], pks: &[&PublicKey])
     // blst_p1_mult reduces internally.
     let weight = blst_ffi::scalar_from_bendian(&weight_hash);
 
-    let pk_aff = blst_ffi::p1_uncompress(pk_bytes).map_err(|_| BlsError::InvalidPublicKey)?;
-    let weighted = blst_ffi::p1_mult(&pk_aff, &weight.b, 256);
-    let weighted = blst_ffi::p1_from_affine(&weighted);
-    acc = blst_ffi::p1_add_or_double(&acc, &weighted);
+    let pk_aff = G1Affine::uncompress(pk_bytes).map_err(|_| BlsError::InvalidPublicKey)?;
+    acc = acc + pk_aff.to_projective().mul_scalar(&weight.b, 256);
   }
 
-  let agg_pk_aff = blst_ffi::p1_to_affine(&acc);
-  let agg_pk_bytes = blst_ffi::p1_affine_compress(&agg_pk_aff);
+  let agg_pk_bytes = acc.to_affine().compress();
   let agg_pk = PublicKey::from_bytes(&agg_pk_bytes).map_err(|_| BlsError::InvalidPublicKey)?;
 
   sig.verify(msg, &agg_pk)

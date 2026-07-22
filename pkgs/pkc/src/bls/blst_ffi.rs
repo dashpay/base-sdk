@@ -16,65 +16,10 @@ use core::ptr::null_mut;
 /// Bit-length for scalars known to be reduced mod q (< 2^255).
 pub(crate) const FR_BITS: usize = 255;
 
-fn p1_affine_generator() -> blst_p1_affine {
-  unsafe { *blst_p1_affine_generator() }
-}
-
 pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
   let mut out = [0u8; 32];
   unsafe { blst_bendian_from_scalar(out.as_mut_ptr(), scalar) };
   out
-}
-
-pub(crate) fn p1_add_or_double(a: &blst_p1, b: &blst_p1) -> blst_p1 {
-  let mut out = blst_p1::default();
-  unsafe { blst_p1_add_or_double(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn p1_affine_compress(point: &blst_p1_affine) -> [u8; 48] {
-  let mut out = [0u8; 48];
-  unsafe { blst_p1_affine_compress(out.as_mut_ptr(), point) };
-  out
-}
-
-pub(crate) fn p1_from_affine(point: &blst_p1_affine) -> blst_p1 {
-  let mut out = blst_p1::default();
-  unsafe { blst_p1_from_affine(&mut out, point) };
-  out
-}
-
-pub(crate) fn p1_mult(point: &blst_p1_affine, scalar: &[u8], nbits: usize) -> blst_p1_affine {
-  let proj = p1_from_affine(point);
-  p1_to_affine(&p1_mult_projective(&proj, scalar, nbits))
-}
-
-pub(crate) fn p1_mult_projective(point: &blst_p1, scalar: &[u8], nbits: usize) -> blst_p1 {
-  let mut out = blst_p1::default();
-  unsafe { blst_p1_mult(&mut out, point, scalar.as_ptr(), nbits) };
-  out
-}
-
-pub(crate) fn p1_to_affine(point: &blst_p1) -> blst_p1_affine {
-  let mut aff = blst_p1_affine::default();
-  unsafe { blst_p1_to_affine(&mut aff, point) };
-  aff
-}
-
-/// Uncompress a 48-byte G1 point.
-///
-/// # Errors
-///
-/// Returns the blst error code when the bytes do not encode a
-/// valid compressed G1 point.
-pub(crate) fn p1_uncompress(bytes: &[u8; 48]) -> Result<blst_p1_affine, BLST_ERROR> {
-  let mut aff = blst_p1_affine::default();
-  let rc = unsafe { blst_p1_uncompress(&mut aff, bytes.as_ptr()) };
-  if rc == BLST_ERROR::BLST_SUCCESS {
-    Ok(aff)
-  } else {
-    Err(rc)
-  }
 }
 
 pub(crate) fn p2_add_or_double(a: &blst_p2, b: &blst_p2) -> blst_p2 {
@@ -151,7 +96,7 @@ pub(crate) fn pairings_equal_with_g1_generator(
   rhs_g1: &blst_p1_affine,
 ) -> bool {
   let rhs_g2_aff = p2_to_affine(rhs_g2);
-  let g1_generator = p1_affine_generator();
+  let g1_generator = blst_p1_affine::from(G1Affine::generator());
   let mut lhs = blst_fp12::default();
   let mut rhs = blst_fp12::default();
   unsafe {
@@ -171,10 +116,10 @@ pub(crate) fn sk_check(sk: &blst_scalar) -> bool {
   unsafe { blst_sk_check(sk) }
 }
 
-pub(crate) fn sk_to_pk2_in_g1(sk: &blst_scalar) -> blst_p1_affine {
+pub(crate) fn sk_to_pk2_in_g1(sk: &blst_scalar) -> G1Affine {
   let mut aff = blst_p1_affine::default();
   unsafe { blst_sk_to_pk2_in_g1(null_mut(), &mut aff, sk) };
-  aff
+  aff.into()
 }
 
 /// A scalar of the BLS12-381 scalar field, i.e. an integer reduced modulo the
@@ -438,3 +383,104 @@ impl Sub for Fp2 {
 type_cvrt!(From<Fp2> for blst_fp2, |fp2| fp2.0);
 
 type_cvrt!(From<blst_fp2> for Fp2, |raw| Self(*raw));
+
+/// A projective group element supporting curve addition and scalar
+/// multiplication.
+pub(crate) trait Point: Copy + Default + Add<Output = Self> {
+  /// The group identity (point at infinity).
+  fn identity() -> Self {
+    Self::default()
+  }
+
+  /// Scalar multiplication by a little-endian scalar of `nbits` bits.
+  fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self;
+}
+
+/// A point of the G1 group (over `Fp`) in projective coordinates,
+/// suitable for accumulation before a single conversion to affine.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct G1(blst_p1);
+
+impl G1 {
+  /// Convert to affine coordinates.
+  pub(crate) fn to_affine(self) -> G1Affine {
+    let mut aff = blst_p1_affine::default();
+    unsafe { blst_p1_to_affine(&mut aff, &self.0) };
+    G1Affine(aff)
+  }
+}
+
+impl Add for G1 {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    let mut out = blst_p1::default();
+    unsafe { blst_p1_add_or_double(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Point for G1 {
+  fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self {
+    // Clamp to the bits actually backed by the slice: blst reads
+    // ceil(nbits/8) bytes, so a larger nbits would read out of bounds.
+    let nbits = nbits.min(scalar.len() * 8);
+    let mut out = blst_p1::default();
+    unsafe { blst_p1_mult(&mut out, &self.0, scalar.as_ptr(), nbits) };
+    Self(out)
+  }
+}
+
+type_cvrt!(From<G1> for blst_p1, |g| g.0);
+
+type_cvrt!(From<blst_p1> for G1, |raw| Self(*raw));
+
+/// A point of the G1 group in affine coordinates, the canonical form
+/// used for serialization and pairing inputs.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct G1Affine(blst_p1_affine);
+
+impl G1Affine {
+  /// The conventional G1 generator.
+  pub(crate) fn generator() -> Self {
+    Self(unsafe { *blst_p1_affine_generator() })
+  }
+
+  /// Convert to projective coordinates.
+  pub(crate) fn to_projective(self) -> G1 {
+    let mut out = blst_p1::default();
+    unsafe { blst_p1_from_affine(&mut out, &self.0) };
+    G1(out)
+  }
+
+  /// Serialize to the 48-byte compressed encoding.
+  pub(crate) fn compress(&self) -> [u8; 48] {
+    let mut out = [0u8; 48];
+    unsafe { blst_p1_affine_compress(out.as_mut_ptr(), &self.0) };
+    out
+  }
+
+  /// Scalar multiplication via the projective representation.
+  pub(crate) fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self {
+    self.to_projective().mul_scalar(scalar, nbits).to_affine()
+  }
+
+  /// Uncompress a 48-byte G1 point.
+  ///
+  /// # Errors
+  ///
+  /// Returns the blst error code when the bytes do not encode a valid
+  /// compressed G1 point.
+  pub(crate) fn uncompress(bytes: &[u8; 48]) -> Result<Self, BLST_ERROR> {
+    let mut aff = blst_p1_affine::default();
+    let rc = unsafe { blst_p1_uncompress(&mut aff, bytes.as_ptr()) };
+    if rc != BLST_ERROR::BLST_SUCCESS {
+      return Err(rc);
+    }
+    Ok(Self(aff))
+  }
+}
+
+type_cvrt!(From<G1Affine> for blst_p1_affine, |a| a.0);
+
+type_cvrt!(From<blst_p1_affine> for G1Affine, |raw| Self(*raw));

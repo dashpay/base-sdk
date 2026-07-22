@@ -9,16 +9,15 @@
 //! G1 (48 bytes): sign bit at byte[0] & 0x80, no compression indicator.
 //! G2 (96 bytes): legacy component order (c0||c1), sign bit at byte[0] & 0x80.
 
-use crate::bls::blst_ffi::{self, Fp, Fp2};
+use crate::bls::blst_ffi::{self, Fp, Fp2, G1Affine};
 use crate::bls::BlsError;
 
-use blst::blst_p1_affine;
 use blst::blst_p2_affine;
 use hex_literal::hex;
 
 /// Serialize a G1 affine point to 48 legacy bytes.
-pub(super) fn ser_g1(p: &blst_p1_affine) -> [u8; 48] {
-  let ietf = blst_ffi::p1_affine_compress(p);
+pub(super) fn ser_g1(p: &G1Affine) -> [u8; 48] {
+  let ietf = p.compress();
 
   if ietf[0] & 0xc0 == 0xc0 {
     return ietf; // infinity is the same in both formats
@@ -36,9 +35,9 @@ pub(super) fn ser_g1(p: &blst_p1_affine) -> [u8; 48] {
 }
 
 /// Deserialize 48 legacy bytes to a G1 affine point.
-pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<blst_p1_affine, BlsError> {
+pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<G1Affine, BlsError> {
   if bytes[0] & 0xc0 == 0xc0 {
-    return blst_ffi::p1_uncompress(bytes).map_err(|_| BlsError::InvalidPublicKey);
+    return G1Affine::uncompress(bytes).map_err(|_| BlsError::InvalidPublicKey);
   }
 
   let sign = (bytes[0] >> 7) & 1;
@@ -49,7 +48,7 @@ pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<blst_p1_affine, BlsError> {
     ietf[0] |= 0x20; // sign
   }
 
-  blst_ffi::p1_uncompress(&ietf).map_err(|_| BlsError::InvalidPublicKey)
+  G1Affine::uncompress(&ietf).map_err(|_| BlsError::InvalidPublicKey)
 }
 
 /// Serialize a G2 affine point to 96 legacy bytes.

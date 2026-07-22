@@ -40,7 +40,7 @@ impl Signature {
   /// e(sig, G1) == e(H(msg), pk).
   pub fn verify(&self, msg: &[u8; 32], pk: &PublicKey) -> Result<(), BlsError> {
     let h_proj = chia_h2c::hash_to_g2(msg);
-    let valid = blst_ffi::pairings_equal_with_g1_generator(&self.0, &h_proj, &pk.0);
+    let valid = blst_ffi::pairings_equal_with_g1_generator(&self.0, &h_proj, &blst::blst_p1_affine::from(pk.0));
     if valid {
       Ok(())
     } else {

@@ -9,12 +9,12 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{self, Fr};
+use crate::bls::blst_ffi::{self, Fr, G1};
 use crate::bls::BlsError;
 use crate::common::bls::threshold as math;
 use crate::prelude::*;
 
-use blst::{blst_p1, blst_p2};
+use blst::blst_p2;
 use dash_num::Hash256;
 
 /// Secret key share for threshold signing.
@@ -163,10 +163,10 @@ pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<Public
   if master_pks.is_empty() {
     return Err(BlsError::EmptyAggregation);
   }
-  let coeffs_g1: Vec<blst_p1> = master_pks.iter().map(|pk| blst_ffi::p1_from_affine(&pk.0)).collect();
+  let coeffs_g1: Vec<G1> = master_pks.iter().map(|pk| pk.0.to_projective()).collect();
 
   let x = math::fr_from_hash(id);
   let result = math::eval_poly_g1(&coeffs_g1, &x);
 
-  Ok(PublicKey::from_inner(blst_ffi::p1_to_affine(&result)))
+  Ok(PublicKey::from_inner(result.to_affine()))
 }

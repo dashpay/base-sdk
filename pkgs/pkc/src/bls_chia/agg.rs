@@ -9,10 +9,10 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::{blst_ffi, BlsError};
+use crate::bls::blst_ffi::{self, Point, G1};
+use crate::bls::BlsError;
 use crate::prelude::*;
 
-use blst::blst_p1;
 use sha2::{Digest, Sha256};
 
 /// Aggregate multiple legacy BLS public keys (simple point addition in G1).
@@ -20,13 +20,11 @@ pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, BlsError> {
   if keys.is_empty() {
     return Err(BlsError::EmptyAggregation);
   }
-  let mut acc = blst_ffi::p1_from_affine(&keys[0].0);
+  let mut acc = keys[0].0.to_projective();
   for k in &keys[1..] {
-    let tmp = blst_ffi::p1_from_affine(&k.0);
-    acc = blst_ffi::p1_add_or_double(&acc, &tmp);
+    acc = acc + k.0.to_projective();
   }
-  let aff = blst_ffi::p1_to_affine(&acc);
-  Ok(PublicKey::from_inner(aff))
+  Ok(PublicKey::from_inner(acc.to_affine()))
 }
 
 /// Aggregate multiple legacy BLS signatures (simple point addition in G2).
@@ -82,7 +80,7 @@ pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicK
   }
   let pk_hash: [u8; 32] = hasher.finalize().into();
 
-  let mut acc = blst_p1::default();
+  let mut acc = G1::identity();
 
   for (i, pk_bytes) in sorted.iter().enumerate() {
     // weight = SHA256(i_as_4_bytes_be || pk_hash) mod order
@@ -96,13 +94,10 @@ pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicK
     let weight = blst_ffi::scalar_from_bendian(&weight_hash);
 
     let pk = PublicKey::from_bytes(pk_bytes).map_err(|_| BlsError::InvalidPublicKey)?;
-    let weighted = blst_ffi::p1_mult(&pk.0, &weight.b, 256);
-    let weighted = blst_ffi::p1_from_affine(&weighted);
-    acc = blst_ffi::p1_add_or_double(&acc, &weighted);
+    acc = acc + pk.0.to_projective().mul_scalar(&weight.b, 256);
   }
 
-  let agg_pk_aff = blst_ffi::p1_to_affine(&acc);
-  let agg_pk = PublicKey::from_inner(agg_pk_aff);
+  let agg_pk = PublicKey::from_inner(acc.to_affine());
 
   sig.verify(msg, &agg_pk)
 }

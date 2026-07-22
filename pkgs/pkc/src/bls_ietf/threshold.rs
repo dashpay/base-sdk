@@ -9,12 +9,12 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{self, Fr};
+use crate::bls::blst_ffi::{self, Fr, G1Affine, G1};
 use crate::bls::BlsError;
 use crate::common::bls::threshold as math;
 use crate::prelude::*;
 
-use blst::{blst_p1, blst_p2};
+use blst::blst_p2;
 use dash_num::Hash256;
 
 /// Secret key share for threshold signing.
@@ -180,19 +180,18 @@ pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<Public
     return Err(BlsError::EmptyAggregation);
   }
   // Convert each min_pk::PublicKey to blst_p1.
-  let coeffs_g1: Vec<blst_p1> = master_pks
+  let coeffs_g1: Vec<G1> = master_pks
     .iter()
     .map(|pk| {
       let bytes = pk.0.compress();
-      let aff = blst_ffi::p1_uncompress(&bytes).map_err(|_| BlsError::InvalidPublicKey)?;
-      Ok(blst_ffi::p1_from_affine(&aff))
+      let aff = G1Affine::uncompress(&bytes).map_err(|_| BlsError::InvalidPublicKey)?;
+      Ok(aff.to_projective())
     })
     .collect::<Result<Vec<_>, BlsError>>()?;
 
   let x = math::fr_from_hash(id);
   let result = math::eval_poly_g1(&coeffs_g1, &x);
 
-  let aff = blst_ffi::p1_to_affine(&result);
-  let bytes = blst_ffi::p1_affine_compress(&aff);
+  let bytes = result.to_affine().compress();
   PublicKey::from_bytes(&bytes)
 }
