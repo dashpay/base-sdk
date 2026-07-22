@@ -56,7 +56,7 @@ fn cross_format_pk_differs(ietf_sk0: SecretKey) {
 }
 
 mod kat {
-  use dash_dev::{vec_from_hex, Corpus};
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -68,10 +68,11 @@ mod kat {
 
   #[test]
   fn kat_derive_pk() {
-    let vecs: Vec<KeygenVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_keygen").vectors("derive_pk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_keygen");
+    let vecs: Vec<KeygenVector> = corpus.vectors("derive_pk");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
+      let sk_bytes: [u8; 32] = arr_from_hex(&v.sk);
       let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
       assert_eq!(
         sk.public_key().to_bytes().to_lower_hex_string(),

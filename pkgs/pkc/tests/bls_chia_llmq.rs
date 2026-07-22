@@ -16,7 +16,7 @@ use hex_conservative::DisplayHex;
 
 #[test]
 fn llmq_contribute_vvec() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
 
   for c in f["contribute"].as_array().unwrap() {
     let vvec: Vec<&str> = c["vvec"]
@@ -27,28 +27,28 @@ fn llmq_contribute_vvec() {
       .collect();
 
     for pk_hex in &vvec {
-      assert!(PublicKey::from_bytes(&arr_from_hex::<48>(pk_hex)).is_ok());
+      assert!(PublicKey::from_bytes(&arr_from_hex(pk_hex)).is_ok());
     }
   }
 }
 
 #[test]
 fn llmq_contribute_sk_shares() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
   let n = f["inputs"]["n"].as_u64().unwrap() as usize;
 
   for c in f["contribute"].as_array().unwrap() {
     let shares = c["sk_shares"].as_array().unwrap();
     assert_eq!(shares.len(), n);
     for s in shares {
-      assert!(SecretKey::from_bytes(&arr_from_hex::<32>(s.as_str().unwrap())).is_ok());
+      assert!(SecretKey::from_bytes(&arr_from_hex(s.as_str().unwrap())).is_ok());
     }
   }
 }
 
 #[test]
 fn llmq_verify_contributions() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
   let member_ids: Vec<String> = f["inputs"]["member_ids"]
     .as_array()
     .unwrap()
@@ -72,11 +72,11 @@ fn llmq_verify_contributions() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| PublicKey::from_bytes(&arr_from_hex::<48>(v.as_str().unwrap())).unwrap())
+        .map(|v| PublicKey::from_bytes(&arr_from_hex(v.as_str().unwrap())).unwrap())
         .collect();
       let vvec_refs: Vec<&PublicKey> = vvec.iter().collect();
 
-      let sk_share = SecretKey::from_bytes(&arr_from_hex::<32>(sk_hex.as_str().unwrap())).unwrap();
+      let sk_share = SecretKey::from_bytes(&arr_from_hex(sk_hex.as_str().unwrap())).unwrap();
       let pk_from_share = sk_share.public_key();
 
       let member_id = common::hash_from_hex(&member_ids[member_idx]);
@@ -96,7 +96,7 @@ fn llmq_verify_contributions() {
 
 #[test]
 fn llmq_commit_quorum_key() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
 
   let commits = f["commit"].as_array().unwrap();
   let expected_qpk = commits[0]["quorum_public_key"].as_str().unwrap();
@@ -111,7 +111,7 @@ fn llmq_commit_quorum_key() {
   let contributions = f["contribute"].as_array().unwrap();
   let member_pks: Vec<PublicKey> = contributions
     .iter()
-    .map(|c| PublicKey::from_bytes(&arr_from_hex::<48>(c["vvec"][0].as_str().unwrap())).unwrap())
+    .map(|c| PublicKey::from_bytes(&arr_from_hex(c["vvec"][0].as_str().unwrap())).unwrap())
     .collect();
   let pk_refs: Vec<&PublicKey> = member_pks.iter().collect();
   let agg_pk = aggregate_pk(&pk_refs).unwrap();
@@ -120,7 +120,7 @@ fn llmq_commit_quorum_key() {
 
 #[test]
 fn llmq_commit_sk_share() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
 
   for (member_idx, c) in f["commit"].as_array().unwrap().iter().enumerate() {
     let expected_share = c["sk_share"].as_str().unwrap();
@@ -128,7 +128,7 @@ fn llmq_commit_sk_share() {
     let mut received: Vec<SecretKey> = Vec::new();
     for contrib in f["contribute"].as_array().unwrap() {
       let sk_hex = contrib["sk_shares"][member_idx].as_str().unwrap();
-      received.push(SecretKey::from_bytes(&arr_from_hex::<32>(sk_hex)).unwrap());
+      received.push(SecretKey::from_bytes(&arr_from_hex(sk_hex)).unwrap());
     }
 
     let refs: Vec<&SecretKey> = received.iter().collect();
@@ -139,11 +139,11 @@ fn llmq_commit_sk_share() {
 
 #[test]
 fn llmq_commit_member_sig() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
 
   for c in f["commit"].as_array().unwrap() {
-    let sk_share = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
-    let commitment_hash = arr_from_hex::<32>(c["commitment_hash"].as_str().unwrap());
+    let sk_share = SecretKey::from_bytes(&arr_from_hex(c["sk_share"].as_str().unwrap())).unwrap();
+    let commitment_hash = arr_from_hex(c["commitment_hash"].as_str().unwrap());
 
     // Sign and self-verify.
     let sig = sk_share.sign(&commitment_hash);
@@ -158,11 +158,11 @@ fn llmq_commit_member_sig() {
 
 #[test]
 fn llmq_commit_quorum_sig_share() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
 
   for c in f["commit"].as_array().unwrap() {
-    let sk_share = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
-    let quorum_hash = arr_from_hex::<32>(c["quorum_hash"].as_str().unwrap());
+    let sk_share = SecretKey::from_bytes(&arr_from_hex(c["sk_share"].as_str().unwrap())).unwrap();
+    let quorum_hash = arr_from_hex(c["quorum_hash"].as_str().unwrap());
 
     // Sign and self-verify.
     let sig = sk_share.sign(&quorum_hash);
@@ -177,7 +177,7 @@ fn llmq_commit_quorum_sig_share() {
 
 #[test]
 fn llmq_finalize_recover_quorum_sig() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
   let fin = &f["finalize"];
   let commits = f["commit"].as_array().unwrap();
 
@@ -195,7 +195,7 @@ fn llmq_finalize_recover_quorum_sig() {
     .map(|v| v.as_str().unwrap().to_string())
     .collect();
 
-  let quorum_hash = arr_from_hex::<32>(fin["quorum_hash"].as_str().unwrap());
+  let quorum_hash = arr_from_hex(fin["quorum_hash"].as_str().unwrap());
 
   // signer_ids are internal byte order; byte-reverse to
   // match the display-order member_ids.
@@ -210,7 +210,7 @@ fn llmq_finalize_recover_quorum_sig() {
         .collect::<Vec<u8>>()
         .to_lower_hex_string();
       let idx = member_ids.iter().position(|m| *m == sid_display).unwrap();
-      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(commits[idx]["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex(commits[idx]["sk_share"].as_str().unwrap())).unwrap();
       let member_id = common::hash_from_hex(&sid_display);
       let sk_share = threshold::SecretKeyShare::new(member_id, sk);
       sk_share.sign(&quorum_hash)
@@ -220,8 +220,7 @@ fn llmq_finalize_recover_quorum_sig() {
   let share_refs: Vec<&threshold::SignatureShare> = sig_shares.iter().collect();
   let recovered = threshold::recover_sig(&share_refs).unwrap();
 
-  let quorum_pk =
-    PublicKey::from_bytes(&arr_from_hex::<48>(commits[0]["quorum_public_key"].as_str().unwrap())).unwrap();
+  let quorum_pk = PublicKey::from_bytes(&arr_from_hex(commits[0]["quorum_public_key"].as_str().unwrap())).unwrap();
   assert!(
     recovered.verify(&quorum_hash, &quorum_pk).is_ok(),
     "recovered quorum sig failed verification"
@@ -233,7 +232,7 @@ fn llmq_finalize_recover_quorum_sig() {
     .iter()
     .zip(all_ids.iter())
     .map(|(c, id)| {
-      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex(c["sk_share"].as_str().unwrap())).unwrap();
       let sk_share = threshold::SecretKeyShare::new(*id, sk);
       sk_share.sign(&quorum_hash)
     })
@@ -249,17 +248,17 @@ fn llmq_finalize_recover_quorum_sig() {
 
 #[test]
 fn llmq_finalize_aggregated_member_sigs() {
-  let f = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
+  let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_llmq_100").into_value();
   let commits = f["commit"].as_array().unwrap();
 
   // Re-sign the commitment hash with each member's
   // sk_share using our library, then aggregate.
-  let commitment_hash = arr_from_hex::<32>(commits[0]["commitment_hash"].as_str().unwrap());
+  let commitment_hash = arr_from_hex(commits[0]["commitment_hash"].as_str().unwrap());
 
   let member_sigs: Vec<Signature> = commits
     .iter()
     .map(|c| {
-      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex(c["sk_share"].as_str().unwrap())).unwrap();
       sk.sign(&commitment_hash)
     })
     .collect();
@@ -270,7 +269,7 @@ fn llmq_finalize_aggregated_member_sigs() {
   let member_pks: Vec<PublicKey> = commits
     .iter()
     .map(|c| {
-      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex(c["sk_share"].as_str().unwrap())).unwrap();
       sk.public_key()
     })
     .collect();

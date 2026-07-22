@@ -312,3 +312,101 @@ impl BlsScheme for BlsScChia {
     Ok(result.to_affine())
   }
 }
+
+#[cfg(all(test, feature = "tests"))]
+#[expect(clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use super::*;
+  use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
+  use crate::prelude::*;
+
+  use dash_dev::{arr_from_hex, Corpus};
+  use hex_conservative::DisplayHex;
+  use serde::Deserialize;
+
+  #[derive(Deserialize)]
+  struct DhVector {
+    sk: String,
+    peer_pk: String,
+    shared: String,
+  }
+
+  #[derive(Deserialize)]
+  struct SerVector {
+    sig_legacy: String,
+    sig_ietf: String,
+  }
+
+  #[derive(Deserialize)]
+  struct SignVector {
+    sk: String,
+    msg: String,
+    sig: String,
+  }
+
+  #[test]
+  fn dh_exchange_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_dh");
+    let vecs: Vec<DhVector> = corpus.vectors("dh_exchange");
+
+    for v in &vecs {
+      let sk = BlsScChia::sk_from_bytes(&arr_from_hex(&v.sk)).unwrap();
+      let peer = BlsScChia::pk_from_bytes(&arr_from_hex(&v.peer_pk)).unwrap();
+      let shared = BlsScChia::dh_exchange(&sk, &peer).unwrap();
+      assert_eq!(BlsScChia::pk_to_bytes(&shared).to_lower_hex_string(), v.shared);
+    }
+  }
+
+  #[test]
+  fn signature_serialization_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
+    let vecs: Vec<SerVector> = corpus.vectors("sig_serialization");
+
+    for v in &vecs {
+      let sig = BlsScChia::sig_from_bytes(&arr_from_hex(&v.sig_legacy)).unwrap();
+      assert_eq!(BlsScChia::sig_to_bytes(&sig).to_lower_hex_string(), v.sig_legacy);
+      assert_eq!(sig.compress().to_lower_hex_string(), v.sig_ietf);
+      assert_ne!(v.sig_legacy, v.sig_ietf, "legacy and ietf should differ");
+    }
+  }
+
+  #[test]
+  fn signing_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_sign");
+    let vecs: Vec<SignVector> = corpus.vectors("sign");
+
+    for v in &vecs {
+      let sk = BlsScChia::sk_from_bytes(&arr_from_hex(&v.sk)).unwrap();
+      let msg: [u8; 32] = arr_from_hex(&v.msg);
+      let sig = BlsScChia::sign(&sk, &msg);
+      assert_eq!(BlsScChia::sig_to_bytes(&sig).to_lower_hex_string(), v.sig);
+    }
+  }
+
+  #[test]
+  fn signing_verifies_and_rejects_mismatches() {
+    let sk0 = BlsScChia::generate(&SEED_0).unwrap();
+    let sk1 = BlsScChia::generate(&SEED_1).unwrap();
+    let pk0 = BlsScChia::derive_pk(&sk0);
+    let pk1 = BlsScChia::derive_pk(&sk1);
+    let sig = BlsScChia::sign(&sk0, &MSG_DEADBEEF);
+
+    assert!(BlsScChia::verify(&sig, &MSG_DEADBEEF, &pk0).is_ok());
+    assert!(BlsScChia::verify(&sig, &[0x42; 32], &pk0).is_err());
+    assert!(BlsScChia::verify(&sig, &MSG_DEADBEEF, &pk1).is_err());
+    assert_eq!(BlsScChia::sign(&sk0, &MSG_DEADBEEF), sig);
+  }
+
+  #[test]
+  fn secure_verify_rejects_infinity_input_key() {
+    let sk = BlsScChia::generate(&SEED_0).unwrap();
+    let real_pk = BlsScChia::derive_pk(&sk);
+    let inf_pk = G1::identity().to_affine();
+    // The identity key serializes to the infinity marker (bits 6-7 set).
+    assert_eq!(BlsScChia::pk_to_bytes(&inf_pk)[0] & 0xc0, 0xc0);
+
+    let sig = BlsScChia::sign(&sk, &MSG_DEADBEEF);
+    let res = BlsScChia::secure_verify_aggregates(&sig, &MSG_DEADBEEF, &[&real_pk, &inf_pk]);
+    assert!(matches!(res, Err(BlsError::InvalidPublicKey)));
+  }
+}

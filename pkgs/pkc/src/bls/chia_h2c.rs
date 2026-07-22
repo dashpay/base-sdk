@@ -272,3 +272,59 @@ fn curve_rhs(x: &Fp2) -> Fp2 {
   let x3 = x2 * *x;
   x3 + b
 }
+
+#[cfg(all(test, feature = "tests"))]
+mod tests {
+  use super::*;
+  use crate::prelude::*;
+
+  use dash_dev::{arr_from_hex, Corpus};
+  use hex_conservative::DisplayHex;
+  use serde::Deserialize;
+
+  #[derive(Deserialize)]
+  struct HashVector {
+    msg: String,
+    t00_hash: String,
+    t01_hash: String,
+    t10_hash: String,
+    t11_hash: String,
+    t00_fp: String,
+    t01_fp: String,
+    t10_fp: String,
+    t11_fp: String,
+  }
+
+  #[test]
+  fn hash_to_fp_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_hash_internals");
+    let vecs: Vec<HashVector> = corpus.vectors("hash_internals");
+
+    for v in &vecs {
+      let msg: [u8; 32] = arr_from_hex(&v.msg);
+      for (tag, hash_hex, fp_hex) in [
+        (b"G2_0_c0", &v.t00_hash, &v.t00_fp),
+        (b"G2_0_c1", &v.t01_hash, &v.t01_fp),
+        (b"G2_1_c0", &v.t10_hash, &v.t10_fp),
+        (b"G2_1_c1", &v.t11_hash, &v.t11_fp),
+      ] {
+        // SHA-256(msg || tag || 0) || SHA-256(msg || tag || 1).
+        let mut input = [0u8; 40];
+        input[..32].copy_from_slice(&msg);
+        input[32..39].copy_from_slice(tag);
+        input[39] = 0;
+        let h0 = Sha256::digest(input);
+        input[39] = 1;
+        let h1 = Sha256::digest(input);
+        let mut concat = [0u8; 64];
+        concat[..32].copy_from_slice(&h0);
+        concat[32..].copy_from_slice(&h1);
+        assert_eq!(concat.to_lower_hex_string(), *hash_hex);
+
+        // reduce the 64-byte hash mod p to a field element.
+        let out = <[u8; 48]>::from(hash_to_fp(&msg, tag));
+        assert_eq!(out.to_lower_hex_string(), *fp_hex);
+      }
+    }
+  }
+}

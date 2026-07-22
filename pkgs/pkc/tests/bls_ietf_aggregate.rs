@@ -130,7 +130,7 @@ fn identity_cancellation_is_rejected(ietf_sk0: SecretKey, #[case] verify_msg: [u
 }
 
 mod kat {
-  use dash_dev::{vec_from_hex, Corpus};
+  use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -163,15 +163,15 @@ mod kat {
 
   #[test]
   fn kat_aggregate_pk() {
-    let vecs: Vec<AggregatePkVector> =
-      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_aggregate").vectors("aggregate_pk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_aggregate");
+    let vecs: Vec<AggregatePkVector> = corpus.vectors("aggregate_pk");
 
     for v in &vecs {
       let pks: Vec<dash_pkc::bls_ietf::PublicKey> = v
         .pks
         .iter()
         .map(|h| {
-          let b: [u8; 48] = vec_from_hex(h).try_into().unwrap();
+          let b: [u8; 48] = arr_from_hex(h);
           dash_pkc::bls_ietf::PublicKey::from_bytes(&b).unwrap()
         })
         .collect();
@@ -183,15 +183,15 @@ mod kat {
 
   #[test]
   fn kat_aggregate_sig() {
-    let vecs: Vec<AggregateSigVector> =
-      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_aggregate").vectors("aggregate_sig");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_aggregate");
+    let vecs: Vec<AggregateSigVector> = corpus.vectors("aggregate_sig");
 
     for v in &vecs {
       let sigs: Vec<dash_pkc::bls_ietf::Signature> = v
         .sigs
         .iter()
         .map(|h| {
-          let b: [u8; 96] = vec_from_hex(h).try_into().unwrap();
+          let b: [u8; 96] = arr_from_hex(h);
           dash_pkc::bls_ietf::Signature::from_bytes(&b).unwrap()
         })
         .collect();
@@ -203,15 +203,15 @@ mod kat {
 
   #[test]
   fn kat_aggregate_sk() {
-    let vecs: Vec<AggregateSkVector> =
-      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").vectors("aggregate_sk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate");
+    let vecs: Vec<AggregateSkVector> = corpus.vectors("aggregate_sk");
 
     for v in &vecs {
       let sks: Vec<dash_pkc::bls_ietf::SecretKey> = v
         .sks
         .iter()
         .map(|h| {
-          let b: [u8; 32] = vec_from_hex(h).try_into().unwrap();
+          let b: [u8; 32] = arr_from_hex(h);
           dash_pkc::bls_ietf::SecretKey::from_bytes(&b).unwrap()
         })
         .collect();
@@ -223,8 +223,8 @@ mod kat {
 
   #[test]
   fn kat_secure_verify_aggregates() {
-    let vecs: Vec<SecureAggVector> =
-      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_secure_aggregate").vectors("secure_verify_aggregates");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_secure_aggregate");
+    let vecs: Vec<SecureAggVector> = corpus.vectors("secure_verify_aggregates");
 
     for v in &vecs {
       let msg = vec_from_hex(&v.msg);
@@ -232,12 +232,12 @@ mod kat {
         .pks
         .iter()
         .map(|h| {
-          let b: [u8; 48] = vec_from_hex(h).try_into().unwrap();
+          let b: [u8; 48] = arr_from_hex(h);
           dash_pkc::bls_ietf::PublicKey::from_bytes(&b).unwrap()
         })
         .collect();
 
-      let expected_agg: [u8; 96] = vec_from_hex(&v.agg_sig_secure).try_into().unwrap();
+      let expected_agg: [u8; 96] = arr_from_hex(&v.agg_sig_secure);
       let agg_sig = dash_pkc::bls_ietf::Signature::from_bytes(&expected_agg).unwrap();
       let pk_refs: Vec<_> = pks.iter().collect();
 

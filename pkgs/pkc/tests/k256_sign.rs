@@ -122,7 +122,7 @@ fn serde_recovery_id_roundtrip() {
 }
 
 mod kat {
-  use dash_dev::{vec_from_hex, Corpus};
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -144,11 +144,12 @@ mod kat {
 
   #[test]
   fn kat_sign_recoverable() {
-    let vecs: Vec<SignVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_sign").vectors("sign_recoverable");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_sign");
+    let vecs: Vec<SignVector> = corpus.vectors("sign_recoverable");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
-      let msg: [u8; 32] = vec_from_hex(&v.msg).try_into().unwrap();
+      let sk_bytes: [u8; 32] = arr_from_hex(&v.sk);
+      let msg: [u8; 32] = arr_from_hex(&v.msg);
       let sk = dash_pkc::k256::SecretKey::from_bytes(&sk_bytes).unwrap();
       let (sig, rid) = sk.sign_recoverable(&msg).unwrap();
       assert_eq!(
@@ -164,11 +165,12 @@ mod kat {
 
   #[test]
   fn kat_recover() {
-    let vecs: Vec<RecoverVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_sign").vectors("recover");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_sign");
+    let vecs: Vec<RecoverVector> = corpus.vectors("recover");
 
     for v in &vecs {
-      let msg: [u8; 32] = vec_from_hex(&v.msg).try_into().unwrap();
-      let sig_bytes: [u8; 64] = vec_from_hex(&v.sig).try_into().unwrap();
+      let msg: [u8; 32] = arr_from_hex(&v.msg);
+      let sig_bytes: [u8; 64] = arr_from_hex(&v.sig);
       let sig = dash_pkc::k256::Signature::from_compact(&sig_bytes).unwrap();
       let rid = dash_pkc::k256::RecoveryId::new(v.recovery_id).unwrap();
       let pk = dash_pkc::k256::PublicKey::recover(&msg, &sig, rid).unwrap();

@@ -75,7 +75,7 @@ fn serde_pk_roundtrip(alice: SecretKey) {
 }
 
 mod kat {
-  use dash_dev::{vec_from_hex, Corpus};
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -87,10 +87,11 @@ mod kat {
 
   #[test]
   fn kat_derive_pk() {
-    let vecs: Vec<KeygenVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_keygen").vectors("derive_pk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_keygen");
+    let vecs: Vec<KeygenVector> = corpus.vectors("derive_pk");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
+      let sk_bytes: [u8; 32] = arr_from_hex(&v.sk);
       let sk = dash_pkc::k256::SecretKey::from_bytes(&sk_bytes).unwrap();
       let pk = sk.public_key();
       assert_eq!(

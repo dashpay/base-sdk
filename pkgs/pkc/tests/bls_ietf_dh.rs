@@ -24,8 +24,12 @@ fn dh_exchange_roundtrip(ietf_sk0: SecretKey, ietf_sk1: SecretKey) {
   assert_eq!(shared_a.to_bytes(), shared_b.to_bytes());
 }
 
+/// Reference vectors through the public wrapper.
+///
+/// The scheme-level KAT pins `dh_exchange` on the trait; this pins that
+/// `PublicKey::dh_exchange` is still wired to it.
 mod kat {
-  use dash_dev::{vec_from_hex, Corpus};
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -37,15 +41,12 @@ mod kat {
   }
 
   #[test]
-  fn kat_dh() {
-    let vecs: Vec<DhVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_dh").vectors("dh_exchange");
-
-    for v in &vecs {
-      let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
-      let pk_bytes: [u8; 48] = vec_from_hex(&v.peer_pk).try_into().unwrap();
-      let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
-      let peer_pk = dash_pkc::bls_ietf::PublicKey::from_bytes(&pk_bytes).unwrap();
-      let shared = dash_pkc::bls_ietf::PublicKey::dh_exchange(&sk, &peer_pk).unwrap();
+  fn public_api_dh_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_dh");
+    for v in corpus.vectors::<DhVector>("dh_exchange") {
+      let sk = super::SecretKey::from_bytes(&arr_from_hex(&v.sk)).unwrap();
+      let peer = super::PublicKey::from_bytes(&arr_from_hex(&v.peer_pk)).unwrap();
+      let shared = super::PublicKey::dh_exchange(&sk, &peer).unwrap();
       assert_eq!(shared.to_bytes().to_lower_hex_string(), v.shared);
     }
   }
