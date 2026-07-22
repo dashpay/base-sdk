@@ -8,7 +8,8 @@
 
 use super::pk::PublicKey;
 use super::sig::Signature;
-use crate::bls::{blst_ffi, chia_h2c, BlsError};
+use crate::bls::blst_ffi::{self, Point};
+use crate::bls::{chia_h2c, BlsError};
 
 use zeroize::Zeroize;
 
@@ -63,9 +64,8 @@ impl SecretKey {
   pub fn sign(&self, msg: &[u8; 32]) -> Signature {
     let h = chia_h2c::hash_to_g2(msg);
     // blst_sign_pk_in_g1 applies IETF transformations, do manually instead.
-    let sig = blst_ffi::p2_mult(&h, &self.0.b, blst_ffi::FR_BITS);
-    let aff = blst_ffi::p2_to_affine(&sig);
-    Signature::from_inner(aff)
+    let sig = h.mul_scalar(&self.0.b, blst_ffi::FR_BITS);
+    Signature::from_inner(sig.to_affine())
   }
 }
 

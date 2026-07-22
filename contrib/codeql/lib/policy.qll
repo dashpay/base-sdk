@@ -205,7 +205,7 @@ predicate isSuppressed(TypeItem t, string trait) {
   or
   // Projective point wrappers hold non-canonical coordinates: suppress Eq and PartialEq
   isOpaqueType(t) and
-  t.getName().getText() = ["G1"] and
+  t.getName().getText() = ["G1", "G2"] and
   trait = ["Eq", "PartialEq"]
 }
 

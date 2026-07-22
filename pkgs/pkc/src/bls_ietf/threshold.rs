@@ -9,12 +9,11 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{self, Fr, G1Affine, G1};
+use crate::bls::blst_ffi::{Fr, G1Affine, G2Affine, G1, G2};
 use crate::bls::BlsError;
 use crate::common::bls::threshold as math;
 use crate::prelude::*;
 
-use blst::blst_p2;
 use dash_num::Hash256;
 
 /// Secret key share for threshold signing.
@@ -153,23 +152,20 @@ pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, BlsError> {
 
   let ids: Vec<Fr> = shares.iter().map(|s| math::fr_from_hash(&s.id)).collect();
 
-  // Convert min_pk::Signature -> compressed bytes ->
-  // blst_p2_affine -> blst_p2.
-  let points: Vec<blst_p2> = shares
+  // Convert min_pk::Signature -> compressed bytes -> G2Affine -> G2.
+  let points: Vec<G2> = shares
     .iter()
     .map(|s| {
       let bytes = s.sig.to_bytes();
-      let aff = blst_ffi::p2_uncompress(&bytes).map_err(|_| BlsError::InvalidSignature)?;
-      Ok(blst_ffi::p2_from_affine(&aff))
+      let aff = G2Affine::uncompress(&bytes).map_err(|_| BlsError::InvalidSignature)?;
+      Ok(aff.to_projective())
     })
     .collect::<Result<Vec<_>, BlsError>>()?;
 
   let recovered = math::interpolate_g2(&ids, &points);
 
-  // Convert back: blst_p2 -> blst_p2_affine -> compressed bytes ->
-  // min_pk::Signature.
-  let aff = blst_ffi::p2_to_affine(&recovered);
-  let bytes = blst_ffi::p2_affine_compress(&aff);
+  // Convert back: G2 -> G2Affine -> compressed bytes -> min_pk::Signature.
+  let bytes = recovered.to_affine().compress();
   Signature::from_bytes(&bytes).map_err(|_| BlsError::InvalidSignature)
 }
 
@@ -179,7 +175,7 @@ pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<Public
   if master_pks.is_empty() {
     return Err(BlsError::EmptyAggregation);
   }
-  // Convert each min_pk::PublicKey to blst_p1.
+  // Convert each min_pk::PublicKey to G1 via G1Affine.
   let coeffs_g1: Vec<G1> = master_pks
     .iter()
     .map(|pk| {

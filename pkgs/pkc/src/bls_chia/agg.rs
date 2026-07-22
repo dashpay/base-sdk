@@ -32,13 +32,11 @@ pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, BlsError> {
   if sigs.is_empty() {
     return Err(BlsError::EmptyAggregation);
   }
-  let mut acc = blst_ffi::p2_from_affine(&sigs[0].0);
+  let mut acc = sigs[0].0.to_projective();
   for s in &sigs[1..] {
-    let tmp = blst_ffi::p2_from_affine(&s.0);
-    acc = blst_ffi::p2_add_or_double(&acc, &tmp);
+    acc = acc + s.0.to_projective();
   }
-  let aff = blst_ffi::p2_to_affine(&acc);
-  Ok(Signature::from_inner(aff))
+  Ok(Signature::from_inner(acc.to_affine()))
 }
 
 /// Verify an aggregated legacy BLS signature over one message and multiple

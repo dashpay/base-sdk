@@ -7,10 +7,9 @@
 //! Lagrange interpolation and polynomial evaluation over the BLS12-381 scalar
 //! field, used by threshold BLS in both bls_ietf and bls_chia.
 
-use crate::bls::blst_ffi::{self, Fr, Point, G1};
+use crate::bls::blst_ffi::{self, Fr, Point, G1, G2};
 use crate::prelude::*;
 
-use blst::blst_p2;
 use dash_num::Hash256;
 
 /// Evaluate a polynomial at `x`. Coefficients are in ascending order:
@@ -33,19 +32,18 @@ pub(crate) fn poly_eval(coeffs: &[Fr], x: &Fr) -> Fr {
 ///
 /// `ids` and `points` must have the same length >= 1.
 /// Each id must be non-zero and unique.
-pub(crate) fn interpolate_g2(ids: &[Fr], points: &[blst_p2]) -> blst_p2 {
+pub(crate) fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   let n = ids.len();
 
   // Compute Lagrange coefficients at x=0:
   //   L_i = prod_{j!=i} id_j / (id_j - id_i)
   let coeffs = compute_lagrange_coeffs(ids);
 
-  let mut result = blst_p2::default();
+  let mut result = G2::identity();
   for i in 0..n {
     // Convert Fr coefficient to scalar for point multiplication.
     let scalar = blst::blst_scalar::from(&coeffs[i]);
-    let term = blst_ffi::p2_mult(&points[i], &scalar.b, blst_ffi::FR_BITS);
-    result = blst_ffi::p2_add_or_double(&result, &term);
+    result = result + points[i].mul_scalar(&scalar.b, blst_ffi::FR_BITS);
   }
   result
 }

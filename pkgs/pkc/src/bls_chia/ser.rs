@@ -9,10 +9,9 @@
 //! G1 (48 bytes): sign bit at byte[0] & 0x80, no compression indicator.
 //! G2 (96 bytes): legacy component order (c0||c1), sign bit at byte[0] & 0x80.
 
-use crate::bls::blst_ffi::{self, Fp, Fp2, G1Affine};
+use crate::bls::blst_ffi::{G1Affine, G2Affine};
 use crate::bls::BlsError;
 
-use blst::blst_p2_affine;
 use hex_literal::hex;
 
 /// Serialize a G1 affine point to 48 legacy bytes.
@@ -58,8 +57,8 @@ pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<G1Affine, BlsError> {
 ///
 /// blst:   `[x.c1(48), x.c0(48), y.c1(48), y.c0(48)]`
 /// Legacy: `[x.c0(48), x.c1(48)]`, sign at byte\[0\] bit 7
-pub(super) fn ser_g2(p: &blst_p2_affine) -> [u8; 96] {
-  let uncomp = blst_ffi::p2_affine_serialize(p);
+pub(super) fn ser_g2(p: &G2Affine) -> [u8; 96] {
+  let uncomp = p.serialize();
 
   if uncomp.iter().all(|&b| b == 0) {
     let mut out = [0u8; 96];
@@ -83,11 +82,11 @@ pub(super) fn ser_g2(p: &blst_p2_affine) -> [u8; 96] {
 }
 
 /// Deserialize 96 legacy bytes to a G2 affine point.
-pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<blst_p2_affine, BlsError> {
+pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<G2Affine, BlsError> {
   if bytes[0] & 0xc0 == 0xc0 {
     let mut ietf = [0u8; 96];
     ietf[0] = 0xc0;
-    return blst_ffi::p2_uncompress(&ietf).map_err(|_| BlsError::InvalidSignature);
+    return G2Affine::uncompress(&ietf).map_err(|_| BlsError::InvalidSignature);
   }
 
   let sign = (bytes[0] >> 7) & 1;
@@ -104,13 +103,11 @@ pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<blst_p2_affine, BlsError> {
   ietf[0] |= 0x80; // compression
 
   // Decompress with sign=0, then negate y if needed.
-  let mut out = blst_ffi::p2_uncompress(&ietf).map_err(|_| BlsError::InvalidSignature)?;
+  let out = G2Affine::uncompress(&ietf).map_err(|_| BlsError::InvalidSignature)?;
 
-  let y_c1_bytes = <[u8; 48]>::from(Fp::from(out.y.fp[1]));
-  let decompressed_sign = y_c1_is_larger(&y_c1_bytes);
-
+  let decompressed_sign = y_c1_is_larger(&out.y().c1_bendian());
   if (sign == 1) != decompressed_sign {
-    out.y = (-Fp2::from(out.y)).into();
+    return Ok(G2Affine::from_coords(out.x(), -out.y()));
   }
 
   Ok(out)

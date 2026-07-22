@@ -22,86 +22,16 @@ pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
   out
 }
 
-pub(crate) fn p2_add_or_double(a: &blst_p2, b: &blst_p2) -> blst_p2 {
-  let mut out = blst_p2::default();
-  unsafe { blst_p2_add_or_double(&mut out, a, b) };
-  out
-}
-
-pub(crate) fn p2_affine_compress(point: &blst_p2_affine) -> [u8; 96] {
-  let mut out = [0u8; 96];
-  unsafe { blst_p2_affine_compress(out.as_mut_ptr(), point) };
-  out
-}
-
-pub(crate) fn p2_affine_serialize(point: &blst_p2_affine) -> [u8; 192] {
-  let mut out = [0u8; 192];
-  unsafe { blst_p2_affine_serialize(out.as_mut_ptr(), point) };
-  out
-}
-
-pub(crate) fn p2_cneg(point: &blst_p2, flag: bool) -> blst_p2 {
-  let mut out = *point;
-  unsafe { blst_p2_cneg(&mut out, flag) };
-  out
-}
-
-pub(crate) fn p2_double(point: &blst_p2) -> blst_p2 {
-  let mut out = blst_p2::default();
-  unsafe { blst_p2_double(&mut out, point) };
-  out
-}
-
-pub(crate) fn p2_from_affine(point: &blst_p2_affine) -> blst_p2 {
-  let mut out = blst_p2::default();
-  unsafe { blst_p2_from_affine(&mut out, point) };
-  out
-}
-
-pub(crate) fn p2_generator() -> blst_p2 {
-  unsafe { *blst_p2_generator() }
-}
-
-pub(crate) fn p2_mult(point: &blst_p2, scalar: &[u8], nbits: usize) -> blst_p2 {
-  let mut out = blst_p2::default();
-  unsafe { blst_p2_mult(&mut out, point, scalar.as_ptr(), nbits) };
-  out
-}
-
-pub(crate) fn p2_to_affine(point: &blst_p2) -> blst_p2_affine {
-  let mut aff = blst_p2_affine::default();
-  unsafe { blst_p2_to_affine(&mut aff, point) };
-  aff
-}
-
-/// Uncompress a 96-byte G2 point.
-///
-/// # Errors
-///
-/// Returns the blst error code when the bytes do not encode a
-/// valid compressed G2 point.
-pub(crate) fn p2_uncompress(bytes: &[u8; 96]) -> Result<blst_p2_affine, BLST_ERROR> {
-  let mut out = blst_p2_affine::default();
-  let rc = unsafe { blst_p2_uncompress(&mut out, bytes.as_ptr()) };
-  if rc == BLST_ERROR::BLST_SUCCESS {
-    Ok(out)
-  } else {
-    Err(rc)
-  }
-}
-
-pub(crate) fn pairings_equal_with_g1_generator(
-  lhs_g2: &blst_p2_affine,
-  rhs_g2: &blst_p2,
-  rhs_g1: &blst_p1_affine,
-) -> bool {
-  let rhs_g2_aff = p2_to_affine(rhs_g2);
+pub(crate) fn pairings_equal_with_g1_generator(lhs_g2: &G2Affine, rhs_g2: &G2, rhs_g1: &G1Affine) -> bool {
+  let lhs_g2_aff = blst_p2_affine::from(*lhs_g2);
+  let rhs_g2_aff = blst_p2_affine::from(rhs_g2.to_affine());
+  let rhs_g1_aff = blst_p1_affine::from(*rhs_g1);
   let g1_generator = blst_p1_affine::from(G1Affine::generator());
   let mut lhs = blst_fp12::default();
   let mut rhs = blst_fp12::default();
   unsafe {
-    blst_miller_loop(&mut lhs, lhs_g2, &g1_generator);
-    blst_miller_loop(&mut rhs, &rhs_g2_aff, rhs_g1);
+    blst_miller_loop(&mut lhs, &lhs_g2_aff, &g1_generator);
+    blst_miller_loop(&mut rhs, &rhs_g2_aff, &rhs_g1_aff);
     blst_fp12_finalverify(&lhs, &rhs)
   }
 }
@@ -484,3 +414,129 @@ impl G1Affine {
 type_cvrt!(From<G1Affine> for blst_p1_affine, |a| a.0);
 
 type_cvrt!(From<blst_p1_affine> for G1Affine, |raw| Self(*raw));
+
+/// A point of the G2 group (over `Fp2`) in projective coordinates,
+/// suitable for accumulation before a single conversion to affine.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct G2(blst_p2);
+
+impl G2 {
+  /// The conventional G2 generator.
+  pub(crate) fn generator() -> Self {
+    Self(unsafe { *blst_p2_generator() })
+  }
+
+  /// Point doubling.
+  pub(crate) fn double(&self) -> Self {
+    let mut out = blst_p2::default();
+    unsafe { blst_p2_double(&mut out, &self.0) };
+    Self(out)
+  }
+
+  /// Convert to affine coordinates.
+  pub(crate) fn to_affine(self) -> G2Affine {
+    let mut aff = blst_p2_affine::default();
+    unsafe { blst_p2_to_affine(&mut aff, &self.0) };
+    G2Affine(aff)
+  }
+}
+
+impl Add for G2 {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    let mut out = blst_p2::default();
+    unsafe { blst_p2_add_or_double(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Neg for G2 {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    let mut out = self.0;
+    unsafe { blst_p2_cneg(&mut out, true) };
+    Self(out)
+  }
+}
+
+impl Point for G2 {
+  fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self {
+    // Clamp to the bits actually backed by the slice: blst reads
+    // ceil(nbits/8) bytes, so a larger nbits would read out of bounds.
+    let nbits = nbits.min(scalar.len() * 8);
+    let mut out = blst_p2::default();
+    unsafe { blst_p2_mult(&mut out, &self.0, scalar.as_ptr(), nbits) };
+    Self(out)
+  }
+}
+
+type_cvrt!(From<blst_p2> for G2, |raw| Self(*raw));
+
+type_cvrt!(From<G2> for blst_p2, |g| g.0);
+
+/// A point of the G2 group in affine coordinates, the canonical form
+/// used for serialization and pairing inputs.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct G2Affine(blst_p2_affine);
+
+impl G2Affine {
+  /// Construct from affine `x` and `y` coordinates in `Fp2`.
+  pub(crate) fn from_coords(x: Fp2, y: Fp2) -> Self {
+    Self(blst_p2_affine {
+      x: x.into(),
+      y: y.into(),
+    })
+  }
+
+  /// The affine `x` coordinate.
+  pub(crate) fn x(&self) -> Fp2 {
+    Fp2::from(self.0.x)
+  }
+
+  /// The affine `y` coordinate.
+  pub(crate) fn y(&self) -> Fp2 {
+    Fp2::from(self.0.y)
+  }
+
+  /// Convert to projective coordinates.
+  pub(crate) fn to_projective(self) -> G2 {
+    let mut out = blst_p2::default();
+    unsafe { blst_p2_from_affine(&mut out, &self.0) };
+    G2(out)
+  }
+
+  /// Serialize to the 96-byte compressed encoding.
+  pub(crate) fn compress(&self) -> [u8; 96] {
+    let mut out = [0u8; 96];
+    unsafe { blst_p2_affine_compress(out.as_mut_ptr(), &self.0) };
+    out
+  }
+
+  /// Serialize to the 192-byte uncompressed encoding.
+  pub(crate) fn serialize(&self) -> [u8; 192] {
+    let mut out = [0u8; 192];
+    unsafe { blst_p2_affine_serialize(out.as_mut_ptr(), &self.0) };
+    out
+  }
+
+  /// Uncompress a 96-byte G2 point.
+  ///
+  /// # Errors
+  ///
+  /// Returns the blst error code when the bytes do not encode a valid
+  /// compressed G2 point.
+  pub(crate) fn uncompress(bytes: &[u8; 96]) -> Result<Self, BLST_ERROR> {
+    let mut aff = blst_p2_affine::default();
+    let rc = unsafe { blst_p2_uncompress(&mut aff, bytes.as_ptr()) };
+    if rc != BLST_ERROR::BLST_SUCCESS {
+      return Err(rc);
+    }
+    Ok(Self(aff))
+  }
+}
+
+type_cvrt!(From<G2Affine> for blst_p2_affine, |a| a.0);
+
+type_cvrt!(From<blst_p2_affine> for G2Affine, |raw| Self(*raw));

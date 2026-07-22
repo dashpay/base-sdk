@@ -9,12 +9,11 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{self, Fr, G1};
+use crate::bls::blst_ffi::{Fr, G1, G2};
 use crate::bls::BlsError;
 use crate::common::bls::threshold as math;
 use crate::prelude::*;
 
-use blst::blst_p2;
 use dash_num::Hash256;
 
 /// Secret key share for threshold signing.
@@ -151,10 +150,10 @@ pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, BlsError> {
   }
 
   let ids: Vec<Fr> = shares.iter().map(|s| math::fr_from_hash(&s.id)).collect();
-  let points: Vec<blst_p2> = shares.iter().map(|s| blst_ffi::p2_from_affine(&s.sig.0)).collect();
+  let points: Vec<G2> = shares.iter().map(|s| s.sig.0.to_projective()).collect();
 
   let recovered = math::interpolate_g2(&ids, &points);
-  Ok(Signature::from_inner(blst_ffi::p2_to_affine(&recovered)))
+  Ok(Signature::from_inner(recovered.to_affine()))
 }
 
 /// Derive a public key share by evaluating the master public
