@@ -10,29 +10,19 @@
 
 mod common;
 
+use crate::common::bls::*;
+
 use dash_pkc::bls_ietf::{
   aggregate_pk, aggregate_sig, fast_verify_aggregates, verify_aggregates, SecretKey, Signature,
 };
 use hex_literal::hex;
 use rstest::*;
 
-/// Key derived from all-zero IKM.
-#[fixture]
-fn sk_seed0() -> SecretKey {
-  SecretKey::generate(&common::SEED_0).unwrap()
-}
-
-/// Key derived from all-one IKM.
-#[fixture]
-fn sk_seed1() -> SecretKey {
-  SecretKey::generate(&common::SEED_1).unwrap()
-}
-
 /// Aggregated public key serializes to 48 bytes.
 #[rstest]
-fn aggregate_pk_roundtrip(sk_seed0: SecretKey, sk_seed1: SecretKey) {
-  let pk1 = sk_seed0.public_key();
-  let pk2 = sk_seed1.public_key();
+fn aggregate_pk_roundtrip(ietf_sk0: SecretKey, ietf_sk1: SecretKey) {
+  let pk1 = ietf_sk0.public_key();
+  let pk2 = ietf_sk1.public_key();
   let agg = aggregate_pk(&[&pk1, &pk2]).unwrap();
   assert_eq!(agg.to_bytes().len(), 48);
 }
@@ -49,8 +39,8 @@ fn aggregate_empty_fails() {
 /// Aggregate verify over two distinct messages.
 #[rstest]
 fn aggregate_two_distinct_messages() {
-  let sk1 = SecretKey::generate(&common::SEED_0).unwrap();
-  let sk2 = SecretKey::generate(&common::SEED_1).unwrap();
+  let sk1 = SecretKey::generate(&RSEED[0]).unwrap();
+  let sk2 = SecretKey::generate(&RSEED[1]).unwrap();
 
   let msg1 = hex!("070809");
   let msg2 = hex!("0a0b0c");
@@ -66,22 +56,22 @@ fn aggregate_two_distinct_messages() {
 
 /// Fast aggregate verify with a shared message.
 #[rstest]
-fn fast_verify_same_message(sk_seed0: SecretKey, sk_seed1: SecretKey) {
+fn fast_verify_same_message(ietf_sk0: SecretKey, ietf_sk1: SecretKey) {
   let msg = b"same message for both signers";
-  let sig1 = sk_seed0.sign(msg);
-  let sig2 = sk_seed1.sign(msg);
+  let sig1 = ietf_sk0.sign(msg);
+  let sig2 = ietf_sk1.sign(msg);
   let agg = aggregate_sig(&[&sig1, &sig2]).unwrap();
-  let pk1 = sk_seed0.public_key();
-  let pk2 = sk_seed1.public_key();
+  let pk1 = ietf_sk0.public_key();
+  let pk2 = ietf_sk1.public_key();
   assert!(fast_verify_aggregates(&agg, msg, &[&pk1, &pk2]).is_ok());
 }
 
 /// Fast aggregate verify is order-independent.
 #[rstest]
 fn fast_verify_order_independent() {
-  let sk1 = SecretKey::generate(&common::SEED_1).unwrap();
-  let sk2 = SecretKey::generate(&[2u8; 32]).unwrap();
-  let sk3 = SecretKey::generate(&[3u8; 32]).unwrap();
+  let sk1 = SecretKey::generate(&RSEED[1]).unwrap();
+  let sk2 = SecretKey::generate(&RSEED[2]).unwrap();
+  let sk3 = SecretKey::generate(&RSEED[3]).unwrap();
   let msg = b"order test";
   let pk1 = sk1.public_key();
   let pk2 = sk2.public_key();
@@ -98,15 +88,15 @@ fn fast_verify_order_independent() {
 
 /// Secure verify rejects naively aggregated signatures.
 #[rstest]
-fn secure_verify_rejects_naive_aggregate(sk_seed0: SecretKey, sk_seed1: SecretKey) {
+fn secure_verify_rejects_naive_aggregate(ietf_sk0: SecretKey, ietf_sk1: SecretKey) {
   use dash_pkc::bls_ietf::secure_verify_aggregates;
 
   let msg = b"secure test";
-  let sig1 = sk_seed0.sign(msg);
-  let sig2 = sk_seed1.sign(msg);
+  let sig1 = ietf_sk0.sign(msg);
+  let sig2 = ietf_sk1.sign(msg);
   let agg = aggregate_sig(&[&sig1, &sig2]).unwrap();
-  let pk1 = sk_seed0.public_key();
-  let pk2 = sk_seed1.public_key();
+  let pk1 = ietf_sk0.public_key();
+  let pk2 = ietf_sk1.public_key();
 
   // Fast (non-secure) verify should succeed.
   assert!(fast_verify_aggregates(&agg, msg, &[&pk1, &pk2]).is_ok());

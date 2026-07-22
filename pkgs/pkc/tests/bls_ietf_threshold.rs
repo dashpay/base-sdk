@@ -10,28 +10,24 @@
 
 mod common;
 
+use crate::common::bls::*;
+
 use dash_pkc::bls_ietf::SecretKey;
 use rstest::*;
-
-/// Key derived from all-zero IKM.
-#[fixture]
-fn sk_seed0() -> SecretKey {
-  SecretKey::generate(&common::SEED_0).unwrap()
-}
 
 /// Split into 5 shares, recover from 3, verify the recovered
 /// signature matches the original.
 #[rstest]
-fn threshold_split_recover(sk_seed0: SecretKey) {
+fn threshold_split_recover(ietf_sk0: SecretKey) {
   use dash_pkc::bls_ietf::threshold;
 
   let ids = common::sequential_ids(5);
   let mut rng = rand_core::OsRng;
-  let shares = threshold::split_sk(&sk_seed0, 3, &ids, &mut rng).unwrap();
+  let shares = threshold::split_sk(&ietf_sk0, 3, &ids, &mut rng).unwrap();
   assert_eq!(shares.len(), 5);
 
   let msg = b"threshold test message";
-  let full_sig = sk_seed0.sign(msg);
+  let full_sig = ietf_sk0.sign(msg);
 
   let sig_shares: Vec<_> = shares.iter().map(|s| s.sign(msg)).collect();
 
@@ -50,11 +46,11 @@ fn threshold_insufficient_shares() {
 
 /// Invalid threshold parameters are rejected.
 #[rstest]
-fn threshold_invalid_params(sk_seed0: SecretKey) {
+fn threshold_invalid_params(ietf_sk0: SecretKey) {
   use dash_pkc::bls_ietf::threshold;
   let mut rng = rand_core::OsRng;
   let ids = common::sequential_ids(5);
-  assert!(threshold::split_sk(&sk_seed0, 0, &ids, &mut rng).is_err());
+  assert!(threshold::split_sk(&ietf_sk0, 0, &ids, &mut rng).is_err());
   let ids6 = common::sequential_ids(5);
-  assert!(threshold::split_sk(&sk_seed0, 6, &ids6, &mut rng).is_err());
+  assert!(threshold::split_sk(&ietf_sk0, 6, &ids6, &mut rng).is_err());
 }

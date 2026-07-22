@@ -6,22 +6,24 @@
 
 //! Benchmarks for the legacy BLS module.
 
+use super::common::bls::*;
+
 use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, verify_aggregates, PublicKey, SecretKey, Signature};
 
 /// Single signature creation (legacy hash-to-G2).
 #[divan::bench]
 fn sign(bencher: divan::Bencher) {
-  let sk = SecretKey::generate(&super::common::test_ikm(1)).unwrap();
+  let sk = SecretKey::generate(&test_ikm(1)).unwrap();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| sk.sign(&super::common::test_msg(42)));
+    .bench(|| sk.sign(&test_msg(42)));
 }
 
 /// Single signature verification (pairing check).
 #[divan::bench]
 fn verify(bencher: divan::Bencher) {
-  let sk = SecretKey::generate(&super::common::test_ikm(2)).unwrap();
-  let msg = super::common::test_msg(99);
+  let sk = SecretKey::generate(&test_ikm(2)).unwrap();
+  let msg = test_msg(99);
   let sig = sk.sign(&msg);
   let pk = sk.public_key();
   bencher
@@ -33,11 +35,7 @@ fn verify(bencher: divan::Bencher) {
 #[divan::bench(args = [2, 5, 25, 50, 100])]
 fn aggregate_pk_n(bencher: divan::Bencher, n: usize) {
   let pks: Vec<_> = (0..n)
-    .map(|i| {
-      SecretKey::generate(&super::common::test_ikm(i as u8))
-        .unwrap()
-        .public_key()
-    })
+    .map(|i| SecretKey::generate(&test_ikm(i as u8)).unwrap().public_key())
     .collect();
   let pk_refs: Vec<_> = pks.iter().collect();
   bencher
@@ -49,12 +47,12 @@ fn aggregate_pk_n(bencher: divan::Bencher, n: usize) {
 #[divan::bench(args = [2, 10, 100])]
 fn aggregate_sig_n(bencher: divan::Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| SecretKey::generate(&super::common::test_ikm(i as u8)).unwrap())
+    .map(|i| SecretKey::generate(&test_ikm(i as u8)).unwrap())
     .collect();
   let sigs: Vec<_> = keys
     .iter()
     .enumerate()
-    .map(|(i, k)| k.sign(&super::common::test_msg(i as u8)))
+    .map(|(i, k)| k.sign(&test_msg(i as u8)))
     .collect();
   let sig_refs: Vec<&Signature> = sigs.iter().collect();
   bencher
@@ -66,9 +64,9 @@ fn aggregate_sig_n(bencher: divan::Bencher, n: usize) {
 #[divan::bench(args = [100, 1000])]
 fn verify_n_individual(bencher: divan::Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| SecretKey::generate(&super::common::test_ikm(i as u8)).unwrap())
+    .map(|i| SecretKey::generate(&test_ikm(i as u8)).unwrap())
     .collect();
-  let msgs: Vec<[u8; 32]> = (0..n).map(|i| super::common::test_msg(i as u8)).collect();
+  let msgs: Vec<[u8; 32]> = (0..n).map(|i| test_msg(i as u8)).collect();
   let pks: Vec<_> = keys.iter().map(|k| k.public_key()).collect();
   let sigs: Vec<_> = keys.iter().zip(msgs.iter()).map(|(k, m)| k.sign(m)).collect();
   bencher.counter(divan::counter::ItemsCount::new(n)).bench(|| {
@@ -82,9 +80,9 @@ fn verify_n_individual(bencher: divan::Bencher, n: usize) {
 #[divan::bench(args = [10, 100, 1000])]
 fn verify_aggregated_block(bencher: divan::Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| SecretKey::generate(&super::common::test_ikm(i as u8)).unwrap())
+    .map(|i| SecretKey::generate(&test_ikm(i as u8)).unwrap())
     .collect();
-  let msg = super::common::test_msg(42);
+  let msg = test_msg(42);
   let pks: Vec<_> = keys.iter().map(|k| k.public_key()).collect();
   let sigs: Vec<_> = keys.iter().map(|k| k.sign(&msg)).collect();
   let sig_refs: Vec<&Signature> = sigs.iter().collect();
@@ -98,36 +96,28 @@ fn verify_aggregated_block(bencher: divan::Bencher, n: usize) {
 /// Public key serialization (legacy format).
 #[divan::bench]
 fn ser_pk(bencher: divan::Bencher) {
-  let pk = SecretKey::generate(&super::common::test_ikm(1)).unwrap().public_key();
+  let pk = SecretKey::generate(&test_ikm(1)).unwrap().public_key();
   bencher.bench(|| pk.to_bytes());
 }
 
 /// Public key deserialization (legacy format).
 #[divan::bench]
 fn deser_pk(bencher: divan::Bencher) {
-  let bytes = SecretKey::generate(&super::common::test_ikm(1))
-    .unwrap()
-    .public_key()
-    .to_bytes();
+  let bytes = SecretKey::generate(&test_ikm(1)).unwrap().public_key().to_bytes();
   bencher.bench(|| PublicKey::from_bytes(&bytes));
 }
 
 /// Signature serialization (legacy format).
 #[divan::bench]
 fn ser_sig(bencher: divan::Bencher) {
-  let sig = SecretKey::generate(&super::common::test_ikm(1))
-    .unwrap()
-    .sign(&super::common::test_msg(0));
+  let sig = SecretKey::generate(&test_ikm(1)).unwrap().sign(&test_msg(0));
   bencher.bench(|| sig.to_bytes());
 }
 
 /// Signature deserialization (legacy format).
 #[divan::bench]
 fn deser_sig(bencher: divan::Bencher) {
-  let bytes = SecretKey::generate(&super::common::test_ikm(1))
-    .unwrap()
-    .sign(&super::common::test_msg(0))
-    .to_bytes();
+  let bytes = SecretKey::generate(&test_ikm(1)).unwrap().sign(&test_msg(0)).to_bytes();
   bencher.bench(|| Signature::from_bytes(&bytes));
 }
 
@@ -135,7 +125,7 @@ fn deser_sig(bencher: divan::Bencher) {
 #[divan::bench(args = [5, 10, 50])]
 fn split_threshold(bencher: divan::Bencher, n: usize) {
   use dash_pkc::bls_chia::threshold;
-  let sk = SecretKey::generate(&super::common::test_ikm(1)).unwrap();
+  let sk = SecretKey::generate(&test_ikm(1)).unwrap();
   let t = n.div_ceil(2);
   let ids = super::common::sequential_ids(n);
   bencher
@@ -147,11 +137,11 @@ fn split_threshold(bencher: divan::Bencher, n: usize) {
 #[divan::bench(args = [3, 5, 10])]
 fn recover_threshold(bencher: divan::Bencher, t: usize) {
   use dash_pkc::bls_chia::threshold;
-  let sk = SecretKey::generate(&super::common::test_ikm(1)).unwrap();
+  let sk = SecretKey::generate(&test_ikm(1)).unwrap();
   let n = t * 2;
   let ids = super::common::sequential_ids(n);
   let shares = threshold::split_sk(&sk, t, &ids, &mut rand_core::OsRng).unwrap();
-  let msg = super::common::test_msg(42);
+  let msg = test_msg(42);
   let sig_shares: Vec<_> = shares.iter().map(|s| s.sign(&msg)).collect();
   let subset: Vec<&threshold::SignatureShare> = sig_shares.iter().take(t).collect();
   bencher
@@ -167,8 +157,8 @@ mod worker_benches {
   fn setup_sigs(n: usize) -> Vec<(Signature, PublicKey, [u8; 32])> {
     (0..n)
       .map(|i| {
-        let sk = SecretKey::generate(&super::super::common::test_ikm(i as u8)).unwrap();
-        let msg = super::super::common::test_msg(i as u8);
+        let sk = SecretKey::generate(&super::test_ikm(i as u8)).unwrap();
+        let msg = super::test_msg(i as u8);
         let pk = sk.public_key();
         let sig = sk.sign(&msg);
         (sig, pk, msg)
@@ -187,11 +177,7 @@ mod worker_benches {
   #[divan::bench(args = [100, 1000])]
   fn worker_aggregate_pk_n(bencher: divan::Bencher, n: usize) {
     let pks: Vec<PublicKey> = (0..n)
-      .map(|i| {
-        SecretKey::generate(&super::super::common::test_ikm(i as u8))
-          .unwrap()
-          .public_key()
-      })
+      .map(|i| SecretKey::generate(&super::test_ikm(i as u8)).unwrap().public_key())
       .collect();
     bencher
       .counter(divan::counter::ItemsCount::new(n))

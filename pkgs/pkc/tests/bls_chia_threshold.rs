@@ -10,30 +10,20 @@
 
 mod common;
 
+use crate::common::bls::*;
+
 use dash_pkc::bls_chia::SecretKey;
 use rstest::*;
 
-/// Key derived from all-zero IKM.
-#[fixture]
-fn sk_seed0() -> SecretKey {
-  SecretKey::generate(&common::SEED_0).unwrap()
-}
-
-/// Shared 32-byte test message.
-#[fixture]
-fn msg32() -> [u8; 32] {
-  common::MSG_DEADBEEF
-}
-
 /// Threshold split/recover with legacy signing.
 #[rstest]
-fn threshold_split_recover(sk_seed0: SecretKey, msg32: [u8; 32]) {
+fn threshold_split_recover(chia_sk0: SecretKey, msg32: [u8; 32]) {
   use dash_pkc::bls_chia::threshold;
 
   let ids = common::sequential_ids(5);
   let mut rng = rand_core::OsRng;
-  let shares = threshold::split_sk(&sk_seed0, 3, &ids, &mut rng).unwrap();
-  let full_sig = sk_seed0.sign(&msg32);
+  let shares = threshold::split_sk(&chia_sk0, 3, &ids, &mut rng).unwrap();
+  let full_sig = chia_sk0.sign(&msg32);
 
   let sig_shares: Vec<_> = shares.iter().map(|s| s.sign(&msg32)).collect();
   let subset: Vec<&threshold::SignatureShare> = vec![&sig_shares[0], &sig_shares[2], &sig_shares[4]];

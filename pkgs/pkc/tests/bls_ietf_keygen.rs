@@ -10,21 +10,17 @@
 
 mod common;
 
+use crate::common::bls::*;
+
 use dash_pkc::bls_ietf::SecretKey;
 use rstest::*;
 
-/// Key derived from all-zero IKM.
-#[fixture]
-fn sk_seed0() -> SecretKey {
-  SecretKey::generate(&common::SEED_0).unwrap()
-}
-
 /// Secret key serialization round-trips.
 #[rstest]
-fn sk_roundtrip(sk_seed0: SecretKey) {
-  let bytes = sk_seed0.to_bytes();
+fn sk_roundtrip(ietf_sk0: SecretKey) {
+  let bytes = ietf_sk0.to_bytes();
   let restored = SecretKey::from_bytes(&bytes).unwrap();
-  assert_eq!(restored.public_key().to_bytes(), sk_seed0.public_key().to_bytes());
+  assert_eq!(restored.public_key().to_bytes(), ietf_sk0.public_key().to_bytes());
 }
 
 /// IKM shorter than 32 bytes is rejected.
@@ -35,8 +31,8 @@ fn sk_generate_rejects_short_ikm() {
 
 /// Compressed public key round-trips (48 bytes).
 #[rstest]
-fn pk_roundtrip(sk_seed0: SecretKey) {
-  let pk = sk_seed0.public_key();
+fn pk_roundtrip(ietf_sk0: SecretKey) {
+  let pk = ietf_sk0.public_key();
   let bytes = pk.to_bytes();
   assert_eq!(bytes.len(), 48);
   let restored = dash_pkc::bls_ietf::PublicKey::from_bytes(&bytes).unwrap();
@@ -46,8 +42,8 @@ fn pk_roundtrip(sk_seed0: SecretKey) {
 /// Serde round-trip for PublicKey.
 #[cfg(feature = "serde")]
 #[rstest]
-fn serde_pk_roundtrip(sk_seed0: SecretKey) {
-  let pk = sk_seed0.public_key();
+fn serde_pk_roundtrip(ietf_sk0: SecretKey) {
+  let pk = ietf_sk0.public_key();
   let json = serde_json::to_string(&pk).unwrap();
   let restored: dash_pkc::bls_ietf::PublicKey = serde_json::from_str(&json).unwrap();
   assert_eq!(restored, pk);
@@ -55,9 +51,9 @@ fn serde_pk_roundtrip(sk_seed0: SecretKey) {
 
 /// Same key serialized under IETF and legacy formats must differ.
 #[rstest]
-fn cross_format_pk_differs(sk_seed0: SecretKey) {
-  let ietf_bytes = sk_seed0.public_key().to_bytes();
-  let legacy_sk = dash_pkc::bls_chia::SecretKey::from_bytes(&sk_seed0.to_bytes()).unwrap();
+fn cross_format_pk_differs(ietf_sk0: SecretKey) {
+  let ietf_bytes = ietf_sk0.public_key().to_bytes();
+  let legacy_sk = dash_pkc::bls_chia::SecretKey::from_bytes(&ietf_sk0.to_bytes()).unwrap();
   let legacy_bytes = legacy_sk.public_key().to_bytes();
   assert_ne!(ietf_bytes, legacy_bytes, "same point must serialize differently");
 }

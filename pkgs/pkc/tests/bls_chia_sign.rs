@@ -10,63 +10,47 @@
 
 mod common;
 
+use crate::common::bls::*;
+
 use dash_pkc::bls_chia::{SecretKey, Signature};
 use rstest::*;
 
-/// Key derived from all-zero IKM.
-#[fixture]
-fn sk_seed0() -> SecretKey {
-  SecretKey::generate(&common::SEED_0).unwrap()
-}
-
-/// Key derived from all-one IKM.
-#[fixture]
-fn sk_seed1() -> SecretKey {
-  SecretKey::generate(&common::SEED_1).unwrap()
-}
-
-/// Shared 32-byte test message.
-#[fixture]
-fn msg32() -> [u8; 32] {
-  common::MSG_DEADBEEF
-}
-
 /// Sign then verify round-trips.
 #[rstest]
-fn sign_verify_roundtrip(sk_seed0: SecretKey, msg32: [u8; 32]) {
-  let sig = sk_seed0.sign(&msg32);
-  let pk = sk_seed0.public_key();
+fn sign_verify_roundtrip(chia_sk0: SecretKey, msg32: [u8; 32]) {
+  let sig = chia_sk0.sign(&msg32);
+  let pk = chia_sk0.public_key();
   assert!(sig.verify(&msg32, &pk).is_ok());
 }
 
 /// Verification rejects a tampered message.
 #[rstest]
-fn verify_rejects_wrong_message(sk_seed0: SecretKey, msg32: [u8; 32]) {
-  let sig = sk_seed0.sign(&msg32);
+fn verify_rejects_wrong_message(chia_sk0: SecretKey, msg32: [u8; 32]) {
+  let sig = chia_sk0.sign(&msg32);
   let mut bad = msg32;
   bad[0] ^= 0xff;
-  assert!(sig.verify(&bad, &sk_seed0.public_key()).is_err());
+  assert!(sig.verify(&bad, &chia_sk0.public_key()).is_err());
 }
 
 /// Verification rejects a different signer's key.
 #[rstest]
-fn verify_rejects_wrong_key(sk_seed0: SecretKey, sk_seed1: SecretKey, msg32: [u8; 32]) {
-  let sig = sk_seed0.sign(&msg32);
-  assert!(sig.verify(&msg32, &sk_seed1.public_key()).is_err());
+fn verify_rejects_wrong_key(chia_sk0: SecretKey, chia_sk1: SecretKey, msg32: [u8; 32]) {
+  let sig = chia_sk0.sign(&msg32);
+  assert!(sig.verify(&msg32, &chia_sk1.public_key()).is_err());
 }
 
 /// Legacy BLS signing is deterministic.
 #[rstest]
-fn sign_is_deterministic(sk_seed0: SecretKey, msg32: [u8; 32]) {
-  let sig1 = sk_seed0.sign(&msg32);
-  let sig2 = sk_seed0.sign(&msg32);
+fn sign_is_deterministic(chia_sk0: SecretKey, msg32: [u8; 32]) {
+  let sig1 = chia_sk0.sign(&msg32);
+  let sig2 = chia_sk0.sign(&msg32);
   assert_eq!(sig1, sig2);
 }
 
 /// Legacy signature round-trips (96 bytes).
 #[rstest]
-fn sig_roundtrip(sk_seed0: SecretKey, msg32: [u8; 32]) {
-  let sig = sk_seed0.sign(&msg32);
+fn sig_roundtrip(chia_sk0: SecretKey, msg32: [u8; 32]) {
+  let sig = chia_sk0.sign(&msg32);
   let bytes = sig.to_bytes();
   assert_eq!(bytes.len(), 96);
   let restored = Signature::from_bytes(&bytes).unwrap();
@@ -76,8 +60,8 @@ fn sig_roundtrip(sk_seed0: SecretKey, msg32: [u8; 32]) {
 /// Serde round-trip for Signature.
 #[cfg(feature = "serde")]
 #[rstest]
-fn serde_sig_roundtrip(sk_seed0: SecretKey, msg32: [u8; 32]) {
-  let sig = sk_seed0.sign(&msg32);
+fn serde_sig_roundtrip(chia_sk0: SecretKey, msg32: [u8; 32]) {
+  let sig = chia_sk0.sign(&msg32);
   let json = serde_json::to_string(&sig).unwrap();
   let restored: Signature = serde_json::from_str(&json).unwrap();
   assert_eq!(restored, sig);
@@ -86,9 +70,9 @@ fn serde_sig_roundtrip(sk_seed0: SecretKey, msg32: [u8; 32]) {
 /// Same signature serialized under legacy and IETF formats
 /// must produce different bytes.
 #[rstest]
-fn cross_format_sig_differs(sk_seed0: SecretKey, msg32: [u8; 32]) {
-  let legacy_sig = sk_seed0.sign(&msg32).to_bytes();
-  let ietf_sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_seed0.to_bytes()).unwrap();
+fn cross_format_sig_differs(chia_sk0: SecretKey, msg32: [u8; 32]) {
+  let legacy_sig = chia_sk0.sign(&msg32).to_bytes();
+  let ietf_sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&chia_sk0.to_bytes()).unwrap();
   let ietf_sig = ietf_sk.sign(&msg32).to_bytes();
   assert_ne!(legacy_sig, ietf_sig, "same point must serialize differently");
 }
