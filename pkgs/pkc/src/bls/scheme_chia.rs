@@ -6,15 +6,13 @@
 
 //! Legacy BLS scheme implementation.
 
-use super::blst_ffi::{self, G1Affine, G2Affine, Point, G1};
+use super::blst_ffi::{self, G1Affine, G2Affine, Point, G1, G2};
 use super::chia_h2c;
 use super::error::BlsError;
-use super::scheme_ops::{self, BlsScheme};
+use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScChia;
-use crate::prelude::*;
 
 use blst::min_pk;
-use dash_num::Hash256;
 use hex_literal::hex;
 use zeroize::Zeroize;
 
@@ -201,6 +199,16 @@ impl BlsScheme for BlsScChia {
     legacy
   }
 
+  /// The legacy signature is already an affine G2 point.
+  fn sig_to_g2(sig: &Self::InnerSig) -> Result<G2, BlsError> {
+    Ok(sig.to_projective())
+  }
+
+  /// The legacy signature is an affine G2 point; no re-validation.
+  fn g2_to_sig(point: G2) -> Result<Self::InnerSig, BlsError> {
+    Ok(point.to_affine())
+  }
+
   /// Hash the message to G2 and multiply by the secret scalar (no DST).
   fn sign(sk: &Self::InnerSk, msg: &Self::Msg) -> Self::InnerSig {
     let h = chia_h2c::hash_to_g2(msg);
@@ -249,21 +257,6 @@ impl BlsScheme for BlsScChia {
     }
     let agg_pk = Self::aggregate_pk(pks)?;
     Self::verify(sig, msg, &agg_pk)
-  }
-
-  /// Lagrange-interpolate the share signatures in G2 at x=0.
-  fn recover_sig_shares(ids: &[&Hash256], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
-    if sigs.len() < 2 {
-      return Err(BlsError::InsufficientShares);
-    }
-
-    // Reduce and validate ids in the scalar field, rejecting zero-reducing
-    // and (post-reduction) duplicate ids.
-    let reduced = scheme_ops::reduce_share_ids(ids)?;
-    let points: Vec<_> = sigs.iter().map(|s| s.to_projective()).collect();
-
-    let recovered = scheme_ops::interpolate_g2(&reduced, &points);
-    Ok(recovered.to_affine())
   }
 }
 

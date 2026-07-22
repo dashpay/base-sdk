@@ -91,6 +91,20 @@ pub(crate) trait BlsScheme {
   /// Serialize a signature to its 96-byte encoding.
   fn sig_to_bytes(sig: &Self::InnerSig) -> [u8; 96];
 
+  /// Lift a signature to a projective G2 point.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSignature` when the signature cannot be decoded.
+  fn sig_to_g2(sig: &Self::InnerSig) -> Result<G2, BlsError>;
+
+  /// Lower a projective G2 point back to a signature.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSignature` when the point is not a valid signature.
+  fn g2_to_sig(point: G2) -> Result<Self::InnerSig, BlsError>;
+
   /// Sign a message with the scheme's default augmentation.
   fn sign(sk: &Self::InnerSk, msg: &Self::Msg) -> Self::InnerSig;
 
@@ -209,10 +223,28 @@ pub(crate) trait BlsScheme {
   ///
   /// # Errors
   ///
-  /// Returns `InsufficientShares` when fewer than two shares are given,
-  /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
-  /// when a share or the recovered point fails to decode.
-  fn recover_sig_shares(ids: &[&Hash256], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError>;
+  /// Returns `InsufficientShares` when fewer than two shares are given or when
+  /// `ids` and `sigs` differ in length, `InvalidShareId`/`DuplicateShareId` on
+  /// bad ids, or `InvalidSignature` when a share or the recovered point fails
+  /// to decode.
+  fn recover_sig_shares(ids: &[&Hash256], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
+    // ids and sigs are paired; a length mismatch would desync interpolation
+    // and could index out of bounds in interpolate_g2.
+    if sigs.len() < 2 || ids.len() != sigs.len() {
+      return Err(BlsError::InsufficientShares);
+    }
+
+    // Reduce and validate ids in the scalar field, rejecting zero-reducing
+    // and (post-reduction) duplicate ids.
+    let reduced = reduce_share_ids(ids)?;
+    let points = sigs
+      .iter()
+      .map(|s| Self::sig_to_g2(s))
+      .collect::<Result<Vec<_>, BlsError>>()?;
+
+    let recovered = interpolate_g2(&reduced, &points);
+    Self::g2_to_sig(recovered)
+  }
 
   /// Derive a public key share from the master verification vector.
   ///

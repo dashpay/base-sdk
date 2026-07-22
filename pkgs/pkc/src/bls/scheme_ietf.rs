@@ -6,16 +6,14 @@
 
 //! Basic BLS scheme implementation.
 
-use super::blst_ffi::{G1Affine, G2Affine, G1};
+use super::blst_ffi::{G1Affine, G2Affine, G1, G2};
 use super::error::BlsError;
-use super::scheme_ops::{self, BlsScheme};
+use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScIetf;
 use crate::bls_ietf::DST_BASIC;
-use crate::prelude::*;
 
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
 use blst::BLST_ERROR;
-use dash_num::Hash256;
 
 impl BlsScheme for BlsScIetf {
   type InnerSk = SecretKey;
@@ -96,6 +94,17 @@ impl BlsScheme for BlsScIetf {
     sig.compress()
   }
 
+  /// Decompress the blst signature into a projective G2 point.
+  fn sig_to_g2(sig: &Self::InnerSig) -> Result<G2, BlsError> {
+    let aff = G2Affine::uncompress(&Self::sig_to_bytes(sig)).map_err(|_| BlsError::InvalidSignature)?;
+    Ok(aff.to_projective())
+  }
+
+  /// Re-encode the projective point and parse it back through `validate`.
+  fn g2_to_sig(point: G2) -> Result<Self::InnerSig, BlsError> {
+    Self::sig_from_bytes(&point.to_affine().compress())
+  }
+
   /// Sign with the basic-scheme DST.
   fn sign(sk: &Self::InnerSk, msg: &Self::Msg) -> Self::InnerSig {
     sk.sign(msg, DST_BASIC, &[])
@@ -140,33 +149,6 @@ impl BlsScheme for BlsScIetf {
     } else {
       Err(BlsError::VerifyFailed)
     }
-  }
-
-  /// Lagrange-interpolate the share signatures in G2 at x=0.
-  fn recover_sig_shares(ids: &[&Hash256], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
-    if sigs.len() < 2 {
-      return Err(BlsError::InsufficientShares);
-    }
-
-    // Reduce and validate ids in the scalar field, rejecting zero-reducing
-    // and (post-reduction) duplicate ids.
-    let reduced = scheme_ops::reduce_share_ids(ids)?;
-
-    // Convert Signature -> compressed bytes -> G2Affine -> G2.
-    let points = sigs
-      .iter()
-      .map(|s| {
-        let bytes = Self::sig_to_bytes(s);
-        let aff = G2Affine::uncompress(&bytes).map_err(|_| BlsError::InvalidSignature)?;
-        Ok(aff.to_projective())
-      })
-      .collect::<Result<Vec<_>, BlsError>>()?;
-
-    let recovered = scheme_ops::interpolate_g2(&reduced, &points);
-
-    // Convert back: G2 -> G2Affine -> compressed bytes -> Signature.
-    let bytes = recovered.to_affine().compress();
-    Self::sig_from_bytes(&bytes).map_err(|_| BlsError::InvalidSignature)
   }
 }
 
