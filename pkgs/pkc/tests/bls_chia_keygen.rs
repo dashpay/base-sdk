@@ -30,6 +30,17 @@ fn sk_generate_rejects_short_ikm() {
   assert!(SecretKey::generate(&[0u8; 31]).is_err());
 }
 
+/// Keys derive using EIP-2333 (blst `key_gen_v3`)
+#[rstest]
+#[case(&RSEED[0], "4a353be3dac091a0a7e640620372f5e1e2e4401717c1e79cac6ffba8f6905604")]
+#[case(&RSEED[1], "6fc9d9a2b05fd1f0e51bc91041a03be8657081f272ec281aff731624f0d1c220")]
+#[case(&RSEED[2], "01433a85a09ef4c9f7a2cd973c007c1150631a35a1d0e199eca4364e051809bb")]
+fn keygen_uses_eip2333_variant(#[case] ikm: &[u8], #[case] expected: &str) {
+  use hex_conservative::DisplayHex;
+  let hex = SecretKey::generate(ikm).unwrap().to_bytes().to_lower_hex_string();
+  assert_eq!(hex, expected, "got {hex}");
+}
+
 /// Legacy public key round-trips (48 bytes).
 #[rstest]
 fn pk_roundtrip(chia_sk0: SecretKey) {

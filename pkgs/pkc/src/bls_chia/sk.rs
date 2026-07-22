@@ -29,7 +29,7 @@ impl SecretKey {
   /// Returns `InvalidSecretKey` when `ikm` is shorter than 32 bytes or the
   /// derived scalar is not a valid secret key.
   pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
-    let sk = blst::min_pk::SecretKey::key_gen(ikm, &[]).map_err(|_| BlsError::InvalidSecretKey)?;
+    let sk = blst::min_pk::SecretKey::key_gen_v3(ikm, &[]).map_err(|_| BlsError::InvalidSecretKey)?;
     let mut bytes = sk.to_bytes();
     let res = Self::from_bytes(&bytes);
     bytes.zeroize();

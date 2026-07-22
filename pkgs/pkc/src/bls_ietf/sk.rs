@@ -38,7 +38,7 @@ impl SecretKey {
   ///
   /// Returns `InvalidKeyMaterial` when `ikm` is shorter than 32 bytes.
   pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
-    min_pk::SecretKey::key_gen(ikm, &[])
+    min_pk::SecretKey::key_gen_v3(ikm, &[])
       .map(Self)
       .map_err(|_| BlsError::InvalidKeyMaterial)
   }

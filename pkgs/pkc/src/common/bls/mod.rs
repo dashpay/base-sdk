@@ -71,7 +71,7 @@ pub(crate) fn generate_shares(
     // Generate random 32-byte IKM from CSPRNG
     let mut ikm = zeroize::Zeroizing::new([0u8; 32]);
     rng.fill_bytes(&mut *ikm);
-    let rand_sk = blst::min_pk::SecretKey::key_gen(ikm.as_ref(), &[]).map_err(|_| ())?;
+    let rand_sk = blst::min_pk::SecretKey::key_gen_v3(ikm.as_ref(), &[]).map_err(|_| ())?;
     let mut rand_bytes = rand_sk.to_bytes();
     let mut rand_scalar = blst_ffi::scalar_from_bendian(&rand_bytes);
     coeffs.push(Fr::from(&rand_scalar));
