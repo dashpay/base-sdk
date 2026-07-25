@@ -19,7 +19,7 @@ use zeroize::{Zeroize, Zeroizing};
 use core::fmt;
 
 /// Sum secret key scalars (mod group order) via blst FFI.
-pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Result<[u8; 32], ()> {
+pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
   let mut acc = Fr::default();
   for bytes in key_bytes {
     let mut scalar = blst_ffi::scalar_from_bendian(bytes);
@@ -29,10 +29,10 @@ pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Result<[u8; 32], ()> {
     scalar.b.zeroize();
   }
   let mut out_scalar = blst::blst_scalar::from(&acc);
-  let out_bytes = blst_ffi::bendian_from_scalar(&out_scalar);
+  let out_bytes = Zeroizing::new(blst_ffi::bendian_from_scalar(&out_scalar));
   out_scalar.b.zeroize();
   acc.zeroize();
-  Ok(out_bytes)
+  out_bytes
 }
 
 /// Participant id paired with its secret scalar bytes

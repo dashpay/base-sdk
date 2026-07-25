@@ -118,13 +118,10 @@ pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8], pks: &[&PublicKey])
 
 /// Sum multiple secret keys (mod group order).
 pub fn aggregate_sk(keys: &[&SecretKey]) -> Result<SecretKey, BlsError> {
-  use zeroize::Zeroize;
   if keys.is_empty() {
     return Err(BlsError::EmptyAggregation);
   }
   let byte_vecs = zeroize::Zeroizing::new(keys.iter().map(|k| k.to_bytes()).collect::<Vec<[u8; 32]>>());
-  let mut out_bytes = crate::common::bls::sum_sk_scalars(&byte_vecs).map_err(|()| BlsError::InvalidSecretKey)?;
-  let result = SecretKey::from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey);
-  out_bytes.zeroize();
-  result
+  let out_bytes = crate::common::bls::sum_sk_scalars(&byte_vecs);
+  SecretKey::from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
 }
