@@ -41,7 +41,9 @@ pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<G1Affine, BlsError> {
 
   let sign = (bytes[0] >> 7) & 1;
   let mut ietf = *bytes;
-  ietf[0] &= 0x7f;
+  // Only bit 7 is the legacy sign flag; normalize away stray high bits
+  // rather than rejecting, to stay bit-for-bit compatible on the wire.
+  ietf[0] &= 0x1f;
   ietf[0] |= 0x80; // compression
   if sign == 1 {
     ietf[0] |= 0x20; // sign

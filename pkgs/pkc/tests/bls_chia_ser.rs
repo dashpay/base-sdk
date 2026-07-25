@@ -70,3 +70,16 @@ mod kat {
     }
   }
 }
+
+/// Only bit 7 of byte 0 is the legacy sign flag; stray high bits are
+/// normalized away rather than rejected, so a key with one decodes back
+/// to the same key.
+#[test]
+fn masks_pubkey_stray_high_bit() {
+  let sk = dash_pkc::bls_chia::SecretKey::generate(&[7u8; 32]).unwrap();
+  let clean = sk.public_key().to_bytes();
+  let mut bytes = clean;
+  bytes[0] |= 0x20;
+  let decoded = dash_pkc::bls_chia::PublicKey::from_bytes(&bytes).unwrap();
+  assert_eq!(decoded.to_bytes(), clean);
+}
