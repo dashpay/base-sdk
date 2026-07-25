@@ -71,15 +71,33 @@ mod kat {
   }
 }
 
-/// Only bit 7 of byte 0 is the legacy sign flag; stray high bits are
-/// normalized away rather than rejected, so a key with one decodes back
-/// to the same key.
+/// Only bit 7 of byte 0 is the legacy sign flag. Stray high bits are
+/// masked in G1 (the reference masks them too) but rejected in G2, where
+/// the reference reads them as an out-of-range `x >= p` coordinate.
 #[test]
-fn masks_pubkey_stray_high_bit() {
+fn masks_g1_and_rejects_g2_stray_high_bits() {
   let sk = dash_pkc::bls_chia::SecretKey::generate(&[7u8; 32]).unwrap();
+
   let clean = sk.public_key().to_bytes();
-  let mut bytes = clean;
-  bytes[0] |= 0x20;
-  let decoded = dash_pkc::bls_chia::PublicKey::from_bytes(&bytes).unwrap();
+  let mut pk = clean;
+  pk[0] |= 0x20;
+  let decoded = dash_pkc::bls_chia::PublicKey::from_bytes(&pk).unwrap();
   assert_eq!(decoded.to_bytes(), clean);
+
+  let sig = sk.sign(&[0x55u8; 32]).to_bytes();
+  for (index, mask) in [(0, 0x20), (48, 0x40)] {
+    let mut bytes = sig;
+    bytes[index] |= mask;
+    assert!(dash_pkc::bls_chia::Signature::from_bytes(&bytes).is_err());
+  }
+}
+
+/// The y-sign convention (c1 compared against `(p-1)/2`) must be stable
+/// across a serialize/parse/serialize round-trip.
+#[test]
+fn signature_serialization_is_idempotent() {
+  let sk = dash_pkc::bls_chia::SecretKey::generate(&[9u8; 32]).unwrap();
+  let once = sk.sign(&[0x44u8; 32]).to_bytes();
+  let twice = dash_pkc::bls_chia::Signature::from_bytes(&once).unwrap().to_bytes();
+  assert_eq!(once, twice);
 }

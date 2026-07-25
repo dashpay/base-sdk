@@ -93,9 +93,18 @@ pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<G2Affine, BlsError> {
 
   let sign = (bytes[0] >> 7) & 1;
 
+  // After swizzling, byte 48 (top of `x.c1`) sits in the IETF flag byte,
+  // where blst reads flags instead of range-checking, so reject its stray
+  // high bits here: the reference feeds them to relic as `x >= p`.
+  if bytes[48] & 0xe0 != 0 {
+    return Err(BlsError::InvalidSignature);
+  }
+
   let mut x_c0 = [0u8; 48];
   x_c0.copy_from_slice(&bytes[..48]);
-  x_c0[0] &= 0x7f; // clear sign bit
+  // Clear only the sign bit: stray bits 5-6 make `x.c0 >= p`, rejected by
+  // the decompression range check like any out-of-range coordinate.
+  x_c0[0] &= 0x7f;
   let x_c1 = &bytes[48..96];
 
   let mut ietf = [0u8; 96];
