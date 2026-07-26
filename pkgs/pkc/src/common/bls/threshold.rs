@@ -7,25 +7,24 @@
 //! Lagrange interpolation and polynomial evaluation over the BLS12-381 scalar
 //! field, used by threshold BLS in both bls_ietf and bls_chia.
 
-use crate::bls::blst_ffi;
+use crate::bls::blst_ffi::{self, Fr, Point, G1, G2};
+use crate::bls::BlsError;
 use crate::prelude::*;
 
-use blst::{blst_fr, blst_p1, blst_p2};
 use dash_num::Hash256;
 
 /// Evaluate a polynomial at `x`. Coefficients are in ascending order:
 /// `coeffs[0] + coeffs[1]*x + ...`.
-pub(crate) fn poly_eval(coeffs: &[blst_fr], x: &blst_fr) -> blst_fr {
+pub(crate) fn poly_eval(coeffs: &[Fr], x: &Fr) -> Fr {
   // Horner's method: result = c[n-1], then for each
   // i from n-2..=0: result = result*x + c[i].
   let n = coeffs.len();
   if n == 0 {
-    return blst_fr::default();
+    return Fr::default();
   }
   let mut result = coeffs[n - 1];
   for i in (0..n - 1).rev() {
-    let tmp = blst_ffi::fr_mul(&result, x);
-    result = blst_ffi::fr_add(&tmp, &coeffs[i]);
+    result = result * *x + coeffs[i];
   }
   result
 }
@@ -34,80 +33,104 @@ pub(crate) fn poly_eval(coeffs: &[blst_fr], x: &blst_fr) -> blst_fr {
 ///
 /// `ids` and `points` must have the same length >= 1.
 /// Each id must be non-zero and unique.
-pub(crate) fn interpolate_g2(ids: &[blst_fr], points: &[blst_p2]) -> blst_p2 {
+pub(crate) fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   let n = ids.len();
 
   // Compute Lagrange coefficients at x=0:
   //   L_i = prod_{j!=i} id_j / (id_j - id_i)
   let coeffs = compute_lagrange_coeffs(ids);
 
-  let mut result = blst_p2::default();
+  let mut result = G2::identity();
   for i in 0..n {
-    // Convert Fr coefficient to scalar for point
-    // multiplication.
-    let scalar = blst_ffi::scalar_from_fr(&coeffs[i]);
-    let term = blst_ffi::p2_mult(&points[i], &scalar.b, blst_ffi::FR_BITS);
-    result = blst_ffi::p2_add_or_double(&result, &term);
+    // Convert Fr coefficient to scalar for point multiplication.
+    let scalar = blst::blst_scalar::from(&coeffs[i]);
+    result = result + points[i].mul_scalar(&scalar.b, blst_ffi::FR_BITS);
   }
   result
 }
 
 /// Lagrange coefficients at x=0 for the given evaluation points (ids).
-fn compute_lagrange_coeffs(ids: &[blst_fr]) -> Vec<blst_fr> {
+fn compute_lagrange_coeffs(ids: &[Fr]) -> Vec<Fr> {
   let n = ids.len();
   let mut coeffs = Vec::with_capacity(n);
 
   for i in 0..n {
     // L_i = prod_{j!=i} ids[j] / (ids[j] - ids[i])
-    let mut num = fr_one();
-    let mut den = fr_one();
+    let mut num = Fr::one();
+    let mut den = Fr::one();
 
     for j in 0..n {
       if i == j {
         continue;
       }
       // num *= ids[j]
-      num = blst_ffi::fr_mul(&num, &ids[j]);
+      num = num * ids[j];
 
       // den *= (ids[j] - ids[i])
-      let diff = blst_ffi::fr_sub(&ids[j], &ids[i]);
-      den = blst_ffi::fr_mul(&den, &diff);
+      let diff = ids[j] - ids[i];
+      den = den * diff;
     }
 
-    let den_inv = blst_ffi::fr_inverse(&den);
-    let coeff = blst_ffi::fr_mul(&num, &den_inv);
-    coeffs.push(coeff);
+    coeffs.push(num * den.inverse());
   }
   coeffs
-}
-
-/// The Fr element 1.
-fn fr_one() -> blst_fr {
-  let one = [1u64, 0, 0, 0];
-  blst_ffi::fr_from_uint64(&one)
 }
 
 /// Evaluate a polynomial of G1 points at scalar `x`.
 ///
 /// `coeffs_g1[0] + coeffs_g1[1]*x + coeffs_g1[2]*x^2 + ...`
 /// Uses Horner's method.
-pub(crate) fn eval_poly_g1(coeffs_g1: &[blst_p1], x: &blst_fr) -> blst_p1 {
+pub(crate) fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
   let n = coeffs_g1.len();
   if n == 0 {
-    return blst_p1::default();
+    return G1::identity();
   }
-  let x_scalar = blst_ffi::scalar_from_fr(x);
+  let x_scalar = blst::blst_scalar::from(x);
   let mut result = coeffs_g1[n - 1];
   for i in (0..n - 1).rev() {
-    let tmp = blst_ffi::p1_mult(&blst_ffi::p1_to_affine(&result), &x_scalar.b, blst_ffi::FR_BITS);
-    let tmp = blst_ffi::p1_from_affine(&tmp);
-    result = blst_ffi::p1_add_or_double(&tmp, &coeffs_g1[i]);
+    result = result.mul_scalar(&x_scalar.b, blst_ffi::FR_BITS) + coeffs_g1[i];
   }
   result
 }
 
 /// Convert a 32-byte participant ID to a scalar.
-pub(crate) fn fr_from_hash(id: &Hash256) -> blst_fr {
-  let scalar = blst_ffi::scalar_from_bendian(id.as_bytes());
-  blst_ffi::fr_from_scalar(&scalar)
+pub(crate) fn fr_from_hash(id: &Hash256) -> Fr {
+  Fr::from(&blst_ffi::scalar_from_bendian(id.as_bytes()))
+}
+
+/// Reduce a participant id into the scalar field, rejecting zero.
+///
+/// An id congruent to zero mod `r` evaluates the polynomial at its
+/// constant term, which leaks the master secret in share generation.
+pub(crate) fn reduce_id(id: &Hash256) -> Result<Fr, BlsError> {
+  let fr = fr_from_hash(id);
+  if blst::blst_scalar::from(&fr).b == [0u8; 32] {
+    return Err(BlsError::InvalidShareId);
+  }
+  Ok(fr)
+}
+
+/// Reduce participant ids into the scalar field, rejecting ids that
+/// reduce to zero and duplicates after reduction.
+///
+/// Two distinct hashes congruent mod `r` share a scalar, producing a
+/// zero Lagrange denominator that blst inverts to zero silently; a
+/// raw-byte duplicate check would not catch them.
+pub(crate) fn reduce_share_ids(ids: &[&Hash256]) -> Result<Vec<Fr>, BlsError> {
+  let fr_ids: Vec<Fr> = ids.iter().map(|id| fr_from_hash(id)).collect();
+  let mut reduced: Vec<[u8; 32]> = Vec::with_capacity(fr_ids.len());
+  for fr in &fr_ids {
+    let bytes = blst::blst_scalar::from(fr).b;
+    if bytes == [0u8; 32] {
+      return Err(BlsError::InvalidShareId);
+    }
+    reduced.push(bytes);
+  }
+  reduced.sort_unstable();
+  for pair in reduced.windows(2) {
+    if pair[0] == pair[1] {
+      return Err(BlsError::DuplicateShareId);
+    }
+  }
+  Ok(fr_ids)
 }

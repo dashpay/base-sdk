@@ -9,16 +9,14 @@
 //! G1 (48 bytes): sign bit at byte[0] & 0x80, no compression indicator.
 //! G2 (96 bytes): legacy component order (c0||c1), sign bit at byte[0] & 0x80.
 
-use super::error::Error;
-use crate::bls::blst_ffi;
+use crate::bls::blst_ffi::{G1Affine, G2Affine};
+use crate::bls::BlsError;
 
-use blst::blst_p1_affine;
-use blst::blst_p2_affine;
 use hex_literal::hex;
 
 /// Serialize a G1 affine point to 48 legacy bytes.
-pub(super) fn ser_g1(p: &blst_p1_affine) -> [u8; 48] {
-  let ietf = blst_ffi::p1_affine_compress(p);
+pub(super) fn ser_g1(p: &G1Affine) -> [u8; 48] {
+  let ietf = p.compress();
 
   if ietf[0] & 0xc0 == 0xc0 {
     return ietf; // infinity is the same in both formats
@@ -36,20 +34,27 @@ pub(super) fn ser_g1(p: &blst_p1_affine) -> [u8; 48] {
 }
 
 /// Deserialize 48 legacy bytes to a G1 affine point.
-pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<blst_p1_affine, Error> {
-  if bytes[0] & 0xc0 == 0xc0 {
-    return blst_ffi::p1_uncompress(bytes).map_err(|_| Error::InvalidPublicKey);
+///
+/// No prime-order subgroup check is performed on the legacy path, for
+/// backwards compatibility: checking here would reject keys the legacy
+/// format accepts.
+pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<G1Affine, BlsError> {
+  // Reject the all-zero encoding and the infinity marker.
+  if bytes.iter().all(|&b| b == 0) || bytes[0] & 0xc0 == 0xc0 {
+    return Err(BlsError::InvalidPublicKey);
   }
 
   let sign = (bytes[0] >> 7) & 1;
   let mut ietf = *bytes;
-  ietf[0] &= 0x7f;
+  // Only bit 7 is the legacy sign flag; normalize away stray high bits
+  // rather than rejecting, to stay bit-for-bit compatible on the wire.
+  ietf[0] &= 0x1f;
   ietf[0] |= 0x80; // compression
   if sign == 1 {
     ietf[0] |= 0x20; // sign
   }
 
-  blst_ffi::p1_uncompress(&ietf).map_err(|_| Error::InvalidPublicKey)
+  G1Affine::uncompress(&ietf).map_err(|_| BlsError::InvalidPublicKey)
 }
 
 /// Serialize a G2 affine point to 96 legacy bytes.
@@ -59,8 +64,8 @@ pub(super) fn deser_g1(bytes: &[u8; 48]) -> Result<blst_p1_affine, Error> {
 ///
 /// blst:   `[x.c1(48), x.c0(48), y.c1(48), y.c0(48)]`
 /// Legacy: `[x.c0(48), x.c1(48)]`, sign at byte\[0\] bit 7
-pub(super) fn ser_g2(p: &blst_p2_affine) -> [u8; 96] {
-  let uncomp = blst_ffi::p2_affine_serialize(p);
+pub(super) fn ser_g2(p: &G2Affine) -> [u8; 96] {
+  let uncomp = p.serialize();
 
   if uncomp.iter().all(|&b| b == 0) {
     let mut out = [0u8; 96];
@@ -84,18 +89,30 @@ pub(super) fn ser_g2(p: &blst_p2_affine) -> [u8; 96] {
 }
 
 /// Deserialize 96 legacy bytes to a G2 affine point.
-pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<blst_p2_affine, Error> {
-  if bytes[0] & 0xc0 == 0xc0 {
-    let mut ietf = [0u8; 96];
-    ietf[0] = 0xc0;
-    return blst_ffi::p2_uncompress(&ietf).map_err(|_| Error::InvalidSignature);
+///
+/// No prime-order subgroup check is performed on the legacy path, for
+/// backwards compatibility: checking here would reject signatures the legacy
+/// format accepts.
+pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<G2Affine, BlsError> {
+  // Reject the all-zero encoding and the infinity marker.
+  if bytes.iter().all(|&b| b == 0) || bytes[0] & 0xc0 == 0xc0 {
+    return Err(BlsError::InvalidSignature);
   }
 
   let sign = (bytes[0] >> 7) & 1;
 
+  // After swizzling, byte 48 (top of `x.c1`) sits in the IETF flag byte,
+  // where blst reads flags instead of range-checking, so reject its stray
+  // high bits here: the reference feeds them to relic as `x >= p`.
+  if bytes[48] & 0xe0 != 0 {
+    return Err(BlsError::InvalidSignature);
+  }
+
   let mut x_c0 = [0u8; 48];
   x_c0.copy_from_slice(&bytes[..48]);
-  x_c0[0] &= 0x7f; // clear sign bit
+  // Clear only the sign bit: stray bits 5-6 make `x.c0 >= p`, rejected by
+  // the decompression range check like any out-of-range coordinate.
+  x_c0[0] &= 0x7f;
   let x_c1 = &bytes[48..96];
 
   let mut ietf = [0u8; 96];
@@ -105,14 +122,11 @@ pub(super) fn deser_g2(bytes: &[u8; 96]) -> Result<blst_p2_affine, Error> {
   ietf[0] |= 0x80; // compression
 
   // Decompress with sign=0, then negate y if needed.
-  let mut out = blst_ffi::p2_uncompress(&ietf).map_err(|_| Error::InvalidSignature)?;
+  let out = G2Affine::uncompress(&ietf).map_err(|_| BlsError::InvalidSignature)?;
 
-  let y_c1_bytes = blst_ffi::bendian_from_fp(&out.y.fp[1]);
-  let decompressed_sign = y_c1_is_larger(&y_c1_bytes);
-
+  let decompressed_sign = y_c1_is_larger(&out.y().c1_bendian());
   if (sign == 1) != decompressed_sign {
-    let neg_y = fp2_neg(&out.y);
-    out.y = neg_y;
+    return Ok(G2Affine::from_coords(out.x(), -out.y()));
   }
 
   Ok(out)
@@ -127,8 +141,4 @@ fn y_c1_is_larger(y_c1: &[u8]) -> bool {
   );
 
   y_c1.len() >= 48 && y_c1[..48] > HALF_P[..]
-}
-
-fn fp2_neg(a: &blst::blst_fp2) -> blst::blst_fp2 {
-  blst_ffi::fp2_cneg(a, true)
 }

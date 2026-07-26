@@ -9,6 +9,9 @@
 #![allow(dead_code, reason = "usage dependent on build flags")]
 #![expect(clippy::unwrap_used, clippy::panic, reason = "test code")]
 
+#[cfg(feature = "bls")]
+pub mod bls;
+
 /// Raw JSON file, a map of sub-operation names to arrays or objects.
 pub type VectorFile = serde_json::Value;
 
@@ -65,19 +68,3 @@ pub const MSG_DEADBEEF: [u8; 32] = hex_literal::hex!(
   "deadbeefdeadbeefdeadbeefdeadbeef"
   "cafebabecafebabecafebabecafebabe"
 );
-pub const SEED_0: [u8; 32] = [0u8; 32];
-pub const SEED_1: [u8; 32] = [1u8; 32];
-
-pub fn test_ikm(i: u8) -> [u8; 32] {
-  let mut ikm = [0u8; 32];
-  ikm[0] = i;
-  ikm[31] = i.wrapping_add(1);
-  ikm
-}
-
-pub fn test_msg(i: u8) -> [u8; 32] {
-  let mut m = [0u8; 32];
-  m[0] = i.wrapping_mul(7);
-  m[15] = i;
-  m
-}

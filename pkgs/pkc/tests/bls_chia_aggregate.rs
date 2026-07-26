@@ -10,30 +10,20 @@
 
 mod common;
 
-use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, verify_aggregates, SecretKey, Signature};
+use crate::common::bls::*;
+
+use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, verify_aggregates, PublicKey, SecretKey, Signature};
 use rstest::*;
-
-/// Key derived from all-zero IKM.
-#[fixture]
-fn sk_seed0() -> SecretKey {
-  SecretKey::generate(&common::SEED_0).unwrap()
-}
-
-/// Key derived from all-one IKM.
-#[fixture]
-fn sk_seed1() -> SecretKey {
-  SecretKey::generate(&common::SEED_1).unwrap()
-}
 
 /// Aggregate then verify over a shared message.
 #[rstest]
-fn aggregate_and_verify(sk_seed0: SecretKey, sk_seed1: SecretKey) {
+fn aggregate_and_verify(chia_sk0: SecretKey, chia_sk1: SecretKey) {
   let msg = [0xabu8; 32];
-  let sig1 = sk_seed0.sign(&msg);
-  let sig2 = sk_seed1.sign(&msg);
+  let sig1 = chia_sk0.sign(&msg);
+  let sig2 = chia_sk1.sign(&msg);
   let agg = aggregate_sig(&[&sig1, &sig2]).unwrap();
-  let pk1 = sk_seed0.public_key();
-  let pk2 = sk_seed1.public_key();
+  let pk1 = chia_sk0.public_key();
+  let pk2 = chia_sk1.public_key();
   assert!(verify_aggregates(&agg, &msg, &[&pk1, &pk2]).is_ok());
 }
 
@@ -48,14 +38,14 @@ fn aggregate_empty_fails() {
 
 /// Secure aggregation with weighted coefficients.
 #[rstest]
-fn secure_verify_aggregates_roundtrip(sk_seed0: SecretKey, sk_seed1: SecretKey) {
+fn secure_verify_aggregates_roundtrip(chia_sk0: SecretKey, chia_sk1: SecretKey) {
   use dash_pkc::bls_chia::secure_verify_aggregates;
   let msg = [0xabu8; 32];
-  let sig1 = sk_seed0.sign(&msg);
-  let sig2 = sk_seed1.sign(&msg);
+  let sig1 = chia_sk0.sign(&msg);
+  let sig2 = chia_sk1.sign(&msg);
   let agg = aggregate_sig(&[&sig1, &sig2]).unwrap();
-  let pk1 = sk_seed0.public_key();
-  let pk2 = sk_seed1.public_key();
+  let pk1 = chia_sk0.public_key();
+  let pk2 = chia_sk1.public_key();
   // Simple aggregation should pass verify_aggregates
   assert!(verify_aggregates(&agg, &msg, &[&pk1, &pk2]).is_ok());
   // But secure_verify uses different weighting, so naively
@@ -67,9 +57,9 @@ fn secure_verify_aggregates_roundtrip(sk_seed0: SecretKey, sk_seed1: SecretKey) 
 /// public keys produces the same result.
 #[rstest]
 fn secure_aggregate_order_independent() {
-  let sk1 = SecretKey::generate(&common::SEED_1).unwrap();
-  let sk2 = SecretKey::generate(&[2u8; 32]).unwrap();
-  let sk3 = SecretKey::generate(&[3u8; 32]).unwrap();
+  let sk1 = SecretKey::generate(&RSEED[1]).unwrap();
+  let sk2 = SecretKey::generate(&RSEED[2]).unwrap();
+  let sk3 = SecretKey::generate(&RSEED[3]).unwrap();
 
   let msg = [0xffu8; 32];
   let pk1 = sk1.public_key();
@@ -91,6 +81,32 @@ fn secure_aggregate_order_independent() {
   // verify_aggregates (non-secure) accepts both.
   assert!(verify_aggregates(&agg_a, &msg, &[&pk1, &pk2, &pk3]).is_ok());
   assert!(verify_aggregates(&agg_a, &msg, &[&pk3, &pk1, &pk2]).is_ok());
+}
+
+/// Cancelling keys and signatures to the identity (`P + (-P)`) yields a
+/// point that satisfies the pairing check for any message. The primitives
+/// accept it for backwards compatibility: the signed message and an
+/// unrelated one both verify.
+#[rstest]
+#[case::signed_message([0x11u8; 32])]
+#[case::unrelated_message([0x22u8; 32])]
+fn identity_cancellation_is_not_rejected(chia_sk0: SecretKey, #[case] verify_msg: [u8; 32]) {
+  let sig = chia_sk0.sign(&[0x11u8; 32]);
+  let pk = chia_sk0.public_key();
+
+  let mut neg_sig_bytes = sig.to_bytes();
+  neg_sig_bytes[0] ^= 0x80;
+  let neg_sig = Signature::from_bytes(&neg_sig_bytes).unwrap();
+
+  let mut neg_pk_bytes = pk.to_bytes();
+  neg_pk_bytes[0] ^= 0x80;
+  let neg_pk = PublicKey::from_bytes(&neg_pk_bytes).unwrap();
+
+  // sig + (-sig) = identity signature; pk + (-pk) = identity key.
+  let identity_sig = aggregate_sig(&[&sig, &neg_sig]).unwrap();
+
+  // Verifies regardless of the message.
+  assert!(verify_aggregates(&identity_sig, &verify_msg, &[&pk, &neg_pk]).is_ok());
 }
 
 mod kat {

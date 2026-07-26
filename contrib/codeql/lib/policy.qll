@@ -43,6 +43,9 @@ predicate isSecretType(TypeItem t) {
   // Exclude types whose name contains "Shared" (e.g. SharedState),
   // which match the Share substring but are not secret holders.
   not t.getName().getText().regexpMatch(".*Shared.*")
+  or
+  // Scalar field wrapper holding secret key material
+  t.getName().getText() = "Fr"
 }
 
 /** Holds if `t` is an iterator type (name ends with Iterator or Iter). */
@@ -199,6 +202,11 @@ predicate isSuppressed(TypeItem t, string trait) {
   or
   // Opaque types: suppress Hash
   isOpaqueType(t) and trait = "Hash"
+  or
+  // Projective point wrappers hold non-canonical coordinates: suppress Eq and PartialEq
+  isOpaqueType(t) and
+  t.getName().getText() = ["G1", "G2"] and
+  trait = ["Eq", "PartialEq"]
 }
 
 /** Holds if `t` is exempt from serde derivation requirements. */

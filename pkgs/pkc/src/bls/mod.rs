@@ -6,9 +6,14 @@
 
 //! Unified BLS cryptography module.
 
+mod error;
+
+pub use error::BlsError;
+
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
+    pub(crate) mod chia_h2c;
   }
 }

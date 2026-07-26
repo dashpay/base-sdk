@@ -6,9 +6,8 @@
 
 //! Shallue-van de Woestijne hash-to-G2 for legacy BLS.
 
-use crate::bls::blst_ffi;
+use super::blst_ffi::{Fp, Fp2, G2Affine, Point, G2};
 
-use blst::{blst_fp, blst_fp2, blst_p2, blst_p2_affine};
 use hex_literal::hex;
 use sha2::{Digest, Sha256};
 
@@ -67,14 +66,12 @@ const R_MOD_P: [u8; 48] = hex!(
 );
 
 // The 'b' coefficient for BLS12-381 twist curve: y^2 = x^3 + 4(1+i).
-fn curve_b() -> blst_fp2 {
-  blst_fp2 {
-    fp: [fp_from_u64(4), fp_from_u64(4)],
-  }
+fn curve_b() -> Fp2 {
+  Fp2::new(Fp::from_u64(4), Fp::from_u64(4))
 }
 
 /// Hash a 32-byte message to a G2 point using the legacy Dash algorithm.
-pub(super) fn hash_to_g2(msg: &[u8; 32]) -> blst_p2 {
+pub(crate) fn hash_to_g2(msg: &[u8; 32]) -> G2 {
   // Step 1: derive four field elements via SHA-256 with domain prefixes.
   let t00 = hash_to_fp(msg, b"G2_0_c0");
   let t01 = hash_to_fp(msg, b"G2_0_c1");
@@ -82,15 +79,15 @@ pub(super) fn hash_to_g2(msg: &[u8; 32]) -> blst_p2 {
   let t11 = hash_to_fp(msg, b"G2_1_c1");
 
   // Step 2: form two Fp2 elements.
-  let t0 = blst_fp2 { fp: [t00, t01] };
-  let t1 = blst_fp2 { fp: [t10, t11] };
+  let t0 = Fp2::new(t00, t01);
+  let t1 = Fp2::new(t10, t11);
 
   // Step 3: apply Shallue-van de Woestijne encoding to each.
   let p0 = sw_encode(&t0);
   let p1 = sw_encode(&t1);
 
   // Step 4: add the two points.
-  let sum = blst_ffi::p2_add_or_double(&p0, &p1);
+  let sum = p0 + p1;
 
   // Step 5: clear the cofactor via Budroni-Pintore.
   mul_cof_b12(&sum)
@@ -101,38 +98,25 @@ pub(super) fn hash_to_g2(msg: &[u8; 32]) -> blst_p2 {
 /// Computes `(x^2-x-1)*P + psi((x-1)*P) + psi^2(2*P)`
 /// where `x` is the BLS12-381 curve parameter and `psi`
 /// is the Frobenius endomorphism on the twist.
-fn mul_cof_b12(p: &blst_p2) -> blst_p2 {
+fn mul_cof_b12(p: &G2) -> G2 {
   // t0 = x·P  (x is negative, so negate after multiplying by |x|)
-  let mut t0 = blst_ffi::p2_mult(p, &BLS_X_LE, BLS_X_BITS);
-  t0 = blst_ffi::p2_cneg(&t0, true); // x is negative
+  let t0 = -p.mul_scalar(&BLS_X_LE, BLS_X_BITS);
 
   // t1 = x²·P = x·t0
-  let mut t1 = blst_ffi::p2_mult(&t0, &BLS_X_LE, BLS_X_BITS);
-  t1 = blst_ffi::p2_cneg(&t1, true); // x is negative
+  let t1 = -t0.mul_scalar(&BLS_X_LE, BLS_X_BITS);
 
   // t2 = (x^2 - x - 1)*P = t1 - t0 - P
-  let neg_t0 = blst_ffi::p2_cneg(&t0, true);
-  let mut t2 = blst_ffi::p2_add_or_double(&t1, &neg_t0); // t1 - t0
-  let neg_p = blst_ffi::p2_cneg(p, true);
-  t2 = blst_ffi::p2_add_or_double(&t2, &neg_p); // - P
+  let t2 = t1 + (-t0) + (-*p);
 
-  // t3 = psi((x - 1)*P) = psi(t0 - P)
-  let mut t3 = blst_ffi::p2_add_or_double(&t0, &neg_p); // t0 - P
-                                                        // Normalize to affine for the psi map, then back.
-  let t3_aff = psi(&blst_ffi::p2_to_affine(&t3));
-  t3 = blst_ffi::p2_from_affine(&t3_aff);
-
-  // t2 += t3
-  t2 = blst_ffi::p2_add_or_double(&t2, &t3);
+  // t2 += psi((x - 1)*P) = psi(t0 - P)
+  let t2 = t2 + psi_g2(&(t0 + (-*p)));
 
   // t3 = psi^2(2*P)
-  let dbl_p = blst_ffi::p2_double(p);
-  let psi1 = psi(&blst_ffi::p2_to_affine(&dbl_p));
-  let psi2 = psi(&psi1);
-  t3 = blst_ffi::p2_from_affine(&psi2);
+  let dbl = p.double();
+  let t3 = psi_g2(&psi_g2(&dbl));
 
   // result = t2 + t3
-  blst_ffi::p2_add_or_double(&t2, &t3)
+  t2 + t3
 }
 
 /// Frobenius endomorphism psi on E'(Fp2).
@@ -140,39 +124,33 @@ fn mul_cof_b12(p: &blst_p2) -> blst_p2 {
 /// `psi(x, y) = (conj(x) * PSI_COEFF_X, conj(y) * PSI_COEFF_Y)`
 ///
 /// where `conj(a + b*u) = a - b*u`.
-fn psi(p: &blst_p2_affine) -> blst_p2_affine {
+fn psi(p: &G2Affine) -> G2Affine {
   // Conjugate x and y (negate the c1 component of each).
-  let mut x = p.x;
-  x.fp[1] = blst_ffi::fp_cneg(&x.fp[1], true);
-  let mut y = p.y;
-  y.fp[1] = blst_ffi::fp_cneg(&y.fp[1], true);
+  let x = p.x().with_c1(-p.x().c1());
+  let y = p.y().with_c1(-p.y().c1());
 
   // Multiply by the Frobenius coefficients.
-  let psi_x = psi_coeff_x();
-  let psi_y = psi_coeff_y();
-  let rx = blst_ffi::fp2_mul(&x, &psi_x);
-  let ry = blst_ffi::fp2_mul(&y, &psi_y);
-
-  blst_p2_affine { x: rx, y: ry }
+  G2Affine::from_coords(x * psi_coeff_x(), y * psi_coeff_y())
 }
 
-fn psi_coeff_x() -> blst_fp2 {
+fn psi_coeff_x() -> Fp2 {
   // PSI_COEFF_X = (0, PSI_COEFF_X_C1)
-  let c1 = blst_ffi::fp_from_bendian(&PSI_COEFF_X_C1);
-  blst_fp2 {
-    fp: [blst_fp::default(), c1],
-  }
+  Fp2::new(Fp::default(), Fp::from(&PSI_COEFF_X_C1))
 }
 
-fn psi_coeff_y() -> blst_fp2 {
-  let c0 = blst_ffi::fp_from_bendian(&PSI_COEFF_Y_C0);
-  let c1 = blst_ffi::fp_from_bendian(&PSI_COEFF_Y_C1);
-  blst_fp2 { fp: [c0, c1] }
+fn psi_coeff_y() -> Fp2 {
+  Fp2::new(Fp::from(&PSI_COEFF_Y_C0), Fp::from(&PSI_COEFF_Y_C1))
+}
+
+/// Apply the Frobenius endomorphism `psi` to a projective G2 point,
+/// normalizing through affine coordinates.
+fn psi_g2(p: &G2) -> G2 {
+  psi(&p.to_affine()).to_projective()
 }
 
 /// Hash `msg || tag || suffix` with SHA-256 twice (suffix=0 then suffix=1),
 /// concatenate to 64 bytes, reduce mod p to produce an Fp element.
-fn hash_to_fp(msg: &[u8; 32], tag: &[u8; 7]) -> blst_fp {
+fn hash_to_fp(msg: &[u8; 32], tag: &[u8; 7]) -> Fp {
   let mut input = [0u8; 40];
   input[..32].copy_from_slice(msg);
   input[32..39].copy_from_slice(tag);
@@ -194,71 +172,71 @@ fn hash_to_fp(msg: &[u8; 32], tag: &[u8; 7]) -> blst_fp {
 ///
 /// Splits into `hi * 2^384 + lo`, computes `hi * R + lo` where
 /// `R = 2^384 mod p`.
-fn reduce_mod_p(wide: &[u8; 64]) -> blst_fp {
+fn reduce_mod_p(wide: &[u8; 64]) -> Fp {
   let mut lo_bytes = [0u8; 48];
   lo_bytes.copy_from_slice(&wide[16..]);
-  let lo_fp = blst_ffi::fp_from_bendian(&lo_bytes);
+  let lo_fp = Fp::from(&lo_bytes);
 
   let mut hi_bytes = [0u8; 48];
   hi_bytes[32..48].copy_from_slice(&wide[..16]);
-  let hi_fp = blst_ffi::fp_from_bendian(&hi_bytes);
-
-  let r_fp = blst_ffi::fp_from_bendian(&R_MOD_P);
+  let hi_fp = Fp::from(&hi_bytes);
+  let r_fp = Fp::from(&R_MOD_P);
 
   // result = hi * R + lo
-  let tmp = blst_ffi::fp_mul(&hi_fp, &r_fp);
-  blst_ffi::fp_add(&tmp, &lo_fp)
+  hi_fp * r_fp + lo_fp
 }
 
 /// Shallue-van de Woestijne encoding from Fp2 to G2 (not cofactor-cleared).
-fn sw_encode(t: &blst_fp2) -> blst_p2 {
-  if fp2_is_zero(t) {
-    return blst_p2::default();
+fn sw_encode(t: &Fp2) -> G2 {
+  if t.is_zero() {
+    return G2::default();
   }
 
   let b = curve_b();
-  let one = fp_from_u64(1);
+  let one = Fp::from_u64(1);
 
-  let nt = fp2_neg(t);
-  let parity = fp2_cmp_c1(t) > fp2_cmp_c1(&nt);
+  let nt = -*t;
+  let parity = t.c1_bendian() > nt.c1_bendian();
 
   // w = t^2 + b + 1
-  let mut w = blst_ffi::fp2_add(&blst_ffi::fp2_sqr(t), &b);
-  w.fp[0] = blst_ffi::fp_add(&w.fp[0], &one);
+  let mut w = t.square() + b;
+  w = w.with_c0(w.c0() + one);
 
-  if fp2_is_zero(&w) {
-    let mut g = blst_ffi::p2_generator();
+  if w.is_zero() {
+    let mut g = G2::generator();
     if parity {
-      g = blst_ffi::p2_cneg(&g, true);
+      g = -g;
     }
     return g;
   }
 
-  let s3_fp2 = fp2_from_fp(&fp_from_bytes(&S3));
-  let s32_fp2 = fp2_from_fp(&fp_from_bytes(&S32));
+  let s3_fp2 = Fp2::from(Fp::from(&S3));
+  let s32_fp2 = Fp2::from(Fp::from(&S32));
 
   // w = sqrt(-3) * t / (t^2 + b + 1)
-  w = blst_ffi::fp2_inverse(&w);
-  let tmp = blst_ffi::fp2_mul(&s3_fp2, t);
-  w = blst_ffi::fp2_mul(&w, &tmp);
+  w = w.inverse();
+  let tmp = s3_fp2 * *t;
+  w = w * tmp;
 
   // x1 = -w*t + (sqrt(-3) - 1) / 2
-  let mut x1 = fp2_neg(&blst_ffi::fp2_mul(&w, t));
-  x1 = blst_ffi::fp2_add(&x1, &s32_fp2);
+  let x1 = -(w * *t) + s32_fp2;
 
   // x2 = -x1 - 1
-  let mut x2 = fp2_neg(&x1);
-  x2.fp[0] = blst_ffi::fp_sub(&x2.fp[0], &one);
+  let mut x2 = -x1;
+  x2 = x2.with_c0(x2.c0() - one);
 
   // x3 = 1/w^2 + 1
-  let mut x3 = blst_ffi::fp2_inverse(&blst_ffi::fp2_sqr(&w));
-  x3.fp[0] = blst_ffi::fp_add(&x3.fp[0], &one);
+  let mut x3 = w.square().inverse();
+  x3 = x3.with_c0(x3.c0() + one);
 
   let rhs1 = curve_rhs(&x1);
   let rhs2 = curve_rhs(&x2);
 
-  let has_y1 = blst_ffi::fp2_sqrt(&rhs1).is_some();
-  let has_y2 = blst_ffi::fp2_sqrt(&rhs2).is_some();
+  let y1 = rhs1.sqrt();
+  let y2 = rhs2.sqrt();
+
+  let has_y1 = y1.is_some();
+  let has_y2 = y2.is_some();
 
   let xx1: i32 = if has_y1 { 1 } else { -1 };
   let xx2: i32 = if has_y2 { 1 } else { -1 };
@@ -267,68 +245,30 @@ fn sw_encode(t: &blst_fp2) -> blst_p2 {
   // `index` selects an x whose curve RHS is a quadratic residue, so the sqrt
   // always succeeds; the zero fallback is unreachable but avoids an unwrap panic.
   let (x, mut y) = if index == 0 {
-    let rhs = curve_rhs(&x1);
-    let y = blst_ffi::fp2_sqrt(&rhs).unwrap_or_else(|| blst_fp2 {
-      fp: [fp_from_u64(0), fp_from_u64(0)],
-    });
+    let y = y1.unwrap_or_default();
     (x1, y)
   } else if index == 1 {
-    let rhs = curve_rhs(&x2);
-    let y = blst_ffi::fp2_sqrt(&rhs).unwrap_or_else(|| blst_fp2 {
-      fp: [fp_from_u64(0), fp_from_u64(0)],
-    });
+    let y = y2.unwrap_or_default();
     (x2, y)
   } else {
     let rhs = curve_rhs(&x3);
-    let y = blst_ffi::fp2_sqrt(&rhs).unwrap_or_else(|| blst_fp2 {
-      fp: [fp_from_u64(0), fp_from_u64(0)],
-    });
+    let y = rhs.sqrt().unwrap_or_default();
     (x3, y)
   };
 
-  let ny = fp2_neg(&y);
-  let y_parity = fp2_cmp_c1(&y) > fp2_cmp_c1(&ny);
+  let ny = -y;
+  let y_parity = y.c1_bendian() > ny.c1_bendian();
   if y_parity != parity {
     y = ny;
   }
 
-  let aff = blst_p2_affine { x, y };
-  blst_ffi::p2_from_affine(&aff)
-}
-
-fn fp_from_bytes(bytes: &[u8; 48]) -> blst_fp {
-  blst_ffi::fp_from_bendian(bytes)
-}
-
-fn fp_from_u64(v: u64) -> blst_fp {
-  let mut buf = [0u8; 48];
-  buf[40..48].copy_from_slice(&v.to_be_bytes());
-  blst_ffi::fp_from_bendian(&buf)
-}
-
-fn fp2_from_fp(fp: &blst_fp) -> blst_fp2 {
-  blst_fp2 {
-    fp: [*fp, blst_fp::default()],
-  }
-}
-
-fn fp2_is_zero(a: &blst_fp2) -> bool {
-  a.fp[0].l == [0u64; 6] && a.fp[1].l == [0u64; 6]
-}
-
-fn fp2_neg(a: &blst_fp2) -> blst_fp2 {
-  blst_ffi::fp2_cneg(a, true)
-}
-
-/// Imaginary component as big-endian bytes for lexicographic comparison.
-fn fp2_cmp_c1(a: &blst_fp2) -> [u8; 48] {
-  blst_ffi::bendian_from_fp(&a.fp[1])
+  G2Affine::from_coords(x, y).to_projective()
 }
 
 /// x^3 + b
-fn curve_rhs(x: &blst_fp2) -> blst_fp2 {
+fn curve_rhs(x: &Fp2) -> Fp2 {
   let b = curve_b();
-  let x2 = blst_ffi::fp2_sqr(x);
-  let x3 = blst_ffi::fp2_mul(&x2, x);
-  blst_ffi::fp2_add(&x3, &b)
+  let x2 = x.square();
+  let x3 = x2 * *x;
+  x3 + b
 }

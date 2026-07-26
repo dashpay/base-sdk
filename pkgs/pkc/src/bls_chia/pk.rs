@@ -6,12 +6,10 @@
 
 //! Legacy BLS public key (48-byte G1 point, legacy serialization).
 
-use super::error::Error;
 use super::ser;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi;
-
-use blst::blst_p1_affine;
+use crate::bls::blst_ffi::{self, G1Affine};
+use crate::bls::BlsError;
 
 /// A legacy BLS public key (48-byte G1 point in legacy serialization).
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,15 +18,20 @@ use blst::blst_p1_affine;
   feature = "serde",
   serde(into = "crate::BlsPublicKeyBytes", try_from = "crate::BlsPublicKeyBytes",)
 )]
-pub struct PublicKey(pub(super) blst_p1_affine);
+pub struct PublicKey(pub(super) G1Affine);
 
 impl PublicKey {
-  pub(super) fn from_inner(inner: blst_p1_affine) -> Self {
+  pub(super) fn from_inner(inner: G1Affine) -> Self {
     Self(inner)
   }
 
   /// Deserialize from 48 legacy-format bytes.
-  pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, Error> {
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::InvalidPublicKey`] when the bytes do not decode to a
+  /// valid public key (identity marker, all-zero buffer, or malformed input).
+  pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, BlsError> {
     ser::deser_g1(bytes).map(Self)
   }
 
@@ -38,11 +41,11 @@ impl PublicKey {
   }
 
   /// Compute a DH shared key: `sk * peer_pk`.
-  pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, Error> {
+  pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, BlsError> {
     use zeroize::Zeroize;
     let mut sk_bytes = sk.to_bytes();
     let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
-    let out_aff = blst_ffi::p1_mult(&peer_pk.0, &sk_scalar.b, blst_ffi::FR_BITS);
+    let out_aff = peer_pk.0.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS);
     sk_bytes.zeroize();
     sk_scalar.b.zeroize();
     Ok(Self(out_aff))
@@ -58,7 +61,7 @@ impl From<PublicKey> for crate::BlsPublicKeyBytes {
 }
 
 impl TryFrom<crate::BlsPublicKeyBytes> for PublicKey {
-  type Error = super::error::Error;
+  type Error = crate::bls::BlsError;
 
   fn try_from(bytes: crate::BlsPublicKeyBytes) -> Result<Self, Self::Error> {
     Self::from_bytes(&bytes.0)

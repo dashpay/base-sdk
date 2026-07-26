@@ -6,11 +6,10 @@
 
 //! Legacy BLS secret key.
 
-use super::error::Error;
-use super::hash;
 use super::pk::PublicKey;
 use super::sig::Signature;
-use crate::bls::blst_ffi;
+use crate::bls::blst_ffi::{self, Point};
+use crate::bls::{chia_h2c, BlsError};
 
 use zeroize::Zeroize;
 
@@ -24,19 +23,31 @@ impl SecretKey {
   /// Derive a secret key from input keying material (>= 32 bytes). Uses the
   /// same IETF key generation as standard BLS, only the signing scheme
   /// differs.
-  pub fn generate(ikm: &[u8]) -> Result<Self, Error> {
-    let sk = blst::min_pk::SecretKey::key_gen(ikm, &[]).map_err(|_| Error::InvalidSecretKey)?;
-    let bytes = sk.to_bytes();
-    Self::from_bytes(&bytes)
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when `ikm` is shorter than 32 bytes or the
+  /// derived scalar is not a valid secret key.
+  pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
+    let sk = blst::min_pk::SecretKey::key_gen_v3(ikm, &[]).map_err(|_| BlsError::InvalidSecretKey)?;
+    let mut bytes = sk.to_bytes();
+    let res = Self::from_bytes(&bytes);
+    bytes.zeroize();
+    res
   }
 
   /// Parse from 32-byte big-endian scalar.
-  pub fn from_bytes(bytes: &[u8; 32]) -> Result<Self, Error> {
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when the scalar is zero or not less than the
+  /// group order.
+  pub fn from_bytes(bytes: &[u8; 32]) -> Result<Self, BlsError> {
     let scalar = blst_ffi::scalar_from_bendian(bytes);
     if blst_ffi::sk_check(&scalar) {
       Ok(Self(scalar))
     } else {
-      Err(Error::InvalidSecretKey)
+      Err(BlsError::InvalidSecretKey)
     }
   }
 
@@ -53,11 +64,10 @@ impl SecretKey {
   /// Sign a 32-byte message hash using the legacy scheme (no DST, Shallue-van
   /// de Woestijne hash-to-G2).
   pub fn sign(&self, msg: &[u8; 32]) -> Signature {
-    let h = hash::hash_to_g2(msg);
+    let h = chia_h2c::hash_to_g2(msg);
     // blst_sign_pk_in_g1 applies IETF transformations, do manually instead.
-    let sig = blst_ffi::p2_mult(&h, &self.0.b, blst_ffi::FR_BITS);
-    let aff = blst_ffi::p2_to_affine(&sig);
-    Signature::from_inner(aff)
+    let sig = h.mul_scalar(&self.0.b, blst_ffi::FR_BITS);
+    Signature::from_inner(sig.to_affine())
   }
 }
 

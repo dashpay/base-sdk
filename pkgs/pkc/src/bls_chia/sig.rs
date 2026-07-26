@@ -6,13 +6,10 @@
 
 //! Legacy BLS signature (96-byte G2 point, legacy serialization).
 
-use super::error::Error;
-use super::hash;
 use super::pk::PublicKey;
 use super::ser;
-use crate::bls::blst_ffi;
-
-use blst::blst_p2_affine;
+use crate::bls::blst_ffi::G2Affine;
+use crate::bls::{blst_ffi, chia_h2c, BlsError};
 
 /// A legacy BLS signature (96-byte G2 point in legacy serialization).
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,15 +18,15 @@ use blst::blst_p2_affine;
   feature = "serde",
   serde(into = "crate::BlsSignatureBytes", try_from = "crate::BlsSignatureBytes",)
 )]
-pub struct Signature(pub(super) blst_p2_affine);
+pub struct Signature(pub(super) G2Affine);
 
 impl Signature {
-  pub(super) fn from_inner(inner: blst_p2_affine) -> Self {
+  pub(super) fn from_inner(inner: G2Affine) -> Self {
     Self(inner)
   }
 
   /// Deserialize from 96 legacy-format bytes.
-  pub fn from_bytes(bytes: &[u8; 96]) -> Result<Self, Error> {
+  pub fn from_bytes(bytes: &[u8; 96]) -> Result<Self, BlsError> {
     ser::deser_g2(bytes).map(Self)
   }
 
@@ -40,13 +37,13 @@ impl Signature {
 
   /// Verify against a 32-byte message and public key via pairing check:
   /// e(sig, G1) == e(H(msg), pk).
-  pub fn verify(&self, msg: &[u8; 32], pk: &PublicKey) -> Result<(), Error> {
-    let h_proj = hash::hash_to_g2(msg);
+  pub fn verify(&self, msg: &[u8; 32], pk: &PublicKey) -> Result<(), BlsError> {
+    let h_proj = chia_h2c::hash_to_g2(msg);
     let valid = blst_ffi::pairings_equal_with_g1_generator(&self.0, &h_proj, &pk.0);
     if valid {
       Ok(())
     } else {
-      Err(Error::VerifyFailed)
+      Err(BlsError::VerifyFailed)
     }
   }
 }
@@ -60,7 +57,7 @@ impl From<Signature> for crate::BlsSignatureBytes {
 }
 
 impl TryFrom<crate::BlsSignatureBytes> for Signature {
-  type Error = super::error::Error;
+  type Error = crate::bls::BlsError;
 
   fn try_from(bytes: crate::BlsSignatureBytes) -> Result<Self, Self::Error> {
     Self::from_bytes(&bytes.0)

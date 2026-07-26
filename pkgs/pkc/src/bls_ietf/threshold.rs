@@ -6,16 +6,16 @@
 
 //! Thresholds for IETF scheme (m-of-n secret sharing and signature recovery).
 
-use super::error::Error;
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi;
+use crate::bls::blst_ffi::{G1Affine, G2Affine, G1, G2};
+use crate::bls::BlsError;
 use crate::common::bls::threshold as math;
 use crate::prelude::*;
 
-use blst::{blst_fr, blst_p1, blst_p2};
 use dash_num::Hash256;
+use zeroize::Zeroizing;
 
 /// Secret key share for threshold signing.
 #[derive(Clone)]
@@ -85,47 +85,43 @@ impl SignatureShare {
   }
 }
 
-/// Split a secret key into shares for the given participant
-/// IDs, requiring `threshold` shares to recover.
+/// Split a secret key into shares for the given participant IDs, requiring
+/// `threshold` shares to recover.
 ///
 /// # Errors
 ///
-/// Returns `ThresholdTooLarge` if `threshold > ids.len()` or
-/// either is zero.
+/// Returns `ThresholdTooLarge` if `threshold < 2` (a 1-of-n split hands
+/// the master key to every participant), `ids` is empty, or `threshold >
+/// ids.len()`; `InvalidShareId` if any id reduces to zero in the scalar
+/// field; `DuplicateShareId` if any ids collide after reduction;
+/// `InvalidSecretKey` if share generation or parsing fails.
 pub fn split_sk(
   sk: &SecretKey,
   threshold: usize,
   ids: &[Hash256],
   rng: &mut impl rand_core::CryptoRngCore,
-) -> Result<Vec<SecretKeyShare>, Error> {
-  if threshold == 0 || ids.is_empty() || threshold > ids.len() {
-    return Err(Error::ThresholdTooLarge);
+) -> Result<Vec<SecretKeyShare>, BlsError> {
+  if threshold < 2 || ids.is_empty() || threshold > ids.len() {
+    return Err(BlsError::ThresholdTooLarge);
   }
 
-  // Reject zero IDs.
-  for id in ids {
-    if id.is_null() {
-      return Err(Error::ThresholdTooLarge);
-    }
-  }
+  // An id congruent to zero mod r would make the share equal the master key, and
+  // ids congruent mod r collide during interpolation.
+  let id_refs: Vec<&Hash256> = ids.iter().collect();
+  math::reduce_share_ids(&id_refs)?;
 
-  // Reject duplicate IDs.
-  for i in 0..ids.len() {
-    for j in (i + 1)..ids.len() {
-      if ids[i] == ids[j] {
-        return Err(Error::DuplicateShareId);
-      }
-    }
-  }
-
+  let sk_bytes = Zeroizing::new(sk.to_bytes());
   let raw =
-    crate::common::bls::generate_shares(&sk.to_bytes(), threshold, ids, rng).map_err(|()| Error::InvalidSecretKey)?;
+    crate::common::bls::generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
   raw
     .into_iter()
-    .map(|(id, bytes)| {
-      let share_sk = SecretKey::from_bytes(&bytes).map_err(|_| Error::InvalidSecretKey)?;
-      Ok(SecretKeyShare { id, sk: share_sk })
+    .map(|share| {
+      let share_sk = SecretKey::from_bytes(&share.secret).map_err(|_| BlsError::InvalidSecretKey)?;
+      Ok(SecretKeyShare {
+        id: share.id,
+        sk: share_sk,
+      })
     })
     .collect()
 }
@@ -135,64 +131,63 @@ pub fn split_sk(
 ///
 /// # Errors
 ///
-/// Returns `InsufficientShares` if fewer than 2 shares are provided, or
-/// `DuplicateShareId` if any ids repeat.
-pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, Error> {
+/// Returns `InsufficientShares` if fewer than 2 shares are provided,
+/// `InvalidShareId` if any id reduces to zero, `DuplicateShareId` if any
+/// ids collide after reduction, or `InvalidSignature` if a share or the
+/// recovered point fails to decode.
+pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, BlsError> {
   if shares.len() < 2 {
-    return Err(Error::InsufficientShares);
+    return Err(BlsError::InsufficientShares);
   }
 
-  // Check for duplicate IDs
-  for i in 0..shares.len() {
-    for j in (i + 1)..shares.len() {
-      if shares[i].id == shares[j].id {
-        return Err(Error::DuplicateShareId);
-      }
-    }
-  }
+  // Reduce and validate ids in the scalar field, rejecting zero-reducing
+  // and (post-reduction) duplicate ids.
+  let id_refs: Vec<&Hash256> = shares.iter().map(|s| &s.id).collect();
+  let ids = math::reduce_share_ids(&id_refs)?;
 
-  let ids: Vec<blst_fr> = shares.iter().map(|s| math::fr_from_hash(&s.id)).collect();
-
-  // Convert min_pk::Signature -> compressed bytes ->
-  // blst_p2_affine -> blst_p2.
-  let points: Vec<blst_p2> = shares
+  // Convert min_pk::Signature -> compressed bytes -> G2Affine -> G2.
+  let points: Vec<G2> = shares
     .iter()
     .map(|s| {
       let bytes = s.sig.to_bytes();
-      let aff = blst_ffi::p2_uncompress(&bytes).map_err(|_| Error::InvalidSignature)?;
-      Ok(blst_ffi::p2_from_affine(&aff))
+      let aff = G2Affine::uncompress(&bytes).map_err(|_| BlsError::InvalidSignature)?;
+      Ok(aff.to_projective())
     })
-    .collect::<Result<Vec<_>, Error>>()?;
+    .collect::<Result<Vec<_>, BlsError>>()?;
 
   let recovered = math::interpolate_g2(&ids, &points);
 
-  // Convert back: blst_p2 -> blst_p2_affine -> compressed bytes ->
-  // min_pk::Signature.
-  let aff = blst_ffi::p2_to_affine(&recovered);
-  let bytes = blst_ffi::p2_affine_compress(&aff);
-  Signature::from_bytes(&bytes).map_err(|_| Error::InvalidSignature)
+  // Convert back: G2 -> G2Affine -> compressed bytes -> min_pk::Signature.
+  let bytes = recovered.to_affine().compress();
+  Signature::from_bytes(&bytes).map_err(|_| BlsError::InvalidSignature)
 }
 
 /// Derive a public key share by evaluating the master public
 /// key polynomial at the given participant id.
-pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<PublicKey, Error> {
-  if master_pks.is_empty() {
-    return Err(Error::EmptyAggregation);
+///
+/// # Errors
+///
+/// Returns `InvalidVerificationVector` if fewer than 2 master keys are
+/// given, `InvalidShareId` if `id` reduces to zero in the scalar field,
+/// or `InvalidPublicKey` if a coefficient or the result fails to decode.
+pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<PublicKey, BlsError> {
+  // Evaluating the verification-vector polynomial needs >= 2 coefficients.
+  if master_pks.len() < 2 {
+    return Err(BlsError::InvalidVerificationVector);
   }
-  // Convert each min_pk::PublicKey to blst_p1.
-  let coeffs_g1: Vec<blst_p1> = master_pks
+  // Convert each min_pk::PublicKey to G1 via G1Affine.
+  let coeffs_g1: Vec<G1> = master_pks
     .iter()
     .map(|pk| {
       let bytes = pk.0.compress();
-      let aff = blst_ffi::p1_uncompress(&bytes).map_err(|_| Error::InvalidPublicKey)?;
-      Ok(blst_ffi::p1_from_affine(&aff))
+      let aff = G1Affine::uncompress(&bytes).map_err(|_| BlsError::InvalidPublicKey)?;
+      Ok(aff.to_projective())
     })
-    .collect::<Result<Vec<_>, Error>>()?;
+    .collect::<Result<Vec<_>, BlsError>>()?;
 
-  let x = math::fr_from_hash(id);
+  let x = math::reduce_id(id)?;
   let result = math::eval_poly_g1(&coeffs_g1, &x);
 
-  let aff = blst_ffi::p1_to_affine(&result);
-  let bytes = blst_ffi::p1_affine_compress(&aff);
+  let bytes = result.to_affine().compress();
   PublicKey::from_bytes(&bytes)
 }
