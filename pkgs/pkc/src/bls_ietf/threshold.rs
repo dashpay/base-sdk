@@ -15,6 +15,7 @@ use crate::common::bls::threshold as math;
 use crate::prelude::*;
 
 use dash_num::Hash256;
+use zeroize::Zeroizing;
 
 /// Secret key share for threshold signing.
 #[derive(Clone)]
@@ -117,14 +118,18 @@ pub fn split_sk(
     }
   }
 
-  let raw = crate::common::bls::generate_shares(&sk.to_bytes(), threshold, ids, rng)
-    .map_err(|()| BlsError::InvalidSecretKey)?;
+  let sk_bytes = Zeroizing::new(sk.to_bytes());
+  let raw =
+    crate::common::bls::generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
   raw
     .into_iter()
-    .map(|(id, bytes)| {
-      let share_sk = SecretKey::from_bytes(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
-      Ok(SecretKeyShare { id, sk: share_sk })
+    .map(|share| {
+      let share_sk = SecretKey::from_bytes(&share.secret).map_err(|_| BlsError::InvalidSecretKey)?;
+      Ok(SecretKeyShare {
+        id: share.id,
+        sk: share_sk,
+      })
     })
     .collect()
 }

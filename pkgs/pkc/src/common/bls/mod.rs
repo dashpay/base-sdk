@@ -14,14 +14,18 @@ use crate::bls::blst_ffi::{self, Fr};
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
+
+use core::fmt;
 
 /// Sum secret key scalars (mod group order) via blst FFI.
 pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Result<[u8; 32], ()> {
   let mut acc = Fr::default();
   for bytes in key_bytes {
     let mut scalar = blst_ffi::scalar_from_bendian(bytes);
-    acc = acc + Fr::from(&scalar);
+    let mut term = Fr::from(&scalar);
+    acc = acc + term;
+    term.zeroize();
     scalar.b.zeroize();
   }
   let mut out_scalar = blst::blst_scalar::from(&acc);
@@ -29,6 +33,23 @@ pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Result<[u8; 32], ()> {
   out_scalar.b.zeroize();
   acc.zeroize();
   Ok(out_bytes)
+}
+
+/// Participant id paired with its secret scalar bytes
+pub(crate) struct RawShare {
+  /// Participant identifier.
+  pub(crate) id: Hash256,
+  /// Secret scalar bytes, zeroized on drop.
+  pub(crate) secret: Zeroizing<[u8; 32]>,
+}
+
+impl fmt::Debug for RawShare {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("RawShare")
+      .field("id", &self.id)
+      .field("secret", &"[redacted]")
+      .finish()
+  }
 }
 
 /// Generate secret key shares from a polynomial with the
@@ -39,8 +60,8 @@ pub(crate) fn generate_shares(
   threshold: usize,
   ids: &[Hash256],
   rng: &mut impl rand_core::CryptoRngCore,
-) -> Result<Vec<(Hash256, [u8; 32])>, ()> {
-  let mut coeffs = Vec::with_capacity(threshold);
+) -> Result<Vec<RawShare>, ()> {
+  let mut coeffs = Zeroizing::new(Vec::with_capacity(threshold));
 
   let mut sk_scalar = blst_ffi::scalar_from_bendian(sk_bytes);
   coeffs.push(Fr::from(&sk_scalar));
@@ -52,26 +73,23 @@ pub(crate) fn generate_shares(
     rng.fill_bytes(&mut *ikm);
     let rand_sk = blst::min_pk::SecretKey::key_gen(ikm.as_ref(), &[]).map_err(|_| ())?;
     let mut rand_bytes = rand_sk.to_bytes();
-    let rand_scalar = blst_ffi::scalar_from_bendian(&rand_bytes);
+    let mut rand_scalar = blst_ffi::scalar_from_bendian(&rand_bytes);
     coeffs.push(Fr::from(&rand_scalar));
     rand_bytes.zeroize();
+    rand_scalar.b.zeroize();
   }
 
   let mut shares = Vec::with_capacity(ids.len());
   for id in ids {
     let x = threshold::fr_from_hash(id);
-    let y = threshold::poly_eval(&coeffs, &x);
+    let mut y = threshold::poly_eval(&coeffs, &x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
-    let y_bytes = blst_ffi::bendian_from_scalar(&y_scalar);
+    let share = zeroize::Zeroizing::new(blst_ffi::bendian_from_scalar(&y_scalar));
     y_scalar.b.zeroize();
+    y.zeroize();
 
-    shares.push((*id, y_bytes));
-  }
-
-  // Zeroize secret polynomial coefficients.
-  for coeff in &mut coeffs {
-    coeff.zeroize();
+    shares.push(RawShare { id: *id, secret: share });
   }
 
   Ok(shares)

@@ -30,8 +30,10 @@ impl SecretKey {
   /// derived scalar is not a valid secret key.
   pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
     let sk = blst::min_pk::SecretKey::key_gen(ikm, &[]).map_err(|_| BlsError::InvalidSecretKey)?;
-    let bytes = sk.to_bytes();
-    Self::from_bytes(&bytes)
+    let mut bytes = sk.to_bytes();
+    let res = Self::from_bytes(&bytes);
+    bytes.zeroize();
+    res
   }
 
   /// Parse from 32-byte big-endian scalar.
