@@ -13,7 +13,7 @@ mod common;
 use crate::common::bls::*;
 
 use dash_pkc::bls_ietf::{
-  aggregate_pk, aggregate_sig, fast_verify_aggregates, verify_aggregates, SecretKey, Signature,
+  aggregate_pk, aggregate_sig, fast_verify_aggregates, verify_aggregates, PublicKey, SecretKey, Signature,
 };
 use hex_literal::hex;
 use rstest::*;
@@ -103,6 +103,32 @@ fn secure_verify_rejects_naive_aggregate(ietf_sk0: SecretKey, ietf_sk1: SecretKe
   // Secure verify uses different weighting, so naively
   // aggregated sigs should fail.
   assert!(secure_verify_aggregates(&agg, msg, &[&pk1, &pk2]).is_err());
+}
+
+/// Cancelling keys and signatures to the identity (`P + (-P)`) is rejected
+/// under the IETF scheme, unlike the lenient legacy scheme: blst refuses an
+/// infinity aggregate key, so verification fails for any message.
+#[rstest]
+#[case::signed_message([0x11u8; 32])]
+#[case::unrelated_message([0x22u8; 32])]
+fn identity_cancellation_is_rejected(ietf_sk0: SecretKey, #[case] verify_msg: [u8; 32]) {
+  let sig = ietf_sk0.sign(&[0x11u8; 32]);
+  let pk = ietf_sk0.public_key();
+
+  // Flip the IETF sign bit (bit 5 of byte 0) to negate each point.
+  let mut neg_sig_bytes = sig.to_bytes();
+  neg_sig_bytes[0] ^= 0x20;
+  let neg_sig = Signature::from_bytes(&neg_sig_bytes).unwrap();
+
+  let mut neg_pk_bytes = pk.to_bytes();
+  neg_pk_bytes[0] ^= 0x20;
+  let neg_pk = PublicKey::from_bytes(&neg_pk_bytes).unwrap();
+
+  // sig + (-sig) = identity signature; pk + (-pk) = identity key.
+  let identity_sig = aggregate_sig(&[&sig, &neg_sig]).unwrap();
+
+  // Verification fails regardless of the message.
+  assert!(fast_verify_aggregates(&identity_sig, &verify_msg, &[&pk, &neg_pk]).is_err());
 }
 
 mod kat {
