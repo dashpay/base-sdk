@@ -84,13 +84,13 @@ impl fmt::Display for MnHardFork {
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_sptx, Corpus};
   use rstest::rstest;
 
   #[rstest]
   fn corpus_mnhftx() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "mnhftx");
-    let items = read_corpus::<MnHardFork>(&text, "mnhftx", check_sptx);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "mnhftx");
+    let items = corpus.entries::<MnHardFork>("mnhftx", check_sptx);
     assert_serde_rt("mnhftx", &items);
   }
 }

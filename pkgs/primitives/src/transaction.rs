@@ -394,7 +394,7 @@ impl fmt::Display for Transaction {
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_tx, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_tx, Corpus};
   use rstest::rstest;
 
   #[rstest]
@@ -402,8 +402,8 @@ mod tests {
   #[case("coinbase")]
   #[case("data")]
   fn corpus_tx(#[case] section: &str) {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), section);
-    let items = read_corpus::<Transaction>(&text, section, check_tx);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), section);
+    let items = corpus.entries::<Transaction>(section, check_tx);
     assert_serde_rt(section, &items);
   }
 }
