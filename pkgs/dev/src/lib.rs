@@ -13,10 +13,12 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+mod encode;
 mod lambda;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
+pub use encode::{arr_from_hex, vec_from_hex};
 pub use lambda::{check_sptx, check_tx, check_wire};
 
 cfg_if::cfg_if! {

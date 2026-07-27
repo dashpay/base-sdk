@@ -14,6 +14,7 @@
 
 mod common;
 
+use dash_dev::arr_from_hex;
 use dash_num::Hash256;
 use dash_pkc::bls_ietf::{aggregate_pk, aggregate_sig, threshold, PublicKey, SecretKey, Signature};
 use hex_conservative::DisplayHex;
@@ -33,14 +34,14 @@ fn llmq_contribute_vvec() {
 
     // Each vvec entry is a valid G1 point.
     for pk_hex in &vvec {
-      assert!(PublicKey::from_bytes(&common::hex_to_48(pk_hex)).is_ok());
+      assert!(PublicKey::from_bytes(&arr_from_hex::<48>(pk_hex)).is_ok());
     }
 
     // The first vvec entry is the member's public key
     // (the constant term of the polynomial commitment).
     // vvec[0] IS the member's contribution public key.
     assert!(
-      PublicKey::from_bytes(&common::hex_to_48(vvec[0]))
+      PublicKey::from_bytes(&arr_from_hex::<48>(vvec[0]))
         .unwrap()
         .to_bytes()
         .len()
@@ -60,7 +61,7 @@ fn llmq_contribute_sk_shares() {
 
     // Each share is a valid 32-byte scalar.
     for s in shares {
-      let sk = SecretKey::from_bytes(&common::hex_to_32(s.as_str().unwrap()));
+      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(s.as_str().unwrap()));
       assert!(sk.is_ok());
     }
   }
@@ -94,11 +95,11 @@ fn llmq_verify_contributions() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| PublicKey::from_bytes(&common::hex_to_48(v.as_str().unwrap())).unwrap())
+        .map(|v| PublicKey::from_bytes(&arr_from_hex::<48>(v.as_str().unwrap())).unwrap())
         .collect();
       let vvec_refs: Vec<&PublicKey> = vvec.iter().collect();
 
-      let sk_share = SecretKey::from_bytes(&common::hex_to_32(sk_hex.as_str().unwrap())).unwrap();
+      let sk_share = SecretKey::from_bytes(&arr_from_hex::<32>(sk_hex.as_str().unwrap())).unwrap();
       let pk_from_share = sk_share.public_key();
 
       // Evaluate the vvec polynomial at the receiver's
@@ -145,7 +146,7 @@ fn llmq_commit_quorum_key() {
   let contributions = f["contribute"].as_array().unwrap();
   let member_pks: Vec<PublicKey> = contributions
     .iter()
-    .map(|c| PublicKey::from_bytes(&common::hex_to_48(c["vvec"][0].as_str().unwrap())).unwrap())
+    .map(|c| PublicKey::from_bytes(&arr_from_hex::<48>(c["vvec"][0].as_str().unwrap())).unwrap())
     .collect();
   let pk_refs: Vec<&PublicKey> = member_pks.iter().collect();
   let agg_pk = aggregate_pk(&pk_refs).unwrap();
@@ -166,7 +167,7 @@ fn llmq_commit_sk_share() {
     let mut received: Vec<SecretKey> = Vec::new();
     for contrib in f["contribute"].as_array().unwrap() {
       let sk_hex = contrib["sk_shares"][member_idx].as_str().unwrap();
-      received.push(SecretKey::from_bytes(&common::hex_to_32(sk_hex)).unwrap());
+      received.push(SecretKey::from_bytes(&arr_from_hex::<32>(sk_hex)).unwrap());
     }
 
     let refs: Vec<&SecretKey> = received.iter().collect();
@@ -185,8 +186,8 @@ fn llmq_commit_member_sig() {
   let f = common::load("bls_ietf_llmq_100");
 
   for c in f["commit"].as_array().unwrap() {
-    let sk_share = SecretKey::from_bytes(&common::hex_to_32(c["sk_share"].as_str().unwrap())).unwrap();
-    let commitment_hash = common::hex_to_32(c["commitment_hash"].as_str().unwrap());
+    let sk_share = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
+    let commitment_hash = arr_from_hex::<32>(c["commitment_hash"].as_str().unwrap());
 
     // Sign the commitment hash and verify against pk.
     let sig = sk_share.sign(&commitment_hash);
@@ -204,8 +205,8 @@ fn llmq_commit_quorum_sig_share() {
   let f = common::load("bls_ietf_llmq_100");
 
   for c in f["commit"].as_array().unwrap() {
-    let sk_share = SecretKey::from_bytes(&common::hex_to_32(c["sk_share"].as_str().unwrap())).unwrap();
-    let quorum_hash = common::hex_to_32(c["quorum_hash"].as_str().unwrap());
+    let sk_share = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
+    let quorum_hash = arr_from_hex::<32>(c["quorum_hash"].as_str().unwrap());
 
     // Sign the quorum hash and verify.
     let sig = sk_share.sign(&quorum_hash);
@@ -238,7 +239,7 @@ fn llmq_finalize_recover_quorum_sig() {
     .map(|v| v.as_str().unwrap().to_string())
     .collect();
 
-  let quorum_hash = common::hex_to_32(fin["quorum_hash"].as_str().unwrap());
+  let quorum_hash = arr_from_hex::<32>(fin["quorum_hash"].as_str().unwrap());
 
   // signer_ids are in internal byte order; member_ids
   // are in display (reversed) order. We need to map
@@ -249,7 +250,7 @@ fn llmq_finalize_recover_quorum_sig() {
     .map(|sid| {
       // sid is internal byte order; byte-reverse to get
       // the display hex that matches member_ids.
-      let sid_bytes = common::hex_to_32(sid);
+      let sid_bytes = arr_from_hex::<32>(sid);
       let sid_display = sid_bytes
         .iter()
         .copied()
@@ -257,7 +258,7 @@ fn llmq_finalize_recover_quorum_sig() {
         .collect::<Vec<u8>>()
         .to_lower_hex_string();
       let idx = member_ids.iter().position(|m| *m == sid_display).unwrap();
-      let sk = SecretKey::from_bytes(&common::hex_to_32(commits[idx]["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(commits[idx]["sk_share"].as_str().unwrap())).unwrap();
       let member_id = common::hash_from_hex(&sid_display);
       let sk_share = threshold::SecretKeyShare::new(member_id, sk);
       sk_share.sign(&quorum_hash)
@@ -268,7 +269,8 @@ fn llmq_finalize_recover_quorum_sig() {
   let recovered = threshold::recover_sig(&share_refs).unwrap();
 
   // Verify the recovered signature against the quorum pk.
-  let quorum_pk = PublicKey::from_bytes(&common::hex_to_48(commits[0]["quorum_public_key"].as_str().unwrap())).unwrap();
+  let quorum_pk =
+    PublicKey::from_bytes(&arr_from_hex::<48>(commits[0]["quorum_public_key"].as_str().unwrap())).unwrap();
   assert!(
     recovered.verify(&quorum_hash, &quorum_pk).is_ok(),
     "recovered quorum sig failed verification"
@@ -280,7 +282,7 @@ fn llmq_finalize_recover_quorum_sig() {
     .iter()
     .zip(all_ids.iter())
     .map(|(c, id)| {
-      let sk = SecretKey::from_bytes(&common::hex_to_32(c["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
       let sk_share = threshold::SecretKeyShare::new(*id, sk);
       sk_share.sign(&quorum_hash)
     })
@@ -301,12 +303,12 @@ fn llmq_finalize_aggregated_member_sigs() {
 
   // Re-sign the commitment hash with each member's
   // sk_share using our library, then aggregate.
-  let commitment_hash = common::hex_to_32(commits[0]["commitment_hash"].as_str().unwrap());
+  let commitment_hash = arr_from_hex::<32>(commits[0]["commitment_hash"].as_str().unwrap());
 
   let member_sigs: Vec<Signature> = commits
     .iter()
     .map(|c| {
-      let sk = SecretKey::from_bytes(&common::hex_to_32(c["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
       sk.sign(&commitment_hash)
     })
     .collect();
@@ -319,7 +321,7 @@ fn llmq_finalize_aggregated_member_sigs() {
   let member_pks: Vec<PublicKey> = commits
     .iter()
     .map(|c| {
-      let sk = SecretKey::from_bytes(&common::hex_to_32(c["sk_share"].as_str().unwrap())).unwrap();
+      let sk = SecretKey::from_bytes(&arr_from_hex::<32>(c["sk_share"].as_str().unwrap())).unwrap();
       sk.public_key()
     })
     .collect();

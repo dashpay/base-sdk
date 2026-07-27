@@ -11,8 +11,9 @@
 mod common;
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
+  use super::common::{self, VectorFile};
 
+  use dash_dev::vec_from_hex;
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -38,7 +39,7 @@ mod kat {
     for v in &vecs {
       // Legacy bytes should deserialize and re-serialize
       // identically.
-      let legacy_bytes: [u8; 48] = decode_hex(&v.pk_legacy).try_into().unwrap();
+      let legacy_bytes: [u8; 48] = vec_from_hex(&v.pk_legacy).try_into().unwrap();
       let pk = dash_pkc::bls_chia::PublicKey::from_bytes(&legacy_bytes).unwrap();
       assert_eq!(
         pk.to_bytes().to_lower_hex_string(),
@@ -58,7 +59,7 @@ mod kat {
     let vecs: Vec<SigSerInternalVector> = common::parse_sub(&f, "sig_serialization");
 
     for v in &vecs {
-      let legacy_bytes: [u8; 96] = decode_hex(&v.sig_legacy).try_into().unwrap();
+      let legacy_bytes: [u8; 96] = vec_from_hex(&v.sig_legacy).try_into().unwrap();
       let sig = dash_pkc::bls_chia::Signature::from_bytes(&legacy_bytes).unwrap();
       assert_eq!(
         sig.to_bytes().to_lower_hex_string(),

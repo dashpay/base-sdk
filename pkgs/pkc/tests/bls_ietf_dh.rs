@@ -27,8 +27,9 @@ fn dh_exchange_roundtrip(ietf_sk0: SecretKey, ietf_sk1: SecretKey) {
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
+  use super::common::{self, VectorFile};
 
+  use dash_dev::vec_from_hex;
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -45,8 +46,8 @@ mod kat {
     let vecs: Vec<DhVector> = common::parse_sub(&f, "dh_exchange");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
-      let pk_bytes: [u8; 48] = decode_hex(&v.peer_pk).try_into().unwrap();
+      let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
+      let pk_bytes: [u8; 48] = vec_from_hex(&v.peer_pk).try_into().unwrap();
       let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
       let peer_pk = dash_pkc::bls_ietf::PublicKey::from_bytes(&pk_bytes).unwrap();
       let shared = dash_pkc::bls_ietf::PublicKey::dh_exchange(&sk, &peer_pk).unwrap();

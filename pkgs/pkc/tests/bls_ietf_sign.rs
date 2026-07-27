@@ -115,8 +115,9 @@ fn cross_format_sig_differs(ietf_sk0: SecretKey) {
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
+  use super::common::{self, VectorFile};
 
+  use dash_dev::vec_from_hex;
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -133,8 +134,8 @@ mod kat {
     let vecs: Vec<SignVector> = common::parse_sub(&f, "sign");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
-      let msg = decode_hex(&v.msg);
+      let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
+      let msg = vec_from_hex(&v.msg);
       let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
       let sig = sk.sign(&msg);
       assert_eq!(

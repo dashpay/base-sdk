@@ -124,8 +124,9 @@ fn serde_recovery_id_roundtrip() {
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
+  use super::common::{self, VectorFile};
 
+  use dash_dev::vec_from_hex;
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -151,8 +152,8 @@ mod kat {
     let vecs: Vec<SignVector> = common::parse_sub(&f, "sign_recoverable");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
-      let msg: [u8; 32] = decode_hex(&v.msg).try_into().unwrap();
+      let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
+      let msg: [u8; 32] = vec_from_hex(&v.msg).try_into().unwrap();
       let sk = dash_pkc::k256::SecretKey::from_bytes(&sk_bytes).unwrap();
       let (sig, rid) = sk.sign_recoverable(&msg).unwrap();
       assert_eq!(
@@ -172,8 +173,8 @@ mod kat {
     let vecs: Vec<RecoverVector> = common::parse_sub(&f, "recover");
 
     for v in &vecs {
-      let msg: [u8; 32] = decode_hex(&v.msg).try_into().unwrap();
-      let sig_bytes: [u8; 64] = decode_hex(&v.sig).try_into().unwrap();
+      let msg: [u8; 32] = vec_from_hex(&v.msg).try_into().unwrap();
+      let sig_bytes: [u8; 64] = vec_from_hex(&v.sig).try_into().unwrap();
       let sig = dash_pkc::k256::Signature::from_compact(&sig_bytes).unwrap();
       let rid = dash_pkc::k256::RecoveryId::new(v.recovery_id).unwrap();
       let pk = dash_pkc::k256::PublicKey::recover(&msg, &sig, rid).unwrap();

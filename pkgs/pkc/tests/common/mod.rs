@@ -30,25 +30,6 @@ pub fn parse_sub<T: serde::de::DeserializeOwned>(file: &VectorFile, key: &str) -
   serde_json::from_value(arr.clone()).unwrap_or_else(|e| panic!("cannot parse '{key}': {e}"))
 }
 
-pub fn decode_hex(s: &str) -> Vec<u8> {
-  (0..s.len())
-    .step_by(2)
-    .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
-    .collect()
-}
-
-pub fn hex_to_32(s: &str) -> [u8; 32] {
-  decode_hex(s).try_into().unwrap()
-}
-
-pub fn hex_to_48(s: &str) -> [u8; 48] {
-  decode_hex(s).try_into().unwrap()
-}
-
-pub fn hex_to_96(s: &str) -> [u8; 96] {
-  decode_hex(s).try_into().unwrap()
-}
-
 pub fn hash_from_hex(s: &str) -> dash_num::Hash256 {
   dash_num::Hash256::from_hex(s).unwrap()
 }

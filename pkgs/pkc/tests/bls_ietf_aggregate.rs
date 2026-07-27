@@ -132,8 +132,9 @@ fn identity_cancellation_is_rejected(ietf_sk0: SecretKey, #[case] verify_msg: [u
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
+  use super::common::{self, VectorFile};
 
+  use dash_dev::vec_from_hex;
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -174,7 +175,7 @@ mod kat {
         .pks
         .iter()
         .map(|h| {
-          let b: [u8; 48] = decode_hex(h).try_into().unwrap();
+          let b: [u8; 48] = vec_from_hex(h).try_into().unwrap();
           dash_pkc::bls_ietf::PublicKey::from_bytes(&b).unwrap()
         })
         .collect();
@@ -194,7 +195,7 @@ mod kat {
         .sigs
         .iter()
         .map(|h| {
-          let b: [u8; 96] = decode_hex(h).try_into().unwrap();
+          let b: [u8; 96] = vec_from_hex(h).try_into().unwrap();
           dash_pkc::bls_ietf::Signature::from_bytes(&b).unwrap()
         })
         .collect();
@@ -214,7 +215,7 @@ mod kat {
         .sks
         .iter()
         .map(|h| {
-          let b: [u8; 32] = decode_hex(h).try_into().unwrap();
+          let b: [u8; 32] = vec_from_hex(h).try_into().unwrap();
           dash_pkc::bls_ietf::SecretKey::from_bytes(&b).unwrap()
         })
         .collect();
@@ -230,17 +231,17 @@ mod kat {
     let vecs: Vec<SecureAggVector> = common::parse_sub(&f, "secure_verify_aggregates");
 
     for v in &vecs {
-      let msg = decode_hex(&v.msg);
+      let msg = vec_from_hex(&v.msg);
       let pks: Vec<dash_pkc::bls_ietf::PublicKey> = v
         .pks
         .iter()
         .map(|h| {
-          let b: [u8; 48] = decode_hex(h).try_into().unwrap();
+          let b: [u8; 48] = vec_from_hex(h).try_into().unwrap();
           dash_pkc::bls_ietf::PublicKey::from_bytes(&b).unwrap()
         })
         .collect();
 
-      let expected_agg: [u8; 96] = decode_hex(&v.agg_sig_secure).try_into().unwrap();
+      let expected_agg: [u8; 96] = vec_from_hex(&v.agg_sig_secure).try_into().unwrap();
       let agg_sig = dash_pkc::bls_ietf::Signature::from_bytes(&expected_agg).unwrap();
       let pk_refs: Vec<_> = pks.iter().collect();
 

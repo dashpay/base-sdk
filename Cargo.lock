@@ -426,6 +426,7 @@ dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
  "blst",
  "cfg-if",
+ "dash-dev",
  "dash-num",
  "dash-types",
  "divan",
