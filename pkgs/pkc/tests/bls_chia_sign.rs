@@ -12,6 +12,8 @@ mod common;
 
 use crate::common::bls::*;
 
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
 use dash_pkc::bls_chia::{SecretKey, Signature};
 use rstest::*;
 
@@ -62,9 +64,7 @@ fn sig_roundtrip(chia_sk0: SecretKey, msg32: [u8; 32]) {
 #[rstest]
 fn serde_sig_roundtrip(chia_sk0: SecretKey, msg32: [u8; 32]) {
   let sig = chia_sk0.sign(&msg32);
-  let json = serde_json::to_string(&sig).unwrap();
-  let restored: Signature = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, sig);
+  assert_json_rt(&sig);
 }
 
 /// Same signature serialized under legacy and IETF formats

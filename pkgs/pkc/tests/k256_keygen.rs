@@ -10,6 +10,8 @@
 
 mod common;
 
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
 use dash_pkc::k256::{PublicKey, SecretKey};
 use hex_literal::hex;
 use rstest::*;
@@ -69,9 +71,7 @@ fn pubkey_rejects_garbage() {
 #[rstest]
 fn serde_pk_roundtrip(alice: SecretKey) {
   let pk = alice.public_key();
-  let json = serde_json::to_string(&pk).unwrap();
-  let restored: PublicKey = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, pk);
+  assert_json_rt(&pk);
 }
 
 mod kat {

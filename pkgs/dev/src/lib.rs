@@ -23,8 +23,15 @@ pub use lambda::{check_sptx, check_tx, check_wire};
 
 cfg_if::cfg_if! {
   if #[cfg(all(feature = "std", feature = "serde"))] {
+    #[doc(hidden)]
+    mod __private {
+      pub use serde_json::Value;
+    }
     mod corpus;
+    mod json;
 
-    pub use crate::corpus::{assert_serde_rt, Corpus};
+    pub use __private::Value;
+    pub use corpus::{assert_serde_rt, Corpus};
+    pub use json::{assert_json_rt, from_json, from_json_slice, json_rejects, to_json};
   }
 }

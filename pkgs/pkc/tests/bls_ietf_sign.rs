@@ -12,6 +12,8 @@ mod common;
 
 use crate::common::bls::*;
 
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
 use dash_pkc::bls_ietf::{SecretKey, Signature};
 use hex_literal::hex;
 use rstest::*;
@@ -98,9 +100,7 @@ fn sign_is_deterministic(ietf_sk0: SecretKey) {
 #[rstest]
 fn serde_sig_roundtrip(ietf_sk0: SecretKey) {
   let sig = ietf_sk0.sign(b"serde test");
-  let json = serde_json::to_string(&sig).unwrap();
-  let restored: Signature = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, sig);
+  assert_json_rt(&sig);
 }
 
 /// Same signature under IETF and legacy formats must differ.

@@ -10,6 +10,8 @@
 
 mod common;
 
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
 use dash_pkc::k256::{PublicKey, RecoveryId, SecretKey, Signature};
 use hex_literal::hex;
 use rstest::*;
@@ -108,9 +110,7 @@ fn sign_is_deterministic(alice: SecretKey, msg_hash: [u8; 32]) {
 #[rstest]
 fn serde_sig_roundtrip(alice: SecretKey, msg_hash: [u8; 32]) {
   let sig = alice.sign(&msg_hash).unwrap();
-  let json = serde_json::to_string(&sig).unwrap();
-  let restored: Signature = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, sig);
+  assert_json_rt(&sig);
 }
 
 /// Serde round-trip for RecoveryId.
@@ -118,9 +118,7 @@ fn serde_sig_roundtrip(alice: SecretKey, msg_hash: [u8; 32]) {
 #[rstest]
 fn serde_recovery_id_roundtrip() {
   let rid = RecoveryId::new(1).unwrap();
-  let json = serde_json::to_string(&rid).unwrap();
-  let restored: RecoveryId = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, rid);
+  assert_json_rt(&rid);
 }
 
 mod kat {

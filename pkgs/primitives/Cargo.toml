@@ -59,7 +59,6 @@ dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 hex-literal = "0.4"
 rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
 
 [lints]
 workspace = true

@@ -378,12 +378,12 @@ name = "dash-num"
 version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
+ "dash-dev",
  "dash-types",
  "divan",
  "hex-literal",
  "rstest",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -478,7 +478,6 @@ dependencies = [
  "libm",
  "rstest",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -501,7 +500,6 @@ dependencies = [
  "dash-types-marker",
  "hex-conservative",
  "serde",
- "serde_json",
 ]
 
 [[package]]

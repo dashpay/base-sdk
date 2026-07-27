@@ -12,6 +12,8 @@ mod common;
 
 use crate::common::bls::*;
 
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
 use dash_pkc::bls_ietf::SecretKey;
 use rstest::*;
 
@@ -44,9 +46,7 @@ fn pk_roundtrip(ietf_sk0: SecretKey) {
 #[rstest]
 fn serde_pk_roundtrip(ietf_sk0: SecretKey) {
   let pk = ietf_sk0.public_key();
-  let json = serde_json::to_string(&pk).unwrap();
-  let restored: dash_pkc::bls_ietf::PublicKey = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, pk);
+  assert_json_rt(&pk);
 }
 
 /// Same key serialized under IETF and legacy formats must differ.

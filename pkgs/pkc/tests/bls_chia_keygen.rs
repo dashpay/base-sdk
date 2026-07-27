@@ -13,6 +13,8 @@ mod common;
 
 use crate::common::bls::*;
 
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
 use dash_pkc::bls_chia::SecretKey;
 use rstest::*;
 
@@ -56,9 +58,7 @@ fn pk_roundtrip(chia_sk0: SecretKey) {
 #[rstest]
 fn serde_pk_roundtrip(chia_sk0: SecretKey) {
   let pk = chia_sk0.public_key();
-  let json = serde_json::to_string(&pk).unwrap();
-  let restored: dash_pkc::bls_chia::PublicKey = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, pk);
+  assert_json_rt(&pk);
 }
 
 /// Same key serialized under legacy and IETF formats must produce
