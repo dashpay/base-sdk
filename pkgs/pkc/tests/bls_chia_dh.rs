@@ -27,9 +27,7 @@ fn dh_exchange_roundtrip(chia_sk0: SecretKey, chia_sk1: SecretKey) {
 }
 
 mod kat {
-  use super::common::{self, VectorFile};
-
-  use dash_dev::vec_from_hex;
+  use dash_dev::{vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -42,8 +40,7 @@ mod kat {
 
   #[test]
   fn kat_dh() {
-    let f: VectorFile = common::load("bls_chia_dh");
-    let vecs: Vec<DhVector> = common::parse_sub(&f, "dh_exchange");
+    let vecs: Vec<DhVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_dh").vectors("dh_exchange");
 
     for v in &vecs {
       let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();

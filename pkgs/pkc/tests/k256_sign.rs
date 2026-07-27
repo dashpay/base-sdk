@@ -122,9 +122,7 @@ fn serde_recovery_id_roundtrip() {
 }
 
 mod kat {
-  use super::common::{self, VectorFile};
-
-  use dash_dev::vec_from_hex;
+  use dash_dev::{vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -146,8 +144,7 @@ mod kat {
 
   #[test]
   fn kat_sign_recoverable() {
-    let f: VectorFile = common::load("k256_sign");
-    let vecs: Vec<SignVector> = common::parse_sub(&f, "sign_recoverable");
+    let vecs: Vec<SignVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_sign").vectors("sign_recoverable");
 
     for v in &vecs {
       let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
@@ -167,8 +164,7 @@ mod kat {
 
   #[test]
   fn kat_recover() {
-    let f: VectorFile = common::load("k256_sign");
-    let vecs: Vec<RecoverVector> = common::parse_sub(&f, "recover");
+    let vecs: Vec<RecoverVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_sign").vectors("recover");
 
     for v in &vecs {
       let msg: [u8; 32] = vec_from_hex(&v.msg).try_into().unwrap();

@@ -72,9 +72,7 @@ fn cross_format_pk_differs(chia_sk0: SecretKey) {
 }
 
 mod kat {
-  use super::common::{self, VectorFile};
-
-  use dash_dev::vec_from_hex;
+  use dash_dev::{vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -86,8 +84,7 @@ mod kat {
 
   #[test]
   fn kat_derive_pk() {
-    let f: VectorFile = common::load("bls_chia_keygen");
-    let vecs: Vec<KeygenVector> = common::parse_sub(&f, "derive_pk");
+    let vecs: Vec<KeygenVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_keygen").vectors("derive_pk");
 
     for v in &vecs {
       let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();

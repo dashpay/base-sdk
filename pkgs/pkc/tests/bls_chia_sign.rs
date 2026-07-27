@@ -102,9 +102,7 @@ fn legacy_pk_serialization_differs_from_ietf() {
 }
 
 mod kat {
-  use super::common::{self, VectorFile};
-
-  use dash_dev::vec_from_hex;
+  use dash_dev::{vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
   use sha2::{Digest, Sha256};
@@ -133,8 +131,7 @@ mod kat {
 
   #[test]
   fn kat_sign() {
-    let f: VectorFile = common::load("bls_chia_sign");
-    let vecs: Vec<SignVector> = common::parse_sub(&f, "sign");
+    let vecs: Vec<SignVector> = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_sign").vectors("sign");
 
     for v in &vecs {
       let sk_bytes: [u8; 32] = vec_from_hex(&v.sk).try_into().unwrap();
@@ -154,8 +151,8 @@ mod kat {
   /// Validate SHA-256 domain hashing matches reference vectors.
   #[test]
   fn kat_hash_sha256() {
-    let f: VectorFile = common::load("bls_chia_hash_internals");
-    let vecs: Vec<HashInternalVector> = common::parse_sub(&f, "hash_internals");
+    let vecs: Vec<HashInternalVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_hash_internals").vectors("hash_internals");
 
     for v in &vecs {
       let msg = vec_from_hex(&v.msg);
@@ -191,8 +188,8 @@ mod kat {
   /// Validate the full hash-to-G2 output.
   #[test]
   fn kat_hash_to_g2() {
-    let f: VectorFile = common::load("bls_chia_hash_internals");
-    let vecs: Vec<HashInternalVector> = common::parse_sub(&f, "hash_internals");
+    let vecs: Vec<HashInternalVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_hash_internals").vectors("hash_internals");
 
     for v in &vecs {
       let msg: [u8; 32] = vec_from_hex(&v.msg).try_into().unwrap();

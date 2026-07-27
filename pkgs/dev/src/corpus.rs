@@ -16,8 +16,8 @@ use std::fs;
 
 /// Verifies the serde round-trip for a set of corpus entries.
 ///
-/// Writes `items` to JSON via [`write_corpus`], reads them back
-/// through [`Corpus`] (no-op check), and asserts equality.
+/// Writes `items` to JSON via [`write_corpus`], reads them back through
+/// [`Corpus::entries`] (no-op check), and asserts equality.
 ///
 /// # Panics
 ///
@@ -64,8 +64,8 @@ pub(crate) struct CorpusEntry<T> {
 
 /// A parsed corpus file, opened once and queried by section.
 ///
-/// Serves wire round-trip corpora via [`Corpus::entries`] (`{ raw, details }`
-/// sections).
+/// Serves both operation KATs via [`Corpus::vectors`] (array sections) and
+/// wire round-trip corpora via [`Corpus::entries`] (raw/details sections).
 #[derive(Clone, Debug)]
 pub struct Corpus {
   name: String,
@@ -84,6 +84,11 @@ impl Corpus {
       name: name.into(),
       root,
     }
+  }
+
+  /// Consumes the handle and returns the parsed root value.
+  pub fn into_value(self) -> serde_json::Value {
+    self.root
   }
 
   /// Returns a named `{ label: { raw, details } }` section.
@@ -125,5 +130,21 @@ impl Corpus {
     let path = format!("{manifest_dir}/corpus/{name}.json5");
     let text = fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {path}: {e}"));
     Self::parse(name, &text)
+  }
+
+  /// Returns a named array section as typed vectors: `{ section: [T, ...] }`.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the section is missing, empty, or is not an array of `T`.
+  pub fn vectors<T: ::serde::de::DeserializeOwned>(&self, section: &str) -> Vec<T> {
+    let val = self
+      .root
+      .get(section)
+      .unwrap_or_else(|| panic!("{}: missing section '{section}'", self.name));
+    let out: Vec<T> =
+      serde_json::from_value(val.clone()).unwrap_or_else(|e| panic!("{}: section '{section}': {e}", self.name));
+    assert!(!out.is_empty(), "{}: section '{section}' empty", self.name);
+    out
   }
 }

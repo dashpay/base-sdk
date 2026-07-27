@@ -11,9 +11,7 @@
 mod common;
 
 mod kat {
-  use super::common::{self, VectorFile};
-
-  use dash_dev::vec_from_hex;
+  use dash_dev::{vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -33,8 +31,8 @@ mod kat {
   /// under legacy vs IETF formats.
   #[test]
   fn kat_ser_pk_formats() {
-    let f: VectorFile = common::load("bls_chia_ser_internals");
-    let vecs: Vec<SerInternalVector> = common::parse_sub(&f, "pk_serialization");
+    let vecs: Vec<SerInternalVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals").vectors("pk_serialization");
 
     for v in &vecs {
       // Legacy bytes should deserialize and re-serialize
@@ -55,8 +53,8 @@ mod kat {
   /// Validate legacy G2 serialization roundtrip.
   #[test]
   fn kat_ser_sig_formats() {
-    let f: VectorFile = common::load("bls_chia_ser_internals");
-    let vecs: Vec<SigSerInternalVector> = common::parse_sub(&f, "sig_serialization");
+    let vecs: Vec<SigSerInternalVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals").vectors("sig_serialization");
 
     for v in &vecs {
       let legacy_bytes: [u8; 96] = vec_from_hex(&v.sig_legacy).try_into().unwrap();

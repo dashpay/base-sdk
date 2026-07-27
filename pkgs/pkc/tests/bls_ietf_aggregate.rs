@@ -132,9 +132,7 @@ fn identity_cancellation_is_rejected(ietf_sk0: SecretKey, #[case] verify_msg: [u
 }
 
 mod kat {
-  use super::common::{self, VectorFile};
-
-  use dash_dev::vec_from_hex;
+  use dash_dev::{vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -167,8 +165,8 @@ mod kat {
 
   #[test]
   fn kat_aggregate_pk() {
-    let f: VectorFile = common::load("bls_ietf_aggregate");
-    let vecs: Vec<AggregatePkVector> = common::parse_sub(&f, "aggregate_pk");
+    let vecs: Vec<AggregatePkVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_aggregate").vectors("aggregate_pk");
 
     for v in &vecs {
       let pks: Vec<dash_pkc::bls_ietf::PublicKey> = v
@@ -187,8 +185,8 @@ mod kat {
 
   #[test]
   fn kat_aggregate_sig() {
-    let f: VectorFile = common::load("bls_ietf_aggregate");
-    let vecs: Vec<AggregateSigVector> = common::parse_sub(&f, "aggregate_sig");
+    let vecs: Vec<AggregateSigVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_aggregate").vectors("aggregate_sig");
 
     for v in &vecs {
       let sigs: Vec<dash_pkc::bls_ietf::Signature> = v
@@ -207,8 +205,8 @@ mod kat {
 
   #[test]
   fn kat_aggregate_sk() {
-    let f: VectorFile = common::load("bls_aggregate");
-    let vecs: Vec<AggregateSkVector> = common::parse_sub(&f, "aggregate_sk");
+    let vecs: Vec<AggregateSkVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").vectors("aggregate_sk");
 
     for v in &vecs {
       let sks: Vec<dash_pkc::bls_ietf::SecretKey> = v
@@ -227,8 +225,8 @@ mod kat {
 
   #[test]
   fn kat_secure_verify_aggregates() {
-    let f: VectorFile = common::load("bls_ietf_secure_aggregate");
-    let vecs: Vec<SecureAggVector> = common::parse_sub(&f, "secure_verify_aggregates");
+    let vecs: Vec<SecureAggVector> =
+      Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_secure_aggregate").vectors("secure_verify_aggregates");
 
     for v in &vecs {
       let msg = vec_from_hex(&v.msg);
