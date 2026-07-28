@@ -1,0 +1,9 @@
+rules:
+  - id: cargo-serde-json-restrict
+    message: "serde-json{,5} dependency unexpected outside dash-dev crate"
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include: [/pkgs/**/Cargo.toml]
+      exclude: [/pkgs/dev/Cargo.toml]
+    pattern-regex: \b(serde[-_]json|json5)\b
