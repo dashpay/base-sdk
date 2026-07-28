@@ -9,3 +9,7 @@
 /// Legacy (Chia) BLS scheme marker.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum BlsScChia {}
+
+/// IETF-standard BLS scheme marker.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(crate) enum BlsScIetf {}

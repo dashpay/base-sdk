@@ -9,8 +9,8 @@
 use super::sig::Signature;
 use super::sk::SecretKey;
 use super::DST_POP_PROVE;
-use crate::bls::blst_ffi::{self, G1Affine};
-use crate::bls::BlsError;
+use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::{BlsError, BlsScIetf};
 
 use blst::min_pk;
 use blst::BLST_ERROR;
@@ -36,16 +36,12 @@ impl PublicKey {
   /// Returns [`BlsError::InvalidPublicKey`] when the bytes are not a valid
   /// encoding or the point fails `validate` (identity or non-prime-order).
   pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, BlsError> {
-    let pk = min_pk::PublicKey::from_bytes(bytes).map_err(|_| BlsError::InvalidPublicKey)?;
-    // blst `from_bytes` checks only encoding and curve; validate also
-    // rejects the identity and non-prime-order points before use.
-    pk.validate().map_err(|_| BlsError::InvalidPublicKey)?;
-    Ok(Self(pk))
+    BlsScIetf::pk_from_bytes(bytes).map(Self)
   }
 
   /// Serialize to 48 compressed bytes.
   pub fn to_bytes(&self) -> [u8; 48] {
-    self.0.compress()
+    BlsScIetf::pk_to_bytes(&self.0)
   }
 
   /// Compute a DH shared key: `sk * peer_pk`.
@@ -55,15 +51,7 @@ impl PublicKey {
   /// Returns [`BlsError::InvalidPublicKey`] when `peer_pk` or the resulting
   /// point is not a valid public key.
   pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, BlsError> {
-    use zeroize::Zeroize;
-    let compressed = peer_pk.0.compress();
-    let aff = G1Affine::uncompress(&compressed).map_err(|_| BlsError::InvalidPublicKey)?;
-    let mut sk_bytes = sk.to_bytes();
-    let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
-    let out_bytes = aff.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS).compress();
-    sk_bytes.zeroize();
-    sk_scalar.b.zeroize();
-    Self::from_bytes(&out_bytes)
+    BlsScIetf::dh_exchange(&sk.0, &peer_pk.0).map(Self)
   }
 
   /// Verify a proof of possession against this key.

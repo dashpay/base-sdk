@@ -9,7 +9,8 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::{DST, DST_POP, DST_POP_PROVE};
-use crate::bls::BlsError;
+use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::{BlsError, BlsScIetf};
 
 use blst::min_pk;
 
@@ -29,7 +30,7 @@ pub enum Scheme {
 ///
 /// Zeroised on drop by the blst crate.
 #[derive(Clone)]
-pub struct SecretKey(min_pk::SecretKey);
+pub struct SecretKey(pub(super) min_pk::SecretKey);
 
 impl SecretKey {
   /// Derive a secret key from input keying material.
@@ -38,31 +39,27 @@ impl SecretKey {
   ///
   /// Returns `InvalidKeyMaterial` when `ikm` is shorter than 32 bytes.
   pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
-    min_pk::SecretKey::key_gen_v3(ikm, &[])
-      .map(Self)
-      .map_err(|_| BlsError::InvalidKeyMaterial)
+    BlsScIetf::generate(ikm).map(Self)
   }
 
   /// Parse from a 32-byte big-endian scalar.
   pub fn from_bytes(bytes: &[u8; 32]) -> Result<Self, BlsError> {
-    min_pk::SecretKey::from_bytes(bytes)
-      .map(Self)
-      .map_err(|_| BlsError::InvalidSecretKey)
+    BlsScIetf::sk_from_bytes(bytes).map(Self)
   }
 
   /// Serialize to 32 bytes.
   pub fn to_bytes(&self) -> [u8; 32] {
-    self.0.to_bytes()
+    BlsScIetf::sk_to_bytes(&self.0)
   }
 
   /// Derive the corresponding public key.
   pub fn public_key(&self) -> PublicKey {
-    PublicKey::from_inner(self.0.sk_to_pk())
+    PublicKey::from_inner(BlsScIetf::derive_pk(&self.0))
   }
 
   /// Sign with the Basic scheme.
   pub fn sign(&self, msg: &[u8]) -> Signature {
-    Signature::from_inner(self.0.sign(msg, DST, &[]))
+    Signature::from_inner(BlsScIetf::sign(&self.0, msg))
   }
 
   /// Sign with a specific scheme.

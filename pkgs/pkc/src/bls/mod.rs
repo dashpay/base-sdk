@@ -17,9 +17,10 @@ cfg_if::cfg_if! {
     pub(crate) mod chia_h2c;
     pub(crate) mod scheme_ops;
     mod scheme_chia;
+    mod scheme_ietf;
     mod schemes;
 
-    pub(crate) use schemes::BlsScChia;
+    pub(crate) use schemes::{BlsScChia, BlsScIetf};
 
     #[cfg(feature = "tests")]
     #[doc(hidden)]
