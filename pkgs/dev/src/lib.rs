@@ -13,14 +13,25 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-mod corpus;
+mod encode;
 mod lambda;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
-#[cfg(feature = "std")]
-pub use corpus::load_corpus_file;
-pub use corpus::CorpusEntry;
-#[cfg(all(feature = "std", feature = "serde"))]
-pub use corpus::{assert_serde_rt, read_corpus, write_corpus};
+pub use encode::{arr_from_hex, vec_from_hex};
 pub use lambda::{check_sptx, check_tx, check_wire};
+
+cfg_if::cfg_if! {
+  if #[cfg(all(feature = "std", feature = "serde"))] {
+    #[doc(hidden)]
+    mod __private {
+      pub use serde_json::Value;
+    }
+    mod corpus;
+    mod json;
+
+    pub use __private::Value;
+    pub use corpus::{assert_serde_rt, Corpus};
+    pub use json::{assert_json_rt, from_json, from_json_slice, json_rejects, to_json};
+  }
+}

@@ -46,13 +46,13 @@ codec_p2p!(NotFound { inventory });
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_wire, Corpus};
   use rstest::rstest;
 
   #[rstest]
   fn corpus_inv() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "inv");
-    let items = read_corpus::<Inv>(&text, "inv", check_wire);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "inv");
+    let items = corpus.entries::<Inv>("inv", check_wire);
     assert_serde_rt("inv", &items);
   }
 }

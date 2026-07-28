@@ -6,8 +6,6 @@
 
 //! BMW-512 tests.
 
-#![expect(clippy::panic, reason = "test code")]
-
 mod common;
 
 #[cfg(feature = "simd")]

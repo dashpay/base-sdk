@@ -9,7 +9,8 @@
 use super::pk::PublicKey;
 use super::sk::Scheme;
 use super::{DST, DST_POP};
-use crate::bls::BlsError;
+use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::{BlsError, BlsScIetf};
 
 use blst::min_pk;
 use blst::BLST_ERROR;
@@ -35,16 +36,12 @@ impl Signature {
   /// Returns [`BlsError::InvalidSignature`] when the bytes are not a valid
   /// encoding or the point fails `validate` (identity or non-prime-order).
   pub fn from_bytes(bytes: &[u8; 96]) -> Result<Self, BlsError> {
-    let sig = min_pk::Signature::from_bytes(bytes).map_err(|_| BlsError::InvalidSignature)?;
-    // blst `from_bytes` checks only encoding and curve; validate also
-    // rejects the identity and non-prime-order points before use.
-    sig.validate(true).map_err(|_| BlsError::InvalidSignature)?;
-    Ok(Self(sig))
+    BlsScIetf::sig_from_bytes(bytes).map(Self)
   }
 
   /// Serialize to 96 compressed bytes.
   pub fn to_bytes(&self) -> [u8; 96] {
-    self.0.compress()
+    BlsScIetf::sig_to_bytes(&self.0)
   }
 
   /// Verify with the Basic scheme.
@@ -53,7 +50,7 @@ impl Signature {
   ///
   /// Returns [`BlsError::VerifyFailed`] if the signature does not verify.
   pub fn verify(&self, msg: &[u8], pk: &PublicKey) -> Result<(), BlsError> {
-    self.verify_raw(msg, pk, DST)
+    BlsScIetf::verify(&self.0, msg, &pk.0)
   }
 
   /// Verify with a specific scheme.

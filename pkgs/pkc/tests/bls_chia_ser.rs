@@ -8,11 +8,8 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
-
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -22,23 +19,17 @@ mod kat {
     pk_ietf: String,
   }
 
-  #[derive(Deserialize)]
-  struct SigSerInternalVector {
-    sig_legacy: String,
-    sig_ietf: String,
-  }
-
   /// Validate that the same G1 point serializes differently
   /// under legacy vs IETF formats.
   #[test]
   fn kat_ser_pk_formats() {
-    let f: VectorFile = common::load("bls_chia_ser_internals");
-    let vecs: Vec<SerInternalVector> = common::parse_sub(&f, "pk_serialization");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
+    let vecs: Vec<SerInternalVector> = corpus.vectors("pk_serialization");
 
     for v in &vecs {
       // Legacy bytes should deserialize and re-serialize
       // identically.
-      let legacy_bytes: [u8; 48] = decode_hex(&v.pk_legacy).try_into().unwrap();
+      let legacy_bytes: [u8; 48] = arr_from_hex(&v.pk_legacy);
       let pk = dash_pkc::bls_chia::PublicKey::from_bytes(&legacy_bytes).unwrap();
       assert_eq!(
         pk.to_bytes().to_lower_hex_string(),
@@ -48,25 +39,6 @@ mod kat {
 
       // The two formats must differ for the same point.
       assert_ne!(v.pk_legacy, v.pk_ietf, "legacy and ietf should differ");
-    }
-  }
-
-  /// Validate legacy G2 serialization roundtrip.
-  #[test]
-  fn kat_ser_sig_formats() {
-    let f: VectorFile = common::load("bls_chia_ser_internals");
-    let vecs: Vec<SigSerInternalVector> = common::parse_sub(&f, "sig_serialization");
-
-    for v in &vecs {
-      let legacy_bytes: [u8; 96] = decode_hex(&v.sig_legacy).try_into().unwrap();
-      let sig = dash_pkc::bls_chia::Signature::from_bytes(&legacy_bytes).unwrap();
-      assert_eq!(
-        sig.to_bytes().to_lower_hex_string(),
-        v.sig_legacy,
-        "legacy sig roundtrip mismatch"
-      );
-
-      assert_ne!(v.sig_legacy, v.sig_ietf, "legacy and ietf should differ");
     }
   }
 }
@@ -117,4 +89,30 @@ fn signature_serialization_is_idempotent() {
   let once = sk.sign(&[0x44u8; 32]).to_bytes();
   let twice = dash_pkc::bls_chia::Signature::from_bytes(&once).unwrap().to_bytes();
   assert_eq!(once, twice);
+}
+
+/// Legacy G2 round-trip through the public wrapper.
+///
+/// The scheme-level KAT pins `BlsScChia::sig_{from,to}_bytes`; this pins
+/// that `Signature::{from,to}_bytes` is still wired to it.
+mod kat_sig {
+  use dash_dev::{arr_from_hex, Corpus};
+  use hex_conservative::DisplayHex;
+  use serde::Deserialize;
+
+  #[derive(Deserialize)]
+  struct SigSerVector {
+    sig_legacy: String,
+    sig_ietf: String,
+  }
+
+  #[test]
+  fn public_api_legacy_sig_roundtrips() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
+    for v in corpus.vectors::<SigSerVector>("sig_serialization") {
+      let sig = dash_pkc::bls_chia::Signature::from_bytes(&arr_from_hex(&v.sig_legacy)).unwrap();
+      assert_eq!(sig.to_bytes().to_lower_hex_string(), v.sig_legacy);
+      assert_ne!(v.sig_legacy, v.sig_ietf, "legacy and ietf should differ");
+    }
+  }
 }

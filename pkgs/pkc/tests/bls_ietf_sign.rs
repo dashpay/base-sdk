@@ -8,38 +8,12 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
-use dash_pkc::bls_ietf::{SecretKey, Signature};
+use common::*;
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
+use dash_pkc::{bls::tests as common, bls_ietf::SecretKey, bls_ietf::Signature};
 use hex_literal::hex;
 use rstest::*;
-
-/// PyECC reference vector: known sk -> known sig bytes.
-#[rstest]
-fn pyecc_sign_verify() {
-  let sk = SecretKey::from_bytes(&hex!(
-    "0101010101010101010101010101010101"
-    "010101010101010101010101010101"
-  ))
-  .unwrap();
-  let msg = hex!("030104010509");
-  let sig = sk.sign(&msg);
-
-  let expected_sig = hex!(
-    "96ba34fac33c7f129d602a0bc8a3d43f"
-    "9abc014eceaab7359146b4b150e57b80"
-    "8645738f35671e9e10e0d862a30cab70"
-    "074eb5831d13e6a5b162d01eebe687d0"
-    "164adbd0a864370a7c222a2768d7704d"
-    "a254f1bf1823665bc2361f9dd8c00e99"
-  );
-  assert_eq!(sig.to_bytes(), expected_sig);
-
-  let pk = sk.public_key();
-  assert!(sig.verify(&msg, &pk).is_ok());
-}
 
 /// Sign then verify with a generated key succeeds and is
 /// deterministic.
@@ -98,9 +72,7 @@ fn sign_is_deterministic(ietf_sk0: SecretKey) {
 #[rstest]
 fn serde_sig_roundtrip(ietf_sk0: SecretKey) {
   let sig = ietf_sk0.sign(b"serde test");
-  let json = serde_json::to_string(&sig).unwrap();
-  let restored: Signature = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, sig);
+  assert_json_rt(&sig);
 }
 
 /// Same signature under IETF and legacy formats must differ.
@@ -114,9 +86,12 @@ fn cross_format_sig_differs(ietf_sk0: SecretKey) {
   assert_ne!(ietf_sig, legacy_sig, "same key must produce different sigs");
 }
 
+/// Reference vectors through the public wrapper.
+///
+/// The scheme-level KAT in `bls::scheme_ietf` pins `BlsScIetf::sign`; this
+/// pins that `SecretKey::sign` is still wired to it, DST included.
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
-
+  use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -128,22 +103,12 @@ mod kat {
   }
 
   #[test]
-  fn kat_sign() {
-    let f: VectorFile = common::load("bls_ietf_sign");
-    let vecs: Vec<SignVector> = common::parse_sub(&f, "sign");
-
-    for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
-      let msg = decode_hex(&v.msg);
-      let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
-      let sig = sk.sign(&msg);
-      assert_eq!(
-        sig.to_bytes().to_lower_hex_string(),
-        v.sig,
-        "sig mismatch for sk={} msg={}",
-        v.sk,
-        v.msg
-      );
+  fn public_api_signing_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_sign");
+    for v in corpus.vectors::<SignVector>("sign") {
+      let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&arr_from_hex(&v.sk)).unwrap();
+      let sig = sk.sign(&vec_from_hex(&v.msg));
+      assert_eq!(sig.to_bytes().to_lower_hex_string(), v.sig);
     }
   }
 }

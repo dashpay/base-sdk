@@ -352,6 +352,7 @@ version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
  "built",
+ "cfg-if",
  "chrono",
  "ciborium",
  "clap",
@@ -377,12 +378,12 @@ name = "dash-num"
 version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
+ "dash-dev",
  "dash-types",
  "divan",
  "hex-literal",
  "rstest",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -425,6 +426,7 @@ dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
  "blst",
  "cfg-if",
+ "dash-dev",
  "dash-num",
  "dash-types",
  "divan",
@@ -435,7 +437,6 @@ dependencies = [
  "rayon",
  "rstest",
  "serde",
- "serde_json",
  "sha2",
  "zeroize",
 ]
@@ -445,14 +446,12 @@ name = "dash-pow"
 version = "0.0.0"
 dependencies = [
  "cfg-if",
+ "dash-dev",
  "dash-num",
  "divan",
- "hex-conservative",
  "hex-literal",
  "rayon",
  "rstest",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -476,7 +475,6 @@ dependencies = [
  "libm",
  "rstest",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -499,7 +497,6 @@ dependencies = [
  "dash-types-marker",
  "hex-conservative",
  "serde",
- "serde_json",
 ]
 
 [[package]]

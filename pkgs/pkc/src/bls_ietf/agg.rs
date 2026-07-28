@@ -10,47 +10,29 @@ use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
 use super::DST;
-use crate::bls::blst_ffi::{self, G1Affine, Point, G1};
-use crate::bls::BlsError;
+use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::{BlsError, BlsScIetf};
 use crate::prelude::*;
 
 use blst::min_pk;
 use blst::BLST_ERROR;
-use sha2::{Digest, Sha256};
 
 /// Aggregate multiple public keys into one.
 pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, BlsError> {
-  if keys.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  // Not repr(transparent), so collect inner refs.
-  let inner_refs: &[&min_pk::PublicKey] = &keys.iter().map(|k| &k.0).collect::<Vec<_>>();
-  let agg = min_pk::AggregatePublicKey::aggregate(inner_refs, true).map_err(|_| BlsError::InvalidPublicKey)?;
-  Ok(PublicKey::from_inner(agg.to_public_key()))
+  let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
+  BlsScIetf::aggregate_pk(&inner).map(PublicKey::from_inner)
 }
 
 /// Aggregate multiple signatures into one.
 pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, BlsError> {
-  if sigs.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  let inner_refs: Vec<&min_pk::Signature> = sigs.iter().map(|s| &s.0).collect();
-  let agg = min_pk::AggregateSignature::aggregate(&inner_refs, true).map_err(|_| BlsError::InvalidSignature)?;
-  Ok(Signature::from_inner(agg.to_signature()))
+  let inner: Vec<_> = sigs.iter().map(|sig| &sig.0).collect();
+  BlsScIetf::aggregate_sig(&inner).map(Signature::from_inner)
 }
 
 /// Verify an aggregated signature where every signer signed the same message.
 pub fn fast_verify_aggregates(sig: &Signature, msg: &[u8], pks: &[&PublicKey]) -> Result<(), BlsError> {
-  if pks.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  let inner_pks: Vec<&min_pk::PublicKey> = pks.iter().map(|k| &k.0).collect();
-  let result = sig.0.fast_aggregate_verify(true, msg, DST, &inner_pks);
-  if result == BLST_ERROR::BLST_SUCCESS {
-    Ok(())
-  } else {
-    Err(BlsError::VerifyFailed)
-  }
+  let inner: Vec<_> = pks.iter().map(|pk| &pk.0).collect();
+  BlsScIetf::fast_verify_aggregates(&sig.0, msg, &inner)
 }
 
 /// Verify an aggregated signature where each signer signed a distinct message.
@@ -80,48 +62,12 @@ pub fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) ->
 /// 4. Compute weighted public key: `agg_pk = sum(weight_i * pk_i)`
 /// 5. Verify the aggregate signature against `agg_pk` and the message
 pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8], pks: &[&PublicKey]) -> Result<(), BlsError> {
-  if pks.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-
-  let mut sorted: Vec<[u8; 48]> = pks.iter().map(|pk| pk.to_bytes()).collect();
-  sorted.sort();
-
-  let mut hasher = Sha256::new();
-  for pk_bytes in &sorted {
-    hasher.update(pk_bytes);
-  }
-  let pk_hash: [u8; 32] = hasher.finalize().into();
-
-  let mut acc = G1::identity();
-
-  for (i, pk_bytes) in sorted.iter().enumerate() {
-    // weight = SHA256(i_as_4_bytes_be || pk_hash) mod order
-    let mut weight_hasher = Sha256::new();
-    let idx_bytes = (i as u32).to_be_bytes();
-    weight_hasher.update(idx_bytes);
-    weight_hasher.update(pk_hash);
-    let weight_hash: [u8; 32] = weight_hasher.finalize().into();
-
-    // blst_p1_mult reduces internally.
-    let weight = blst_ffi::scalar_from_bendian(&weight_hash);
-
-    let pk_aff = G1Affine::uncompress(pk_bytes).map_err(|_| BlsError::InvalidPublicKey)?;
-    acc = acc + pk_aff.to_projective().mul_scalar(&weight.b, 256);
-  }
-
-  let agg_pk_bytes = acc.to_affine().compress();
-  let agg_pk = PublicKey::from_bytes(&agg_pk_bytes).map_err(|_| BlsError::InvalidPublicKey)?;
-
-  sig.verify(msg, &agg_pk)
+  let inner: Vec<_> = pks.iter().map(|pk| &pk.0).collect();
+  BlsScIetf::secure_verify_aggregates(&sig.0, msg, &inner)
 }
 
 /// Sum multiple secret keys (mod group order).
 pub fn aggregate_sk(keys: &[&SecretKey]) -> Result<SecretKey, BlsError> {
-  if keys.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  let byte_vecs = zeroize::Zeroizing::new(keys.iter().map(|k| k.to_bytes()).collect::<Vec<[u8; 32]>>());
-  let out_bytes = crate::common::bls::sum_sk_scalars(&byte_vecs);
-  SecretKey::from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
+  let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
+  BlsScIetf::aggregate_sk(&inner).map(SecretKey::from_inner)
 }

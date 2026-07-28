@@ -87,13 +87,13 @@ impl fmt::Display for AssetUnlock {
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_sptx, Corpus};
   use rstest::rstest;
 
   #[rstest]
   fn corpus_assetunlock() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "assetunlock");
-    let items = read_corpus::<AssetUnlock>(&text, "assetunlock", check_sptx);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "assetunlock");
+    let items = corpus.entries::<AssetUnlock>("assetunlock", check_sptx);
     assert_serde_rt("assetunlock", &items);
   }
 }

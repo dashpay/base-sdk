@@ -9,34 +9,20 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{self, Point, G1};
-use crate::bls::BlsError;
+use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::{BlsError, BlsScChia};
 use crate::prelude::*;
-
-use sha2::{Digest, Sha256};
 
 /// Aggregate multiple legacy BLS public keys (simple point addition in G1).
 pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, BlsError> {
-  if keys.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  let mut acc = keys[0].0.to_projective();
-  for k in &keys[1..] {
-    acc = acc + k.0.to_projective();
-  }
-  Ok(PublicKey::from_inner(acc.to_affine()))
+  let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
+  BlsScChia::aggregate_pk(&inner).map(PublicKey::from_inner)
 }
 
 /// Aggregate multiple legacy BLS signatures (simple point addition in G2).
 pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, BlsError> {
-  if sigs.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  let mut acc = sigs[0].0.to_projective();
-  for s in &sigs[1..] {
-    acc = acc + s.0.to_projective();
-  }
-  Ok(Signature::from_inner(acc.to_affine()))
+  let inner: Vec<_> = sigs.iter().map(|sig| &sig.0).collect();
+  BlsScChia::aggregate_sig(&inner).map(Signature::from_inner)
 }
 
 /// Verify an aggregated legacy BLS signature over one message and multiple
@@ -46,17 +32,15 @@ pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, BlsError> {
 /// rejected here, for backwards compatibility: it is a bare pairing check
 /// that treats infinity as valid (see `identity_cancellation_is_not_rejected`).
 pub fn verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicKey]) -> Result<(), BlsError> {
-  if pks.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  let agg_pk = aggregate_pk(pks)?;
-  sig.verify(msg, &agg_pk)
+  let inner: Vec<_> = pks.iter().map(|pk| &pk.0).collect();
+  BlsScChia::fast_verify_aggregates(&sig.0, msg, &inner)
 }
 
 /// Verify an aggregated legacy BLS signature where every signer signed the
 /// same message. Equivalent to `verify_aggregates` for the legacy scheme.
 pub fn fast_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicKey]) -> Result<(), BlsError> {
-  verify_aggregates(sig, msg, pks)
+  let inner: Vec<_> = pks.iter().map(|pk| &pk.0).collect();
+  BlsScChia::fast_verify_aggregates(&sig.0, msg, &inner)
 }
 
 /// Securely aggregate and verify signatures with public-key weighting.
@@ -69,47 +53,12 @@ pub fn fast_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicKey
 /// 4. Compute weighted public key: `agg_pk = sum(weight_i * pk_i)`
 /// 5. Verify the aggregate signature against `agg_pk` and the message
 pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8; 32], pks: &[&PublicKey]) -> Result<(), BlsError> {
-  if pks.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-
-  let mut sorted: Vec<[u8; 48]> = pks.iter().map(|pk| pk.to_bytes()).collect();
-  sorted.sort();
-
-  let mut hasher = Sha256::new();
-  for pk_bytes in &sorted {
-    hasher.update(pk_bytes);
-  }
-  let pk_hash: [u8; 32] = hasher.finalize().into();
-
-  let mut acc = G1::identity();
-
-  for (i, pk_bytes) in sorted.iter().enumerate() {
-    // weight = SHA256(i_as_4_bytes_be || pk_hash) mod order
-    let mut weight_hasher = Sha256::new();
-    let idx_bytes = (i as u32).to_be_bytes();
-    weight_hasher.update(idx_bytes);
-    weight_hasher.update(pk_hash);
-    let weight_hash: [u8; 32] = weight_hasher.finalize().into();
-
-    // blst_p1_mult reduces internally.
-    let weight = blst_ffi::scalar_from_bendian(&weight_hash);
-
-    let pk = PublicKey::from_bytes(pk_bytes).map_err(|_| BlsError::InvalidPublicKey)?;
-    acc = acc + pk.0.to_projective().mul_scalar(&weight.b, 256);
-  }
-
-  let agg_pk = PublicKey::from_inner(acc.to_affine());
-
-  sig.verify(msg, &agg_pk)
+  let inner: Vec<_> = pks.iter().map(|pk| &pk.0).collect();
+  BlsScChia::secure_verify_aggregates(&sig.0, msg, &inner)
 }
 
 /// Sum multiple secret keys (mod group order).
 pub fn aggregate_sk(keys: &[&SecretKey]) -> Result<SecretKey, BlsError> {
-  if keys.is_empty() {
-    return Err(BlsError::EmptyAggregation);
-  }
-  let byte_vecs = zeroize::Zeroizing::new(keys.iter().map(|k| k.to_bytes()).collect::<Vec<[u8; 32]>>());
-  let out_bytes = crate::common::bls::sum_sk_scalars(&byte_vecs);
-  SecretKey::from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
+  let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
+  BlsScChia::aggregate_sk(&inner).map(SecretKey::from_inner)
 }

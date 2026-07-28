@@ -396,11 +396,6 @@ impl G1Affine {
     out
   }
 
-  /// Scalar multiplication via the projective representation.
-  pub(crate) fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self {
-    self.to_projective().mul_scalar(scalar, nbits).to_affine()
-  }
-
   /// Uncompress a 48-byte G1 point.
   ///
   /// # Errors

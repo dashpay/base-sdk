@@ -75,6 +75,13 @@ predicate isOpaqueType(TypeItem t) {
   isSingleTupleField(t)
 }
 
+/** Holds if `t` is a compile-time marker type (empty enum, zero-sized). */
+predicate isMarkerType(TypeItem t) {
+  t instanceof Enum and
+  t.(Enum).hasVariantList() and
+  count(t.(Enum).getVariantList().getAVariant()) = 0
+}
+
 /** Materialises (TypeItem, fieldTypeName, crate) for join efficiency. */
 pragma[nomagic]
 private predicate fieldTypeInCrate(TypeItem t, string fieldTypeName, string crate) {
@@ -116,6 +123,9 @@ predicate isCodecType(TypeItem t) {
   t.getName().getText().matches("%Encoder%") or
   t.getName().getText() = "ArrayBuf"
 }
+
+/** Holds if `name` is a trait whose methods must have a body in exactly one layer. */
+predicate isMutexTrait(string name) { name = "BlsScheme" }
 
 /** Holds if `t` lives in a crate with no public API. */
 predicate isPrivateCrate(TypeItem t) {
@@ -222,6 +232,8 @@ predicate isSerdeExempt(TypeItem t) {
   isDispatchType(t)
   or
   isOpaqueType(t)
+  or
+  isMarkerType(t)
   or
   hasLifetime(t)
   or

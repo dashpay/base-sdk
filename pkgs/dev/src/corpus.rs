@@ -8,75 +8,42 @@
 
 use crate::prelude::*;
 
-/// A typed corpus entry pairing raw wire hex with expected details.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct CorpusEntry<T> {
-  pub raw: String,
-  pub details: T,
-}
+use hex_conservative::FromHex;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-/// Reads a corpus JSON5 file from disk.
+use core::fmt;
+use std::fs;
+
+/// Verifies the serde round-trip for a set of corpus entries.
 ///
-/// The file lives at `<manifest_dir>/corpus/<file>.json5`.
+/// Writes `items` to JSON via [`write_corpus`], reads them back through
+/// [`Corpus::entries`] (no-op check), and asserts equality.
 ///
 /// # Panics
 ///
-/// Panics if the file cannot be read.
-#[cfg(feature = "std")]
-pub fn load_corpus_file(manifest_dir: &str, file: &str) -> String {
-  let path = format!("{manifest_dir}/corpus/{file}.json5");
-  std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}"))
-}
-
-/// Reads a corpus section from JSON5 text.
-///
-/// Parses `text` as `{ "section": { "label": { raw, details } } }`,
-/// hex-decodes `raw` to bytes, calls `check(raw_bytes, &details,
-/// label)` for each entry, and returns all details keyed by label.
-///
-/// # Panics
-///
-/// Panics if the section is missing, empty, or the check function
-/// panics.
-#[cfg(all(feature = "std", feature = "serde"))]
-pub fn read_corpus<T: ::serde::de::DeserializeOwned>(
-  text: &str,
-  section: &str,
-  mut check: impl FnMut(&[u8], &T, &str),
-) -> BTreeMap<String, T> {
-  use hex_conservative::FromHex;
-
-  let mut outer: BTreeMap<String, serde_json::Value> =
-    json5::from_str(text).unwrap_or_else(|e| panic!("{section}: parse: {e}"));
-  let section_val = outer.remove(section).unwrap_or_else(|| panic!("{section}: not found"));
-  let entries: BTreeMap<String, CorpusEntry<T>> =
-    serde_json::from_value(section_val).unwrap_or_else(|e| panic!("{section}: {e}"));
-  assert!(!entries.is_empty(), "{section}: empty");
-
-  let mut result = BTreeMap::new();
-  for (label, entry) in entries {
-    let bytes = Vec::<u8>::from_hex(&entry.raw).unwrap_or_else(|e| panic!("{section}/{label}: hex: {e}"));
-    check(&bytes, &entry.details, &label);
-    result.insert(label, entry.details);
-  }
-  result
+/// Panics on round-trip mismatch.
+pub fn assert_serde_rt<T>(section: &str, items: &BTreeMap<String, T>)
+where
+  T: DeserializeOwned + Serialize + PartialEq + fmt::Debug,
+{
+  let json = write_corpus(section, items);
+  let rt = Corpus::parse(section, &json).entries::<T>(section, |_, _, _| {});
+  assert_eq!(*items, rt, "{section}: serde round-trip");
 }
 
 /// Serializes corpus entries to JSON in `{ raw, details }` format,
 /// wrapped in a section key.
 ///
 /// Produces `{ "section": { "label": { "raw": "", "details": T } } }`
-/// so the output can be read back by [`read_corpus`] with a no-op
+/// so the output can be read back by [`Corpus::entries`] with a no-op
 /// check function to verify the serde round-trip.
 ///
 /// # Panics
 ///
 /// Panics if serialization fails.
-#[cfg(all(feature = "std", feature = "serde"))]
-pub fn write_corpus<T: ::serde::Serialize>(section: &str, entries: &BTreeMap<String, T>) -> String {
-  #[derive(::serde::Serialize)]
-  struct Raw<'a, T: ::serde::Serialize> {
+pub(crate) fn write_corpus<T: Serialize>(section: &str, entries: &BTreeMap<String, T>) -> String {
+  #[derive(Serialize)]
+  struct Raw<'a, T: Serialize> {
     raw: &'a str,
     details: &'a T,
   }
@@ -88,20 +55,96 @@ pub fn write_corpus<T: ::serde::Serialize>(section: &str, entries: &BTreeMap<Str
   serde_json::to_string(&outer).unwrap_or_else(|e| panic!("write_corpus: {e}"))
 }
 
-/// Verifies the serde round-trip for a set of corpus entries.
+/// A typed corpus entry pairing raw wire hex with expected details.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub(crate) struct CorpusEntry<T> {
+  pub raw: String,
+  pub details: T,
+}
+
+/// A parsed corpus file, opened once and queried by section.
 ///
-/// Writes `items` to JSON via [`write_corpus`], reads them back
-/// with [`read_corpus`] (no-op check), and asserts equality.
-///
-/// # Panics
-///
-/// Panics on round-trip mismatch.
-#[cfg(all(feature = "std", feature = "serde"))]
-pub fn assert_serde_rt<T>(section: &str, items: &BTreeMap<String, T>)
-where
-  T: ::serde::de::DeserializeOwned + ::serde::Serialize + PartialEq + core::fmt::Debug,
-{
-  let json = write_corpus(section, items);
-  let rt = read_corpus::<T>(&json, section, |_, _, _| {});
-  assert_eq!(*items, rt, "{section}: serde round-trip");
+/// Serves both operation KATs via [`Corpus::vectors`] (array sections) and
+/// wire round-trip corpora via [`Corpus::entries`] (raw/details sections).
+#[derive(Clone, Debug)]
+pub struct Corpus {
+  name: String,
+  root: serde_json::Value,
+}
+
+impl Corpus {
+  /// Parses corpus text (JSON5) under a diagnostic `name`.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the text is not valid JSON5.
+  pub(crate) fn parse(name: &str, text: &str) -> Self {
+    let root = json5::from_str(text).unwrap_or_else(|e| panic!("{name}: parse: {e}"));
+    Self {
+      name: name.into(),
+      root,
+    }
+  }
+
+  /// Consumes the handle and returns the parsed root value.
+  pub fn into_value(self) -> serde_json::Value {
+    self.root
+  }
+
+  /// Returns a named `{ label: { raw, details } }` section.
+  ///
+  /// Hex-decodes each `raw`, calls `check(raw_bytes, &details, label)`, and
+  /// returns the details keyed by label.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the section is missing, empty, or `check` panics.
+  pub fn entries<T: DeserializeOwned>(
+    &self,
+    section: &str,
+    mut check: impl FnMut(&[u8], &T, &str),
+  ) -> BTreeMap<String, T> {
+    let val = self
+      .root
+      .get(section)
+      .unwrap_or_else(|| panic!("{}: missing section '{section}'", self.name));
+    let entries: BTreeMap<String, CorpusEntry<T>> =
+      serde_json::from_value(val.clone()).unwrap_or_else(|e| panic!("{}: section '{section}': {e}", self.name));
+    assert!(!entries.is_empty(), "{}: section '{section}' empty", self.name);
+
+    let mut result = BTreeMap::new();
+    for (label, entry) in entries {
+      let bytes = Vec::<u8>::from_hex(&entry.raw).unwrap_or_else(|e| panic!("{section}/{label}: hex: {e}"));
+      check(&bytes, &entry.details, &label);
+      result.insert(label, entry.details);
+    }
+    result
+  }
+
+  /// Opens and parses `<manifest_dir>/corpus/<name>.json5`.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the file cannot be read or parsed.
+  pub fn open(manifest_dir: &str, name: &str) -> Self {
+    let path = format!("{manifest_dir}/corpus/{name}.json5");
+    let text = fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {path}: {e}"));
+    Self::parse(name, &text)
+  }
+
+  /// Returns a named array section as typed vectors: `{ section: [T, ...] }`.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the section is missing, empty, or is not an array of `T`.
+  pub fn vectors<T: ::serde::de::DeserializeOwned>(&self, section: &str) -> Vec<T> {
+    let val = self
+      .root
+      .get(section)
+      .unwrap_or_else(|| panic!("{}: missing section '{section}'", self.name));
+    let out: Vec<T> =
+      serde_json::from_value(val.clone()).unwrap_or_else(|e| panic!("{}: section '{section}': {e}", self.name));
+    assert!(!out.is_empty(), "{}: section '{section}' empty", self.name);
+    out
+  }
 }

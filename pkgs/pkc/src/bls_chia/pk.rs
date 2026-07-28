@@ -6,10 +6,10 @@
 
 //! Legacy BLS public key (48-byte G1 point, legacy serialization).
 
-use super::ser;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{self, G1Affine};
-use crate::bls::BlsError;
+use crate::bls::blst_ffi::G1Affine;
+use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::{BlsError, BlsScChia};
 
 /// A legacy BLS public key (48-byte G1 point in legacy serialization).
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -32,23 +32,22 @@ impl PublicKey {
   /// Returns [`BlsError::InvalidPublicKey`] when the bytes do not decode to a
   /// valid public key (identity marker, all-zero buffer, or malformed input).
   pub fn from_bytes(bytes: &[u8; 48]) -> Result<Self, BlsError> {
-    ser::deser_g1(bytes).map(Self)
+    BlsScChia::pk_from_bytes(bytes).map(Self)
   }
 
   /// Serialize to 48 legacy-format bytes.
   pub fn to_bytes(&self) -> [u8; 48] {
-    ser::ser_g1(&self.0)
+    BlsScChia::pk_to_bytes(&self.0)
   }
 
   /// Compute a DH shared key: `sk * peer_pk`.
+  ///
+  /// # Errors
+  ///
+  /// Infallible for the legacy scheme; the `Result` mirrors the shared
+  /// scheme signature and always returns `Ok`.
   pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, BlsError> {
-    use zeroize::Zeroize;
-    let mut sk_bytes = sk.to_bytes();
-    let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
-    let out_aff = peer_pk.0.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS);
-    sk_bytes.zeroize();
-    sk_scalar.b.zeroize();
-    Ok(Self(out_aff))
+    BlsScChia::dh_exchange(&sk.0, &peer_pk.0).map(Self)
   }
 }
 

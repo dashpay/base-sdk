@@ -36,20 +36,20 @@ codec_p2p!(Pong { nonce });
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_wire, Corpus};
   use rstest::rstest;
 
   #[rstest]
   fn corpus_ping() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "ping");
-    let items = read_corpus::<Ping>(&text, "ping", check_wire);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "ping");
+    let items = corpus.entries::<Ping>("ping", check_wire);
     assert_serde_rt("ping", &items);
   }
 
   #[rstest]
   fn corpus_pong() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "ping");
-    let items = read_corpus::<Pong>(&text, "pong", check_wire);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "ping");
+    let items = corpus.entries::<Pong>("pong", check_wire);
     assert_serde_rt("pong", &items);
   }
 }

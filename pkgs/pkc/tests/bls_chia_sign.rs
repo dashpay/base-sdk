@@ -8,11 +8,10 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
-use dash_pkc::bls_chia::{SecretKey, Signature};
+use common::*;
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
+use dash_pkc::{bls::tests as common, bls_chia::SecretKey, bls_chia::Signature};
 use rstest::*;
 
 /// Sign then verify round-trips.
@@ -62,9 +61,7 @@ fn sig_roundtrip(chia_sk0: SecretKey, msg32: [u8; 32]) {
 #[rstest]
 fn serde_sig_roundtrip(chia_sk0: SecretKey, msg32: [u8; 32]) {
   let sig = chia_sk0.sign(&msg32);
-  let json = serde_json::to_string(&sig).unwrap();
-  let restored: Signature = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, sig);
+  assert_json_rt(&sig);
 }
 
 /// Same signature serialized under legacy and IETF formats
@@ -101,12 +98,14 @@ fn legacy_pk_serialization_differs_from_ietf() {
   assert_ne!(legacy_pk.to_bytes(), ietf_pk.to_bytes());
 }
 
+/// Reference vectors through the public wrapper.
+///
+/// The scheme-level KAT in `bls::scheme_chia` pins `BlsScChia::sign`; this
+/// pins that `SecretKey::sign` is still wired to it.
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
-
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
-  use sha2::{Digest, Sha256};
 
   #[derive(Deserialize)]
   struct SignVector {
@@ -115,96 +114,13 @@ mod kat {
     sig: String,
   }
 
-  #[derive(Deserialize)]
-  #[expect(dead_code, reason = "deserialized from corpus JSON")]
-  struct HashInternalVector {
-    msg: String,
-    t00_hash: String,
-    t01_hash: String,
-    t10_hash: String,
-    t11_hash: String,
-    t00_fp: String,
-    t01_fp: String,
-    t10_fp: String,
-    t11_fp: String,
-    hash_to_g2_legacy: String,
-  }
-
   #[test]
-  fn kat_sign() {
-    let f: VectorFile = common::load("bls_chia_sign");
-    let vecs: Vec<SignVector> = common::parse_sub(&f, "sign");
-
-    for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
-      let msg: [u8; 32] = decode_hex(&v.msg).try_into().unwrap();
-      let sk = dash_pkc::bls_chia::SecretKey::from_bytes(&sk_bytes).unwrap();
-      let sig = sk.sign(&msg);
-      assert_eq!(
-        sig.to_bytes().to_lower_hex_string(),
-        v.sig,
-        "sig mismatch for sk={} msg={}",
-        v.sk,
-        v.msg
-      );
-    }
-  }
-
-  /// Validate SHA-256 domain hashing matches reference vectors.
-  #[test]
-  fn kat_hash_sha256() {
-    let f: VectorFile = common::load("bls_chia_hash_internals");
-    let vecs: Vec<HashInternalVector> = common::parse_sub(&f, "hash_internals");
-
-    for v in &vecs {
-      let msg = decode_hex(&v.msg);
-      let msg32: [u8; 32] = msg.try_into().unwrap();
-
-      // Reproduce: input = msg(32) || tag(7) || suffix(1)
-      let tags: [&[u8; 7]; 4] = [b"G2_0_c0", b"G2_0_c1", b"G2_1_c0", b"G2_1_c1"];
-      let expected = [&v.t00_hash, &v.t01_hash, &v.t10_hash, &v.t11_hash];
-
-      for (tag, exp) in tags.iter().zip(expected.iter()) {
-        let mut input = [0u8; 40];
-        input[..32].copy_from_slice(&msg32);
-        input[32..39].copy_from_slice(*tag);
-
-        input[39] = 0;
-        let h0 = Sha256::digest(input);
-        input[39] = 1;
-        let h1 = Sha256::digest(input);
-
-        let mut concat = [0u8; 64];
-        concat[..32].copy_from_slice(&h0);
-        concat[32..].copy_from_slice(&h1);
-        assert_eq!(
-          concat.to_lower_hex_string(),
-          **exp,
-          "SHA-256 mismatch for tag {:?}",
-          std::str::from_utf8(*tag).unwrap()
-        );
-      }
-    }
-  }
-
-  /// Validate the full hash-to-G2 output.
-  #[test]
-  fn kat_hash_to_g2() {
-    let f: VectorFile = common::load("bls_chia_hash_internals");
-    let vecs: Vec<HashInternalVector> = common::parse_sub(&f, "hash_internals");
-
-    for v in &vecs {
-      let msg: [u8; 32] = decode_hex(&v.msg).try_into().unwrap();
-      let sk_bytes = [1u8; 32];
-      let sk = dash_pkc::bls_chia::SecretKey::from_bytes(&sk_bytes).unwrap();
-      let _sig = sk.sign(&msg);
-
-      // We can't directly access hash_to_g2 output, but we
-      // can verify signing produces the expected signature
-      // (which transitively validates hash_to_g2).
-      // The sign KAT already covers this, so here we just
-      // verify the hash output bytes if exposed.
-      // For now, the kat_sign test covers this end-to-end.
+  fn public_api_signing_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_sign");
+    for v in corpus.vectors::<SignVector>("sign") {
+      let sk = dash_pkc::bls_chia::SecretKey::from_bytes(&arr_from_hex(&v.sk)).unwrap();
+      let msg: [u8; 32] = arr_from_hex(&v.msg);
+      assert_eq!(sk.sign(&msg).to_bytes().to_lower_hex_string(), v.sig);
     }
   }
 }

@@ -8,11 +8,10 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
-use dash_pkc::bls_ietf::SecretKey;
+use common::*;
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
+use dash_pkc::{bls::tests as common, bls_ietf::SecretKey};
 use rstest::*;
 
 /// Secret key serialization round-trips.
@@ -44,9 +43,7 @@ fn pk_roundtrip(ietf_sk0: SecretKey) {
 #[rstest]
 fn serde_pk_roundtrip(ietf_sk0: SecretKey) {
   let pk = ietf_sk0.public_key();
-  let json = serde_json::to_string(&pk).unwrap();
-  let restored: dash_pkc::bls_ietf::PublicKey = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, pk);
+  assert_json_rt(&pk);
 }
 
 /// Same key serialized under IETF and legacy formats must differ.
@@ -59,8 +56,7 @@ fn cross_format_pk_differs(ietf_sk0: SecretKey) {
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
-
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -72,11 +68,11 @@ mod kat {
 
   #[test]
   fn kat_derive_pk() {
-    let f: VectorFile = common::load("bls_ietf_keygen");
-    let vecs: Vec<KeygenVector> = common::parse_sub(&f, "derive_pk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_keygen");
+    let vecs: Vec<KeygenVector> = corpus.vectors("derive_pk");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
+      let sk_bytes: [u8; 32] = arr_from_hex(&v.sk);
       let sk = dash_pkc::bls_ietf::SecretKey::from_bytes(&sk_bytes).unwrap();
       assert_eq!(
         sk.public_key().to_bytes().to_lower_hex_string(),

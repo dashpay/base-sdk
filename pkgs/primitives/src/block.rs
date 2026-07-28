@@ -242,13 +242,13 @@ impl fmt::Display for Block {
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_wire, Corpus};
   use rstest::rstest;
 
   #[rstest]
   fn corpus_block() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "blocks");
-    let items = read_corpus::<Block>(&text, "blocks", |raw, details, label| {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "blocks");
+    let items = corpus.entries::<Block>("blocks", |raw, details, label| {
       check_wire(raw, details, label);
       if let Some(e) = details.check() {
         panic!("{label}: check: {e}");

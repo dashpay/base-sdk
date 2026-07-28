@@ -9,11 +9,10 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
-use dash_pkc::bls_chia::SecretKey;
+use common::*;
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
+use dash_pkc::{bls::tests as common, bls_chia::SecretKey};
 use rstest::*;
 
 /// Secret key serialization round-trips.
@@ -30,7 +29,7 @@ fn sk_generate_rejects_short_ikm() {
   assert!(SecretKey::generate(&[0u8; 31]).is_err());
 }
 
-/// Keys derive using EIP-2333 (blst `key_gen_v3`)
+/// Keys derived using draft-03 (blst `key_gen_v3`)
 #[rstest]
 #[case(&RSEED[0], "4a353be3dac091a0a7e640620372f5e1e2e4401717c1e79cac6ffba8f6905604")]
 #[case(&RSEED[1], "6fc9d9a2b05fd1f0e51bc91041a03be8657081f272ec281aff731624f0d1c220")]
@@ -56,9 +55,7 @@ fn pk_roundtrip(chia_sk0: SecretKey) {
 #[rstest]
 fn serde_pk_roundtrip(chia_sk0: SecretKey) {
   let pk = chia_sk0.public_key();
-  let json = serde_json::to_string(&pk).unwrap();
-  let restored: dash_pkc::bls_chia::PublicKey = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, pk);
+  assert_json_rt(&pk);
 }
 
 /// Same key serialized under legacy and IETF formats must produce
@@ -72,8 +69,7 @@ fn cross_format_pk_differs(chia_sk0: SecretKey) {
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
-
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -85,11 +81,11 @@ mod kat {
 
   #[test]
   fn kat_derive_pk() {
-    let f: VectorFile = common::load("bls_chia_keygen");
-    let vecs: Vec<KeygenVector> = common::parse_sub(&f, "derive_pk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_keygen");
+    let vecs: Vec<KeygenVector> = corpus.vectors("derive_pk");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
+      let sk_bytes: [u8; 32] = arr_from_hex(&v.sk);
       let sk = dash_pkc::bls_chia::SecretKey::from_bytes(&sk_bytes).unwrap();
       assert_eq!(
         sk.public_key().to_bytes().to_lower_hex_string(),

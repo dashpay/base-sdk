@@ -188,13 +188,13 @@ impl fmt::Display for ProUpServTx {
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_sptx, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_sptx, Corpus};
   use rstest::rstest;
 
   #[rstest]
   fn corpus_proupservtx() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "proupservtx");
-    let items = read_corpus::<ProUpServTx>(&text, "proupservtx", check_sptx);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "proupservtx");
+    let items = corpus.entries::<ProUpServTx>("proupservtx", check_sptx);
     assert_serde_rt("proupservtx", &items);
   }
 }

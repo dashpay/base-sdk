@@ -10,6 +10,8 @@
 
 mod common;
 
+#[cfg(feature = "serde")]
+use dash_dev::assert_json_rt;
 use dash_pkc::k256::{PublicKey, SecretKey};
 use hex_literal::hex;
 use rstest::*;
@@ -69,14 +71,11 @@ fn pubkey_rejects_garbage() {
 #[rstest]
 fn serde_pk_roundtrip(alice: SecretKey) {
   let pk = alice.public_key();
-  let json = serde_json::to_string(&pk).unwrap();
-  let restored: PublicKey = serde_json::from_str(&json).unwrap();
-  assert_eq!(restored, pk);
+  assert_json_rt(&pk);
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
-
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -88,11 +87,11 @@ mod kat {
 
   #[test]
   fn kat_derive_pk() {
-    let f: VectorFile = common::load("k256_keygen");
-    let vecs: Vec<KeygenVector> = common::parse_sub(&f, "derive_pk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_keygen");
+    let vecs: Vec<KeygenVector> = corpus.vectors("derive_pk");
 
     for v in &vecs {
-      let sk_bytes: [u8; 32] = decode_hex(&v.sk).try_into().unwrap();
+      let sk_bytes: [u8; 32] = arr_from_hex(&v.sk);
       let sk = dash_pkc::k256::SecretKey::from_bytes(&sk_bytes).unwrap();
       let pk = sk.public_key();
       assert_eq!(

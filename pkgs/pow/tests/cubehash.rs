@@ -6,7 +6,6 @@
 
 //! CubeHash-16/32-512 tests.
 
-#![expect(clippy::panic, reason = "test code")]
 #![cfg_attr(feature = "simd", feature(portable_simd))]
 
 mod common;

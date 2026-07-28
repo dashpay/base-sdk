@@ -71,20 +71,20 @@ hash_impl!(Headers2);
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_wire, Corpus};
   use rstest::rstest;
 
   #[rstest]
   fn corpus_getheaders2() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "headers2");
-    let items = read_corpus::<GetHeaders2>(&text, "getheaders2", check_wire);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "headers2");
+    let items = corpus.entries::<GetHeaders2>("getheaders2", check_wire);
     assert_serde_rt("getheaders2", &items);
   }
 
   #[rstest]
   fn corpus_headers2() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "headers2");
-    let items = read_corpus::<Headers2>(&text, "headers2", check_wire);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "headers2");
+    let items = corpus.entries::<Headers2>("headers2", check_wire);
     assert_serde_rt("headers2", &items);
   }
 }

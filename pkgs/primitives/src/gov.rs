@@ -464,21 +464,21 @@ impl Checkable for Proposal {
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_wire, load_corpus_file, read_corpus};
+  use dash_dev::{assert_serde_rt, check_wire, from_json_slice, Corpus, Value};
   use rstest::rstest;
   use serde::{Deserialize, Serialize};
 
   #[rstest]
   fn corpus_govobjvote() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "govobjvote");
-    let items = read_corpus::<GovVote>(&text, "govobjvote", check_wire);
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "govobjvote");
+    let items = corpus.entries::<GovVote>("govobjvote", check_wire);
     assert_serde_rt("govobjvote", &items);
   }
 
   #[rstest]
   fn corpus_govobj_wire() {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), "govobj");
-    read_corpus::<serde_json::Value>(&text, "govobj", |raw, _, label| {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "govobj");
+    corpus.entries::<Value>("govobj", |raw, _, label| {
       let decoded = GovObject::decode(&mut &raw[..]).unwrap();
       let mut encoded = Vec::new();
       decoded.encode(&mut encoded);
@@ -501,7 +501,7 @@ mod tests {
     masternode_outpoint: OutPoint,
     #[serde(with = "dash_types::serialize::hex")]
     sig: Vec<u8>,
-    data: serde_json::Value,
+    data: Value,
   }
 
   impl GovCorpusDetails {
@@ -517,7 +517,7 @@ mod tests {
       );
       assert_eq!(self.sig, obj.sig, "{label}: sig");
 
-      let wire_data: serde_json::Value = serde_json::from_slice(&obj.data).unwrap();
+      let wire_data: Value = from_json_slice(&obj.data);
       assert_eq!(self.data, wire_data, "{label}: data");
     }
   }
@@ -526,14 +526,13 @@ mod tests {
   #[case("proposals")]
   #[case("triggers")]
   fn corpus_govobj(#[case] section: &str) {
-    let text = load_corpus_file(env!("CARGO_MANIFEST_DIR"), section);
-    let items = read_corpus::<GovCorpusDetails>(&text, section, |raw, details, label| {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), section);
+    let items = corpus.entries::<GovCorpusDetails>(section, |raw, details, label| {
       let obj = GovObject::decode(&mut &raw[..]).unwrap();
       details.assert_matches(&obj, label);
 
       if obj.object_type == GovObjectType::Proposal {
-        let proposal: Proposal =
-          serde_json::from_slice(&obj.data).unwrap_or_else(|e| panic!("{label}: proposal json: {e}"));
+        let proposal: Proposal = from_json_slice(&obj.data);
         if let Some(e) = proposal.check() {
           panic!("{label}: proposal check: {e}");
         }

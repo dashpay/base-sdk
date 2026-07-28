@@ -8,10 +8,8 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
+use common::*;
+use dash_pkc::bls::tests as common;
 use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, verify_aggregates, PublicKey, SecretKey, Signature};
 use rstest::*;
 
@@ -110,8 +108,7 @@ fn identity_cancellation_is_not_rejected(chia_sk0: SecretKey, #[case] verify_msg
 }
 
 mod kat {
-  use super::common::{self, decode_hex, VectorFile};
-
+  use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use serde::Deserialize;
 
@@ -138,15 +135,15 @@ mod kat {
 
   #[test]
   fn kat_aggregate_pk() {
-    let f: VectorFile = common::load("bls_chia_aggregate");
-    let vecs: Vec<AggregatePkVector> = common::parse_sub(&f, "aggregate_pk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_aggregate");
+    let vecs: Vec<AggregatePkVector> = corpus.vectors("aggregate_pk");
 
     for v in &vecs {
       let pks: Vec<dash_pkc::bls_chia::PublicKey> = v
         .pks
         .iter()
         .map(|h| {
-          let b: [u8; 48] = decode_hex(h).try_into().unwrap();
+          let b: [u8; 48] = arr_from_hex(h);
           dash_pkc::bls_chia::PublicKey::from_bytes(&b).unwrap()
         })
         .collect();
@@ -158,15 +155,15 @@ mod kat {
 
   #[test]
   fn kat_aggregate_sig() {
-    let f: VectorFile = common::load("bls_chia_aggregate");
-    let vecs: Vec<AggregateSigVector> = common::parse_sub(&f, "aggregate_sig");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_aggregate");
+    let vecs: Vec<AggregateSigVector> = corpus.vectors("aggregate_sig");
 
     for v in &vecs {
       let sigs: Vec<dash_pkc::bls_chia::Signature> = v
         .sigs
         .iter()
         .map(|h| {
-          let b: [u8; 96] = decode_hex(h).try_into().unwrap();
+          let b: [u8; 96] = arr_from_hex(h);
           dash_pkc::bls_chia::Signature::from_bytes(&b).unwrap()
         })
         .collect();
@@ -178,21 +175,21 @@ mod kat {
 
   #[test]
   fn kat_secure_verify_aggregates() {
-    let f: VectorFile = common::load("bls_chia_secure_aggregate");
-    let vecs: Vec<SecureAggVector> = common::parse_sub(&f, "secure_verify_aggregates");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_secure_aggregate");
+    let vecs: Vec<SecureAggVector> = corpus.vectors("secure_verify_aggregates");
 
     for v in &vecs {
-      let msg: [u8; 32] = decode_hex(&v.msg).try_into().unwrap();
+      let msg: [u8; 32] = arr_from_hex(&v.msg);
       let pks: Vec<dash_pkc::bls_chia::PublicKey> = v
         .pks
         .iter()
         .map(|h| {
-          let b: [u8; 48] = decode_hex(h).try_into().unwrap();
+          let b: [u8; 48] = arr_from_hex(h);
           dash_pkc::bls_chia::PublicKey::from_bytes(&b).unwrap()
         })
         .collect();
 
-      let expected_agg: [u8; 96] = decode_hex(&v.agg_sig_secure).try_into().unwrap();
+      let expected_agg: [u8; 96] = arr_from_hex(&v.agg_sig_secure);
       let agg_sig = dash_pkc::bls_chia::Signature::from_bytes(&expected_agg).unwrap();
       let pk_refs: Vec<_> = pks.iter().collect();
 
