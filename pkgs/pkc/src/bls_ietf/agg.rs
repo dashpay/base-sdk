@@ -122,6 +122,6 @@ pub fn aggregate_sk(keys: &[&SecretKey]) -> Result<SecretKey, BlsError> {
     return Err(BlsError::EmptyAggregation);
   }
   let byte_vecs = zeroize::Zeroizing::new(keys.iter().map(|k| k.to_bytes()).collect::<Vec<[u8; 32]>>());
-  let out_bytes = crate::common::bls::sum_sk_scalars(&byte_vecs);
+  let out_bytes = crate::bls::scheme_ops::sum_sk_scalars(&byte_vecs);
   SecretKey::from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
 }

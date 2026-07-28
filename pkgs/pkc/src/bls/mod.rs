@@ -15,6 +15,7 @@ cfg_if::cfg_if! {
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
+    pub(crate) mod scheme_ops;
 
     #[cfg(feature = "tests")]
     #[doc(hidden)]

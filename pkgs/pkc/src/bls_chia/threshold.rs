@@ -10,8 +10,8 @@ use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
 use crate::bls::blst_ffi::{G1, G2};
+use crate::bls::scheme_ops as math;
 use crate::bls::BlsError;
-use crate::common::bls::threshold as math;
 use crate::prelude::*;
 
 use dash_num::Hash256;
@@ -112,7 +112,7 @@ pub fn split_sk(
 
   let sk_bytes = Zeroizing::new(sk.to_bytes());
   let raw =
-    crate::common::bls::generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
+    crate::bls::scheme_ops::generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
   raw
     .into_iter()
