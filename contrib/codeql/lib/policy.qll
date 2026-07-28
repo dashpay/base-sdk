@@ -124,6 +124,9 @@ predicate isCodecType(TypeItem t) {
   t.getName().getText() = "ArrayBuf"
 }
 
+/** Holds if `name` is a trait whose methods must have a body in exactly one layer. */
+predicate isMutexTrait(string name) { name = "BlsScheme" }
+
 /** Holds if `t` lives in a crate with no public API. */
 predicate isPrivateCrate(TypeItem t) {
   exists(string path |

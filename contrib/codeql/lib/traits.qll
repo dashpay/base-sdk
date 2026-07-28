@@ -32,6 +32,25 @@ string implSelfName(Impl i) {
   result = i.getSelfTy().(PathTypeRepr).getPath().getSegment().getIdentifier().getText()
 }
 
+/** Gets a method defined in `i`'s associated item list. */
+Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
+
+/**
+ * Holds if `over` in `i` overrides the default body that `decl` supplies
+ * in trait `t`, i.e. both layers define the same method name and the
+ * trait's declaration carries a body of its own.
+ */
+predicate overridesDefault(Trait t, Function decl, Impl i, Function over) {
+  decl = traitMethod(t) and
+  decl.hasBody() and
+  implTraitName(i) = t.getName().getText() and
+  over = implMethod(i) and
+  over.getName().getText() = decl.getName().getText()
+}
+
+/** Gets a method declared directly in `t`'s associated item list. */
+Function traitMethod(Trait t) { result = t.getAssocItemList().getAnAssocItem() }
+
 /** Holds if `t` has a derived impl for `traitName`. */
 predicate hasDerivedImpl(TypeItem t, string traitName) {
   exists(MacroItems expansion, Impl i |
