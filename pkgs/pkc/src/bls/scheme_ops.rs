@@ -13,6 +13,147 @@ use crate::prelude::*;
 use dash_num::Hash256;
 use zeroize::{Zeroize, Zeroizing};
 
+use core::fmt::Debug;
+
+/// BLS operations tied to a specific scheme.
+pub(crate) trait BlsScheme {
+  /// Inner secret key representation.
+  type InnerSk: Clone;
+  /// Inner public key representation.
+  type InnerPk: Clone + Debug + PartialEq + Eq;
+  /// Inner signature representation.
+  type InnerSig: Clone + Debug + PartialEq + Eq;
+  /// Message type accepted by signing and verification.
+  type Msg: ?Sized;
+
+  /// Derive a secret key from input keying material.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidKeyMaterial` when `ikm` is too short, or
+  /// `InvalidSecretKey` when the derived scalar is invalid.
+  fn generate(ikm: &[u8]) -> Result<Self::InnerSk, BlsError>;
+
+  /// Parse a secret key from a 32-byte big-endian scalar.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when the bytes are not a valid scalar.
+  fn sk_from_bytes(b: &[u8; 32]) -> Result<Self::InnerSk, BlsError>;
+
+  /// Serialize a secret key to 32 big-endian bytes.
+  fn sk_to_bytes(sk: &Self::InnerSk) -> [u8; 32];
+
+  /// Derive the public key corresponding to a secret key.
+  fn derive_pk(sk: &Self::InnerSk) -> Self::InnerPk;
+
+  /// Wipe a secret key's scalar material in place.
+  fn zeroize_sk(sk: &mut Self::InnerSk);
+
+  /// Parse a public key from its 48-byte encoding.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidPublicKey` when the bytes are not a valid point.
+  fn pk_from_bytes(b: &[u8; 48]) -> Result<Self::InnerPk, BlsError>;
+
+  /// Serialize a public key to its 48-byte encoding.
+  fn pk_to_bytes(pk: &Self::InnerPk) -> [u8; 48];
+
+  /// Parse a signature from its 96-byte encoding.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSignature` when the bytes are not a valid point.
+  fn sig_from_bytes(b: &[u8; 96]) -> Result<Self::InnerSig, BlsError>;
+
+  /// Serialize a signature to its 96-byte encoding.
+  fn sig_to_bytes(sig: &Self::InnerSig) -> [u8; 96];
+
+  /// Sign a message with the scheme's default augmentation.
+  fn sign(sk: &Self::InnerSk, msg: &Self::Msg) -> Self::InnerSig;
+
+  /// Verify a signature over a message against a public key.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the pairing check does not hold.
+  fn verify(sig: &Self::InnerSig, msg: &Self::Msg, pk: &Self::InnerPk) -> Result<(), BlsError>;
+
+  /// Compute the Diffie-Hellman shared key `sk * peer_pk`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidPublicKey` when the peer key or the product point
+  /// is invalid.
+  fn dh_exchange(sk: &Self::InnerSk, peer_pk: &Self::InnerPk) -> Result<Self::InnerPk, BlsError>;
+
+  /// Aggregate public keys into one.
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no keys are given, or
+  /// `InvalidPublicKey` when a key fails to aggregate.
+  fn aggregate_pk(pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError>;
+
+  /// Aggregate signatures into one.
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no signatures are given, or
+  /// `InvalidSignature` when a signature fails to aggregate.
+  fn aggregate_sig(sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError>;
+
+  /// Verify an aggregate signature where every signer signed `msg`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no keys are given, or `VerifyFailed`
+  /// when the aggregate does not verify.
+  fn fast_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError>;
+
+  /// Verify an aggregate with public-key weighting to resist rogue keys.
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no keys are given, `InvalidPublicKey`
+  /// when a key fails to decode, or `VerifyFailed` on mismatch.
+  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError>;
+
+  /// Sum multiple secret keys (mod group order).
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no keys are given, or
+  /// `InvalidSecretKey` when the sum is not a valid scalar.
+  fn aggregate_sk(sks: &[&Self::InnerSk]) -> Result<Self::InnerSk, BlsError> {
+    if sks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+    let byte_vecs = Zeroizing::new(sks.iter().map(|k| Self::sk_to_bytes(k)).collect::<Vec<[u8; 32]>>());
+    let out_bytes = sum_sk_scalars(&byte_vecs);
+    Self::sk_from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
+  }
+
+  /// Recover a full signature from threshold shares by interpolation.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InsufficientShares` when fewer than two shares are given,
+  /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
+  /// when a share or the recovered point fails to decode.
+  fn recover_sig_shares(ids: &[&Hash256], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError>;
+
+  /// Derive a public key share from the master verification vector.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidVerificationVector` when fewer than two keys are
+  /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
+  /// when a coefficient or the result fails to decode.
+  fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &Hash256) -> Result<Self::InnerPk, BlsError>;
+}
+
 /// Sum secret key scalars (mod group order).
 pub(crate) fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
   let mut acc = Fr::default();

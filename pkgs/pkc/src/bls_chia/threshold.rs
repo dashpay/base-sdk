@@ -9,9 +9,8 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use crate::bls::blst_ffi::{G1, G2};
-use crate::bls::scheme_ops as math;
-use crate::bls::BlsError;
+use crate::bls::scheme_ops::{self, BlsScheme};
+use crate::bls::{BlsError, BlsScChia};
 use crate::prelude::*;
 
 use dash_num::Hash256;
@@ -108,11 +107,10 @@ pub fn split_sk(
   // An id congruent to zero mod r would make the share equal the master key, and
   // ids congruent mod r collide during interpolation.
   let id_refs: Vec<&Hash256> = ids.iter().collect();
-  math::reduce_share_ids(&id_refs)?;
+  scheme_ops::reduce_share_ids(&id_refs)?;
 
   let sk_bytes = Zeroizing::new(sk.to_bytes());
-  let raw =
-    crate::bls::scheme_ops::generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
+  let raw = scheme_ops::generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
   raw
     .into_iter()
@@ -135,18 +133,9 @@ pub fn split_sk(
 /// `InvalidShareId` if any id reduces to zero in the scalar field, or
 /// `DuplicateShareId` if any ids collide after reduction.
 pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, BlsError> {
-  if shares.len() < 2 {
-    return Err(BlsError::InsufficientShares);
-  }
-
-  // Reduce and validate ids in the scalar field, rejecting zero-reducing
-  // and (post-reduction) duplicate ids.
-  let id_refs: Vec<&Hash256> = shares.iter().map(|s| &s.id).collect();
-  let ids = math::reduce_share_ids(&id_refs)?;
-  let points: Vec<G2> = shares.iter().map(|s| s.sig.0.to_projective()).collect();
-
-  let recovered = math::interpolate_g2(&ids, &points);
-  Ok(Signature::from_inner(recovered.to_affine()))
+  let ids: Vec<_> = shares.iter().map(|s| &s.id).collect();
+  let sigs: Vec<_> = shares.iter().map(|s| &s.sig.0).collect();
+  BlsScChia::recover_sig_shares(&ids, &sigs).map(Signature::from_inner)
 }
 
 /// Derive a public key share by evaluating the master public
@@ -157,14 +146,6 @@ pub fn recover_sig(shares: &[&SignatureShare]) -> Result<Signature, BlsError> {
 /// Returns `InvalidVerificationVector` if fewer than 2 master keys are
 /// given, or `InvalidShareId` if `id` reduces to zero in the scalar field.
 pub fn derive_pk_share(master_pks: &[&PublicKey], id: &Hash256) -> Result<PublicKey, BlsError> {
-  // Evaluating the verification-vector polynomial needs >= 2 coefficients.
-  if master_pks.len() < 2 {
-    return Err(BlsError::InvalidVerificationVector);
-  }
-  let coeffs_g1: Vec<G1> = master_pks.iter().map(|pk| pk.0.to_projective()).collect();
-
-  let x = math::reduce_id(id)?;
-  let result = math::eval_poly_g1(&coeffs_g1, &x);
-
-  Ok(PublicKey::from_inner(result.to_affine()))
+  let pks: Vec<_> = master_pks.iter().map(|pk| &pk.0).collect();
+  BlsScChia::derive_pk_share(&pks, id).map(PublicKey::from_inner)
 }
