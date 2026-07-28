@@ -8,10 +8,8 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
+use common::*;
+use dash_pkc::bls::tests as common;
 use dash_pkc::bls_chia::{PublicKey, SecretKey};
 use rstest::*;
 

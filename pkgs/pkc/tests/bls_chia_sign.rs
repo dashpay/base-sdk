@@ -8,13 +8,10 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
+use common::*;
 #[cfg(feature = "serde")]
 use dash_dev::assert_json_rt;
-use dash_pkc::bls_chia::{SecretKey, Signature};
+use dash_pkc::{bls::tests as common, bls_chia::SecretKey, bls_chia::Signature};
 use rstest::*;
 
 /// Sign then verify round-trips.

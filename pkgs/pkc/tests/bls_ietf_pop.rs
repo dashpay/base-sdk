@@ -6,10 +6,8 @@
 
 //! Proof of possession tests for bls_ietf.
 
-mod common;
-
-use crate::common::bls::*;
-
+use common::*;
+use dash_pkc::bls::tests as common;
 use dash_pkc::bls_ietf::SecretKey;
 use rstest::*;
 

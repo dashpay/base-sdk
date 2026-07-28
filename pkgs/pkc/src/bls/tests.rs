@@ -4,11 +4,20 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Shared BLS test constants.
+//! Shared test fixtures and constants.
 
-use dash_pkc::{bls_chia::SecretKey as ChiaSk, bls_ietf::SecretKey as IetfSk};
+use crate::bls_chia::SecretKey as ChiaSk;
+use crate::bls_ietf::SecretKey as IetfSk;
+use crate::prelude::*;
+
 use hex_literal::hex;
 use rstest::*;
+
+/// IKM producing the first deterministic test key.
+pub const SEED_0: [u8; 32] = [0u8; 32];
+
+/// IKM producing the second deterministic test key.
+pub const SEED_1: [u8; 32] = [1u8; 32];
 
 /// BLS12-381 scalar field order r, big-endian.
 pub const GROUP_ORDER: [u8; 32] = hex!("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
@@ -16,10 +25,30 @@ pub const GROUP_ORDER: [u8; 32] = hex!("73eda753299d7d483339d80809a1d80553bda402
 /// Fixed 32-byte IKMs for deterministic test keys (all 0x00, 0x01, 0x02, 0x03).
 pub const RSEED: [[u8; 32]; 4] = [[0u8; 32], [1u8; 32], [2u8; 32], [3u8; 32]];
 
-/// Shared 32-byte test message.
+/// Test message.
+pub const MSG_DEADBEEF: [u8; 32] = hex!("deadbeefdeadbeefdeadbeefdeadbeefcafebabecafebabecafebabecafebabe");
+
+/// Parse a 32-byte hash from a hex string.
+pub fn hash_from_hex(s: &str) -> dash_num::Hash256 {
+  dash_num::Hash256::from_hex(s).unwrap()
+}
+
+/// Build a participant id whose low bytes encode `i`.
+pub fn make_id(i: u32) -> dash_num::Hash256 {
+  let mut bytes = [0u8; 32];
+  bytes[28..32].copy_from_slice(&i.to_be_bytes());
+  dash_num::Hash256::from_bytes(bytes)
+}
+
+/// Build `n` sequential participant ids `1..=n`.
+pub fn sequential_ids(n: usize) -> Vec<dash_num::Hash256> {
+  (1..=n).map(|i| make_id(i as u32)).collect()
+}
+
+/// Shared 32-byte test message fixture.
 #[fixture]
 pub fn msg32() -> [u8; 32] {
-  crate::common::MSG_DEADBEEF
+  MSG_DEADBEEF
 }
 
 /// Key derived from all-zero IKM.

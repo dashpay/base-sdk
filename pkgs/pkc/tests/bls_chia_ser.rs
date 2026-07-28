@@ -8,8 +8,6 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
 mod kat {
   use dash_dev::{vec_from_hex, Corpus};
   use hex_conservative::DisplayHex;

@@ -20,6 +20,7 @@ k256 = { version = "0.13", default-features = false, features = [
 ], optional = true }
 rand_core = { version = "0.6", default-features = false }
 rayon = { version = "1", optional = true }
+rstest = { version = "0.25", optional = true }
 serde = { version = "1", default-features = false, features = [
   "alloc",
   "derive",
@@ -32,7 +33,6 @@ dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 divan = "0.1"
 hex-conservative = "0.3"
 rand_core = { version = "0.6", features = ["getrandom"] }
-rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 
 [features]
@@ -41,7 +41,8 @@ std = ["dep:rayon", "rand_core/getrandom", "dash-types/std"]
 bls = ["dep:blst", "dep:sha2"]
 k256 = ["dep:k256"]
 serde = ["dep:serde", "dash-types/serde"]
-full = ["k256", "bls", "serde", "std"]
+full = ["k256", "bls", "serde", "std", "tests"]
+tests = ["std", "dep:rstest"]
 
 [lints]
 workspace = true
@@ -56,64 +57,64 @@ harness = false
 
 [[test]]
 name = "bls_chia_aggregate"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_chia_dh"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_chia_keygen"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_chia_llmq"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_chia_ser"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_chia_sign"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_chia_threshold"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_aggregate"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_dh"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_keygen"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_llmq"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_pop"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_sign"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_threshold"
-required-features = ["bls"]
+required-features = ["bls", "tests"]
 
 [[test]]
 name = "k256_keygen"
-required-features = ["k256"]
+required-features = ["k256", "tests"]
 
 [[test]]
 name = "k256_sign"
-required-features = ["k256"]
+required-features = ["k256", "tests"]

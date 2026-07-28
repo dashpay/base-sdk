@@ -12,10 +12,9 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
 use dash_dev::{arr_from_hex, Corpus};
 use dash_num::Hash256;
+use dash_pkc::bls::tests as common;
 use dash_pkc::bls_ietf::{aggregate_pk, aggregate_sig, threshold, PublicKey, SecretKey, Signature};
 use hex_conservative::DisplayHex;
 

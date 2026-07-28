@@ -6,8 +6,8 @@
 
 //! Benchmarks for the IETF BLS module.
 
-use super::common::bls::*;
-
+use common::*;
+use dash_pkc::bls::tests as common;
 use dash_pkc::bls_ietf::{
   aggregate_pk, aggregate_sig, fast_verify_aggregates, verify_aggregates, PublicKey, SecretKey, Signature,
 };
@@ -147,7 +147,7 @@ fn split_threshold(bencher: divan::Bencher, n: usize) {
   use dash_pkc::bls_ietf::threshold;
   let sk = SecretKey::generate(&test_ikm(1)).unwrap();
   let t = n.div_ceil(2);
-  let ids = super::common::sequential_ids(n);
+  let ids = sequential_ids(n);
   bencher
     .counter(divan::counter::ItemsCount::new(n))
     .bench(|| threshold::split_sk(&sk, t, &ids, &mut rand_core::OsRng));
@@ -159,7 +159,7 @@ fn recover_threshold(bencher: divan::Bencher, t: usize) {
   use dash_pkc::bls_ietf::threshold;
   let sk = SecretKey::generate(&test_ikm(1)).unwrap();
   let n = t * 2;
-  let ids = super::common::sequential_ids(n);
+  let ids = sequential_ids(n);
   let shares = threshold::split_sk(&sk, t, &ids, &mut rand_core::OsRng).unwrap();
   let msg = test_msg(42);
   let sig_shares: Vec<_> = shares.iter().map(|s| s.sign(&msg)).collect();

@@ -8,13 +8,10 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-mod common;
-
-use crate::common::bls::*;
-
+use common::*;
 #[cfg(feature = "serde")]
 use dash_dev::assert_json_rt;
-use dash_pkc::bls_ietf::SecretKey;
+use dash_pkc::{bls::tests as common, bls_ietf::SecretKey};
 use rstest::*;
 
 /// Secret key serialization round-trips.

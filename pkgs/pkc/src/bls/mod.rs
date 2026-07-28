@@ -15,5 +15,10 @@ cfg_if::cfg_if! {
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
+
+    #[cfg(feature = "tests")]
+    #[doc(hidden)]
+    #[expect(clippy::unwrap_used, reason = "test support code")]
+    pub mod tests;
   }
 }
