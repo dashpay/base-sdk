@@ -22,6 +22,8 @@ use hex_conservative::DisplayHex;
 fn llmq_contribute_vvec() {
   let f: dash_dev::Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_llmq_100").into_value();
 
+  let t = f["inputs"]["t"].as_u64().unwrap() as usize;
+
   let contributions = f["contribute"].as_array().unwrap();
   for c in contributions {
     let vvec: Vec<&str> = c["vvec"]
@@ -31,15 +33,14 @@ fn llmq_contribute_vvec() {
       .map(|v| v.as_str().unwrap())
       .collect();
 
+    // A commitment to a degree t-1 polynomial, so exactly t coefficients,
+    // the first being the member's contribution public key.
+    assert_eq!(vvec.len(), t, "vvec must hold one coefficient per threshold");
+
     // Each vvec entry is a valid G1 point.
     for pk_hex in &vvec {
       assert!(PublicKey::from_bytes(&arr_from_hex(pk_hex)).is_ok());
     }
-
-    // The first vvec entry is the member's public key
-    // (the constant term of the polynomial commitment).
-    // vvec[0] IS the member's contribution public key.
-    assert!(PublicKey::from_bytes(&arr_from_hex(vvec[0])).unwrap().to_bytes().len() == 48);
   }
 }
 
