@@ -69,6 +69,7 @@ rules:
       include:
         - /pkgs/primitives/src/**/*.rs
         - /pkgs/p2p_core/src/**/*.rs
+        - /pkgs/script/src/**/*.rs
     patterns:
       - pattern-regex: '\.extend_from_slice\([^)]*\)'
       - pattern-not-regex: "to_be_bytes"

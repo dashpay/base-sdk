@@ -252,12 +252,15 @@ predicate isEnforcedCrate(File f) {
   f.getAbsolutePath().matches("%/pkgs/primitives/%")
   or
   f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
+  or
+  f.getAbsolutePath().matches("%/pkgs/script/%")
 }
 
 /** Holds if file `f` is in a crate that can derive `Unencodable`. */
 predicate isUnencodableCrate(File f) {
   f.getAbsolutePath().matches("%/pkgs/primitives/%") or
-  f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
+  f.getAbsolutePath().matches("%/pkgs/p2p_core/%") or
+  f.getAbsolutePath().matches("%/pkgs/script/%")
 }
 
 /** Declaration slots that define the required source ordering. */
