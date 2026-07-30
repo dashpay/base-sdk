@@ -253,6 +253,8 @@ predicate isEnforcedCrate(File f) {
   or
   f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
   or
+  f.getAbsolutePath().matches("%/pkgs/pkc/%")
+  or
   f.getAbsolutePath().matches("%/pkgs/script/%")
 }
 
@@ -260,6 +262,7 @@ predicate isEnforcedCrate(File f) {
 predicate isUnencodableCrate(File f) {
   f.getAbsolutePath().matches("%/pkgs/primitives/%") or
   f.getAbsolutePath().matches("%/pkgs/p2p_core/%") or
+  f.getAbsolutePath().matches("%/pkgs/pkc/%") or
   f.getAbsolutePath().matches("%/pkgs/script/%")
 }
 

@@ -14,8 +14,7 @@ use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScIetf};
 use crate::prelude::*;
 
-use blst::min_pk;
-use blst::BLST_ERROR;
+use blst::{min_pk, BLST_ERROR};
 
 /// Aggregate multiple public keys into one.
 pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, BlsError> {

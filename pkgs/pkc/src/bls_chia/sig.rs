@@ -11,8 +11,10 @@ use crate::bls::blst_ffi::G2Affine;
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScChia};
 
+use dash_types::Unencodable;
+
 /// A legacy BLS signature (96-byte G2 point in legacy serialization).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",

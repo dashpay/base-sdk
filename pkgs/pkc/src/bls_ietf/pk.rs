@@ -12,11 +12,11 @@ use super::DST_POP_PROVE;
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScIetf};
 
-use blst::min_pk;
-use blst::BLST_ERROR;
+use blst::{min_pk, BLST_ERROR};
+use dash_types::Unencodable;
 
 /// A BLS public key (48-byte compressed G1 point).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",

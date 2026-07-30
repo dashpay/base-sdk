@@ -60,12 +60,6 @@ pub struct SignatureShare {
   sig: Signature,
 }
 
-impl core::fmt::Debug for SignatureShare {
-  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    write!(f, "SignatureShare(id={:?})", self.id)
-  }
-}
-
 impl SignatureShare {
   /// Construct a signature share from an ID and a signature.
   pub fn new(id: Hash256, sig: Signature) -> Self {
@@ -80,6 +74,12 @@ impl SignatureShare {
   /// The underlying signature.
   pub fn signature(&self) -> &Signature {
     &self.sig
+  }
+}
+
+impl core::fmt::Debug for SignatureShare {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    write!(f, "SignatureShare(id={:?})", self.id)
   }
 }
 

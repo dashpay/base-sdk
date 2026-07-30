@@ -9,10 +9,11 @@
 use super::error::Error;
 use super::sig::{RecoveryId, Signature};
 
+use dash_types::Unencodable;
 use k256::ecdsa::{self, signature::hazmat::PrehashVerifier};
 
 /// A secp256k1 public key.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",

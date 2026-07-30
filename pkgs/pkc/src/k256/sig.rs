@@ -8,10 +8,11 @@
 
 use super::error::Error;
 
+use dash_types::Unencodable;
 use k256::ecdsa;
 
 /// An ECDSA signature (64-byte compact r||s).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
@@ -74,7 +75,7 @@ impl TryFrom<crate::EcdsaSignatureBytes> for Signature {
 }
 
 /// Recovery id (0..3) used to recover a public key from an ECDSA signature.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "u8", try_from = "u8"))]
 pub struct RecoveryId(ecdsa::RecoveryId);
@@ -102,7 +103,7 @@ impl RecoveryId {
 }
 
 /// DER-encoded ECDSA signature (variable length, typically 70-72 bytes).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Unencodable)]
 pub struct DerSignature(ecdsa::DerSignature);
 
 impl DerSignature {

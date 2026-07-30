@@ -6,10 +6,12 @@
 
 //! BLS scheme marker types.
 
+use dash_types::Unencodable;
+
 /// Legacy (Chia) BLS scheme marker.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 pub(crate) enum BlsScChia {}
 
 /// IETF-standard BLS scheme marker.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
 pub(crate) enum BlsScIetf {}
