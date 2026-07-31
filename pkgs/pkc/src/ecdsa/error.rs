@@ -9,7 +9,7 @@
 use core::fmt;
 
 /// Errors produced by secp256k1 operations.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum EcdsaError {
   /// public key bytes are not a valid curve point
   InvalidPublicKey,

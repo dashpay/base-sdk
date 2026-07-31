@@ -6,20 +6,20 @@
 
 //! ECDSA types for the secp256k1 curve.
 
+mod error;
 mod public_bytes;
 mod sig_bytes;
 
+pub use error::EcdsaError;
 pub use public_bytes::EcdsaPkBytes;
 pub use sig_bytes::EcdsaSigBytes;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "ecdsa")] {
-    mod error;
     mod public_ops;
     mod secret_ops;
     mod sig_ops;
 
-    pub use error::EcdsaError;
     pub use public_ops::EcdsaPublicKey;
     pub use secret_ops::EcdsaSecretKey;
     pub use sig_ops::{EcdsaDerSignature, EcdsaSignature, EcdsaRecoveryId};
