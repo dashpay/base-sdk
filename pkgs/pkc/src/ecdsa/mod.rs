@@ -20,6 +20,10 @@ cfg_if::cfg_if! {
     mod secret_ops;
     mod sig_ops;
 
+    #[cfg(any(test, feature = "tests"))]
+    #[expect(clippy::unwrap_used, reason = "test code")]
+    pub mod tests;
+
     pub use public_ops::EcdsaPublicKey;
     pub use secret_ops::EcdsaSecretKey;
     pub use sig_ops::{EcdsaDerSignature, EcdsaSignature, EcdsaRecoveryId};

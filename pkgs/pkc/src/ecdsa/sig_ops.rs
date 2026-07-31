@@ -162,3 +162,57 @@ impl PartialEq for EcdsaDerSignature {
     self.as_bytes() == other.as_bytes()
   }
 }
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use crate::ecdsa::tests::*;
+  use crate::ecdsa::{EcdsaError, EcdsaRecoveryId, EcdsaSignature};
+
+  use dash_dev::assert_json_rt;
+  use rstest::*;
+
+  #[rstest]
+  fn compact_roundtrip(alice_sig: EcdsaSignature) {
+    let bytes = alice_sig.to_compact();
+    let restored = EcdsaSignature::from_compact(&bytes).unwrap();
+    assert_eq!(restored, alice_sig);
+  }
+
+  #[rstest]
+  fn der_roundtrip(alice_sig: EcdsaSignature) {
+    let der = alice_sig.to_der();
+    let restored = EcdsaSignature::from_der(der.as_bytes()).unwrap();
+    assert_eq!(restored, alice_sig);
+  }
+
+  #[cfg(feature = "serde")]
+  #[rstest]
+  fn serde_sig_roundtrip(alice_sig: EcdsaSignature) {
+    assert_json_rt(&alice_sig);
+  }
+
+  #[rstest]
+  #[case(0)]
+  #[case(1)]
+  #[case(2)]
+  #[case(3)]
+  fn recovery_id_roundtrip(#[case] id: u8) {
+    let rid = EcdsaRecoveryId::new(id).unwrap();
+    assert_eq!(rid.to_byte(), id);
+  }
+
+  #[rstest]
+  #[case(4)]
+  #[case(255)]
+  fn recovery_id_rejects_out_of_range(#[case] id: u8) {
+    assert_eq!(EcdsaRecoveryId::new(id), Err(EcdsaError::InvalidRecoveryId));
+  }
+
+  #[cfg(feature = "serde")]
+  #[rstest]
+  fn serde_recovery_id_roundtrip() {
+    let rid = EcdsaRecoveryId::new(1).unwrap();
+    assert_json_rt(&rid);
+  }
+}

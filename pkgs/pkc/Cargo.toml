@@ -12,6 +12,7 @@ blst = { version = "0.3", default-features = false, optional = true }
 cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
+hex-conservative = { version = "0.3", optional = true }
 hex-literal = "0.4"
 k256 = { version = "0.13", default-features = false, features = [
   "arithmetic",
@@ -33,6 +34,7 @@ dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 divan = "0.1"
 hex-conservative = "0.3"
 rand_core = { version = "0.6", features = ["getrandom"] }
+rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 
 [features]
@@ -42,7 +44,7 @@ bls = ["dep:blst", "dep:sha2"]
 ecdsa = ["dep:k256"]
 serde = ["dep:serde", "dash-types/serde"]
 full = ["ecdsa", "bls", "serde", "std", "tests"]
-tests = ["std", "dep:rstest"]
+tests = ["std", "dep:hex-conservative", "dep:rstest"]
 
 [lints]
 workspace = true
@@ -54,6 +56,7 @@ workspace = true
 name = "pkc"
 path = "bench/main.rs"
 harness = false
+required-features = ["tests"]
 
 [[test]]
 name = "bls_chia_aggregate"
@@ -111,10 +114,3 @@ required-features = ["bls", "tests"]
 name = "bls_ietf_threshold"
 required-features = ["bls", "tests"]
 
-[[test]]
-name = "ecdsa_keygen"
-required-features = ["ecdsa", "tests"]
-
-[[test]]
-name = "ecdsa_sign"
-required-features = ["ecdsa", "tests"]
