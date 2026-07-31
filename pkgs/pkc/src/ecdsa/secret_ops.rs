@@ -8,8 +8,10 @@
 
 use super::error::EcdsaError;
 use super::public_ops::EcdsaPublicKey;
+use super::secret_bytes::EcdsaSkBytes;
 use super::sig_ops::{EcdsaRecoveryId, EcdsaSignature};
 
+use dash_types::type_cvrt;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
 
 use core::fmt;
@@ -72,6 +74,14 @@ impl fmt::Debug for EcdsaSecretKey {
     write!(f, "EcdsaSecretKey(..)")
   }
 }
+
+type_cvrt!(From<EcdsaSecretKey> for EcdsaSkBytes, |sk| {
+  Self::from(sk.to_bytes())
+});
+
+type_cvrt!(TryFrom<EcdsaSkBytes> for EcdsaSecretKey, EcdsaError, |bytes| {
+  Self::from_bytes(bytes.as_bytes())
+});
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
