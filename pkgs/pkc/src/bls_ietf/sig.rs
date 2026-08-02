@@ -10,7 +10,7 @@ use super::pk::PublicKey;
 use super::sk::Scheme;
 use super::{DST, DST_POP};
 use crate::bls::scheme_ops::BlsScheme;
-use crate::bls::{BlsError, BlsScIetf};
+use crate::bls::{BlsError, BlsScIetf, BlsSigBytes};
 
 use blst::{min_pk, BLST_ERROR};
 use dash_types::Unencodable;
@@ -20,7 +20,7 @@ use dash_types::Unencodable;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(into = "crate::BlsSignatureBytes", try_from = "crate::BlsSignatureBytes",)
+  serde(into = "BlsSigBytes<BlsScIetf>", try_from = "BlsSigBytes<BlsScIetf>",)
 )]
 pub struct Signature(pub(super) min_pk::Signature);
 
@@ -78,16 +78,16 @@ impl Signature {
 
 crate::common::bls::impl_hash_via_bytes!(Signature);
 
-impl From<Signature> for crate::BlsSignatureBytes {
+impl From<Signature> for BlsSigBytes<BlsScIetf> {
   fn from(sig: Signature) -> Self {
-    Self(sig.to_bytes())
+    Self::from_bytes(sig.to_bytes())
   }
 }
 
-impl TryFrom<crate::BlsSignatureBytes> for Signature {
-  type Error = crate::bls::BlsError;
+impl TryFrom<BlsSigBytes<BlsScIetf>> for Signature {
+  type Error = BlsError;
 
-  fn try_from(bytes: crate::BlsSignatureBytes) -> Result<Self, Self::Error> {
-    Self::from_bytes(&bytes.0)
+  fn try_from(bytes: BlsSigBytes<BlsScIetf>) -> Result<Self, Self::Error> {
+    Self::from_bytes(bytes.as_bytes())
   }
 }
