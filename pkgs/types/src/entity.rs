@@ -91,7 +91,7 @@ impl<T> encoding::Decoder for BufferDecoder<T> {
 }
 
 /// An encoder that wraps a pre-built byte vector.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct VecEncoder {
   data: Vec<u8>,
   done: bool,
@@ -101,6 +101,15 @@ impl VecEncoder {
   /// Creates a new encoder wrapping the given bytes.
   pub fn new(data: Vec<u8>) -> Self {
     Self { data, done: false }
+  }
+}
+
+impl fmt::Debug for VecEncoder {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("VecEncoder")
+      .field("len", &self.data.len())
+      .field("done", &self.done)
+      .finish()
   }
 }
 

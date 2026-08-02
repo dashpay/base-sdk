@@ -10,6 +10,7 @@ use blst::*;
 use dash_types::{type_cvrt, Unencodable};
 use zeroize::Zeroize;
 
+use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use core::ptr::null_mut;
 
@@ -77,6 +78,12 @@ impl Fr {
     let one = [1u64, 0, 0, 0];
     unsafe { blst_fr_from_uint64(&mut out, one.as_ptr()) };
     Self(out)
+  }
+}
+
+impl fmt::Debug for Fr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Fr(..)")
   }
 }
 
