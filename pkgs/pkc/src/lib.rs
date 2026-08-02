@@ -15,6 +15,7 @@ extern crate std;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
+pub mod bls;
 pub mod ecdsa;
 #[cfg(feature = "std")]
 pub mod worker;
@@ -23,15 +24,9 @@ cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod common;
 
-    pub mod bls;
     pub mod bls_chia;
     pub mod bls_ietf;
   }
-}
-
-dash_types::make_bytes! {
-  /// Raw BLS public key bytes (48 bytes, unvalidated).
-  BlsPublicKeyBytes, 48
 }
 
 dash_types::make_bytes! {

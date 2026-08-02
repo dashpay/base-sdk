@@ -9,7 +9,7 @@
 use super::sk::SecretKey;
 use crate::bls::blst_ffi::G1Affine;
 use crate::bls::scheme_ops::BlsScheme;
-use crate::bls::{BlsError, BlsScChia};
+use crate::bls::{BlsError, BlsPkBytes, BlsScChia};
 
 use dash_types::Unencodable;
 
@@ -18,7 +18,7 @@ use dash_types::Unencodable;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(into = "crate::BlsPublicKeyBytes", try_from = "crate::BlsPublicKeyBytes",)
+  serde(into = "BlsPkBytes<BlsScChia>", try_from = "BlsPkBytes<BlsScChia>",)
 )]
 pub struct PublicKey(pub(super) G1Affine);
 
@@ -55,16 +55,16 @@ impl PublicKey {
 
 crate::common::bls::impl_hash_via_bytes!(PublicKey);
 
-impl From<PublicKey> for crate::BlsPublicKeyBytes {
+impl From<PublicKey> for BlsPkBytes<BlsScChia> {
   fn from(pk: PublicKey) -> Self {
-    Self(pk.to_bytes())
+    Self::from_bytes(pk.to_bytes())
   }
 }
 
-impl TryFrom<crate::BlsPublicKeyBytes> for PublicKey {
-  type Error = crate::bls::BlsError;
+impl TryFrom<BlsPkBytes<BlsScChia>> for PublicKey {
+  type Error = BlsError;
 
-  fn try_from(bytes: crate::BlsPublicKeyBytes) -> Result<Self, Self::Error> {
-    Self::from_bytes(&bytes.0)
+  fn try_from(bytes: BlsPkBytes<BlsScChia>) -> Result<Self, Self::Error> {
+    Self::from_bytes(bytes.as_bytes())
   }
 }

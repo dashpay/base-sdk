@@ -7,10 +7,12 @@
 //! Unified BLS cryptography module.
 
 mod error;
+mod public_bytes;
 mod schemes;
 mod sig_id;
 
 pub use error::BlsError;
+pub use public_bytes::{BlsPkBytes, BLS_PK_LEN};
 pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};
 pub use sig_id::BlsSigId;
 
