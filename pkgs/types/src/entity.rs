@@ -10,8 +10,9 @@
 use crate::codec::DecodeError;
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding as encoding;
+use bitcoin_consensus_encoding::{Decoder, Encoder};
 
+use core::convert::Infallible;
 use core::fmt;
 
 /// Maximum serialized object size (32 MiB).
@@ -22,16 +23,16 @@ pub const MAX_SER_SIZE: usize = 0x0200_0000;
 /// Wraps types with complex sequential decode logic (conditional fields,
 /// version branching) that cannot be expressed as a composable push-decoder
 /// without excessive boilerplate.
-pub struct BufferDecoder<T> {
+pub struct BufferDecoder<T, E = Infallible> {
   buf: Vec<u8>,
   limit: usize,
-  decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError>,
+  decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>,
 }
 
-impl<T> BufferDecoder<T> {
+impl<T, E> BufferDecoder<T, E> {
   /// Creates a new decoder with the given decode function and
   /// maximum buffer size.
-  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError>, limit: usize) -> Self {
+  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>, limit: usize) -> Self {
     Self {
       buf: Vec::new(),
       limit,
@@ -40,7 +41,7 @@ impl<T> BufferDecoder<T> {
   }
 }
 
-impl<T> fmt::Debug for BufferDecoder<T> {
+impl<T, E> fmt::Debug for BufferDecoder<T, E> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("BufferDecoder")
       .field("buf_len", &self.buf.len())
@@ -49,7 +50,7 @@ impl<T> fmt::Debug for BufferDecoder<T> {
   }
 }
 
-impl<T> Clone for BufferDecoder<T> {
+impl<T, E> Clone for BufferDecoder<T, E> {
   fn clone(&self) -> Self {
     Self {
       buf: self.buf.clone(),
@@ -59,9 +60,9 @@ impl<T> Clone for BufferDecoder<T> {
   }
 }
 
-impl<T> encoding::Decoder for BufferDecoder<T> {
+impl<T, E> Decoder for BufferDecoder<T, E> {
   type Output = T;
-  type Error = DecodeError;
+  type Error = DecodeError<E>;
 
   fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
     let remaining = self.limit.saturating_sub(self.buf.len());
@@ -113,7 +114,7 @@ impl fmt::Debug for VecEncoder {
   }
 }
 
-impl encoding::Encoder for VecEncoder {
+impl Encoder for VecEncoder {
   fn current_chunk(&self) -> &[u8] {
     if self.done {
       &[]
@@ -135,11 +136,8 @@ impl encoding::Encoder for VecEncoder {
 /// Generates `Encodable` + `Decodable` for a `BaseCodec` implementor.
 #[macro_export]
 macro_rules! impl_type {
-  ($ty:ty) => {
-    $crate::impl_type!($ty, $crate::MAX_SER_SIZE);
-  };
-  ($ty:ty, $max:expr) => {
-    impl $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
+  (@parse [$($impl_generics:tt)*] $ty:ty, $max:expr, $err:ty) => {
+    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
       type Encoder<'e> = $crate::VecEncoder;
       fn encoder(&self) -> Self::Encoder<'_> {
         let mut buf = ::alloc::vec::Vec::new();
@@ -148,11 +146,27 @@ macro_rules! impl_type {
       }
     }
 
-    impl $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
-      type Decoder = $crate::BufferDecoder<$ty>;
+    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
+      type Decoder = $crate::BufferDecoder<$ty, $err>;
       fn decoder() -> Self::Decoder {
-        $crate::BufferDecoder::new(<$ty as $crate::codec::BaseCodec>::decode, $max)
+        $crate::BufferDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode, $max)
       }
     }
+  };
+  (@parse [$($impl_generics:tt)*] $ty:ty, $max:expr) => {
+    $crate::impl_type!(
+      @parse [$($impl_generics)*] $ty,
+      $max,
+      ::core::convert::Infallible
+    );
+  };
+  (@parse [$($impl_generics:tt)*] $ty:ty) => {
+    $crate::impl_type!(@parse [$($impl_generics)*] $ty, $crate::MAX_SER_SIZE);
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::impl_type!(@parse [<$($generic)*>] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::impl_type!(@parse [] $($args)*);
   };
 }

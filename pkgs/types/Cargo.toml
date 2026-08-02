@@ -23,6 +23,7 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 
 [dev-dependencies]
+rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 
 [lints]
