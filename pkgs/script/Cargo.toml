@@ -31,6 +31,7 @@ serde = { version = "1", default-features = false, features = [
 
 [dev-dependencies]
 hex-literal = "0.4"
+rstest = "0.25"
 
 [lints]
 workspace = true

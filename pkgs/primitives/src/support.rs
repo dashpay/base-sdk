@@ -9,77 +9,37 @@
 use crate::hash_impl;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{impl_num, impl_type, TypeId, Unencodable};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{enum_map, impl_num, impl_type, TypeId, Unencodable};
 
-use core::fmt;
-
-/// LLMQ type (quorum size/threshold configuration).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
-pub enum LlmqType {
-  /// 50 members, 60% threshold.
-  Llmq50_60,
-  /// 400 members, 60% threshold.
-  Llmq400_60,
-  /// 400 members, 85% threshold.
-  Llmq400_85,
-  /// 100 members, 67% threshold.
-  Llmq100_67,
-  /// 60 members, 75% threshold.
-  Llmq60_75,
-  /// 25 members, 67% threshold.
-  Llmq25_67,
-  /// Regtest quorum.
-  LlmqTest,
-  /// Devnet quorum.
-  LlmqDevnet,
-  /// Test v17-era quorum.
-  LlmqTestV17,
-  /// Test InstantSend quorum.
-  LlmqTestInstantsend,
-  /// Test Platform quorum.
-  LlmqTestPlatform,
-  /// Devnet Platform quorum.
-  LlmqDevnetPlatform,
-  /// Unrecognized type code.
-  Unknown(u8),
-}
-
-impl NumCodec<u8> for LlmqType {
-  fn from_base(val: u8) -> Self {
-    match val {
-      1 => Self::Llmq50_60,
-      2 => Self::Llmq400_60,
-      3 => Self::Llmq400_85,
-      4 => Self::Llmq100_67,
-      5 => Self::Llmq60_75,
-      6 => Self::Llmq25_67,
-      100 => Self::LlmqTest,
-      101 => Self::LlmqDevnet,
-      102 => Self::LlmqTestV17,
-      104 => Self::LlmqTestInstantsend,
-      106 => Self::LlmqTestPlatform,
-      107 => Self::LlmqDevnetPlatform,
-      other => Self::Unknown(other),
-    }
-  }
-
-  fn to_base(&self) -> u8 {
-    match self {
-      Self::Llmq50_60 => 1,
-      Self::Llmq400_60 => 2,
-      Self::Llmq400_85 => 3,
-      Self::Llmq100_67 => 4,
-      Self::Llmq60_75 => 5,
-      Self::Llmq25_67 => 6,
-      Self::LlmqTest => 100,
-      Self::LlmqDevnet => 101,
-      Self::LlmqTestV17 => 102,
-      Self::LlmqTestInstantsend => 104,
-      Self::LlmqTestPlatform => 106,
-      Self::LlmqDevnetPlatform => 107,
-      Self::Unknown(v) => *v,
-    }
+enum_map! {
+  /// LLMQ type (quorum size/threshold configuration).
+  #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
+  pub enum LlmqType, u8, Unknown {
+    /// 50 members, 60% threshold.
+    Llmq50_60 = 1 => "llmq_50_60",
+    /// 400 members, 60% threshold.
+    Llmq400_60 = 2 => "llmq_400_60",
+    /// 400 members, 85% threshold.
+    Llmq400_85 = 3 => "llmq_400_85",
+    /// 100 members, 67% threshold.
+    Llmq100_67 = 4 => "llmq_100_67",
+    /// 60 members, 75% threshold.
+    Llmq60_75 = 5 => "llmq_60_75",
+    /// 25 members, 67% threshold.
+    Llmq25_67 = 6 => "llmq_25_67",
+    /// Regtest quorum.
+    LlmqTest = 100 => "llmq_test",
+    /// Devnet quorum.
+    LlmqDevnet = 101 => "llmq_devnet",
+    /// Test v17-era quorum.
+    LlmqTestV17 = 102 => "llmq_test_v17",
+    /// Test InstantSend quorum.
+    LlmqTestInstantsend = 104 => "llmq_test_instantsend",
+    /// Test Platform quorum.
+    LlmqTestPlatform = 106 => "llmq_test_platform",
+    /// Devnet Platform quorum.
+    LlmqDevnetPlatform = 107 => "llmq_devnet_platform",
   }
 }
 
@@ -87,78 +47,24 @@ impl_num!(LlmqType, u8);
 
 hash_impl!(LlmqType);
 
-impl fmt::Display for LlmqType {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::Llmq50_60 => write!(f, "llmq_50_60"),
-      Self::Llmq400_60 => write!(f, "llmq_400_60"),
-      Self::Llmq400_85 => write!(f, "llmq_400_85"),
-      Self::Llmq100_67 => write!(f, "llmq_100_67"),
-      Self::Llmq60_75 => write!(f, "llmq_60_75"),
-      Self::Llmq25_67 => write!(f, "llmq_25_67"),
-      Self::LlmqTest => write!(f, "llmq_test"),
-      Self::LlmqDevnet => write!(f, "llmq_devnet"),
-      Self::LlmqTestV17 => write!(f, "llmq_test_v17"),
-      Self::LlmqTestInstantsend => write!(f, "llmq_test_instantsend"),
-      Self::LlmqTestPlatform => write!(f, "llmq_test_platform"),
-      Self::LlmqDevnetPlatform => write!(f, "llmq_devnet_platform"),
-      Self::Unknown(v) => write!(f, "unknown({v})"),
-    }
-  }
-}
-
-/// Revocation reason for provider update revocation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
-pub enum RevocationReason {
-  /// No specific reason.
-  NotSpecified,
-  /// Key material has been compromised.
-  KeyCompromise,
-  /// Operator is changing keys.
-  ChangeOfKeys,
-  /// Service level violation.
-  ViolationOfService,
-  /// Unknown reason code.
-  Unknown(u16),
-}
-
-impl NumCodec<u16> for RevocationReason {
-  fn from_base(val: u16) -> Self {
-    match val {
-      0 => Self::NotSpecified,
-      1 => Self::KeyCompromise,
-      2 => Self::ChangeOfKeys,
-      3 => Self::ViolationOfService,
-      other => Self::Unknown(other),
-    }
-  }
-
-  fn to_base(&self) -> u16 {
-    match self {
-      Self::NotSpecified => 0,
-      Self::KeyCompromise => 1,
-      Self::ChangeOfKeys => 2,
-      Self::ViolationOfService => 3,
-      Self::Unknown(v) => *v,
-    }
+enum_map! {
+  /// Revocation reason for provider update revocation.
+  #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
+  pub enum RevocationReason, u16, Unknown {
+    /// No specific reason.
+    NotSpecified = 0 => "not_specified",
+    /// Key material has been compromised.
+    KeyCompromise = 1 => "key_compromise",
+    /// Operator is changing keys.
+    ChangeOfKeys = 2 => "change_of_keys",
+    /// Service level violation.
+    ViolationOfService = 3 => "violation_of_service",
   }
 }
 
 impl_num!(RevocationReason, u16);
 
 hash_impl!(RevocationReason);
-
-impl fmt::Display for RevocationReason {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::NotSpecified => write!(f, "not_specified"),
-      Self::KeyCompromise => write!(f, "key_compromise"),
-      Self::ChangeOfKeys => write!(f, "change_of_keys"),
-      Self::ViolationOfService => write!(f, "violation_of_service"),
-      Self::Unknown(v) => write!(f, "unknown({v})"),
-    }
-  }
-}
 
 /// LSB-first dynamic bitset.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]

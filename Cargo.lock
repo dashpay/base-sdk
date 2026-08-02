@@ -486,6 +486,7 @@ dependencies = [
  "bitcoin_hashes",
  "dash-types",
  "hex-literal",
+ "rstest",
  "serde",
 ]
 
