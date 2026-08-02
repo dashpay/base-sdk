@@ -9,11 +9,13 @@
 mod error;
 mod public_bytes;
 mod schemes;
+mod secret_bytes;
 mod sig_id;
 
 pub use error::BlsError;
 pub use public_bytes::{BlsPkBytes, BLS_PK_LEN};
 pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};
+pub use secret_bytes::{BlsSkBytes, BLS_SK_LEN};
 pub use sig_id::BlsSigId;
 
 cfg_if::cfg_if! {
