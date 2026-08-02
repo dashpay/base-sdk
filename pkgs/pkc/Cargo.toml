@@ -42,7 +42,7 @@ default = []
 std = ["dep:rayon", "rand_core/getrandom", "dash-types/std"]
 bls = ["dep:blst", "dep:sha2"]
 ecdsa = ["dep:k256"]
-serde = ["dep:serde", "dash-types/serde"]
+serde = ["dep:serde", "dash-num/serde", "dash-types/serde"]
 full = ["ecdsa", "bls", "serde", "std", "tests"]
 tests = ["std", "dep:hex-conservative", "dep:rstest"]
 

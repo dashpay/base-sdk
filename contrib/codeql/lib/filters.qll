@@ -7,6 +7,7 @@
  */
 
 import lib.files
+import lib.types
 import rust
 
 /** Materialises function spans per file for containment checks. */
@@ -40,9 +41,9 @@ private predicate testModuleSpan(File file, int mStart, int mEnd) {
   )
 }
 
-/** Holds if `t` is inside a test module or test file. */
-predicate isTestCode(TypeItem t) {
-  fileOf(t).getAbsolutePath().matches("%/tests/%")
+/** Holds if `t` is inside a test module, test file, or benchmark. */
+predicate isTestCode(Locatable t) {
+  fileOf(t).getAbsolutePath().matches(["%/tests/%", "%/bench/%"])
   or
   exists(File file, int mStart, int mEnd |
     testModuleSpan(file, mStart, mEnd) and
@@ -93,32 +94,5 @@ string cratePrefix(TypeItem t) {
   )
 }
 
-/** Gets the type name of a field in struct `s`. */
-string structFieldTypeName(Struct s) {
-  exists(PathTypeRepr tr |
-    tr = s.getFieldList().(StructFieldList).getAField().getTypeRepr() or
-    tr = s.getFieldList().(TupleFieldList).getField(_).getTypeRepr()
-  |
-    result = tr.getPath().getSegment().getIdentifier().getText()
-  )
-}
-
-/** Gets the type name of a field in enum variant of `e`. */
-string enumFieldTypeName(Enum e) {
-  exists(Variant v, PathTypeRepr tr |
-    v = e.getVariantList().getAVariant() and
-    (
-      tr = v.getFieldList().(StructFieldList).getAField().getTypeRepr() or
-      tr = v.getFieldList().(TupleFieldList).getField(_).getTypeRepr()
-    )
-  |
-    result = tr.getPath().getSegment().getIdentifier().getText()
-  )
-}
-
-/** Gets the type name of a field in type item `t` (struct or enum). */
-string typeFieldName(TypeItem t) {
-  result = structFieldTypeName(t)
-  or
-  result = enumFieldTypeName(t)
-}
+/** Gets the type name of a field in type item `t` (struct, enum, or union). */
+string typeFieldName(TypeItem t) { result = typeHead(fieldTypeRepr(t)) }

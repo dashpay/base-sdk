@@ -10,6 +10,7 @@ import lib.files
 import lib.filters
 import lib.source_lines
 import lib.traits
+import lib.types
 import rust
 
 /** Holds if `t` carries `#[derive(...name...)]` detected via source-line scanning. */
@@ -39,13 +40,31 @@ predicate isNotEncodable(TypeItem t) {
 
 /** Holds if `t` holds secret or security-sensitive material. */
 predicate isSecretType(TypeItem t) {
-  t.getName().getText().regexpMatch(".*(Secret|Private|Seed|Password|Mnemonic|Share).*") and
-  // Exclude types whose name contains "Shared" (e.g. SharedState),
-  // which match the Share substring but are not secret holders.
-  not t.getName().getText().regexpMatch(".*Shared.*")
-  or
-  // Scalar field wrapper holding secret key material
-  t.getName().getText() = "Fr"
+  (
+    t.getName().getText().regexpMatch(".*(Secret|Private|Seed|Password|Mnemonic|SkBytes).*")
+    or
+    // "Share" is the one keyword that "Shared" (e.g. SharedState) matches without holding a secret,
+    // so the guard applies to it alone, exceptions to this rule are explicitly enumerated.
+    t.getName().getText().regexpMatch(".*Share.*") and
+    not t.getName().getText().regexpMatch(".*Shared.*")
+    or
+    // Scalar field wrapper holding secret key material
+    t.getName().getText() = "Fr"
+  ) and
+  // A share *of a signature* is published, so it holds nothing to protect. Excluded by
+  // exact name because `SecretKeyShare` and `RawShare` match the same Share substring
+  // and do carry secret scalars.
+  not t.getName().getText() = "SignatureShare"
+}
+
+/**
+ * Holds if `tr` names a heap-growable container.
+ *
+ * A `Vec` or `String` can reallocate while being filled, stranding a copy at
+ * the old allocation that drop-time wiping cannot reach.
+ */
+predicate isGrowableType(TypeRepr tr) {
+  typeHead(tr) = ["Vec", "String", "VecDeque", "BTreeMap", "BTreeSet", "BinaryHeap"]
 }
 
 /** Holds if `t` is an iterator type (name ends with Iterator or Iter). */
