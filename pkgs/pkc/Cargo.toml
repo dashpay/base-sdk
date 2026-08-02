@@ -39,9 +39,9 @@ serde = { version = "1", features = ["derive"] }
 default = []
 std = ["dep:rayon", "rand_core/getrandom", "dash-types/std"]
 bls = ["dep:blst", "dep:sha2"]
-k256 = ["dep:k256"]
+ecdsa = ["dep:k256"]
 serde = ["dep:serde", "dash-types/serde"]
-full = ["k256", "bls", "serde", "std", "tests"]
+full = ["ecdsa", "bls", "serde", "std", "tests"]
 tests = ["std", "dep:rstest"]
 
 [lints]
@@ -112,9 +112,9 @@ name = "bls_ietf_threshold"
 required-features = ["bls", "tests"]
 
 [[test]]
-name = "k256_keygen"
-required-features = ["k256", "tests"]
+name = "ecdsa_keygen"
+required-features = ["ecdsa", "tests"]
 
 [[test]]
-name = "k256_sign"
-required-features = ["k256", "tests"]
+name = "ecdsa_sign"
+required-features = ["ecdsa", "tests"]

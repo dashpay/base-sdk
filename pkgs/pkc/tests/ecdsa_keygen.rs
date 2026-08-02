@@ -12,14 +12,14 @@ mod common;
 
 #[cfg(feature = "serde")]
 use dash_dev::assert_json_rt;
-use dash_pkc::k256::{PublicKey, SecretKey};
+use dash_pkc::ecdsa::{EcdsaPublicKey, EcdsaSecretKey};
 use hex_literal::hex;
 use rstest::*;
 
 /// Shared test keypair.
 #[fixture]
-fn alice() -> SecretKey {
-  SecretKey::from_bytes(&hex!(
+fn alice() -> EcdsaSecretKey {
+  EcdsaSecretKey::from_bytes(&hex!(
     "0123456789abcdef0123456789abcdef"
     "fedcba9876543210fedcba9876543210"
   ))
@@ -28,48 +28,48 @@ fn alice() -> SecretKey {
 
 /// Secret key serialization round-trips.
 #[rstest]
-fn from_bytes_roundtrip(alice: SecretKey) {
+fn from_bytes_roundtrip(alice: EcdsaSecretKey) {
   let bytes = alice.to_bytes();
-  let restored = SecretKey::from_bytes(&bytes).unwrap();
+  let restored = EcdsaSecretKey::from_bytes(&bytes).unwrap();
   assert_eq!(restored.public_key().to_bytes(), alice.public_key().to_bytes());
 }
 
 /// Zero scalar is rejected.
 #[rstest]
 fn from_bytes_rejects_zero() {
-  assert!(SecretKey::from_bytes(&[0u8; 32]).is_err());
+  assert!(EcdsaSecretKey::from_bytes(&[0u8; 32]).is_err());
 }
 
 /// Compressed public key round-trips through SEC1.
 #[rstest]
-fn pubkey_compressed_roundtrip(alice: SecretKey) {
+fn pubkey_compressed_roundtrip(alice: EcdsaSecretKey) {
   let pk = alice.public_key();
   let bytes = pk.to_bytes();
   assert_eq!(bytes.len(), 33);
-  let restored = PublicKey::from_bytes(&bytes).unwrap();
+  let restored = EcdsaPublicKey::from_bytes(&bytes).unwrap();
   assert_eq!(restored, pk);
 }
 
 /// Uncompressed public key round-trips through SEC1.
 #[rstest]
-fn pubkey_uncompressed_roundtrip(alice: SecretKey) {
+fn pubkey_uncompressed_roundtrip(alice: EcdsaSecretKey) {
   let pk = alice.public_key();
   let bytes = pk.to_uncompressed_bytes();
   assert_eq!(bytes.len(), 65);
-  let restored = PublicKey::from_bytes(&bytes).unwrap();
+  let restored = EcdsaPublicKey::from_bytes(&bytes).unwrap();
   assert_eq!(restored, pk);
 }
 
 /// Garbage bytes are rejected.
 #[rstest]
 fn pubkey_rejects_garbage() {
-  assert!(PublicKey::from_bytes(&[0xff; 33]).is_err());
+  assert!(EcdsaPublicKey::from_bytes(&[0xff; 33]).is_err());
 }
 
-/// Serde round-trip for PublicKey.
+/// Serde round-trip for EcdsaPublicKey.
 #[cfg(feature = "serde")]
 #[rstest]
-fn serde_pk_roundtrip(alice: SecretKey) {
+fn serde_pk_roundtrip(alice: EcdsaSecretKey) {
   let pk = alice.public_key();
   assert_json_rt(&pk);
 }
@@ -87,12 +87,12 @@ mod kat {
 
   #[test]
   fn kat_derive_pk() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "k256_keygen");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "ecdsa_keygen");
     let vecs: Vec<KeygenVector> = corpus.vectors("derive_pk");
 
     for v in &vecs {
       let sk_bytes: [u8; 32] = arr_from_hex(&v.sk);
-      let sk = dash_pkc::k256::SecretKey::from_bytes(&sk_bytes).unwrap();
+      let sk = dash_pkc::ecdsa::EcdsaSecretKey::from_bytes(&sk_bytes).unwrap();
       let pk = sk.public_key();
       assert_eq!(
         pk.to_bytes().to_lower_hex_string(),
