@@ -7,8 +7,10 @@
 //! Unified BLS cryptography module.
 
 mod error;
+mod schemes;
 
 pub use error::BlsError;
+pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
@@ -18,9 +20,6 @@ cfg_if::cfg_if! {
     pub(crate) mod scheme_ops;
     mod scheme_chia;
     mod scheme_ietf;
-    mod schemes;
-
-    pub(crate) use schemes::{BlsScChia, BlsScIetf};
 
     #[cfg(feature = "tests")]
     #[doc(hidden)]
