@@ -49,6 +49,9 @@ predicate fileRelPath(File f, string relPath) {
   relPath = f.getAbsolutePath().regexpCapture(".*/(pkgs/.*)", 1)
 }
 
+/** Holds if `f` belongs to a crate in this workspace. */
+predicate isWorkspaceFile(File f) { fileRelPath(f, _) }
+
 /** Holds if module `m` is not nested inside another module. */
 predicate isRootModule(Module m) {
   not exists(Module enclosing | m.getParentNode() = enclosing.getItemList())

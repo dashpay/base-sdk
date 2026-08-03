@@ -5,7 +5,7 @@
 //
 
 #![cfg_attr(
-  any(feature = "bls", feature = "k256"),
+  any(feature = "bls", feature = "ecdsa"),
   expect(clippy::unwrap_used, reason = "benchmarks rely on trusted test vectors")
 )]
 
@@ -13,8 +13,8 @@
 mod bls_chia;
 #[cfg(feature = "bls")]
 mod bls_ietf;
-#[cfg(feature = "k256")]
-mod k256;
+#[cfg(feature = "ecdsa")]
+mod ecdsa;
 
 fn main() {
   divan::main();

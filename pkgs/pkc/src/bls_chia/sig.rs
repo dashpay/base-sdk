@@ -9,14 +9,16 @@
 use super::pk::PublicKey;
 use crate::bls::blst_ffi::G2Affine;
 use crate::bls::scheme_ops::BlsScheme;
-use crate::bls::{BlsError, BlsScChia};
+use crate::bls::{BlsError, BlsScChia, BlsSigBytes};
+
+use dash_types::Unencodable;
 
 /// A legacy BLS signature (96-byte G2 point in legacy serialization).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(into = "crate::BlsSignatureBytes", try_from = "crate::BlsSignatureBytes",)
+  serde(into = "BlsSigBytes<BlsScChia>", try_from = "BlsSigBytes<BlsScChia>",)
 )]
 pub struct Signature(pub(super) G2Affine);
 
@@ -44,16 +46,16 @@ impl Signature {
 
 crate::common::bls::impl_hash_via_bytes!(Signature);
 
-impl From<Signature> for crate::BlsSignatureBytes {
+impl From<Signature> for BlsSigBytes<BlsScChia> {
   fn from(sig: Signature) -> Self {
-    Self(sig.to_bytes())
+    Self::from_bytes(sig.to_bytes())
   }
 }
 
-impl TryFrom<crate::BlsSignatureBytes> for Signature {
-  type Error = crate::bls::BlsError;
+impl TryFrom<BlsSigBytes<BlsScChia>> for Signature {
+  type Error = BlsError;
 
-  fn try_from(bytes: crate::BlsSignatureBytes) -> Result<Self, Self::Error> {
-    Self::from_bytes(&bytes.0)
+  fn try_from(bytes: BlsSigBytes<BlsScChia>) -> Result<Self, Self::Error> {
+    Self::from_bytes(bytes.as_bytes())
   }
 }

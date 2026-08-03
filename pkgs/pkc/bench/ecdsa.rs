@@ -4,30 +4,20 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Benchmarks for the k256 (secp256k1) feature
+//! Benchmarks for the ecdsa (secp256k1) feature
 
-use dash_pkc::k256::{PublicKey, SecretKey};
+use dash_pkc::ecdsa::tests::{message_hash, ALICE_SK};
+use dash_pkc::ecdsa::{EcdsaPublicKey, EcdsaSecretKey};
 
-fn test_key() -> SecretKey {
-  let bytes = [
-    0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba,
-    0x98, 0x76, 0x54, 0x32, 0x10, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10,
-  ];
-  SecretKey::from_bytes(&bytes).unwrap()
-}
-
-fn test_msg_hash(i: u8) -> [u8; 32] {
-  let mut h = [0u8; 32];
-  h[0] = i;
-  h[31] = i.wrapping_mul(37);
-  h
+fn test_key() -> EcdsaSecretKey {
+  EcdsaSecretKey::from_bytes(&ALICE_SK).unwrap()
 }
 
 #[divan::bench]
 fn sign(bencher: divan::Bencher) {
   let sk = test_key();
   bencher.counter(divan::counter::ItemsCount::new(1u32)).bench(|| {
-    let msg = test_msg_hash(42);
+    let msg = message_hash(42);
     sk.sign(&msg).unwrap()
   });
 }
@@ -35,7 +25,7 @@ fn sign(bencher: divan::Bencher) {
 #[divan::bench]
 fn verify(bencher: divan::Bencher) {
   let sk = test_key();
-  let msg = test_msg_hash(99);
+  let msg = message_hash(99);
   let sig = sk.sign(&msg).unwrap();
   let pk = sk.public_key();
   bencher
@@ -48,17 +38,17 @@ fn sign_recoverable(bencher: divan::Bencher) {
   let sk = test_key();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| sk.sign_recoverable(&test_msg_hash(7)).unwrap());
+    .bench(|| sk.sign_recoverable(&message_hash(7)).unwrap());
 }
 
 #[divan::bench]
 fn recover(bencher: divan::Bencher) {
   let sk = test_key();
-  let msg = test_msg_hash(55);
+  let msg = message_hash(55);
   let (sig, rid) = sk.sign_recoverable(&msg).unwrap();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| PublicKey::recover(&msg, &sig, rid));
+    .bench(|| EcdsaPublicKey::recover(&msg, &sig, rid));
 }
 
 #[divan::bench]
@@ -70,22 +60,21 @@ fn ser_pk(bencher: divan::Bencher) {
 #[divan::bench]
 fn deser_pk(bencher: divan::Bencher) {
   let bytes = test_key().public_key().to_bytes();
-  bencher.bench(|| PublicKey::from_bytes(&bytes));
+  bencher.bench(|| EcdsaPublicKey::from_bytes(&bytes));
 }
 
 #[cfg(feature = "std")]
 mod worker_benches {
-  use dash_pkc::k256::{PublicKey, SecretKey, Signature};
+  use dash_pkc::ecdsa::tests::{message_hash, BOB_SK};
+  use dash_pkc::ecdsa::{EcdsaPublicKey, EcdsaSecretKey, EcdsaSignature};
   use dash_pkc::worker;
 
-  fn setup_sigs(n: usize) -> Vec<(Signature, PublicKey, [u8; 32])> {
-    let sk = SecretKey::from_bytes(&[0x42u8; 32]).unwrap();
+  fn setup_sigs(n: usize) -> Vec<(EcdsaSignature, EcdsaPublicKey, [u8; 32])> {
+    let sk = EcdsaSecretKey::from_bytes(&BOB_SK).unwrap();
     let pk = sk.public_key();
     (0..n)
       .map(|i| {
-        let mut msg = [0u8; 32];
-        msg[0] = i as u8;
-        msg[31] = (i >> 8) as u8;
+        let msg = message_hash(i as u16);
         let sig = sk.sign(&msg).unwrap();
         (sig, pk.clone(), msg)
       })

@@ -424,6 +424,7 @@ name = "dash-pkc"
 version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding 0.2.0",
+ "bitcoin_hashes",
  "blst",
  "cfg-if",
  "dash-dev",
@@ -438,6 +439,7 @@ dependencies = [
  "rstest",
  "serde",
  "sha2",
+ "subtle",
  "zeroize",
 ]
 
@@ -484,7 +486,9 @@ dependencies = [
  "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin_hashes",
+ "dash-types",
  "hex-literal",
+ "rstest",
  "serde",
 ]
 
@@ -496,7 +500,9 @@ dependencies = [
  "cfg-if",
  "dash-types-marker",
  "hex-conservative",
+ "rstest",
  "serde",
+ "zeroize",
 ]
 
 [[package]]

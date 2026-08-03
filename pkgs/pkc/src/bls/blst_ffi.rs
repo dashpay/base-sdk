@@ -7,9 +7,10 @@
 //! Bridging routines for unsafe blst FFI operations.
 
 use blst::*;
-use dash_types::type_cvrt;
+use dash_types::{type_cvrt, Unencodable};
 use zeroize::Zeroize;
 
+use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use core::ptr::null_mut;
 
@@ -80,6 +81,12 @@ impl Fr {
   }
 }
 
+impl fmt::Debug for Fr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Fr(..)")
+  }
+}
+
 impl Add for Fr {
   type Output = Self;
 
@@ -140,7 +147,7 @@ type_cvrt!(From<Fr> for blst_scalar, |fr| {
 
 /// An element of the BLS12-381 base field, i.e. an integer reduced
 /// modulo the field prime `p`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
 pub(crate) struct Fp(blst_fp);
 
 impl Fp {
@@ -208,11 +215,9 @@ type_cvrt!(From<Fp> for blst_fp, |fp| fp.0);
 
 type_cvrt!(From<blst_fp> for Fp, |raw| Self(*raw));
 
-type_cvrt!(From<Fp> for Fp2, |fp| Self::new(*fp, Fp::default()));
-
 /// An element of the quadratic extension field `Fp2 = Fp[u]/(u^2 + 1)`,
 /// written `c0 + c1*u`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
 pub(crate) struct Fp2(blst_fp2);
 
 impl Fp2 {
@@ -316,6 +321,8 @@ impl Sub for Fp2 {
   }
 }
 
+type_cvrt!(From<Fp> for Fp2, |fp| Self::new(*fp, Fp::default()));
+
 type_cvrt!(From<Fp2> for blst_fp2, |fp2| fp2.0);
 
 type_cvrt!(From<blst_fp2> for Fp2, |raw| Self(*raw));
@@ -334,7 +341,7 @@ pub(crate) trait Point: Copy + Default + Add<Output = Self> {
 
 /// A point of the G1 group (over `Fp`) in projective coordinates,
 /// suitable for accumulation before a single conversion to affine.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Unencodable)]
 pub(crate) struct G1(blst_p1);
 
 impl G1 {
@@ -373,7 +380,7 @@ type_cvrt!(From<blst_p1> for G1, |raw| Self(*raw));
 
 /// A point of the G1 group in affine coordinates, the canonical form
 /// used for serialization and pairing inputs.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
 pub(crate) struct G1Affine(blst_p1_affine);
 
 impl G1Affine {
@@ -418,7 +425,7 @@ type_cvrt!(From<blst_p1_affine> for G1Affine, |raw| Self(*raw));
 
 /// A point of the G2 group (over `Fp2`) in projective coordinates,
 /// suitable for accumulation before a single conversion to affine.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Unencodable)]
 pub(crate) struct G2(blst_p2);
 
 impl G2 {
@@ -479,7 +486,7 @@ type_cvrt!(From<G2> for blst_p2, |g| g.0);
 
 /// A point of the G2 group in affine coordinates, the canonical form
 /// used for serialization and pairing inputs.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
 pub(crate) struct G2Affine(blst_p2_affine);
 
 impl G2Affine {

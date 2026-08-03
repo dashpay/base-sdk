@@ -8,6 +8,7 @@
 
 use super::blst_ffi::{self, Fr, Point, G1, G2};
 use super::error::BlsError;
+use super::schemes::BlsSchemeId;
 use crate::prelude::*;
 
 use dash_num::Hash256;
@@ -23,7 +24,7 @@ use core::fmt::Debug;
 const WEIGHT_BITS: usize = 256;
 
 /// BLS operations tied to a specific scheme.
-pub(crate) trait BlsScheme {
+pub(crate) trait BlsScheme: BlsSchemeId {
   /// Inner secret key representation.
   type InnerSk: Clone;
   /// Inner public key representation.

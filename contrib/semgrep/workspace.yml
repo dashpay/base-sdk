@@ -69,27 +69,14 @@ rules:
       include:
         - /pkgs/primitives/src/**/*.rs
         - /pkgs/p2p_core/src/**/*.rs
+        - /pkgs/pkc/src/**/*.rs
+        - /pkgs/script/src/**/*.rs
     patterns:
       - pattern-regex: '\.extend_from_slice\([^)]*\)'
       - pattern-not-regex: "to_be_bytes"
       - pattern-not-regex: '\.as_bytes\(\)'
       - pattern-not-regex: '&self\.0'
       - pattern-not-regex: "encode_to_vec"
-
-  - id: derive-no-debug-secret
-    message: "secret type must not derive Debug; impl manually to redact contents"
-    severity: ERROR
-    languages: [rust]
-    paths:
-      include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
-    pattern-regex: |
-      (?sx)
-      \#\[derive\( [^)]* \bDebug\b [^)]* \)\]
-      \s*
-      (?: \#\[ [^\]]* \] \s* )*         # skip intermediate attributes
-      (?: pub (?: \( [^)]* \) )? \s+ )? # optional visibility
-      (?:struct|enum) \s+
-      \w* (?:Secret|Private|Seed|Password|Mnemonic|Share(?!d)) \w*
 
   - id: derive-serde-disambiguate
     message: "use ::serde:: instead of serde:: in derive attributes"

@@ -13,11 +13,12 @@ use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScIetf};
 
 use blst::min_pk;
+use dash_types::Unencodable;
 
 use core::fmt;
 
 /// BLS signature scheme (determines the DST).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum Scheme {
   /// Basic scheme (NUL augmentation).

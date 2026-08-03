@@ -21,8 +21,10 @@ serde = { version = "1", default-features = false, features = [
   "derive",
   "alloc",
 ], optional = true }
+zeroize = { version = "1", default-features = false }
 
 [dev-dependencies]
+rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 
 [lints]

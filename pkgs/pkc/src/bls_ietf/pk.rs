@@ -10,17 +10,17 @@ use super::sig::Signature;
 use super::sk::SecretKey;
 use super::DST_POP_PROVE;
 use crate::bls::scheme_ops::BlsScheme;
-use crate::bls::{BlsError, BlsScIetf};
+use crate::bls::{BlsError, BlsPkBytes, BlsScIetf};
 
-use blst::min_pk;
-use blst::BLST_ERROR;
+use blst::{min_pk, BLST_ERROR};
+use dash_types::Unencodable;
 
 /// A BLS public key (48-byte compressed G1 point).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
-  serde(into = "crate::BlsPublicKeyBytes", try_from = "crate::BlsPublicKeyBytes",)
+  serde(into = "BlsPkBytes<BlsScIetf>", try_from = "BlsPkBytes<BlsScIetf>",)
 )]
 pub struct PublicKey(pub(super) min_pk::PublicKey);
 
@@ -72,16 +72,16 @@ impl PublicKey {
 
 crate::common::bls::impl_hash_via_bytes!(PublicKey);
 
-impl From<PublicKey> for crate::BlsPublicKeyBytes {
+impl From<PublicKey> for BlsPkBytes<BlsScIetf> {
   fn from(pk: PublicKey) -> Self {
-    Self(pk.to_bytes())
+    Self::from_bytes(pk.to_bytes())
   }
 }
 
-impl TryFrom<crate::BlsPublicKeyBytes> for PublicKey {
-  type Error = crate::bls::BlsError;
+impl TryFrom<BlsPkBytes<BlsScIetf>> for PublicKey {
+  type Error = BlsError;
 
-  fn try_from(bytes: crate::BlsPublicKeyBytes) -> Result<Self, Self::Error> {
-    Self::from_bytes(&bytes.0)
+  fn try_from(bytes: BlsPkBytes<BlsScIetf>) -> Result<Self, Self::Error> {
+    Self::from_bytes(bytes.as_bytes())
   }
 }

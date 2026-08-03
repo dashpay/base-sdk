@@ -4,8 +4,11 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Re-exports for no_std compatibility.
+//! secp256k1 public key byte bag.
 
-pub(crate) use alloc::format;
-pub(crate) use alloc::string::String;
-pub(crate) use alloc::vec::Vec;
+use dash_types::make_bytes;
+
+make_bytes! {
+  /// Raw compressed ECDSA public key bytes.
+  EcdsaPkBytes, 33
+}

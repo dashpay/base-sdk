@@ -14,6 +14,10 @@ use crate::bls::{BlsError, BlsScChia};
 use crate::prelude::*;
 
 use dash_num::Hash256;
+use dash_types::Unencodable;
+
+use core::fmt;
+use core::hash::{Hash, Hasher};
 
 /// Secret key share for threshold signing.
 #[derive(Clone)]
@@ -47,22 +51,24 @@ impl SecretKeyShare {
   }
 }
 
-impl core::fmt::Debug for SecretKeyShare {
-  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Debug for SecretKeyShare {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "SecretKeyShare(id={:?})", self.id)
   }
 }
 
 /// Signature share from one threshold participant.
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Unencodable)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct SignatureShare {
   id: Hash256,
   sig: Signature,
 }
 
-impl core::fmt::Debug for SignatureShare {
-  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    write!(f, "SignatureShare(id={:?})", self.id)
+impl Hash for SignatureShare {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.id.hash(state);
+    state.write(&self.sig.to_bytes());
   }
 }
 
@@ -80,6 +86,12 @@ impl SignatureShare {
   /// The underlying signature.
   pub fn signature(&self) -> &Signature {
     &self.sig
+  }
+}
+
+impl fmt::Debug for SignatureShare {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "SignatureShare(id={:?})", self.id)
   }
 }
 

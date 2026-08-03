@@ -24,8 +24,19 @@ private predicate implTraitHasCrate(Impl i, string traitName, string crate) {
   )
 }
 
-/** Gets the trait name from an impl block's trait reference. */
-string implTraitName(Impl i) { result = implTraitPath(i).getSegment().getIdentifier().getText() }
+/**
+ * Gets the trait name from an impl block's trait reference.
+ *
+ * Prefers the resolved `Trait` item so an aliased or fully qualified path
+ * still reports the trait's own name, falling back to the written path when
+ * the trait lives in a crate the extractor did not resolve.
+ */
+string implTraitName(Impl i) {
+  result = i.getTrait().getName().getText()
+  or
+  not exists(i.getTrait()) and
+  result = implTraitPath(i).getSegment().getIdentifier().getText()
+}
 
 /** Gets the type name from an impl block's self type. */
 string implSelfName(Impl i) {
@@ -70,13 +81,6 @@ private predicate manualImplInfo(Impl i, File f, string selfName, string traitNa
   scope = i.(AstNode).getParentNode()
 }
 
-/** Holds if `t` has a manual impl for `traitName`. */
-predicate hasManualImpl(TypeItem t, string traitName) {
-  exists(Impl i |
-    manualImplInfo(i, fileOf(t), t.getName().getText(), traitName, t.(AstNode).getParentNode())
-  )
-}
-
 /** Materialises macro impl metadata for join efficiency. */
 pragma[nomagic]
 private predicate macroImplInfo(MacroItems m, Impl i, File f, string selfName, string traitName) {
@@ -86,19 +90,16 @@ private predicate macroImplInfo(MacroItems m, Impl i, File f, string selfName, s
   traitName = implTraitName(i)
 }
 
-/** Holds if `t` has a macro-generated (non-derive) impl for `traitName`. */
-predicate hasMacroImpl(TypeItem t, string traitName) {
-  exists(MacroItems m, Impl i |
-    macroImplInfo(m, i, fileOf(t), t.getName().getText(), traitName) and
-    not m = t.getADeriveMacroExpansion()
-  )
-}
-
-/** Holds if `t` implements `traitName` via derive, manual impl, or macro. */
+/**
+ * Holds if `t` implements `traitName`.
+ *
+ * Resolves the impl's self type rather than matching it by name and enclosing
+ * scope, so generic impls (`impl<S: Marker> Zeroize for Bag<S>`), impls written
+ * in another module, and `macro_rules!`-generated impls are all covered without
+ * enumerating where they may appear.
+ */
 predicate implementsTrait(TypeItem t, string traitName) {
-  hasDerivedImpl(t, traitName) or
-  hasManualImpl(t, traitName) or
-  hasMacroImpl(t, traitName)
+  exists(Impl i | i.getSelf() = t and implTraitName(i) = traitName)
 }
 
 /**
