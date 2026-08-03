@@ -1,11 +1,15 @@
 {
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.rulers": [80, 120],
   },
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.rulers": [80]
+  },
+  "[ql]": {
+    "editor.rulers": [100]
   },
   "editor.formatOnSave": true,
   "editor.minimap.enabled": true,
