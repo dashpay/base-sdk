@@ -32,6 +32,31 @@ macro_rules! impl_bytes {
   )* };
 }
 
+/// Generates the consensus encoding traits for a fixed-size byte newtype with
+/// secret contents.
+#[macro_export]
+macro_rules! impl_sbyte {
+  ($n:literal, $($name:ident),* $(,)?) => { $(
+    impl $crate::codec::BaseCodec for $name {
+      fn decode(
+        data: &mut &[u8],
+      ) -> Result<Self, $crate::codec::DecodeError> {
+        $crate::codec::take::<$n>(data).map(|b| Self(b))
+      }
+
+      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
+        buf.extend_from_slice(self.as_bytes());
+      }
+    }
+
+    $crate::impl_stype!($name, $n);
+
+    impl From<[u8; $n]> for $name {
+      fn from(bytes: [u8; $n]) -> Self { Self(bytes) }
+    }
+  )* };
+}
+
 /// The standard trait set for a fixed-size byte newtype, expressed only
 /// through `from_bytes` / `as_bytes`.
 ///

@@ -8,6 +8,8 @@
 
 use crate::prelude::*;
 
+use zeroize::Zeroize;
+
 use core::convert::Infallible;
 use core::fmt;
 
@@ -232,6 +234,26 @@ impl<const N: usize> ArrayBuf<N> {
     Self { buf: [0u8; N], len: 0 }
   }
 
+  /// Borrows the written bytes.
+  pub fn as_bytes(&self) -> &[u8] {
+    &self.buf[..self.len]
+  }
+
+  /// Returns `true` when nothing has been written.
+  pub const fn is_empty(&self) -> bool {
+    self.len == 0
+  }
+
+  /// Number of bytes written so far.
+  pub const fn len(&self) -> usize {
+    self.len
+  }
+
+  /// Remaining writable capacity.
+  pub const fn spare(&self) -> usize {
+    N - self.len
+  }
+
   /// Returns the written bytes as a fixed array.
   ///
   /// # Panics
@@ -240,6 +262,13 @@ impl<const N: usize> ArrayBuf<N> {
   pub fn into_array(self) -> [u8; N] {
     assert!(self.len == N, "expected {N} bytes, wrote {}", self.len);
     self.buf
+  }
+}
+
+impl<const N: usize> Zeroize for ArrayBuf<N> {
+  fn zeroize(&mut self) {
+    self.buf.zeroize();
+    self.len = 0;
   }
 }
 

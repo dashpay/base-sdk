@@ -500,6 +500,7 @@ dependencies = [
  "hex-conservative",
  "rstest",
  "serde",
+ "zeroize",
 ]
 
 [[package]]
