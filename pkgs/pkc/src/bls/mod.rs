@@ -8,18 +8,20 @@
 
 mod error;
 mod schemes;
+mod sig_id;
 
 pub use error::BlsError;
 pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};
+pub use sig_id::BlsSigId;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
+    mod scheme_chia;
+    mod scheme_ietf;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
     pub(crate) mod scheme_ops;
-    mod scheme_chia;
-    mod scheme_ietf;
 
     #[cfg(feature = "tests")]
     #[doc(hidden)]
