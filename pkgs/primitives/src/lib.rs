@@ -45,7 +45,7 @@ pub use payload::{
   PlatformNodeId, ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, QuorumHash, QuorumVvecHash,
   SpecialPayload, TxType, VERSIONBITS_NUM_BITS,
 };
-pub use script::{KeyId, Script};
+pub use script::KeyId;
 pub use support::{DynBitset, DynBitsetIterator, LlmqType, RevocationReason};
 pub use transaction::{
   OutPoint, Transaction, TxHash, TxIn, TxInvalid, TxOut, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD,

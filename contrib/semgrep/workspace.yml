@@ -1,6 +1,6 @@
 rules:
   - id: attr-allow-discouraged
-    message: "allow attributes are discouraged except for dead_code and unused_imports"
+    message: "allow attributes are discouraged except for dead_code, unused_imports and unused_macros"
     severity: ERROR
     languages: [rust]
     paths:
@@ -11,7 +11,7 @@ rules:
       \#!?\[allow\(             # outer #[allow( or inner #![allow(
       (?: " [^"]* " | [^")] )*? # any argument, stepping over reason text
       \b (?!                    # ... that names neither the reason keyword
-        (?: reason | dead_code | unused_imports ) \b
+        (?: reason | dead_code | unused_imports | unused_macros ) \b
       ) [a-z]                   # ... nor a permitted lint
 
   - id: attr-inner-roots-only

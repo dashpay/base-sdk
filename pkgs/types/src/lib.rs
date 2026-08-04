@@ -13,6 +13,8 @@ extern crate self as dash_types;
 #[cfg(feature = "std")]
 extern crate std;
 
+#[allow(unused_macros, reason = "used by feature-gated submodules")]
+mod adapters;
 mod entity;
 mod hex;
 mod macros;

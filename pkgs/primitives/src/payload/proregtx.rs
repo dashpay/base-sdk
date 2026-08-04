@@ -12,10 +12,11 @@ use super::{
 };
 use crate::codec::impl_payload;
 use crate::prelude::*;
-use crate::script::{KeyId, Script};
+use crate::script::KeyId;
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::{hash_impl, TxHash};
 
+use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 use dash_types::{make_bytes, TypeId};
@@ -52,7 +53,7 @@ pub struct ProRegTx {
   /// Operator reward in basis points (0-10000).
   pub operator_reward: u16,
   /// Payout script.
-  pub script_payout: Script,
+  pub script_payout: ScriptPubKeyBuf,
   /// Hash of all inputs.
   pub inputs_hash: InputsHash,
   /// Platform node id (Evo only).
@@ -111,7 +112,7 @@ impl BaseCodec for ProRegTx {
     let pub_key_operator = BlsPkBytes::<BlsScIetf>::decode(data)?;
     let key_id_voting = KeyId::decode(data)?;
     let operator_reward = u16::decode(data)?;
-    let script_payout = Script::decode(data)?;
+    let script_payout = ScriptPubKeyBuf::decode(data)?;
     let inputs_hash = InputsHash::decode(data)?;
     let (platform_node_id, platform_p2p_port, platform_http_port) = if mn_type == MnType::Evo {
       let node_id = PlatformNodeId::decode(data)?;

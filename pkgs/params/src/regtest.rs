@@ -9,10 +9,9 @@
 use crate::prelude::*;
 use crate::types::*;
 
+use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use dash_num::{Arith256, Hash256};
-use dash_primitives::{
-  Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
-};
+use dash_primitives::{Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Transaction, TxHash, TxIn, TxOut, TxType};
 use dash_script::AddrParams;
 use hex_literal::hex;
 
@@ -26,7 +25,7 @@ pub fn genesis() -> Block {
         hash: TxHash::default(),
         index: 0xFFFF_FFFF,
       },
-      script_sig: Script::new(
+      script_sig: ScriptSigBuf::from_bytes(
         hex!(
           "04ffff001d01044c5957697265642030392f4a616e2f323031342054686520"
           "4772616e64204578706572696d656e7420476f6573204c6976653a204f7665"
@@ -39,7 +38,7 @@ pub fn genesis() -> Block {
     }],
     outputs: vec![TxOut {
       value: bitcoin_units::Amount::from_btc_u16(50),
-      script_pubkey: Script::new(
+      script_pubkey: ScriptPubKeyBuf::from_bytes(
         hex!(
           "41040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4"
           "d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070"

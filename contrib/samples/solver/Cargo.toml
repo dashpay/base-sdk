@@ -22,12 +22,16 @@ full = ["std"]
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
 ] }
+bitcoin-primitives = { version = "0.102", default-features = false, features = [
+  "alloc",
+] }
 bitcoin-units = { version = "0.3", default-features = false, features = [
   "alloc",
 ] }
 dash-num = { version = "0.0.0", path = "../../../pkgs/num", default-features = false }
 dash-pow = { version = "0.0.0", path = "../../../pkgs/pow", default-features = false, features = ["simd"] }
 dash-primitives = { version = "0.0.0", path = "../../../pkgs/primitives", default-features = false }
+dash-script = { version = "0.0.0", path = "../../../pkgs/script", default-features = false }
 dash-types = { version = "0.0.0", path = "../../../pkgs/types", default-features = false }
 hex-conservative = { version = "0.3", default-features = false, features = ["alloc"] }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }

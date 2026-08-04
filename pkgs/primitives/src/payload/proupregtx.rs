@@ -9,9 +9,10 @@
 use super::{InputsHash, ProTxInvalid};
 use crate::codec::codec_payload;
 use crate::prelude::*;
-use crate::script::{KeyId, Script};
+use crate::script::KeyId;
 use crate::TxHash;
 
+use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
 use dash_types::codec::Checkable;
 use dash_types::TypeId;
@@ -37,7 +38,7 @@ pub struct ProUpRegTx {
   /// Voting key id (20 bytes).
   pub key_id_voting: KeyId,
   /// Payout script.
-  pub script_payout: Script,
+  pub script_payout: ScriptPubKeyBuf,
   /// Hash of all inputs.
   pub inputs_hash: InputsHash,
   /// Owner ECDSA signature (variable-length).
