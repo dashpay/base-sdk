@@ -251,7 +251,7 @@ fn curve_rhs(x: &Fp2) -> Fp2 {
   x3 + b
 }
 
-#[cfg(all(test, feature = "tests"))]
+#[cfg(test)]
 mod tests {
   use super::*;
   use crate::prelude::*;

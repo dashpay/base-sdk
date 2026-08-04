@@ -98,7 +98,7 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsPkBytes<S>> for BlsPublicKey<S>, BlsErro
   Self::from_bytes(bytes.as_bytes())
 });
 
-#[cfg(all(test, feature = "tests"))]
+#[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;

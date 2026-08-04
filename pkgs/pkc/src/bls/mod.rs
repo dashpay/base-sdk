@@ -36,7 +36,7 @@ cfg_if::cfg_if! {
     pub(crate) mod chia_h2c;
     pub(crate) mod scheme_ops;
 
-    #[cfg(feature = "tests")]
+    #[cfg(any(test, feature = "tests"))]
     #[doc(hidden)]
     #[expect(clippy::unwrap_used, reason = "test support code")]
     pub mod tests;

@@ -211,7 +211,7 @@ impl BlsScIetf {
   }
 }
 
-#[cfg(all(test, feature = "tests"))]
+#[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;

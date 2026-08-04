@@ -31,7 +31,7 @@ impl<S: BlsScheme> BlsSignature<S> {
   }
 }
 
-#[cfg(all(test, feature = "tests"))]
+#[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::bls::scheme_ops::BlsScheme;

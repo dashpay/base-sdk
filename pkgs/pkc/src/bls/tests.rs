@@ -9,7 +9,6 @@
 use crate::prelude::*;
 
 use hex_conservative::hex;
-use rstest::*;
 
 /// IKM producing the first deterministic test key.
 pub const SEED_0: [u8; 32] = [0u8; 32];
@@ -41,12 +40,6 @@ pub fn make_id(i: u32) -> dash_num::Hash256 {
 /// Build `n` sequential participant ids `1..=n`.
 pub fn sequential_ids(n: usize) -> Vec<dash_num::Hash256> {
   (1..=n).map(|i| make_id(i as u32)).collect()
-}
-
-/// Shared 32-byte test message fixture.
-#[fixture]
-pub fn msg32() -> [u8; 32] {
-  MSG_DEADBEEF
 }
 
 /// Build a distinct 32-byte IKM from an index, for multi-signer tests.
