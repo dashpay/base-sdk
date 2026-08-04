@@ -26,31 +26,65 @@ macro_rules! define_p2p {
     parsed {
       $(
         $(#[$p_doc:meta])*
-        $p_variant:ident ( $p_type:ty ) => $p_cmd:ident
+        $p_variant:ident ( $p_type:ty ) => $p_cmd:ident $p_wire:literal $(@ $p_sid:literal)?
       ),* $(,)?
     }
     // Fully-parsed messages with an empty payload.
     parsed_empty {
       $(
         $(#[$pe_doc:meta])*
-        $pe_variant:ident => $pe_cmd:ident
+        $pe_variant:ident => $pe_cmd:ident $pe_wire:literal $(@ $pe_sid:literal)?
       ),* $(,)?
     }
     // Recognised but not-yet-implemented (raw `Vec<u8>` payload).
     stub {
       $(
         $(#[$s_doc:meta])*
-        $s_variant:ident => $s_cmd:ident
+        $s_variant:ident => $s_cmd:ident $s_wire:literal $(@ $s_sid:literal)?
       ),* $(,)?
     }
     // Recognised but not-yet-implemented (empty payload).
     stub_empty {
       $(
         $(#[$se_doc:meta])*
-        $se_variant:ident => $se_cmd:ident
+        $se_variant:ident => $se_cmd:ident $se_wire:literal $(@ $se_sid:literal)?
       ),* $(,)?
     }
   ) => {
+    impl CommandString {
+      $( $(#[$p_doc])* pub const $p_cmd: Self = Self::from_static($p_wire); )*
+      $( $(#[$pe_doc])* pub const $pe_cmd: Self = Self::from_static($pe_wire); )*
+      $( $(#[$s_doc])* pub const $s_cmd: Self = Self::from_static($s_wire); )*
+      $( $(#[$se_doc])* pub const $se_cmd: Self = Self::from_static($se_wire); )*
+    }
+
+    impl ShortId {
+      /// Resolves the short ID to its command name, if one is assigned.
+      pub const fn to_command_str(self) -> Option<&'static str> {
+        match self.0 {
+          $( $( $p_sid => Some($p_wire), )? )*
+          $( $( $pe_sid => Some($pe_wire), )? )*
+          $( $( $s_sid => Some($s_wire), )? )*
+          $( $( $se_sid => Some($se_wire), )? )*
+          _ => None,
+        }
+      }
+
+      /// Looks up the short ID for a command, if one is assigned.
+      ///
+      /// `None` means the message has no short ID and must be sent in
+      /// the long format.
+      pub fn from_command(cmd: &CommandString) -> Option<Self> {
+        match *cmd {
+          $( $( CommandString::$p_cmd => Some(Self($p_sid)), )? )*
+          $( $( CommandString::$pe_cmd => Some(Self($pe_sid)), )? )*
+          $( $( CommandString::$s_cmd => Some(Self($s_sid)), )? )*
+          $( $( CommandString::$se_cmd => Some(Self($se_sid)), )? )*
+          _ => None,
+        }
+      }
+    }
+
     /// A P2P network message.
     #[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
     #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]

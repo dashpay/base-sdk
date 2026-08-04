@@ -36,168 +36,161 @@ pub use version::{ServiceFlags, UserAgent, UserAgentTooLong, Version, VersionAdd
 define_p2p! {
   parsed {
     /// Protocol version exchange.
-    Version(Version) => VERSION,
+    Version(Version) => VERSION "version",
     /// Keepalive request.
-    Ping(Ping) => PING,
+    Ping(Ping) => PING "ping" @ 18,
     /// Keepalive response.
-    Pong(Pong) => PONG,
+    Pong(Pong) => PONG "pong" @ 19,
     /// V1 address list.
-    Addr(Addr) => ADDR,
+    Addr(Addr) => ADDR "addr" @ 1,
     /// BIP155 V2 address list.
-    AddrV2(AddrV2Msg) => ADDRV2,
+    AddrV2(AddrV2Msg) => ADDRV2 "addrv2" @ 28,
     /// Inventory announcement.
-    Inv(Inv) => INV,
+    Inv(Inv) => INV "inv" @ 14,
     /// Request specific inventory.
-    GetData(GetData) => GETDATA,
+    GetData(GetData) => GETDATA "getdata" @ 11,
     /// Inventory not found.
-    NotFound(NotFound) => NOTFOUND,
+    NotFound(NotFound) => NOTFOUND "notfound" @ 17,
     /// Request block headers.
-    GetHeaders(GetHeaders) => GETHEADERS,
+    GetHeaders(GetHeaders) => GETHEADERS "getheaders" @ 12,
     /// Block headers.
-    Headers(Headers) => HEADERS,
+    Headers(Headers) => HEADERS "headers" @ 13,
     /// Request compressed block headers.
-    GetHeaders2(GetHeaders2) => GETHEADERS2,
+    GetHeaders2(GetHeaders2) => GETHEADERS2 "getheaders2" @ 163,
     /// Compressed block headers.
-    Headers2(Headers2) => HEADERS2,
+    Headers2(Headers2) => HEADERS2 "headers2" @ 165,
     /// Request compact filters.
-    GetCFilters(GetCFilters) => GETCFILTERS,
+    GetCFilters(GetCFilters) => GETCFILTERS "getcfilters" @ 22,
     /// Compact block filter.
-    CFilter(CFilter) => CFILTER,
+    CFilter(CFilter) => CFILTER "cfilter" @ 23,
     /// Request compact filter headers.
-    GetCFHeaders(GetCFHeaders) => GETCFHEADERS,
+    GetCFHeaders(GetCFHeaders) => GETCFHEADERS "getcfheaders" @ 24,
     /// Compact filter headers.
-    CFHeaders(CFHeaders) => CFHEADERS,
+    CFHeaders(CFHeaders) => CFHEADERS "cfheaders" @ 25,
     /// Request compact filter checkpoints.
-    GetCFCheckpt(GetCFCheckpt) => GETCFCHECKPT,
+    GetCFCheckpt(GetCFCheckpt) => GETCFCHECKPT "getcfcheckpt" @ 26,
     /// Compact filter checkpoints.
-    CFCheckpt(CFCheckpt) => CFCHECKPT,
+    CFCheckpt(CFCheckpt) => CFCHECKPT "cfcheckpt" @ 27,
     /// Governance sync request.
-    GovSync(GovSync) => GOVSYNC,
+    GovSync(GovSync) => GOVSYNC "govsync" @ 140,
     /// Governance object.
-    GovObj(dash_primitives::GovObject) => GOVOBJ,
+    GovObj(dash_primitives::GovObject) => GOVOBJ "govobj" @ 141,
     /// Governance vote.
-    GovObjVote(dash_primitives::GovVote) => GOVOBJVOTE,
+    GovObjVote(dash_primitives::GovVote) => GOVOBJVOTE "govobjvote" @ 142,
     /// Request MN list diff.
-    GetMnListDiff(GetMnListDiff) => GETMNLISTD,
+    GetMnListDiff(GetMnListDiff) => GETMNLISTD "getmnlistd" @ 143,
     /// MN list diff.
-    MnListDiff(MnListDiff) => MNLISTDIFF,
+    MnListDiff(MnListDiff) => MNLISTDIFF "mnlistdiff" @ 144,
   }
 
   parsed_empty {
     /// Version acknowledgement.
-    Verack => VERACK,
+    Verack => VERACK "verack",
     /// Request peer addresses.
-    GetAddr => GETADDR,
+    GetAddr => GETADDR "getaddr",
     /// Signal addrv2 support.
-    SendAddrV2 => SENDADDRV2,
+    SendAddrV2 => SENDADDRV2 "sendaddrv2",
     /// Prefer unsolicited header announcements.
-    SendHeaders => SENDHEADERS,
+    SendHeaders => SENDHEADERS "sendheaders",
     /// Prefer compressed header announcements.
-    SendHeaders2 => SENDHEADERS2,
+    SendHeaders2 => SENDHEADERS2 "sendheaders2" @ 164,
   }
 
   stub {
-    // Bitcoin base protocol
     /// Block data.
-    Block => BLOCK,
+    Block => BLOCK "block" @ 2,
     /// BIP152: compact block transactions.
-    BlockTxn => BLOCKTXN,
+    BlockTxn => BLOCKTXN "blocktxn" @ 3,
     /// BIP152: compact block.
-    CmpctBlock => CMPCTBLOCK,
+    CmpctBlock => CMPCTBLOCK "cmpctblock" @ 4,
     /// BIP37: add data to bloom filter.
-    FilterAdd => FILTERADD,
+    FilterAdd => FILTERADD "filteradd" @ 6,
     /// BIP37: load bloom filter.
-    FilterLoad => FILTERLOAD,
+    FilterLoad => FILTERLOAD "filterload" @ 8,
     /// Request block hashes.
-    GetBlocks => GETBLOCKS,
+    GetBlocks => GETBLOCKS "getblocks" @ 9,
     /// BIP152: request compact block transactions.
-    GetBlockTxn => GETBLOCKTXN,
+    GetBlockTxn => GETBLOCKTXN "getblocktxn" @ 10,
     /// BIP37: filtered block.
-    MerkleBlock => MERKLEBLOCK,
+    MerkleBlock => MERKLEBLOCK "merkleblock" @ 16,
     /// BIP152: signal compact block support.
-    SendCmpct => SENDCMPCT,
+    SendCmpct => SENDCMPCT "sendcmpct" @ 20,
     /// Transaction.
-    Tx => TX,
+    Tx => TX "tx" @ 21,
     /// BIP330: transaction reconciliation.
-    SendTxRcncl => SENDTXRCNCL,
-    // Sporks
+    SendTxRcncl => SENDTXRCNCL "sendtxrcncl",
     /// Spork broadcast/request.
-    Spork => SPORK,
-    // CoinJoin
+    Spork => SPORK "spork" @ 128,
     /// CoinJoin: accept denomination.
-    Dsa => DSA,
+    Dsa => DSA "dsa" @ 131,
     /// CoinJoin: submit inputs.
-    Dsi => DSI,
+    Dsi => DSI "dsi" @ 132,
     /// CoinJoin: final transaction.
-    Dsf => DSF,
+    Dsf => DSF "dsf" @ 133,
     /// CoinJoin: sign final transaction.
-    Dss => DSS,
+    Dss => DSS "dss" @ 134,
     /// CoinJoin: complete.
-    Dsc => DSC,
+    Dsc => DSC "dsc" @ 135,
     /// CoinJoin: status update.
-    Dssu => DSSU,
+    Dssu => DSSU "dssu" @ 136,
     /// CoinJoin: broadcast transaction.
-    Dstx => DSTX,
+    Dstx => DSTX "dstx" @ 137,
     /// CoinJoin: queue entry.
-    Dsq => DSQ,
+    Dsq => DSQ "dsq" @ 138,
     /// Sync status count.
-    Ssc => SSC,
-    // LLMQ / Quorum
+    Ssc => SSC "ssc" @ 139,
     /// LLMQ: final commitment.
-    QfCommit => QFCOMMIT,
+    QfCommit => QFCOMMIT "qfcommit" @ 146,
     /// LLMQ: contribution.
-    QContrib => QCONTRIB,
+    QContrib => QCONTRIB "qcontrib" @ 147,
     /// LLMQ: complaint.
-    QComplaint => QCOMPLAINT,
+    QComplaint => QCOMPLAINT "qcomplaint" @ 148,
     /// LLMQ: justification.
-    QJustify => QJUSTIFY,
+    QJustify => QJUSTIFY "qjustify" @ 149,
     /// LLMQ: premature commitment.
-    QpCommit => QPCOMMIT,
+    QpCommit => QPCOMMIT "qpcommit" @ 150,
     /// LLMQ: signing session announcement.
-    QSigSesAnn => QSIGSESANN,
+    QSigSesAnn => QSIGSESANN "qsigsesann" @ 152,
     /// LLMQ: signature shares inventory.
-    QSigsInv => QSIGSINV,
+    QSigsInv => QSIGSINV "qsigsinv" @ 153,
     /// LLMQ: request signature shares.
-    QGetSigs => QGETSIGS,
+    QGetSigs => QGETSIGS "qgetsigs" @ 154,
     /// LLMQ: batched signature shares.
-    QbSigs => QBSIGS,
+    QbSigs => QBSIGS "qbsigs" @ 155,
     /// LLMQ: recovered signature.
-    QSigRec => QSIGREC,
+    QSigRec => QSIGREC "qsigrec" @ 156,
     /// LLMQ: single signature share.
-    QSigShare => QSIGSHARE,
+    QSigShare => QSIGSHARE "qsigshare" @ 157,
     /// LLMQ: request quorum data.
-    QGetData => QGETDATA,
+    QGetData => QGETDATA "qgetdata" @ 158,
     /// LLMQ: quorum data.
-    QData => QDATA,
-    // InstantSend / ChainLock
+    QData => QDATA "qdata" @ 159,
     /// ChainLock signature.
-    ClSig => CLSIG,
+    ClSig => CLSIG "clsig" @ 160,
     /// InstantSend deterministic lock.
-    IsdLock => ISDLOCK,
-    // Masternode auth / rotation
+    IsdLock => ISDLOCK "isdlock" @ 161,
     /// Masternode authentication.
-    MnAuth => MNAUTH,
+    MnAuth => MNAUTH "mnauth" @ 162,
     /// Request quorum rotation info.
-    GetQrInfo => GETQRINFO,
+    GetQrInfo => GETQRINFO "getqrinfo" @ 166,
     /// Quorum rotation info.
-    QrInfo => QRINFO,
-    // Platform
+    QrInfo => QRINFO "qrinfo" @ 167,
     /// DIP-0031: platform ban.
-    PlatformBan => PLATFORMBAN,
+    PlatformBan => PLATFORMBAN "platformban" @ 168,
   }
 
   stub_empty {
     /// BIP37: clear bloom filter.
-    FilterClear => FILTERCLEAR,
+    FilterClear => FILTERCLEAR "filterclear" @ 7,
     /// Request mempool contents.
-    Mempool => MEMPOOL,
+    Mempool => MEMPOOL "mempool" @ 15,
     /// Request active sporks.
-    GetSporks => GETSPORKS,
+    GetSporks => GETSPORKS "getsporks" @ 129,
     /// Signal CoinJoin queue relay.
-    SendDsq => SENDDSQ,
+    SendDsq => SENDDSQ "senddsq" @ 130,
     /// LLMQ: send recovered signatures.
-    QSendRecSigs => QSENDRECSIGS,
+    QSendRecSigs => QSENDRECSIGS "qsendrecsigs" @ 145,
     /// LLMQ: watch quorums.
-    QWatch => QWATCH,
+    QWatch => QWATCH "qwatch" @ 151,
   }
 }
