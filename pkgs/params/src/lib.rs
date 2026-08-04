@@ -20,6 +20,7 @@ mod test3;
 mod types;
 
 use dash_primitives::Block;
+use dash_script::AddrParams;
 
 pub use types::*;
 
@@ -42,6 +43,11 @@ impl Network {
       Self::Testnet3 => &test3::PARAMS,
       Self::Regtest => &regtest::PARAMS,
     }
+  }
+
+  /// Address encoding parameters for this network.
+  pub const fn addr(self) -> &'static AddrParams {
+    &self.chain().addr_params
   }
 
   /// Consensus parameters for this network.

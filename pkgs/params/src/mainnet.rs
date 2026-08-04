@@ -13,6 +13,7 @@ use dash_num::{Arith256, Hash256};
 use dash_primitives::{
   Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType,
 };
+use dash_script::AddrParams;
 use hex_literal::hex;
 
 /// Returns the mainnet genesis block.
@@ -162,14 +163,14 @@ pub static PARAMS: ChainParams = ChainParams {
   assumed_blockchain_size_gb: 57,
   assumed_chain_state_size_gb: 1,
   dns_seeds: &["dnsseed.dash.org."],
-  base58_prefixes: Base58Prefixes {
-    pubkey_address: 76,                       // addresses start with 'X'
-    script_address: 16,                       // addresses start with '7'
-    secret_key: 204,                          // keys start with '7' or 'X'
-    ext_public_key: [0x04, 0x88, 0xB2, 0x1E], // xpub
-    ext_secret_key: [0x04, 0x88, 0xAD, 0xE4], // xprv
+  addr_params: AddrParams {
+    pubkey_addr: 76,                      // addresses start with 'X'
+    script_addr: 16,                      // addresses start with '7'
+    secret_key: 204,                      // keys start with '7' or 'X'
+    ext_pubkey: [0x04, 0x88, 0xB2, 0x1E], // xpub
+    ext_secret: [0x04, 0x88, 0xAD, 0xE4], // xprv
+    bip44_idx: 5,
   },
-  ext_coin_type: 5, // BIP44 coin type
   network_id: "main",
   is_test_chain: false,
   require_standard: true,

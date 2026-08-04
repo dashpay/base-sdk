@@ -414,6 +414,7 @@ dependencies = [
  "dash-num",
  "dash-pow",
  "dash-primitives",
+ "dash-script",
  "dash-types",
  "hex-literal",
  "rstest",

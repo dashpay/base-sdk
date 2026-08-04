@@ -12,6 +12,7 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+mod addrs;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
@@ -24,6 +25,7 @@ use dash_types::Unencodable;
 
 pub mod opcode;
 
+pub use addrs::AddrParams;
 pub use opcode::Opcode;
 
 /// RIPEMD-160(SHA-256) output length in bytes.
