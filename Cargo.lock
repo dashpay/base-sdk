@@ -480,7 +480,6 @@ dependencies = [
 name = "dash-primitives"
 version = "0.0.0"
 dependencies = [
- "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin-internals",
  "bitcoin-primitives",
@@ -507,6 +506,7 @@ dependencies = [
  "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin_hashes",
+ "dash-pkc",
  "dash-types",
  "hex-literal",
  "rstest",
@@ -517,8 +517,10 @@ dependencies = [
 name = "dash-types"
 version = "0.0.0"
 dependencies = [
+ "base58ck",
  "bitcoin-consensus-encoding 0.2.0",
  "bitcoin-primitives",
+ "bitcoin_hashes",
  "cfg-if",
  "dash-types-marker",
  "hex-conservative 0.3.2",

@@ -8,6 +8,7 @@
 
 mod error;
 mod public_bytes;
+mod public_hash;
 mod secret_bytes;
 mod sig_bytes;
 mod sig_rec_bytes;
@@ -16,6 +17,7 @@ use dash_types::Unencodable;
 
 pub use error::EcdsaError;
 pub use public_bytes::{EcdsaPkBytes, ECDSA_PK_LEN};
+pub use public_hash::PubKeyHash;
 pub use secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
 pub use sig_bytes::{EcdsaSigBytes, ECDSA_SIG_LEN};
 pub use sig_rec_bytes::EcdsaRecSigBytes;

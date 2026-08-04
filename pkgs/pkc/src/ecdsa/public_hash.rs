@@ -4,27 +4,25 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Script-related types.
+//! Hashed representation of secp256k1 public key.
 
-use crate::hash_impl;
 use crate::prelude::*;
 
+use base58ck::encode_check;
 use dash_types::codec::{ArrayBuf, BaseCodec, EncodeBuf};
 use dash_types::make_bytes;
 
 make_bytes! {
-  /// 20-byte public key hash (RIPEMD-160 of SHA-256).
-  KeyId, 20
+  /// 20-byte public key hash.
+  PubKeyHash, 20
 }
 
-hash_impl!(KeyId);
-
-impl KeyId {
-  /// Encode as a Base58Check string with the given version prefix.
+impl PubKeyHash {
+  /// Encode as a Base58Check address with the given version prefix.
   pub fn to_base58c(&self, prefix: u8) -> String {
     let mut buf = ArrayBuf::<21>::new();
     buf.push(prefix);
     self.encode(&mut buf);
-    base58ck::encode_check(&buf.into_array())
+    encode_check(&buf.into_array())
   }
 }

@@ -12,12 +12,12 @@ use super::{
 };
 use crate::codec::impl_payload;
 use crate::prelude::*;
-use crate::script::KeyId;
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::{hash_impl, TxHash};
 
 use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
+use dash_script::PubKeyHash;
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 use dash_types::{make_bytes, TypeId};
 
@@ -45,11 +45,11 @@ pub struct ProRegTx {
   /// Legacy ServiceV1 or extended NetInfo.
   pub net_info: NetInfo,
   /// Owner key id (20 bytes).
-  pub key_id_owner: KeyId,
+  pub key_id_owner: PubKeyHash,
   /// Operator BLS public key (48 bytes).
   pub pub_key_operator: BlsPkBytes<BlsScIetf>,
   /// Voting key id (20 bytes).
-  pub key_id_voting: KeyId,
+  pub key_id_voting: PubKeyHash,
   /// Operator reward in basis points (0-10000).
   pub operator_reward: u16,
   /// Payout script.
@@ -108,9 +108,9 @@ impl BaseCodec for ProRegTx {
     } else {
       NetInfo::Legacy(NetInfoV1(ServiceV1::decode(data)?))
     };
-    let key_id_owner = KeyId::decode(data)?;
+    let key_id_owner = PubKeyHash::decode(data)?;
     let pub_key_operator = BlsPkBytes::<BlsScIetf>::decode(data)?;
-    let key_id_voting = KeyId::decode(data)?;
+    let key_id_voting = PubKeyHash::decode(data)?;
     let operator_reward = u16::decode(data)?;
     let script_payout = ScriptPubKeyBuf::decode(data)?;
     let inputs_hash = InputsHash::decode(data)?;

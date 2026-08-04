@@ -40,10 +40,40 @@ macro_rules! adapt_codec {
 }
 
 #[cfg(feature = "bitcoin-primitives")]
-mod bitcoin_primitives {
-  use bitcoin_primitives::script::ScriptBuf;
+pub mod bitcoin_primitives {
+  use crate::codec::{ArrayBuf, BaseCodec, EncodeBuf, Hashable};
+  use crate::make_bytes;
+  use crate::prelude::*;
+
+  use base58ck::encode_check;
+  use bitcoin_hashes::{ripemd160, sha256};
+  use bitcoin_primitives::script::{ScriptBuf, ScriptHashableTag};
 
   adapt_codec!(<T>, ScriptBuf<T>);
+
+  // nosemgrep: types-macro-no-codec
+  make_bytes! {
+    /// 20-byte script hash.
+    ScriptHash, 20
+  }
+
+  impl ScriptHash {
+    /// Encode as a Base58Check address with the given version prefix.
+    pub fn to_base58c(&self, prefix: u8) -> String {
+      let mut buf = ArrayBuf::<21>::new();
+      buf.push(prefix);
+      self.encode(&mut buf);
+      encode_check(&buf.into_array())
+    }
+  }
+
+  impl<T: ScriptHashableTag> Hashable for ScriptBuf<T> {
+    type Hash = ScriptHash;
+
+    fn hash(&self) -> ScriptHash {
+      ScriptHash::from(*ripemd160::Hash::hash(sha256::Hash::hash(self.as_bytes()).as_ref()).as_byte_array())
+    }
+  }
 
   #[cfg(test)]
   #[expect(clippy::unwrap_used, reason = "test code")]

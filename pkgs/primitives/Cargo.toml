@@ -7,7 +7,6 @@ license = "MIT"
 [features]
 default = []
 std = [
-  "base58ck/std",
   "bitcoin-consensus-encoding/std",
   "bitcoin-internals/std",
   "bitcoin-primitives/std",
@@ -32,7 +31,6 @@ serde = [
 full = ["std", "serde"]
 
 [dependencies]
-base58ck = { version = "0.4", default-features = false, features = ["alloc"] }
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
 ] }

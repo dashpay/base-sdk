@@ -11,8 +11,9 @@ use crate::prelude::*;
 
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf, BlsSigBytes};
 use dash_primitives::{
-  hash_impl, BlockHash, Commitment, KeyId, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash,
+  hash_impl, BlockHash, Commitment, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash,
 };
+use dash_script::PubKeyHash;
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, NumCodec};
 use dash_types::TypeId;
 
@@ -34,7 +35,7 @@ pub struct SimplifiedMnListEntry {
   /// BLS operator public key.
   pub operator_key: BlsPkBytes<BlsScIetf>,
   /// Voting key hash (HASH160).
-  pub voting_key_id: KeyId,
+  pub voting_key_id: PubKeyHash,
   /// Whether this masternode is currently valid.
   pub is_valid: bool,
   /// Masternode type (Regular or Evo).
@@ -55,7 +56,7 @@ impl BaseCodec for SimplifiedMnListEntry {
     let confirmed_hash = BlockHash::decode(data)?;
     let service = ServiceV1::decode(data)?;
     let operator_key = BlsPkBytes::<BlsScIetf>::decode(data)?;
-    let voting_key_id = KeyId::decode(data)?;
+    let voting_key_id = PubKeyHash::decode(data)?;
     let is_valid = bool::decode(data)?;
 
     // nType is gated by the entry's version

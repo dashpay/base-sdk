@@ -6,11 +6,11 @@
 
 //! secp256k1 public key byte bag.
 
+use super::PubKeyHash;
 use crate::prelude::*;
 
 use bitcoin_hashes::{ripemd160, sha256};
 use cfg_if::cfg_if;
-use dash_num::Hash160;
 use dash_types::codec::{
   read_bytes, read_compact_size, write_compact_size, BaseCodec, DecodeError, EncodeBuf, Hashable,
 };
@@ -99,7 +99,7 @@ impl BaseCodec for EcdsaPkBytes {
 impl_type!(EcdsaPkBytes);
 
 impl Hashable for EcdsaPkBytes {
-  type Hash = Hash160;
+  type Hash = PubKeyHash;
 
   fn hash(&self) -> Self::Hash {
     Self::Hash::from(*ripemd160::Hash::hash(sha256::Hash::hash(self.as_bytes()).as_ref()).as_byte_array())

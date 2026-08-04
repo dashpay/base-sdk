@@ -10,9 +10,8 @@ use super::error::EcdsaError;
 use super::public_bytes::{EcdsaPkBytes, Sec1Byte, ECDSA_PK_LEN};
 use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
-use super::{Compression, EcdsaRecSigBytes};
+use super::{Compression, EcdsaRecSigBytes, PubKeyHash};
 
-use dash_num::Hash160;
 use dash_types::{dlgt_codec, type_cvrt, TypeId, Unencodable};
 use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 
@@ -42,7 +41,7 @@ pub struct EcdsaPublicKey {
   form: PkForm,
 }
 
-dlgt_codec!(EcdsaPublicKey => EcdsaPkBytes, Hash160, EcdsaError, ECDSA_PK_LEN + 2);
+dlgt_codec!(EcdsaPublicKey => EcdsaPkBytes, PubKeyHash, EcdsaError, ECDSA_PK_LEN + 2);
 
 impl EcdsaPublicKey {
   pub(super) fn from_inner(inner: VerifyingKey, compressed: Compression) -> Self {

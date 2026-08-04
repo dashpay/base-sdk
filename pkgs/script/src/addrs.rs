@@ -4,7 +4,7 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Network-specific address parameters.
+//! Address definitions and network parameters.
 
 use dash_types::Unencodable;
 
