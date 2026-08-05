@@ -33,7 +33,7 @@ pub use ping::{Ping, Pong};
 pub use version::{Version, VersionAddr};
 
 /// Decode helper: decode from slice, mapping the error.
-fn decode_msg<T: encoding::Decodable>(payload: &[u8]) -> Result<T, crate::P2pDecodeError>
+fn decode_msg<T: encoding::Decode>(payload: &[u8]) -> Result<T, crate::P2pDecodeError>
 where
   <T::Decoder as encoding::Decoder>::Error: core::fmt::Display,
 {

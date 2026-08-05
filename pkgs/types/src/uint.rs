@@ -6,7 +6,7 @@
 
 //! Fixed-size integer newtype macros.
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` + serde for a type
+/// Generates `BaseCodec` + `Encode` + `Decode` + serde for a type
 /// that already implements `NumCodec<$uint>`.
 #[macro_export]
 macro_rules! impl_num {

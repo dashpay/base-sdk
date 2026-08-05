@@ -9,7 +9,7 @@
 /// Maximum buffered P2P message payload.
 pub(crate) const MAX_P2P_PAYLOAD_SIZE: usize = 3_145_728;
 
-/// Generates `Encodable` + `Decodable` with P2P payload size limit.
+/// Generates `Encode` + `Decode` with P2P payload size limit.
 macro_rules! impl_p2p {
   ($ty:ty) => {
     $crate::__private::dash_types::impl_type!($ty, crate::codec::MAX_P2P_PAYLOAD_SIZE);
@@ -17,7 +17,7 @@ macro_rules! impl_p2p {
 }
 pub(crate) use impl_p2p;
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` for flat structs
+/// Generates `BaseCodec` + `Encode` + `Decode` for flat structs
 /// with P2P payload size limit.
 macro_rules! codec_p2p {
   ($ty:ty { $($field:ident),+ $(,)? }) => {

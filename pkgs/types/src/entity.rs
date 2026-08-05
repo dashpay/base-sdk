@@ -132,7 +132,7 @@ impl<T, E> Decoder for VecDecoder<T, E> {
   }
 }
 
-/// Generates `Encodable` + `Decodable` for a `BaseCodec` implementor.
+/// Generates `Encode` + `Decode` for a `BaseCodec` implementor.
 ///
 /// Stages through the growable [`VecEncoder`]/[`VecDecoder`] pair. For
 /// secret material use [`impl_stype!`](crate::impl_stype) instead, which is
@@ -140,7 +140,7 @@ impl<T, E> Decoder for VecDecoder<T, E> {
 #[macro_export]
 macro_rules! impl_type {
   (@parse [$($impl_generics:tt)*] $ty:ty, $max:expr, $err:ty) => {
-    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
+    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Encode for $ty {
       type Encoder<'e> = $crate::VecEncoder;
       fn encoder(&self) -> Self::Encoder<'_> {
         let mut buf = ::alloc::vec::Vec::new();
@@ -149,7 +149,7 @@ macro_rules! impl_type {
       }
     }
 
-    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
+    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Decode for $ty {
       type Decoder = $crate::VecDecoder<$ty, $err>;
       fn decoder() -> Self::Decoder {
         $crate::VecDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode, $max)
@@ -174,7 +174,7 @@ macro_rules! impl_type {
   };
 }
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` + `From<[u8; N]>` for a
+/// Generates `BaseCodec` + `Encode` + `Decode` + `From<[u8; N]>` for a
 /// fixed-size byte newtype, expressed only through `from_bytes` / `as_bytes`.
 ///
 /// Staged through the growable [`VecEncoder`]. For a newtype whose contents
