@@ -16,7 +16,7 @@ use dash_types::codec::{
 };
 use dash_types::{impl_type, type_cvrt, TypeId};
 
-use core::fmt::{Debug, Display, Formatter, Result as FmtResult};
+use core::fmt;
 
 /// Raw secp256k1 signature (r || s) length.
 pub const ECDSA_SIG_LEN: usize = 64;
@@ -67,14 +67,14 @@ impl EcdsaSigBytes {
   }
 }
 
-impl Debug for EcdsaSigBytes {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+impl fmt::Debug for EcdsaSigBytes {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "EcdsaSigBytes({self})")
   }
 }
 
-impl Display for EcdsaSigBytes {
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+impl fmt::Display for EcdsaSigBytes {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     for byte in &self.0 {
       write!(f, "{byte:02x}")?;
     }

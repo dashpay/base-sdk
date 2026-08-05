@@ -7,85 +7,31 @@
 //! secp256k1 recoverable signature.
 
 use super::error::EcdsaError;
+use super::sig_bytes::{EcdsaSigBytes, ECDSA_SIG_LEN};
 use super::sig_ops::EcdsaSignature;
+use super::sig_rec_bytes::{CompactFlags, EcdsaRecSigBytes};
 use super::Compression;
 
-use dash_types::{enum_map, type_cvrt, Unencodable};
+use dash_num::Hash256;
+use dash_types::{dlgt_codec, type_cvrt, TypeId};
 use k256::ecdsa::{RecoveryId, Signature};
 
-enum_map! {
-  /// Header flags for a compact recoverable ECDSA signature.
-  #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-  pub(super) enum CompactFlags, u8 {
-    /// Uncompressed key, recovery id 0.
-    Uncompressed0 = 27,
-    /// Uncompressed key, recovery id 1.
-    Uncompressed1 = 28,
-    /// Uncompressed key, recovery id 2.
-    Uncompressed2 = 29,
-    /// Uncompressed key, recovery id 3.
-    Uncompressed3 = 30,
-    /// Compressed key, recovery id 0.
-    Compressed0 = 31,
-    /// Compressed key, recovery id 1.
-    Compressed1 = 32,
-    /// Compressed key, recovery id 2.
-    Compressed2 = 33,
-    /// Compressed key, recovery id 3.
-    Compressed3 = 34,
-  }
-}
-
-impl CompactFlags {
-  /// Whether the signing key was compressed.
-  pub const fn is_compressed(self) -> bool {
-    self.to_base() >= Self::Compressed0.to_base()
-  }
-
-  /// Construct from recovery id and compression flag.
-  pub const fn new(recovery_id: u8, compressed: bool) -> Option<Self> {
-    if recovery_id > 3 {
-      return None;
-    }
-    Some(Self::from_parts(recovery_id, compressed))
-  }
-
-  /// Construct from the low two bits of `recovery_id` and a compression flag.
-  ///
-  /// Total, unlike [`CompactFlags::new`]: the eight variants cover every
-  /// combination, so a caller holding an already range-checked recovery id
-  /// needs no fallible path.
-  pub const fn from_parts(recovery_id: u8, compressed: bool) -> Self {
-    match (recovery_id & 3, compressed) {
-      (0, false) => Self::Uncompressed0,
-      (1, false) => Self::Uncompressed1,
-      (2, false) => Self::Uncompressed2,
-      (_, false) => Self::Uncompressed3,
-      (0, true) => Self::Compressed0,
-      (1, true) => Self::Compressed1,
-      (2, true) => Self::Compressed2,
-      (_, true) => Self::Compressed3,
-    }
-  }
-
-  /// Recovery ID.
-  pub const fn recovery_id(self) -> u8 {
-    (self.to_base() - Self::Uncompressed0.to_base()) & 3
-  }
-}
-
 /// An ECDSA signature with recovery id and compression metadata.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "EcdsaRecSigBytes", try_from = "EcdsaRecSigBytes"))]
 pub struct EcdsaRecSignature {
   sig: EcdsaSignature,
   flags: CompactFlags,
 }
 
+dlgt_codec!(EcdsaRecSignature => EcdsaRecSigBytes, Hash256, EcdsaError, ECDSA_SIG_LEN + 2);
+
 impl EcdsaRecSignature {
   pub(super) fn from_inner(inner: Signature, recovery_id: RecoveryId, compressed: Compression) -> Self {
     Self {
       sig: EcdsaSignature::from_inner(inner),
-      flags: CompactFlags::from_parts(recovery_id.to_byte(), compressed.is_compressed()),
+      flags: CompactFlags::from_parts(recovery_id.to_byte(), compressed),
     }
   }
 
@@ -96,7 +42,7 @@ impl EcdsaRecSignature {
   /// Returns [`EcdsaError::InvalidRecoveryId`] if `recovery_id` is not in
   /// `0..=3`.
   pub fn from_parts(sig: EcdsaSignature, recovery_id: u8, compressed: Compression) -> Result<Self, EcdsaError> {
-    let flags = CompactFlags::new(recovery_id, compressed.is_compressed()).ok_or(EcdsaError::InvalidRecoveryId)?;
+    let flags = CompactFlags::new(recovery_id, compressed).ok_or(EcdsaError::InvalidRecoveryId)?;
     Ok(Self { sig, flags })
   }
 
@@ -113,7 +59,7 @@ impl EcdsaRecSignature {
     let sig = self.sig.normalize_s()?;
     Some(Self {
       sig,
-      flags: CompactFlags::from_parts(self.recovery_id() ^ 1, self.is_compressed()),
+      flags: CompactFlags::from_parts(self.recovery_id() ^ 1, Compression::from(self.is_compressed())),
     })
   }
 
@@ -137,7 +83,7 @@ impl EcdsaRecSignature {
   }
 
   /// Serialize as 64-byte compact format (r || s).
-  pub fn to_compact(&self) -> [u8; 64] {
+  pub fn to_compact(&self) -> [u8; ECDSA_SIG_LEN] {
     self.sig.to_compact()
   }
 }
@@ -148,16 +94,30 @@ impl AsRef<EcdsaSignature> for EcdsaRecSignature {
   }
 }
 
+// Infallible: `CompactFlags` covers every (id, compression) pair.
+type_cvrt!(From<EcdsaRecSignature> for EcdsaRecSigBytes, |rec| {
+  Self::from_flags(EcdsaSigBytes::from(rec.signature()), rec.flags)
+});
+
 type_cvrt!(From<EcdsaRecSignature> for EcdsaSignature, |rec| {
   rec.signature().clone()
+});
+
+type_cvrt!(TryFrom<EcdsaRecSigBytes> for EcdsaRecSignature, EcdsaError, |bytes| {
+  Ok(Self {
+    sig: EcdsaSignature::try_from(bytes.signature())?,
+    flags: bytes.flags(),
+  })
 });
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::ecdsa::tests::*;
-  use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaRecSignature, EcdsaSignature};
+  use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaRecSigBytes, EcdsaRecSignature, EcdsaSigBytes, EcdsaSignature};
 
+  #[cfg(feature = "serde")]
+  use dash_dev::assert_json_rt;
   use rstest::*;
 
   /// The infallible bit-split must agree with the fallible byte parse it
@@ -170,6 +130,22 @@ mod tests {
   fn backend_recovery_id_matches_byte(#[case] id: u8, alice_sig: EcdsaSignature) {
     let rec = EcdsaRecSignature::from_parts(alice_sig, id, Compression::Compressed).unwrap();
     assert_eq!(rec.backend_recovery_id().to_byte(), id);
+  }
+
+  #[rstest]
+  fn bag_roundtrip(alice_rec_sig: EcdsaRecSignature) {
+    let bag = EcdsaRecSigBytes::from(&alice_rec_sig);
+    let restored = EcdsaRecSignature::try_from(bag).unwrap();
+    assert_eq!(restored, alice_rec_sig);
+  }
+
+  #[rstest]
+  fn conversions_commute(alice_rec_sig: EcdsaRecSignature) {
+    // Both paths to the plain bag must agree: drop metadata then serialize, or
+    // serialize then strip the header.
+    let via_ops = EcdsaSigBytes::from(EcdsaSignature::from(alice_rec_sig.clone()));
+    let via_bag = EcdsaSigBytes::from(EcdsaRecSigBytes::from(&alice_rec_sig));
+    assert_eq!(via_ops, via_bag);
   }
 
   #[rstest]
@@ -223,5 +199,11 @@ mod tests {
   fn verifies_without_downcast(alice_pk: EcdsaPublicKey, alice_rec_sig: EcdsaRecSignature) {
     assert!(alice_pk.verify(&MSG, &alice_rec_sig).is_ok());
     assert!(alice_pk.verify(&MSG, alice_rec_sig.signature()).is_ok());
+  }
+
+  #[cfg(feature = "serde")]
+  #[rstest]
+  fn serde_roundtrip(alice_rec_sig: EcdsaRecSignature) {
+    assert_json_rt(&alice_rec_sig);
   }
 }

@@ -10,13 +10,15 @@ mod error;
 mod public_bytes;
 mod secret_bytes;
 mod sig_bytes;
+mod sig_rec_bytes;
 
 use dash_types::Unencodable;
 
 pub use error::EcdsaError;
 pub use public_bytes::{EcdsaPkBytes, ECDSA_PK_LEN};
 pub use secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
-pub use sig_bytes::EcdsaSigBytes;
+pub use sig_bytes::{EcdsaSigBytes, ECDSA_SIG_LEN};
+pub use sig_rec_bytes::EcdsaRecSigBytes;
 
 /// Whether a key's public counterpart serializes in compressed (33-byte) or
 /// uncompressed (65-byte) SEC1 form.

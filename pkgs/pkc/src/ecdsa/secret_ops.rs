@@ -11,7 +11,7 @@ use super::public_ops::EcdsaPublicKey;
 use super::secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
 use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
-use super::Compression;
+use super::{Compression, EcdsaRecSigBytes};
 
 use bitcoin_hashes::sha256d;
 use dash_num::Hash256;
@@ -226,6 +226,16 @@ impl EcdsaSecretKey {
       .sign_prehash(msg_hash)
       .map(EcdsaSignature::from_inner)
       .map_err(|_| EcdsaError::SigningFailed)
+  }
+
+  /// Sign and return the compact recoverable signature bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::SigningFailed`] if the underlying library rejects
+  /// the prehash.
+  pub fn sign_compact(&self, msg_hash: &[u8; 32]) -> Result<EcdsaRecSigBytes, EcdsaError> {
+    Ok(self.sign_recoverable(msg_hash)?.into())
   }
 
   /// Sign and return a recoverable signature (RFC 6979, low-S normalised).
