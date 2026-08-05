@@ -36,11 +36,11 @@ pub(crate) fn verify_ok(result: BLST_ERROR) -> Result<(), BlsError> {
 /// BLS operations tied to a specific scheme.
 pub trait BlsScheme: BlsSchemeId {
   /// Inner secret key representation.
-  type InnerSk: Clone;
+  type InnerSk: Clone + Send + Sync;
   /// Inner public key representation.
-  type InnerPk: Clone + Debug + PartialEq + Eq;
+  type InnerPk: Clone + Debug + PartialEq + Eq + Send + Sync;
   /// Inner signature representation.
-  type InnerSig: Clone + Debug + PartialEq + Eq;
+  type InnerSig: Clone + Debug + PartialEq + Eq + Send + Sync;
   /// Message type accepted by signing and verification.
   type Msg: ?Sized;
 

@@ -10,9 +10,7 @@
 )]
 
 #[cfg(feature = "bls")]
-mod bls_chia;
-#[cfg(feature = "bls")]
-mod bls_ietf;
+mod bls;
 #[cfg(feature = "ecdsa")]
 mod ecdsa;
 
