@@ -104,7 +104,9 @@ mod tests {
   use crate::ecdsa::{EcdsaPublicKey, EcdsaRecoveryId, EcdsaSignature};
   use crate::prelude::*;
 
-  use dash_dev::{arr_from_hex, assert_json_rt, Corpus};
+  #[cfg(feature = "serde")]
+  use dash_dev::assert_json_rt;
+  use dash_dev::{arr_from_hex, Corpus};
   use rstest::*;
   use serde::Deserialize;
 

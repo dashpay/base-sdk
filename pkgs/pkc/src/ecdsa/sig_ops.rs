@@ -169,6 +169,7 @@ mod tests {
   use crate::ecdsa::tests::*;
   use crate::ecdsa::{EcdsaError, EcdsaRecoveryId, EcdsaSignature};
 
+  #[cfg(feature = "serde")]
   use dash_dev::assert_json_rt;
   use rstest::*;
 
