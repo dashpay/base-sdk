@@ -19,7 +19,7 @@ const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
 /// Domain separation tag for signatures in the proof-of-possession scheme.
 const DST_POP: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 /// Domain separation tag for proofs of possession.
-pub(crate) const DST_POP_PROVE: &[u8] = b"BLS_POP_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+const DST_POP_PROVE: &[u8] = b"BLS_POP_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 
 impl BlsScheme for BlsScIetf {
   type InnerSk = SecretKey;
@@ -176,6 +176,20 @@ impl BlsScIetf {
       BlsSigId::ProofOfPossession => DST_POP,
     };
     verify_ok(sig.verify(true, msg, dst, &[], pk, true))
+  }
+
+  /// Prove possession by signing the public key under the PoP-prove DST.
+  pub(crate) fn prove_possession(sk: &SecretKey, pk: &PublicKey) -> Signature {
+    sk.sign(&pk.compress(), DST_POP_PROVE, &[])
+  }
+
+  /// Verify a proof of possession under the PoP-prove DST.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the proof does not match the key.
+  pub(crate) fn verify_possession(pk: &PublicKey, pop: &Signature) -> Result<(), BlsError> {
+    verify_ok(pop.verify(true, &pk.compress(), DST_POP_PROVE, &[], pk, true))
   }
 
   /// Verify an aggregated signature where each signer signed a distinct

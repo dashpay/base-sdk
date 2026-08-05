@@ -6,8 +6,6 @@
 
 //! IETF BLS12-381 signatures (basic scheme, min-pubkey-size).
 
-mod sig;
-
 pub mod threshold;
 
 pub use crate::bls::BlsError;

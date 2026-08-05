@@ -82,10 +82,6 @@ name = "bls_ietf_llmq"
 required-features = ["bls", "tests"]
 
 [[test]]
-name = "bls_ietf_pop"
-required-features = ["bls", "tests"]
-
-[[test]]
 name = "bls_ietf_threshold"
 required-features = ["bls", "tests"]
 

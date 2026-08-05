@@ -24,13 +24,14 @@ cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod public_ops;
     mod scheme_chia;
+    mod scheme_ietf;
     mod secret_ops;
     mod sig_aggregate;
     mod sig_basic;
+    mod sig_pop;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
-    pub(crate) mod scheme_ietf;
     pub(crate) mod scheme_ops;
 
     #[cfg(feature = "tests")]
