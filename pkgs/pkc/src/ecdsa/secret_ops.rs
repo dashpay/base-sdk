@@ -36,7 +36,7 @@ impl EcdsaSecretKey {
 
   /// Derive the corresponding public key.
   pub fn public_key(&self) -> EcdsaPublicKey {
-    EcdsaPublicKey::from_inner(*self.0.verifying_key())
+    EcdsaPublicKey::from_inner(*self.0.verifying_key(), true.into())
   }
 
   /// Produce an ECDSA signature over a 32-byte prehashed message (RFC 6979,
@@ -115,7 +115,7 @@ mod tests {
     let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "ecdsa_keygen");
     for v in corpus.vectors::<KeygenVector>("derive_pk") {
       let sk = EcdsaSecretKey::from_bytes(&arr_from_hex(&v.sk)).unwrap();
-      assert_eq!(sk.public_key().to_bytes(), arr_from_hex::<33>(&v.pk_compressed));
+      assert_eq!(sk.public_key().to_compressed(), arr_from_hex::<33>(&v.pk_compressed));
     }
   }
 
@@ -134,7 +134,10 @@ mod tests {
   fn from_bytes_roundtrip(alice_sk: EcdsaSecretKey) {
     let bytes = alice_sk.to_bytes();
     let restored = EcdsaSecretKey::from_bytes(&bytes).unwrap();
-    assert_eq!(restored.public_key().to_bytes(), alice_sk.public_key().to_bytes());
+    assert_eq!(
+      restored.public_key().to_compressed(),
+      alice_sk.public_key().to_compressed()
+    );
   }
 
   #[rstest]
