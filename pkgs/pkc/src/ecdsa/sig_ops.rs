@@ -7,21 +7,25 @@
 //! secp256k1 signature.
 
 use super::error::EcdsaError;
+use super::sig_bytes::ECDSA_SIG_LEN;
 use super::EcdsaSigBytes;
 
-use dash_types::{type_cvrt, Unencodable};
+use dash_num::Hash256;
+use dash_types::{dlgt_codec, type_cvrt, TypeId, Unencodable};
 use k256::ecdsa::{DerSignature, Signature};
 
 use core::hash::{Hash, Hasher};
 
 /// An ECDSA signature (64-byte compact r||s).
-#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
+#[derive(Clone, Debug, Eq, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
   serde(into = "super::EcdsaSigBytes", try_from = "super::EcdsaSigBytes",)
 )]
 pub struct EcdsaSignature(Signature);
+
+dlgt_codec!(EcdsaSignature => EcdsaSigBytes, Hash256, EcdsaError, ECDSA_SIG_LEN + 1);
 
 impl EcdsaSignature {
   pub(super) fn from_inner(inner: Signature) -> Self {
@@ -34,11 +38,14 @@ impl EcdsaSignature {
 
   /// Parse from 64-byte compact format (r || s).
   ///
+  /// Accepts high-S signatures; see [`is_low_s`](Self::is_low_s) to reject
+  /// otherwise.
+  ///
   /// # Errors
   ///
   /// Returns [`EcdsaError::InvalidSignature`] when `r` or `s` is zero or not
-  /// less than the group order.
-  pub fn from_compact(bytes: &[u8; 64]) -> Result<Self, EcdsaError> {
+  /// a scalar below the curve order.
+  pub fn from_compact(bytes: &[u8; ECDSA_SIG_LEN]) -> Result<Self, EcdsaError> {
     Signature::from_slice(bytes)
       .map(Self)
       .map_err(|_| EcdsaError::InvalidSignature)
@@ -48,8 +55,8 @@ impl EcdsaSignature {
   ///
   /// # Errors
   ///
-  /// Returns [`EcdsaError::InvalidSignature`] when the DER framing is malformed
-  /// or the scalars it carries are out of range.
+  /// Returns [`EcdsaError::InvalidSignature`] when the DER framing is
+  /// malformed or either scalar is out of range.
   pub fn from_der(bytes: &[u8]) -> Result<Self, EcdsaError> {
     Signature::from_der(bytes)
       .map(Self)
@@ -68,13 +75,13 @@ impl EcdsaSignature {
   }
 
   /// Serialize as 64-byte compact format (r || s).
-  pub fn to_compact(&self) -> [u8; 64] {
+  pub fn to_compact(&self) -> [u8; ECDSA_SIG_LEN] {
     self.0.to_bytes().into()
   }
 
-  /// Encode as DER.
-  pub fn to_der(&self) -> EcdsaDerSignature {
-    EcdsaDerSignature(self.0.to_der())
+  /// Encode as DER bytes.
+  pub fn to_der(&self) -> EcdsaDerSig {
+    EcdsaDerSig(self.0.to_der())
   }
 }
 
@@ -90,19 +97,11 @@ impl AsRef<EcdsaSignature> for EcdsaSignature {
   }
 }
 
-type_cvrt!(From<EcdsaSignature> for EcdsaSigBytes, |sig| {
-  Self(sig.to_compact())
-});
-
-type_cvrt!(TryFrom<EcdsaSigBytes> for EcdsaSignature, EcdsaError, |bytes| {
-  Self::from_compact(&bytes.0)
-});
-
 /// DER-encoded ECDSA signature (variable length, typically 70-72 bytes).
 #[derive(Clone, Debug, Unencodable)]
-pub struct EcdsaDerSignature(DerSignature);
+pub struct EcdsaDerSig(DerSignature);
 
-impl EcdsaDerSignature {
+impl EcdsaDerSig {
   /// Raw DER bytes.
   pub fn as_bytes(&self) -> &[u8] {
     self.0.as_bytes()
@@ -119,25 +118,33 @@ impl EcdsaDerSignature {
   }
 }
 
-impl Eq for EcdsaDerSignature {}
+impl Eq for EcdsaDerSig {}
 
-impl Hash for EcdsaDerSignature {
+impl Hash for EcdsaDerSig {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.as_bytes().hash(state);
   }
 }
 
-impl PartialEq for EcdsaDerSignature {
+impl PartialEq for EcdsaDerSig {
   fn eq(&self, other: &Self) -> bool {
     self.as_bytes() == other.as_bytes()
   }
 }
 
+type_cvrt!(From<EcdsaSignature> for EcdsaSigBytes, |sig| {
+  Self::from(sig.to_compact())
+});
+
+type_cvrt!(TryFrom<EcdsaSigBytes> for EcdsaSignature, EcdsaError, |bytes| {
+  Self::from_compact(bytes.as_bytes())
+});
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::ecdsa::tests::*;
-  use crate::ecdsa::{EcdsaPublicKey, EcdsaSignature};
+  use crate::ecdsa::{EcdsaPublicKey, EcdsaSigBytes, EcdsaSignature};
 
   #[cfg(feature = "serde")]
   use dash_dev::assert_json_rt;
@@ -151,10 +158,24 @@ mod tests {
   }
 
   #[rstest]
+  fn bag_roundtrip(alice_sig: EcdsaSignature) {
+    let bag = EcdsaSigBytes::from(&alice_sig);
+    let restored = EcdsaSignature::try_from(bag).unwrap();
+    assert_eq!(restored, alice_sig);
+  }
+
+  #[rstest]
   fn der_roundtrip(alice_sig: EcdsaSignature) {
     let der = alice_sig.to_der();
     let restored = EcdsaSignature::from_der(der.as_bytes()).unwrap();
     assert_eq!(restored, alice_sig);
+  }
+
+  #[rstest]
+  fn der_bag_is_not_empty(alice_sig: EcdsaSignature) {
+    let der = alice_sig.to_der();
+    assert!(!der.is_empty());
+    assert_eq!(der.len(), der.as_bytes().len());
   }
 
   #[rstest]

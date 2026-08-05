@@ -59,7 +59,7 @@ cfg_if::cfg_if! {
 
     pub use public_ops::EcdsaPublicKey;
     pub use secret_ops::EcdsaSecretKey;
-    pub use sig_ops::{EcdsaDerSignature, EcdsaSignature};
+    pub use sig_ops::{EcdsaDerSig, EcdsaSignature};
     pub use sig_rec_ops::EcdsaRecSignature;
   }
 }
