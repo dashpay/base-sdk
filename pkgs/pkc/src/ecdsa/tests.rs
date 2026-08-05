@@ -6,7 +6,8 @@
 
 //! Common test definitions.
 
-use crate::ecdsa::{EcdsaPublicKey, EcdsaRecSignature, EcdsaSecretKey, EcdsaSignature};
+use super::secret_ops::ORDER;
+use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaRecSignature, EcdsaSecretKey, EcdsaSignature};
 
 use hex_conservative::hex;
 use rstest::fixture;
@@ -14,9 +15,6 @@ use rstest::fixture;
 pub const ALICE_SK: [u8; 32] = hex!("0123456789abcdef0123456789abcdeffedcba9876543210fedcba9876543210");
 pub const BOB_SK: [u8; 32] = hex!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 pub const MSG: [u8; 32] = hex!("deadbeefdeadbeefdeadbeefdeadbeefcafebabecafebabecafebabecafebabe");
-
-/// secp256k1 group order, big-endian.
-pub(crate) const ORDER: [u8; 32] = hex!("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 
 /// Negate a scalar modulo the curve order (`order - s`), used to turn a low-S
 /// signature into a high-S one for tests as the library itself only ever
@@ -47,17 +45,17 @@ pub fn alice_pk() -> EcdsaPublicKey {
 
 #[fixture]
 pub fn alice_sk() -> EcdsaSecretKey {
-  EcdsaSecretKey::from_bytes(&ALICE_SK).unwrap()
+  EcdsaSecretKey::from_bytes(&ALICE_SK, Compression::Compressed).unwrap()
 }
 
 #[fixture]
 pub fn bob_sk() -> EcdsaSecretKey {
-  EcdsaSecretKey::from_bytes(&BOB_SK).unwrap()
+  EcdsaSecretKey::from_bytes(&BOB_SK, Compression::Compressed).unwrap()
 }
 
 #[fixture]
 pub fn alice_rec_sig() -> EcdsaRecSignature {
-  alice_sk().sign_recoverable(&MSG, true).unwrap()
+  alice_sk().sign_recoverable(&MSG).unwrap()
 }
 
 #[fixture]

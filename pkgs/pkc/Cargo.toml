@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
+base58ck = { version = "0.4", default-features = false, features = ["alloc"] }
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
 ] }
@@ -31,7 +32,10 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
 subtle = { version = "2", default-features = false }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
+zeroize = { version = "1", default-features = false, features = [
+  "alloc",
+  "derive",
+] }
 
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
@@ -45,12 +49,13 @@ serde = { version = "1", features = ["derive"] }
 default = []
 std = [
   "dep:rayon",
+  "base58ck/std",
   "bitcoin_hashes/std",
   "dash-types/std",
   "rand_core/getrandom",
 ]
 bls = ["dep:blst", "dep:sha2"]
-ecdsa = ["dep:k256"]
+ecdsa = ["dep:k256", "dep:hex-conservative"]
 serde = ["dep:serde", "dep:hex-conservative", "dash-num/serde", "dash-types/serde"]
 full = ["ecdsa", "bls", "serde", "std", "tests"]
 tests = ["std", "dep:hex-conservative", "dep:rstest"]

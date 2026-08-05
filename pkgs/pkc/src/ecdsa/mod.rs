@@ -15,7 +15,7 @@ use dash_types::Unencodable;
 
 pub use error::EcdsaError;
 pub use public_bytes::{EcdsaPkBytes, ECDSA_PK_LEN};
-pub use secret_bytes::EcdsaSkBytes;
+pub use secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
 pub use sig_bytes::EcdsaSigBytes;
 
 /// Whether a key's public counterpart serializes in compressed (33-byte) or

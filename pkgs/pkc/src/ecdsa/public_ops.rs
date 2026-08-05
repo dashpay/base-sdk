@@ -55,6 +55,11 @@ impl EcdsaPublicKey {
     }
   }
 
+  /// Borrow the inner verifying key.
+  pub(super) fn as_inner(&self) -> &VerifyingKey {
+    &self.inner
+  }
+
   /// The SEC1 header byte this key serializes with.
   pub(super) fn sec1_prefix(&self) -> Sec1Byte {
     let odd = self.to_compressed()[0] == Sec1Byte::CompOdd.to_base();
