@@ -7,10 +7,10 @@
 //! Benchmarks for the ecdsa (secp256k1) feature
 
 use dash_pkc::ecdsa::tests::{message_hash, ALICE_SK};
-use dash_pkc::ecdsa::{EcdsaPublicKey, EcdsaSecretKey};
+use dash_pkc::ecdsa::{Compression, EcdsaPublicKey, EcdsaSecretKey};
 
 fn test_key() -> EcdsaSecretKey {
-  EcdsaSecretKey::from_bytes(&ALICE_SK).unwrap()
+  EcdsaSecretKey::from_bytes(&ALICE_SK, Compression::Compressed).unwrap()
 }
 
 #[divan::bench]
@@ -45,32 +45,32 @@ fn sign_recoverable(bencher: divan::Bencher) {
 fn recover(bencher: divan::Bencher) {
   let sk = test_key();
   let msg = message_hash(55);
-  let (sig, rid) = sk.sign_recoverable(&msg).unwrap();
+  let sig = sk.sign_recoverable(&msg).unwrap();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| EcdsaPublicKey::recover(&msg, &sig, rid));
+    .bench(|| EcdsaPublicKey::recover(&msg, &sig).unwrap());
 }
 
 #[divan::bench]
 fn ser_pk(bencher: divan::Bencher) {
   let pk = test_key().public_key();
-  bencher.bench(|| pk.to_bytes());
+  bencher.bench(|| pk.to_compressed());
 }
 
 #[divan::bench]
 fn deser_pk(bencher: divan::Bencher) {
-  let bytes = test_key().public_key().to_bytes();
-  bencher.bench(|| EcdsaPublicKey::from_bytes(&bytes));
+  let bytes = test_key().public_key().to_compressed();
+  bencher.bench(|| EcdsaPublicKey::from_bytes(&bytes).unwrap());
 }
 
 #[cfg(feature = "std")]
 mod worker_benches {
   use dash_pkc::ecdsa::tests::{message_hash, BOB_SK};
-  use dash_pkc::ecdsa::{EcdsaPublicKey, EcdsaSecretKey, EcdsaSignature};
+  use dash_pkc::ecdsa::{Compression, EcdsaPublicKey, EcdsaSecretKey, EcdsaSignature};
   use dash_pkc::worker;
 
   fn setup_sigs(n: usize) -> Vec<(EcdsaSignature, EcdsaPublicKey, [u8; 32])> {
-    let sk = EcdsaSecretKey::from_bytes(&BOB_SK).unwrap();
+    let sk = EcdsaSecretKey::from_bytes(&BOB_SK, Compression::Compressed).unwrap();
     let pk = sk.public_key();
     (0..n)
       .map(|i| {

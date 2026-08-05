@@ -8,6 +8,7 @@
 
 pub(crate) use bitcoin_units::BlockHeight;
 use dash_num::{Arith256, Hash256};
+use dash_script::AddrParams;
 
 /// P2P network message start bytes (magic).
 pub type MessageStart = [u8; 4];
@@ -284,23 +285,6 @@ impl ConsensusParams {
   }
 }
 
-/// Base58 address version prefixes.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Base58Prefixes {
-  /// Version byte for pay-to-pubkey-hash addresses.
-  pub pubkey_address: u8,
-  /// Version byte for pay-to-script-hash addresses.
-  pub script_address: u8,
-  /// Version byte for WIF-encoded private keys.
-  pub secret_key: u8,
-  /// Four-byte prefix for BIP32 extended public
-  /// keys.
-  pub ext_public_key: [u8; 4],
-  /// Four-byte prefix for BIP32 extended secret
-  /// keys.
-  pub ext_secret_key: [u8; 4],
-}
-
 /// Complete chain parameters for a network.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ChainParams {
@@ -326,10 +310,8 @@ pub struct ChainParams {
   pub assumed_chain_state_size_gb: u64,
   /// DNS seed hostnames for peer discovery.
   pub dns_seeds: &'static [&'static str],
-  /// Base58 address version prefixes.
-  pub base58_prefixes: Base58Prefixes,
-  /// BIP44 coin type for key derivation.
-  pub ext_coin_type: i32,
+  /// Address encoding parameters.
+  pub addr_params: AddrParams,
   /// Human-readable network identifier string.
   pub network_id: &'static str,
   /// Whether this is a test network.

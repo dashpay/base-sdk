@@ -9,10 +9,10 @@
 use super::proregtx::{check_platform_fields, PlatformNodeId};
 use super::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, PROTX_VERSION_BASIC_BLS, PROTX_VERSION_EXT_ADDR};
 use crate::codec::impl_payload;
-use crate::script::Script;
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::{hash_impl, TxHash};
 
+use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsScIetf, BlsSigBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 use dash_types::TypeId;
@@ -37,7 +37,7 @@ pub struct ProUpServTx {
   /// Legacy ServiceV1 or extended NetInfo.
   pub net_info: NetInfo,
   /// Operator payout script.
-  pub script_operator_payout: Script,
+  pub script_operator_payout: ScriptPubKeyBuf,
   /// Hash of all inputs.
   pub inputs_hash: InputsHash,
   /// Platform node id (Evo only).
@@ -70,7 +70,7 @@ impl BaseCodec for ProUpServTx {
     } else {
       NetInfo::Legacy(NetInfoV1(ServiceV1::decode(data)?))
     };
-    let script_operator_payout = Script::decode(data)?;
+    let script_operator_payout = ScriptPubKeyBuf::decode(data)?;
     let inputs_hash = InputsHash::decode(data)?;
     let (platform_node_id, platform_p2p_port, platform_http_port) = if mn_type == MnType::Evo {
       let node_id = PlatformNodeId::decode(data)?;

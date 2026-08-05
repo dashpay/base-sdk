@@ -6,12 +6,30 @@ license = "MIT"
 
 [features]
 default = []
-std = ["bitcoin-consensus-encoding/std", "hex-conservative?/std"]
-full = ["std", "serde"]
+std = [
+  "bitcoin-consensus-encoding/std",
+  "bitcoin-primitives?/std",
+  "hex-conservative?/std",
+]
+full = ["std", "serde", "bitcoin-primitives"]
+bitcoin-primitives = [
+  "dep:base58ck",
+  "dep:bitcoin-primitives",
+  "dep:bitcoin_hashes",
+]
 serde = ["dep:serde", "dep:hex-conservative"]
 
 [dependencies]
+base58ck = { version = "0.4", default-features = false, optional = true, features = [
+  "alloc",
+] }
 bitcoin-consensus-encoding = { version = "0.2", default-features = false }
+bitcoin_hashes = { version = "0.20", default-features = false, optional = true, features = [
+  "alloc",
+] }
+bitcoin-primitives = { version = "0.102", default-features = false, optional = true, features = [
+  "alloc",
+] }
 cfg-if = "1"
 dash-types-marker = { version = "0.0.0", path = "marker" }
 hex-conservative = { version = "0.3", default-features = false, features = [

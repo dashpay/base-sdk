@@ -6,13 +6,15 @@ license = "MIT"
 
 [features]
 default = []
-std = ["dash-primitives/std"]
+std = ["bitcoin-primitives/std", "dash-primitives/std", "dash-script/std"]
 full = ["std"]
 
 [dependencies]
+bitcoin-primitives = { version = "0.102", default-features = false, features = ["alloc"] }
 bitcoin-units = { version = "0.3", default-features = false, features = ["alloc"] }
 dash-num = { version = "0.0.0", path = "../num" }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
+dash-script = { version = "0.0.0", path = "../script" }
 hex-literal = "0.4"
 
 [dev-dependencies]

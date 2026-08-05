@@ -37,7 +37,7 @@ from common import (
 )
 
 _SOURCE_KEYWORDS = (
-  "Serialize", "Deserialize", "Unencodable", "TypeId", "#[cfg",
+  "Serialize", "Deserialize", "Unencodable", "TypeId", "Zeroize", "#[cfg",
 )
 
 

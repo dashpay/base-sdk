@@ -13,6 +13,8 @@ extern crate self as dash_types;
 #[cfg(feature = "std")]
 extern crate std;
 
+#[allow(unused_macros, reason = "used by feature-gated submodules")]
+mod adapters;
 mod entity;
 mod hex;
 mod macros;
@@ -29,6 +31,9 @@ pub use entity::{ArrDecoder, ArrEncoder, BufferDecoder, VecEncoder, MAX_ARR_SIZE
 
 #[doc(hidden)]
 pub mod __private {
+  #[cfg(feature = "bitcoin-primitives")]
+  pub use crate::adapters::bitcoin_primitives::ScriptHash as __ScriptHash;
+
   pub use bitcoin_consensus_encoding;
   #[cfg(feature = "serde")]
   pub use hex_conservative;

@@ -11,9 +11,10 @@
 extern crate alloc;
 
 use bitcoin_consensus_encoding::encode_to_vec;
+use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use bitcoin_units::Amount;
 use dash_num::{Arith256, CompactTarget};
-use dash_primitives::{BlockHash, BlockHeader, MerkleRoot, OutPoint, Script, Transaction, TxHash, TxIn, TxOut, TxType};
+use dash_primitives::{BlockHash, BlockHeader, MerkleRoot, OutPoint, Transaction, TxHash, TxIn, TxOut, TxType};
 use dash_types::codec::Hashable;
 use hex_conservative::FromHex;
 use serde::{Deserialize, Serialize};
@@ -47,12 +48,12 @@ fn build_coinbase(script_sig: Vec<u8>, script_pubkey: Vec<u8>, amount_duffs: &st
         hash: TxHash::default(),
         index: 0xFFFF_FFFF,
       },
-      script_sig: Script::new(script_sig),
+      script_sig: ScriptSigBuf::from_bytes(script_sig),
       sequence: 0xFFFF_FFFF,
     }],
     outputs: vec![TxOut {
       value,
-      script_pubkey: Script::new(script_pubkey),
+      script_pubkey: ScriptPubKeyBuf::from_bytes(script_pubkey),
     }],
     lock_time: 0,
     extra_payload: Vec::new(),

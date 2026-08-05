@@ -18,7 +18,6 @@ mod gov;
 mod payload;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
-mod script;
 mod support;
 mod transaction;
 mod types;
@@ -45,7 +44,6 @@ pub use payload::{
   PlatformNodeId, ProRegTx, ProTxInvalid, ProUpRegTx, ProUpRevTx, ProUpServTx, QuorumHash, QuorumVvecHash,
   SpecialPayload, TxType, VERSIONBITS_NUM_BITS,
 };
-pub use script::{KeyId, Script};
 pub use support::{DynBitset, DynBitsetIterator, LlmqType, RevocationReason};
 pub use transaction::{
   OutPoint, Transaction, TxHash, TxIn, TxInvalid, TxOut, MAX_COINBASE_SCRIPT_SIZE, MAX_TX_EXTRA_PAYLOAD,

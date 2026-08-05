@@ -9,10 +9,10 @@
 
 use crate::payload::{PayloadError, PayloadInvalid, TxType};
 use crate::prelude::*;
-use crate::script::Script;
 use crate::{codec_type, hash_impl};
 
 use bitcoin_hashes::sha256d;
+use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable, NumCodec};
@@ -68,7 +68,7 @@ pub struct TxIn {
   /// The outpoint being spent.
   pub prevout: OutPoint,
   /// Unlocking script.
-  pub script_sig: Script,
+  pub script_sig: ScriptSigBuf,
   /// Sequence number.
   pub sequence: u32,
 }
@@ -95,7 +95,7 @@ pub struct TxOut {
   pub value: Amount,
   /// Locking script.
   #[cfg_attr(feature = "serde", serde(rename = "scriptPubKey"))]
-  pub script_pubkey: Script,
+  pub script_pubkey: ScriptPubKeyBuf,
 }
 
 impl_type!(TxOut);
@@ -109,7 +109,7 @@ impl BaseCodec for TxOut {
     })?;
     Ok(Self {
       value,
-      script_pubkey: Script::decode(data)?,
+      script_pubkey: ScriptPubKeyBuf::decode(data)?,
     })
   }
 

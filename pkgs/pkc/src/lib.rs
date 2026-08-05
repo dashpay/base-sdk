@@ -20,6 +20,11 @@ pub mod ecdsa;
 #[cfg(feature = "std")]
 pub mod worker;
 
+#[doc(hidden)]
+pub mod __private {
+  pub use crate::ecdsa::PubKeyHash as __PubKeyHash;
+}
+
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod common;

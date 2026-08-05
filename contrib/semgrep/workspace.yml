@@ -1,20 +1,18 @@
 rules:
   - id: attr-allow-discouraged
-    message: "allow attributions are discouraged except for dead_code and unused_imports"
+    message: "allow attributes are discouraged except for dead_code, unused_imports and unused_macros"
     severity: ERROR
     languages: [rust]
     paths:
       include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
-    patterns:
-      - pattern-regex: |-
-          (?xm)
-          ^[ \t]*               # line start, optional indent
-          \#!?\[allow\(         # outer #[allow( or inner #![allow(
-          [^)]* \)              # ... through the closing parenthesis
-      - pattern-not-regex: |-
-          (?x)
-          \#!?\[allow\( \s*                    # allow( plus optional whitespace
-          (?: dead_code | unused_imports ) \b  # ... except these two
+    pattern-regex: |-
+      (?xm)
+      ^[ \t]*                   # line start, optional indent
+      \#!?\[allow\(             # outer #[allow( or inner #![allow(
+      (?: " [^"]* " | [^")] )*? # any argument, stepping over reason text
+      \b (?!                    # ... that names neither the reason keyword
+        (?: reason | dead_code | unused_imports | unused_macros ) \b
+      ) [a-z]                   # ... nor a permitted lint
 
   - id: attr-inner-roots-only
     message: "inner attributes (#![...]) are only permitted in crate/module roots"

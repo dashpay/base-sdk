@@ -7,9 +7,9 @@ license = "MIT"
 [features]
 default = []
 std = [
-  "base58ck/std",
   "bitcoin-consensus-encoding/std",
   "bitcoin-internals/std",
+  "bitcoin-primitives/std",
   "bitcoin_hashes/std",
   "bitcoin-units/std",
   "dash-num/std",
@@ -21,6 +21,7 @@ std = [
 ]
 serde = [
   "dep:serde",
+  "bitcoin-primitives/serde",
   "bitcoin-units/serde",
   "dash-num/serde",
   "dash-pkc/serde",
@@ -30,11 +31,13 @@ serde = [
 full = ["std", "serde"]
 
 [dependencies]
-base58ck = { version = "0.4", default-features = false, features = ["alloc"] }
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
 ] }
 bitcoin-internals = { version = "0.5", default-features = false }
+bitcoin-primitives = { version = "0.102", default-features = false, features = [
+  "alloc",
+] }
 bitcoin_hashes = { version = "0.20", default-features = false, features = [
   "alloc",
 ] }
@@ -45,7 +48,9 @@ dash-num = { version = "0.0.0", path = "../num" }
 dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false }
 dash-pow = { version = "0.0.0", path = "../pow" }
 dash-script = { version = "0.0.0", path = "../script" }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
+dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+  "bitcoin-primitives",
+] }
 cfg-if = "1"
 hex-conservative = { version = "0.3", default-features = false, features = ["alloc"] }
 libm = { version = "0.2", default-features = false }

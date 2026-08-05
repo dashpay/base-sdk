@@ -213,12 +213,49 @@ predicate callsCtEq(Function f) {
 }
 
 /**
- * Holds if `f` decides something by a comparison that stops early, described
- * by `how`.
+ * Holds if `e` reads byte storage rather than an opaque value.
  *
- * The short-circuiting adapters walk only as far as the first byte that settles
- * the answer, and `==` on a byte container lowers to `memcmp`, which does the
- * same.
+ * Fields are judged by their declared type, resolved through the type layer, so
+ * a flag sitting beside the bytes is not mistaken for them. References and
+ * derefs are looked through.
+ */
+predicate bytesExpr(Expr e) {
+  e instanceof ArrayExpr
+  or
+  e.(MethodCallExpr).getIdentifier().getText() =
+    ["as_bytes", "as_ref", "as_slice", "to_bytes", "into_bytes", "as_array", "expose_secret"]
+  or
+  fieldMayHoldSecret(e.(FieldExpr).getStructField().getTypeRepr())
+  or
+  fieldMayHoldSecret(e.(FieldExpr).getTupleField().getTypeRepr())
+  or
+  bytesExpr(e.(RefExpr).getExpr())
+  or
+  bytesExpr(e.(PrefixExpr).getExpr())
+}
+
+/**
+ * Holds if `f` compares byte storage with `how`, an operator that stops early.
+ *
+ * `==` on bytes compiles to `memcmp`, which short-circuits on the first
+ * mismatch. The operand gate keeps the rule on byte storage, so deciding on
+ * a flag, a length, or an enum discriminant beside the secret is not
+ * reported. Secrecy itself is not judged here: `variableTimeSecretTest`
+ * supplies that through `enforcedSecretType`.
+ */
+predicate comparesBytes(Function f, string how) {
+  exists(BinaryExpr be |
+    be.getEnclosingCallable() = f and
+    be.getOperatorName() = ["==", "!="] and
+    bytesExpr([be.getLhs(), be.getRhs()]) and
+    how = be.getOperatorName()
+  )
+}
+
+/**
+ * Holds if `f` decides something with a short-circuiting adapter, named `how`.
+ *
+ * These walk only as far as the first byte that settles the answer.
  */
 predicate stopsEarly(Function f, string how) {
   exists(MethodCallExpr mc, string name |
@@ -226,12 +263,6 @@ predicate stopsEarly(Function f, string how) {
     name = mc.getIdentifier().getText() and
     name = ["all", "any", "position", "find", "contains", "starts_with", "ends_with"] and
     how = name + "()"
-  )
-  or
-  exists(BinaryExpr be |
-    be.getEnclosingCallable() = f and
-    be.getOperatorName() = ["==", "!="] and
-    how = be.getOperatorName()
   )
 }
 
@@ -251,7 +282,11 @@ predicate variableTimeSecretTest(Function f, string how) {
     not isTestCode(f) and
     not f.getName().getText() = "eq" and
     typeHead(f.getRetType().getTypeRepr()) = "bool" and
-    stopsEarly(f, how) and
+    (
+      stopsEarly(f, how)
+      or
+      comparesBytes(f, how)
+    ) and
     not callsCtEq(f)
   )
 }
