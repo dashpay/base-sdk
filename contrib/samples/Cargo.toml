@@ -2,6 +2,11 @@
 members = ["parser", "solver"]
 resolver = "2"
 
+[workspace.dependencies]
+bitcoin-consensus-encoding = { version = "0.2", default-features = false }
+bitcoin-primitives = { version = "0.102", default-features = false }
+bitcoin-units = { version = "0.3", default-features = false }
+
 [workspace.lints.clippy]
 expect_used = "deny"
 panic = "deny"

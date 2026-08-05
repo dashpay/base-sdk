@@ -16,10 +16,8 @@ full = ["std", "serde"]
 serde = ["dep:serde", "dash-pkc/serde", "dash-types/serde"]
 
 [dependencies]
-base58ck = { version = "0.4", default-features = false, features = ["alloc"] }
-bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
-  "alloc",
-] }
+base58ck = { workspace = true, features = ["alloc"] }
+bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 dash-num = { version = "0.0.0", path = "../num", default-features = false }
 dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false, features = [
   "ecdsa",
