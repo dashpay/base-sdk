@@ -38,17 +38,17 @@ fn sign_recoverable(bencher: divan::Bencher) {
   let sk = test_key();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| sk.sign_recoverable(&message_hash(7)).unwrap());
+    .bench(|| sk.sign_recoverable(&message_hash(7), true).unwrap());
 }
 
 #[divan::bench]
 fn recover(bencher: divan::Bencher) {
   let sk = test_key();
   let msg = message_hash(55);
-  let (sig, rid) = sk.sign_recoverable(&msg).unwrap();
+  let sig = sk.sign_recoverable(&msg, true).unwrap();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| EcdsaPublicKey::recover(&msg, &sig, rid));
+    .bench(|| EcdsaPublicKey::recover(&msg, &sig));
 }
 
 #[divan::bench]

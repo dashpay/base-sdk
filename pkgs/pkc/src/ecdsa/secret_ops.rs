@@ -9,7 +9,8 @@
 use super::error::EcdsaError;
 use super::public_ops::EcdsaPublicKey;
 use super::secret_bytes::EcdsaSkBytes;
-use super::sig_ops::{EcdsaRecoveryId, EcdsaSignature};
+use super::sig_ops::EcdsaSignature;
+use super::sig_rec_ops::EcdsaRecSignature;
 
 use dash_types::type_cvrt;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
@@ -53,18 +54,19 @@ impl EcdsaSecretKey {
       .map_err(|_| EcdsaError::SigningFailed)
   }
 
-  /// Sign and return the recovery id needed to recover the public
-  /// key from the signature.
+  /// Sign and return a recoverable signature (RFC 6979, low-S
+  /// normalised). The signer states whether the verifying key
+  /// serializes compressed, which recovery embeds in the signature.
   ///
   /// # Errors
   ///
   /// Returns [`EcdsaError::SigningFailed`] if the underlying library
   /// rejects the prehash.
-  pub fn sign_recoverable(&self, msg_hash: &[u8; 32]) -> Result<(EcdsaSignature, EcdsaRecoveryId), EcdsaError> {
+  pub fn sign_recoverable(&self, msg_hash: &[u8; 32], compressed: bool) -> Result<EcdsaRecSignature, EcdsaError> {
     self
       .0
       .sign_prehash(msg_hash)
-      .map(|(sig, rid)| (EcdsaSignature::from_inner(sig), EcdsaRecoveryId::from_inner(rid)))
+      .map(|(sig, rid)| EcdsaRecSignature::from_inner(sig, rid, compressed.into()))
       .map_err(|_| EcdsaError::SigningFailed)
   }
 }
@@ -122,9 +124,9 @@ mod tests {
     let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "ecdsa_sign");
     for v in corpus.vectors::<SignVector>("sign_recoverable") {
       let sk = EcdsaSecretKey::from_bytes(&arr_from_hex(&v.sk)).unwrap();
-      let (sig, rid) = sk.sign_recoverable(&arr_from_hex::<32>(&v.msg)).unwrap();
+      let sig = sk.sign_recoverable(&arr_from_hex::<32>(&v.msg), true).unwrap();
       assert_eq!(sig.to_compact(), arr_from_hex::<64>(&v.sig));
-      assert_eq!(u8::from(rid), v.recovery_id);
+      assert_eq!(sig.recovery_id(), v.recovery_id);
     }
   }
 
@@ -149,8 +151,8 @@ mod tests {
 
   #[rstest]
   fn sign_recoverable_roundtrip(alice_sk: EcdsaSecretKey) {
-    let (sig, rid) = alice_sk.sign_recoverable(&MSG).unwrap();
-    let recovered = EcdsaPublicKey::recover(&MSG, &sig, rid).unwrap();
+    let sig = alice_sk.sign_recoverable(&MSG, true).unwrap();
+    let recovered = EcdsaPublicKey::recover(&MSG, &sig).unwrap();
     assert_eq!(recovered, alice_sk.public_key());
   }
 

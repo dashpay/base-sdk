@@ -10,7 +10,7 @@ use super::error::EcdsaError;
 use super::EcdsaSigBytes;
 
 use dash_types::{type_cvrt, Unencodable};
-use k256::ecdsa::{DerSignature, RecoveryId, Signature};
+use k256::ecdsa::{DerSignature, Signature};
 
 use core::hash::{Hash, Hasher};
 
@@ -56,6 +56,17 @@ impl EcdsaSignature {
       .map_err(|_| EcdsaError::InvalidSignature)
   }
 
+  /// Whether the S component is in the lower half of the curve order.
+  pub fn is_low_s(&self) -> bool {
+    self.0.normalize_s().is_none()
+  }
+
+  /// Return a signature with the S value normalised to the lower half of the
+  /// curve order. Returns `None` if already normalised.
+  pub fn normalize_s(&self) -> Option<Self> {
+    self.0.normalize_s().map(Self)
+  }
+
   /// Serialize as 64-byte compact format (r || s).
   pub fn to_compact(&self) -> [u8; 64] {
     self.0.to_bytes().into()
@@ -73,59 +84,18 @@ impl Hash for EcdsaSignature {
   }
 }
 
+impl AsRef<EcdsaSignature> for EcdsaSignature {
+  fn as_ref(&self) -> &EcdsaSignature {
+    self
+  }
+}
+
 type_cvrt!(From<EcdsaSignature> for EcdsaSigBytes, |sig| {
   Self(sig.to_compact())
 });
 
 type_cvrt!(TryFrom<EcdsaSigBytes> for EcdsaSignature, EcdsaError, |bytes| {
   Self::from_compact(&bytes.0)
-});
-
-/// Recovery id (0..3) used to recover a public key from an ECDSA
-/// signature.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Unencodable)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "u8", try_from = "u8"))]
-pub struct EcdsaRecoveryId(RecoveryId);
-
-impl EcdsaRecoveryId {
-  pub(super) fn from_inner(inner: RecoveryId) -> Self {
-    Self(inner)
-  }
-
-  pub(super) fn as_inner(&self) -> RecoveryId {
-    self.0
-  }
-
-  /// Create from a raw byte (0, 1, 2, or 3).
-  ///
-  /// # Errors
-  ///
-  /// Returns [`EcdsaError::InvalidRecoveryId`] when `id` is greater than 3.
-  pub fn new(id: u8) -> Result<Self, EcdsaError> {
-    RecoveryId::try_from(id)
-      .map(Self)
-      .map_err(|_| EcdsaError::InvalidRecoveryId)
-  }
-
-  /// Return the raw byte value.
-  pub fn to_byte(self) -> u8 {
-    self.0.to_byte()
-  }
-}
-
-impl Hash for EcdsaRecoveryId {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    self.to_byte().hash(state);
-  }
-}
-
-type_cvrt!(From<EcdsaRecoveryId> for u8, |rid| {
-  rid.to_byte()
-});
-
-type_cvrt!(TryFrom<u8> for EcdsaRecoveryId, EcdsaError, |byte| {
-  Self::new(*byte)
 });
 
 /// DER-encoded ECDSA signature (variable length, typically 70-72 bytes).
@@ -167,7 +137,7 @@ impl PartialEq for EcdsaDerSignature {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::ecdsa::tests::*;
-  use crate::ecdsa::{EcdsaError, EcdsaRecoveryId, EcdsaSignature};
+  use crate::ecdsa::{EcdsaPublicKey, EcdsaSignature};
 
   #[cfg(feature = "serde")]
   use dash_dev::assert_json_rt;
@@ -187,33 +157,35 @@ mod tests {
     assert_eq!(restored, alice_sig);
   }
 
+  #[rstest]
+  fn is_low_s_after_signing(alice_sig: EcdsaSignature) {
+    // Library already produces low-S signatures.
+    assert!(alice_sig.is_low_s());
+  }
+
+  #[rstest]
+  fn normalize_s_noop_when_already_low(alice_sig: EcdsaSignature) {
+    assert!(alice_sig.normalize_s().is_none());
+  }
+
+  #[rstest]
+  fn normalize_s_flips_high_s_signature(alice_pk: EcdsaPublicKey, alice_sig: EcdsaSignature) {
+    let compact = alice_sig.to_compact();
+    let mut high_bytes = [0u8; 64];
+    high_bytes[..32].copy_from_slice(&compact[..32]);
+    high_bytes[32..].copy_from_slice(&negate_scalar(&compact[32..]));
+    let high_sig = EcdsaSignature::from_compact(&high_bytes).unwrap();
+    assert!(!high_sig.is_low_s());
+
+    let normalized = high_sig.normalize_s().unwrap();
+    assert!(normalized.is_low_s());
+    assert_eq!(normalized, alice_sig);
+    assert!(alice_pk.verify(&MSG, &normalized).is_ok());
+  }
+
   #[cfg(feature = "serde")]
   #[rstest]
   fn serde_sig_roundtrip(alice_sig: EcdsaSignature) {
     assert_json_rt(&alice_sig);
-  }
-
-  #[rstest]
-  #[case(0)]
-  #[case(1)]
-  #[case(2)]
-  #[case(3)]
-  fn recovery_id_roundtrip(#[case] id: u8) {
-    let rid = EcdsaRecoveryId::new(id).unwrap();
-    assert_eq!(rid.to_byte(), id);
-  }
-
-  #[rstest]
-  #[case(4)]
-  #[case(255)]
-  fn recovery_id_rejects_out_of_range(#[case] id: u8) {
-    assert_eq!(EcdsaRecoveryId::new(id), Err(EcdsaError::InvalidRecoveryId));
-  }
-
-  #[cfg(feature = "serde")]
-  #[rstest]
-  fn serde_recovery_id_roundtrip() {
-    let rid = EcdsaRecoveryId::new(1).unwrap();
-    assert_json_rt(&rid);
   }
 }

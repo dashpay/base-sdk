@@ -7,7 +7,8 @@
 //! secp256k1 public key.
 
 use super::error::EcdsaError;
-use super::sig_ops::{EcdsaRecoveryId, EcdsaSignature};
+use super::sig_ops::EcdsaSignature;
+use super::sig_rec_ops::EcdsaRecSignature;
 use super::EcdsaPkBytes;
 
 use dash_types::{type_cvrt, Unencodable};
@@ -59,25 +60,29 @@ impl EcdsaPublicKey {
 
   /// Verify a signature over a 32-byte prehashed message.
   ///
+  /// Accepts anything that can view itself as a plain signature, so a
+  /// recoverable signature verifies without an explicit downcast.
+  ///
   /// # Errors
   ///
   /// Returns [`EcdsaError::VerifyFailed`] when the signature does not verify
   /// under this key.
-  pub fn verify(&self, msg_hash: &[u8; 32], sig: &EcdsaSignature) -> Result<(), EcdsaError> {
+  pub fn verify(&self, msg_hash: &[u8; 32], sig: impl AsRef<EcdsaSignature>) -> Result<(), EcdsaError> {
     self
       .0
-      .verify_prehash(msg_hash, sig.as_inner())
+      .verify_prehash(msg_hash, sig.as_ref().as_inner())
       .map_err(|_| EcdsaError::VerifyFailed)
   }
 
-  /// Recover a public key from a signature, prehashed message, and recovery id.
+  /// Recover a public key from a signature and its embedded recovery metadata.
   ///
   /// # Errors
   ///
   /// Returns [`EcdsaError::RecoveryFailed`] when no key recovers from the
-  /// signature under `rid`.
-  pub fn recover(msg_hash: &[u8; 32], sig: &EcdsaSignature, rid: EcdsaRecoveryId) -> Result<Self, EcdsaError> {
-    VerifyingKey::recover_from_prehash(msg_hash, sig.as_inner(), rid.as_inner())
+  /// signature. The embedded recovery id needs no check: it is in `0..=3` by
+  /// construction.
+  pub fn recover(msg_hash: &[u8; 32], sig: &EcdsaRecSignature) -> Result<Self, EcdsaError> {
+    VerifyingKey::recover_from_prehash(msg_hash, sig.signature().as_inner(), sig.backend_recovery_id())
       .map(Self)
       .map_err(|_| EcdsaError::RecoveryFailed)
   }
@@ -101,7 +106,7 @@ type_cvrt!(TryFrom<EcdsaPkBytes> for EcdsaPublicKey, EcdsaError, |bytes| {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::ecdsa::tests::*;
-  use crate::ecdsa::{EcdsaPublicKey, EcdsaRecoveryId, EcdsaSignature};
+  use crate::ecdsa::{EcdsaPublicKey, EcdsaRecSignature, EcdsaSignature};
   use crate::prelude::*;
 
   #[cfg(feature = "serde")]
@@ -131,8 +136,8 @@ mod tests {
     let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "ecdsa_sign");
     for v in corpus.vectors::<RecoverVector>("recover") {
       let sig = EcdsaSignature::from_compact(&arr_from_hex::<64>(&v.sig)).unwrap();
-      let rid = EcdsaRecoveryId::try_from(v.recovery_id).unwrap();
-      let pk = EcdsaPublicKey::recover(&arr_from_hex::<32>(&v.msg), &sig, rid).unwrap();
+      let rec = EcdsaRecSignature::from_parts(sig, v.recovery_id, true.into()).unwrap();
+      let pk = EcdsaPublicKey::recover(&arr_from_hex::<32>(&v.msg), &rec).unwrap();
       assert_eq!(pk.to_bytes(), arr_from_hex::<33>(&v.pk));
     }
   }
@@ -143,9 +148,8 @@ mod tests {
   }
 
   #[rstest]
-  fn recover_roundtrip(alice_pk: EcdsaPublicKey, alice_rec_sig: (EcdsaSignature, EcdsaRecoveryId)) {
-    let (sig, rid) = alice_rec_sig;
-    assert_eq!(EcdsaPublicKey::recover(&MSG, &sig, rid).unwrap(), alice_pk);
+  fn recover_roundtrip(alice_pk: EcdsaPublicKey, alice_rec_sig: EcdsaRecSignature) {
+    assert_eq!(EcdsaPublicKey::recover(&MSG, &alice_rec_sig).unwrap(), alice_pk);
   }
 
   #[cfg(feature = "serde")]
