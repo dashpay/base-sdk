@@ -6,7 +6,6 @@
 
 //! Legacy BLS public key (48-byte G1 point, legacy serialization).
 
-use super::sk::SecretKey;
 use crate::bls::blst_ffi::G1Affine;
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsPkBytes, BlsScChia};
@@ -40,16 +39,6 @@ impl PublicKey {
   /// Serialize to 48 legacy-format bytes.
   pub fn to_bytes(&self) -> [u8; 48] {
     BlsScChia::pk_to_bytes(&self.0)
-  }
-
-  /// Compute a DH shared key: `sk * peer_pk`.
-  ///
-  /// # Errors
-  ///
-  /// Infallible for the legacy scheme; the `Result` mirrors the shared
-  /// scheme signature and always returns `Ok`.
-  pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, BlsError> {
-    BlsScChia::dh_exchange(&sk.0, &peer_pk.0).map(Self)
   }
 }
 

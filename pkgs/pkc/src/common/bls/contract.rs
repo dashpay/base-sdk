@@ -26,6 +26,7 @@ pub(crate) trait BlsSecretKey: Clone + Sized {
   fn to_bytes(&self) -> [u8; 32];
   fn public_key(&self) -> Self::PublicKey;
   fn sign(&self, msg: &Self::Msg) -> Self::Signature;
+  fn dh_exchange(&self, peer_pk: &Self::PublicKey) -> Result<Self::PublicKey, Self::Error>;
 }
 
 /// Marker trait asserting the minimum BLS public key API.
@@ -35,7 +36,6 @@ pub(crate) trait BlsPublicKey: Clone + Sized {
 
   fn from_bytes(bytes: &[u8; 48]) -> Result<Self, Self::Error>;
   fn to_bytes(&self) -> [u8; 48];
-  fn dh_exchange(sk: &Self::SecretKey, peer_pk: &Self) -> Result<Self, Self::Error>;
 }
 
 /// Marker trait asserting the minimum BLS signature API.

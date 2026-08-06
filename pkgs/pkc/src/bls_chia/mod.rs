@@ -45,6 +45,9 @@ const _: () = {
     fn sign(&self, msg: &[u8; 32]) -> Signature {
       self.sign(msg)
     }
+    fn dh_exchange(&self, peer_pk: &PublicKey) -> Result<PublicKey, BlsError> {
+      self.dh_exchange(peer_pk)
+    }
   }
   impl BlsPublicKey for PublicKey {
     type Error = BlsError;
@@ -54,9 +57,6 @@ const _: () = {
     }
     fn to_bytes(&self) -> [u8; 48] {
       self.to_bytes()
-    }
-    fn dh_exchange(sk: &SecretKey, pk: &Self) -> Result<Self, BlsError> {
-      PublicKey::dh_exchange(sk, pk)
     }
   }
   impl BlsSignature for Signature {

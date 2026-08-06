@@ -65,6 +65,16 @@ impl SecretKey {
   pub fn sign(&self, msg: &[u8; 32]) -> Signature {
     Signature::from_inner(BlsScChia::sign(&self.0, msg))
   }
+
+  /// Compute a DH shared key: `self * peer_pk`.
+  ///
+  /// # Errors
+  ///
+  /// Infallible for the legacy scheme; the `Result` mirrors the shared
+  /// scheme signature and always returns `Ok`.
+  pub fn dh_exchange(&self, peer_pk: &PublicKey) -> Result<PublicKey, BlsError> {
+    BlsScChia::dh_exchange(&self.0, &peer_pk.0).map(PublicKey::from_inner)
+  }
 }
 
 impl Drop for SecretKey {

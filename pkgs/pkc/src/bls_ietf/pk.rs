@@ -7,7 +7,6 @@
 //! IETF BLS public key (48-byte compressed G1 point).
 
 use super::sig::Signature;
-use super::sk::SecretKey;
 use crate::bls::scheme_ietf::DST_POP_PROVE;
 use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsPkBytes, BlsScIetf};
@@ -42,16 +41,6 @@ impl PublicKey {
   /// Serialize to 48 compressed bytes.
   pub fn to_bytes(&self) -> [u8; 48] {
     BlsScIetf::pk_to_bytes(&self.0)
-  }
-
-  /// Compute a DH shared key: `sk * peer_pk`.
-  ///
-  /// # Errors
-  ///
-  /// Returns [`BlsError::InvalidPublicKey`] when `peer_pk` or the resulting
-  /// point is not a valid public key.
-  pub fn dh_exchange(sk: &SecretKey, peer_pk: &PublicKey) -> Result<Self, BlsError> {
-    BlsScIetf::dh_exchange(&sk.0, &peer_pk.0).map(Self)
   }
 
   /// Verify a proof of possession against this key.

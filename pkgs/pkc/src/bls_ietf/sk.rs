@@ -80,6 +80,16 @@ impl SecretKey {
     Signature::from_inner(self.0.sign(msg, dst, &[]))
   }
 
+  /// Compute a DH shared key: `self * peer_pk`.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::InvalidPublicKey`] when `peer_pk` or the resulting
+  /// point is not a valid public key.
+  pub fn dh_exchange(&self, peer_pk: &PublicKey) -> Result<PublicKey, BlsError> {
+    BlsScIetf::dh_exchange(&self.0, &peer_pk.0).map(PublicKey::from_inner)
+  }
+
   /// Produce a proof of possession by signing the serialized public key with
   /// the PoP DST.
   pub fn prove_possession(&self) -> Signature {

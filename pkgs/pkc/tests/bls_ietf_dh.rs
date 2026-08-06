@@ -19,15 +19,15 @@ fn dh_exchange_roundtrip(ietf_sk0: SecretKey, ietf_sk1: SecretKey) {
   let pk0 = ietf_sk0.public_key();
   let pk1 = ietf_sk1.public_key();
   // sk0 * pk1 == sk1 * pk0
-  let shared_a = PublicKey::dh_exchange(&ietf_sk0, &pk1).unwrap();
-  let shared_b = PublicKey::dh_exchange(&ietf_sk1, &pk0).unwrap();
+  let shared_a = ietf_sk0.dh_exchange(&pk1).unwrap();
+  let shared_b = ietf_sk1.dh_exchange(&pk0).unwrap();
   assert_eq!(shared_a.to_bytes(), shared_b.to_bytes());
 }
 
 /// Reference vectors through the public wrapper.
 ///
 /// The scheme-level KAT pins `dh_exchange` on the trait; this pins that
-/// `PublicKey::dh_exchange` is still wired to it.
+/// `SecretKey::dh_exchange` is still wired to it.
 mod kat {
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
@@ -46,7 +46,7 @@ mod kat {
     for v in corpus.vectors::<DhVector>("dh_exchange") {
       let sk = super::SecretKey::from_bytes(&arr_from_hex(&v.sk)).unwrap();
       let peer = super::PublicKey::from_bytes(&arr_from_hex(&v.peer_pk)).unwrap();
-      let shared = super::PublicKey::dh_exchange(&sk, &peer).unwrap();
+      let shared = sk.dh_exchange(&peer).unwrap();
       assert_eq!(shared.to_bytes().to_lower_hex_string(), v.shared);
     }
   }
