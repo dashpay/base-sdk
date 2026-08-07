@@ -27,7 +27,7 @@ pub mod codec;
 pub mod serialize;
 
 pub use dash_types_marker::{TypeId, Unencodable};
-pub use entity::{ArrDecoder, ArrEncoder, BufferDecoder, VecEncoder, MAX_ARR_SIZE, MAX_SER_SIZE};
+pub use entity::{ArrDecoder, ArrEncoder, VecDecoder, VecEncoder, MAX_ARR_SIZE, MAX_SER_SIZE};
 
 #[doc(hidden)]
 pub mod __private {

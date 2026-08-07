@@ -27,13 +27,13 @@ pub const MAX_ARR_SIZE: usize = 512;
 /// Wraps types with complex sequential decode logic (conditional fields,
 /// version branching) that cannot be expressed as a composable push-decoder
 /// without excessive boilerplate.
-pub struct BufferDecoder<T, E = Infallible> {
+pub struct VecDecoder<T, E = Infallible> {
   buf: Vec<u8>,
   limit: usize,
   decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>,
 }
 
-impl<T, E> BufferDecoder<T, E> {
+impl<T, E> VecDecoder<T, E> {
   /// Creates a new decoder with the given decode function and
   /// maximum buffer size.
   pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>, limit: usize) -> Self {
@@ -45,16 +45,16 @@ impl<T, E> BufferDecoder<T, E> {
   }
 }
 
-impl<T, E> fmt::Debug for BufferDecoder<T, E> {
+impl<T, E> fmt::Debug for VecDecoder<T, E> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("BufferDecoder")
+    f.debug_struct("VecDecoder")
       .field("buf_len", &self.buf.len())
       .field("limit", &self.limit)
       .finish()
   }
 }
 
-impl<T, E> Clone for BufferDecoder<T, E> {
+impl<T, E> Clone for VecDecoder<T, E> {
   fn clone(&self) -> Self {
     Self {
       buf: self.buf.clone(),
@@ -64,7 +64,7 @@ impl<T, E> Clone for BufferDecoder<T, E> {
   }
 }
 
-impl<T, E> Decoder for BufferDecoder<T, E> {
+impl<T, E> Decoder for VecDecoder<T, E> {
   type Output = T;
   type Error = DecodeError<E>;
 
@@ -260,7 +260,7 @@ impl Encoder for VecEncoder {
 
 /// Generates `Encodable` + `Decodable` for a `BaseCodec` implementor.
 ///
-/// Stages through the growable [`VecEncoder`]/[`BufferDecoder`] pair. For
+/// Stages through the growable [`VecEncoder`]/[`VecDecoder`] pair. For
 /// secret material use [`impl_stype!`](crate::impl_stype) instead, which is
 /// the same generator over the wiping fixed-width pair.
 #[macro_export]
@@ -276,9 +276,9 @@ macro_rules! impl_type {
     }
 
     impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
-      type Decoder = $crate::BufferDecoder<$ty, $err>;
+      type Decoder = $crate::VecDecoder<$ty, $err>;
       fn decoder() -> Self::Decoder {
-        $crate::BufferDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode, $max)
+        $crate::VecDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode, $max)
       }
     }
   };
@@ -345,7 +345,7 @@ macro_rules! impl_stype {
 
 #[cfg(test)]
 mod tests {
-  use super::{ArrDecoder, ArrEncoder, BufferDecoder, VecEncoder, MAX_ARR_SIZE};
+  use super::{ArrDecoder, ArrEncoder, VecDecoder, VecEncoder, MAX_ARR_SIZE};
   use crate::codec::{ArrayBuf, DecodeError, EncodeBuf};
   use crate::prelude::*;
 
@@ -435,7 +435,7 @@ mod tests {
     let venc = VecEncoder::new(vec![0xFFu8; 8]);
     assert!(!format!("{venc:?}").contains("255"));
 
-    let vdec = BufferDecoder::<Vec<u8>>::new(take_all, 16);
+    let vdec = VecDecoder::<Vec<u8>>::new(take_all, 16);
     assert!(format!("{vdec:?}").contains("limit: 16"));
 
     let adec = ArrDecoder::<Vec<u8>, 16>::new(take_all);
