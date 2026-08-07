@@ -23,7 +23,7 @@ pub const MAX_ARR_SIZE: usize = 512;
 ///
 /// Writing more than `N` bytes (via the [`EncodeBuf`] impl) panics with an
 /// index-out-of-bounds.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone)]
 pub struct ArrayBuf<const N: usize> {
   buf: [u8; N],
   len: usize,
@@ -63,6 +63,12 @@ impl<const N: usize> ArrayBuf<N> {
   pub fn into_array(self) -> [u8; N] {
     assert!(self.len == N, "expected {N} bytes, wrote {}", self.len);
     self.buf
+  }
+}
+
+impl<const N: usize> fmt::Debug for ArrayBuf<N> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("ArrayBuf").field("len", &self.len).finish()
   }
 }
 
