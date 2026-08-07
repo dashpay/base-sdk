@@ -6,17 +6,20 @@
 
 //! Fixed-size byte newtype macros.
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` + `From<[u8; N]>`
-/// for a fixed-size byte newtype that wraps `[u8; N]` and exposes
-/// `as_bytes()`.
+/// Generates `BaseCodec` + `Encodable` + `Decodable` + `From<[u8; N]>` for a
+/// fixed-size byte newtype, expressed only through `from_bytes` / `as_bytes`.
+///
+/// Staged through the growable [`VecEncoder`]. For a newtype whose contents
+/// are secret use [`impl_sbytes!`](crate::impl_sbytes).
 #[macro_export]
 macro_rules! impl_bytes {
-  ($n:literal, $($name:ident),* $(,)?) => { $(
-    impl $crate::codec::BaseCodec for $name {
+  // Shared by `impl_bytes!` and `impl_sbytes!`, only the encoder pair differs.
+  (@codec [$($g:tt)*] $ty:ty, $n:expr) => {
+    impl<$($g)*> $crate::codec::BaseCodec for $ty {
       fn decode(
         data: &mut &[u8],
       ) -> Result<Self, $crate::codec::DecodeError> {
-        $crate::codec::take::<$n>(data).map(|b| Self(b))
+        $crate::codec::take::<$n>(data).map(Self::from_bytes)
       }
 
       fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
@@ -24,12 +27,21 @@ macro_rules! impl_bytes {
       }
     }
 
-    $crate::impl_type!($name);
-
-    impl From<[u8; $n]> for $name {
-      fn from(bytes: [u8; $n]) -> Self { Self(bytes) }
+    impl<$($g)*> ::core::convert::From<[u8; $n]> for $ty {
+      fn from(bytes: [u8; $n]) -> Self { Self::from_bytes(bytes) }
     }
-  )* };
+  };
+  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+    $crate::impl_bytes!(@codec [$($g)*] $ty, $n);
+
+    $crate::impl_type!(@parse [$($g)*] $ty, $n);
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::impl_bytes!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::impl_bytes!(@parse [] $($args)*);
+  };
 }
 
 /// The standard trait set for a fixed-size byte newtype, expressed only
@@ -126,7 +138,7 @@ macro_rules! make_bytes {
     #[derive($crate::TypeId)]
     pub struct $name(pub [u8; $n]);
 
-    $crate::impl_bytes!($n, $name);
+    $crate::impl_bytes!($name, $n);
 
     $crate::derive_bytes!($name, $n);
 

@@ -16,7 +16,7 @@ use core::fmt;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct CommandString([u8; 12]);
 
-impl_bytes!(12, CommandString);
+impl_bytes!(CommandString, 12);
 
 hash_impl!(CommandString);
 

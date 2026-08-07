@@ -259,29 +259,21 @@ macro_rules! impl_stype {
   };
 }
 
-/// Generates the consensus encoding traits for a fixed-size byte newtype with
-/// secret contents.
+/// The secret counterpart to [`impl_bytes!`](crate::impl_bytes), for a
+/// fixed-size byte newtype whose contents are key material.
 #[macro_export]
 macro_rules! impl_sbytes {
-  ($n:literal, $($name:ident),* $(,)?) => { $(
-    impl $crate::codec::BaseCodec for $name {
-      fn decode(
-        data: &mut &[u8],
-      ) -> Result<Self, $crate::codec::DecodeError> {
-        $crate::codec::take::<$n>(data).map(|b| Self(b))
-      }
+  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+    $crate::impl_bytes!(@codec [$($g)*] $ty, $n);
 
-      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
-        buf.extend_from_slice(self.as_bytes());
-      }
-    }
-
-    $crate::impl_stype!($name, $n);
-
-    impl From<[u8; $n]> for $name {
-      fn from(bytes: [u8; $n]) -> Self { Self(bytes) }
-    }
-  )* };
+    $crate::impl_stype!(@parse [$($g)*] $ty, $n);
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::impl_sbytes!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::impl_sbytes!(@parse [] $($args)*);
+  };
 }
 
 #[cfg(test)]

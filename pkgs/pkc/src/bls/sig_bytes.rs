@@ -10,8 +10,8 @@ use crate::bls::BlsSchemeId;
 
 use bitcoin_hashes::sha256d::Hash as Sha256d;
 use dash_num::Hash256;
-use dash_types::codec::{take, BaseCodec, DecodeError, EncodeBuf, Hashable, TypeId};
-use dash_types::{derive_bytes, impl_type};
+use dash_types::codec::{Hashable, TypeId};
+use dash_types::{derive_bytes, impl_bytes};
 
 use core::fmt;
 use core::marker::PhantomData;
@@ -25,17 +25,7 @@ pub struct BlsSigBytes<S: BlsSchemeId> {
   _scheme: PhantomData<S>,
 }
 
-impl<S: BlsSchemeId> BaseCodec for BlsSigBytes<S> {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    take::<BLS_SIG_LEN>(data).map(Self::from_bytes)
-  }
-
-  fn encode(&self, buf: &mut impl EncodeBuf) {
-    buf.extend_from_slice(&self.inner); // nosemgrep: codec-no-raw-extend
-  }
-}
-
-impl_type!(for[S: BlsSchemeId] BlsSigBytes<S>, BLS_SIG_LEN);
+impl_bytes!(for[S: BlsSchemeId] BlsSigBytes<S>, BLS_SIG_LEN);
 
 impl<S: BlsSchemeId> Hashable for BlsSigBytes<S> {
   type Hash = Hash256;
