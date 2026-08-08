@@ -15,8 +15,8 @@ use super::{Compression, EcdsaRecSigBytes};
 
 use bitcoin_hashes::sha256d;
 use dash_num::Hash256;
-use dash_types::codec::{ensure, ArrayBuf, BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::{impl_stype, type_cvrt, TypeId};
+use dash_types::codec::{ensure, BaseCodec, DecodeError, EncodeBuf, Hashable};
+use dash_types::{impl_stype, type_cvrt, ArrayBuf, TypeId};
 use hex_conservative::hex;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
 use k256::elliptic_curve::ops::Neg;
@@ -119,9 +119,8 @@ impl BaseCodec<EcdsaError> for EcdsaSecretKey {
   ///
   /// `buf` receives the secret scalar in plain bytes and is not zeroized by
   /// this function; callers who need the encoded form not to outlive its use
-  /// must supply a zeroizing buffer (e.g.
-  /// [`ArrayBuf`](dash_types::codec::ArrayBuf)) and zeroize or drop it
-  /// themselves once done.
+  /// must supply a zeroizing buffer (e.g. [`ArrayBuf`](dash_types::ArrayBuf))
+  /// and zeroize or drop it themselves once done.
   fn encode(&self, buf: &mut impl EncodeBuf) {
     let scalar = self.to_bytes();
     let public = self.inner.verifying_key().to_encoded_point(self.compressed);

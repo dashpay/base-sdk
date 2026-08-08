@@ -8,8 +8,6 @@
 
 use crate::prelude::*;
 
-use zeroize::Zeroize;
-
 use core::convert::Infallible;
 use core::fmt;
 
@@ -213,80 +211,6 @@ impl EncodeBuf for Vec<u8> {
 
   fn extend_from_slice(&mut self, data: &[u8]) {
     self.extend_from_slice(data);
-  }
-}
-
-/// Fixed-size encode buffer backed by `[u8; N]`.
-///
-/// # Panics
-///
-/// Writing more than `N` bytes (via the [`EncodeBuf`] impl) panics with an
-/// index-out-of-bounds.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct ArrayBuf<const N: usize> {
-  buf: [u8; N],
-  len: usize,
-}
-
-impl<const N: usize> ArrayBuf<N> {
-  /// Creates an empty buffer.
-  pub const fn new() -> Self {
-    Self { buf: [0u8; N], len: 0 }
-  }
-
-  /// Borrows the written bytes.
-  pub fn as_bytes(&self) -> &[u8] {
-    &self.buf[..self.len]
-  }
-
-  /// Returns `true` when nothing has been written.
-  pub const fn is_empty(&self) -> bool {
-    self.len == 0
-  }
-
-  /// Number of bytes written so far.
-  pub const fn len(&self) -> usize {
-    self.len
-  }
-
-  /// Remaining writable capacity.
-  pub const fn spare(&self) -> usize {
-    N - self.len
-  }
-
-  /// Returns the written bytes as a fixed array.
-  ///
-  /// # Panics
-  ///
-  /// Panics if exactly `N` bytes were not written.
-  pub fn into_array(self) -> [u8; N] {
-    assert!(self.len == N, "expected {N} bytes, wrote {}", self.len);
-    self.buf
-  }
-}
-
-impl<const N: usize> Zeroize for ArrayBuf<N> {
-  fn zeroize(&mut self) {
-    self.buf.zeroize();
-    self.len = 0;
-  }
-}
-
-impl<const N: usize> Default for ArrayBuf<N> {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
-impl<const N: usize> EncodeBuf for ArrayBuf<N> {
-  fn push(&mut self, byte: u8) {
-    self.buf[self.len] = byte;
-    self.len += 1;
-  }
-
-  fn extend_from_slice(&mut self, data: &[u8]) {
-    self.buf[self.len..self.len + data.len()].copy_from_slice(data);
-    self.len += data.len();
   }
 }
 
@@ -540,6 +464,7 @@ impl<T: Codec> __CodecMarker for T {}
 mod tests {
   use super::DecodeError;
   use crate::prelude::*;
+  use crate::{VecDecoder, VecEncoder};
 
   use rstest::*;
 
@@ -582,5 +507,22 @@ mod tests {
     let lifted: DecodeError<SampleError> = err.lift();
     assert_eq!(lifted.to_string(), before);
     assert!(!matches!(lifted, DecodeError::DecError(_)));
+  }
+
+  /// Consumes the whole cursor, so `end()` sees no trailing bytes.
+  fn take_all(data: &mut &[u8]) -> Result<Vec<u8>, DecodeError> {
+    let out = data.to_vec();
+    *data = &[];
+    Ok(out)
+  }
+
+  /// Both encoders redact: a `{:?}` in a panic must not print key material.
+  #[rstest]
+  fn debug_impls_redact_contents() {
+    let venc = VecEncoder::new(vec![0xFFu8; 8]);
+    assert!(!format!("{venc:?}").contains("255"));
+
+    let vdec = VecDecoder::<Vec<u8>>::new(take_all, 16);
+    assert!(format!("{vdec:?}").contains("limit: 16"));
   }
 }

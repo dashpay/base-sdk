@@ -41,9 +41,10 @@ macro_rules! adapt_codec {
 
 #[cfg(feature = "bitcoin-primitives")]
 pub mod bitcoin_primitives {
-  use crate::codec::{ArrayBuf, BaseCodec, EncodeBuf, Hashable};
+  use crate::codec::{BaseCodec, EncodeBuf, Hashable};
   use crate::make_bytes;
   use crate::prelude::*;
+  use crate::secret::ArrayBuf;
 
   use base58ck::encode_check;
   use bitcoin_hashes::{ripemd160, sha256};

@@ -20,6 +20,7 @@ mod hex;
 mod macros;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
+mod secret;
 mod uint;
 
 pub mod codec;
@@ -27,7 +28,8 @@ pub mod codec;
 pub mod serialize;
 
 pub use dash_types_marker::{TypeId, Unencodable};
-pub use entity::{ArrDecoder, ArrEncoder, VecDecoder, VecEncoder, MAX_ARR_SIZE, MAX_SER_SIZE};
+pub use entity::{VecDecoder, VecEncoder, MAX_SER_SIZE};
+pub use secret::{ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
 
 #[doc(hidden)]
 pub mod __private {
