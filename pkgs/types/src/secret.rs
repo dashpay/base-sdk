@@ -223,7 +223,7 @@ impl<T, const N: usize, E> Decoder for ArrDecoder<T, N, E> {
 #[macro_export]
 macro_rules! impl_stype {
   (@parse [$($impl_generics:tt)*] $ty:ty, $n:expr, $err:ty) => {
-    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
+    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
       type Encoder<'e> = $crate::ArrEncoder<{ $n }>;
       fn encoder(&self) -> Self::Encoder<'_> {
         let mut buf = $crate::ArrayBuf::<{ $n }>::new();
@@ -232,7 +232,7 @@ macro_rules! impl_stype {
       }
     }
 
-    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
+    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
       type Decoder = $crate::ArrDecoder<$ty, { $n }, $err>;
       fn decoder() -> Self::Decoder {
         $crate::ArrDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode)
@@ -252,7 +252,7 @@ macro_rules! impl_stype {
     ));
   };
   (for[$($generic:tt)*] $($args:tt)*) => {
-    $crate::impl_stype!(@parse [<$($generic)*>] $($args)*);
+    $crate::impl_stype!(@parse [$($generic)*] $($args)*);
   };
   ($($args:tt)*) => {
     $crate::impl_stype!(@parse [] $($args)*);

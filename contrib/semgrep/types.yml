@@ -12,3 +12,25 @@ rules:
         - /pkgs/types/src/secret.rs
         - /pkgs/types/src/uint.rs
     pattern-regex: '\b(?:make|impl)_(?:bytes|num|type)!\s*[({]'
+
+  - id: types-macro-generics-bracketed
+    message: "forward macro generics bare: `@parse [$($g)*]`, not `@parse [<$($g)*>]`"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/types/src/**/*.rs]
+    pattern-regex: |-
+      (?x)
+      @ (?: parse | delegate | codec )  # an internal forwarding arm
+      \s* \[ \s* <                      # ... whose payload opens with <
+
+  - id: types-macro-impl-unbracketed
+    message: "bracket generics in a macro impl template: `impl<$($g)*>`, not `impl $($g)*`"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/types/src/**/*.rs]
+    pattern-regex: |-
+      (?xm)
+      ^ [ \t]* impl [ \t]+  # `impl` then a space rather than <
+      \$ \(                  # ... then a macro repetition: the generics
