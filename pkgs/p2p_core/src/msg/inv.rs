@@ -37,12 +37,12 @@ enum_map! {
     Block = 2 => "block",
     /// Filtered block (BIP37).
     FilteredBlock = 3 => "filtered_block",
-    /// Compact block (BIP152).
-    CompactBlock = 4 => "compact_block",
     /// Governance object.
     GovernanceObject = 17 => "governance_object",
     /// Governance object vote.
     GovernanceObjectVote = 18 => "governance_object_vote",
+    /// Compact block (BIP152).
+    CompactBlock = 20 => "compact_block",
   }
 }
 
