@@ -13,7 +13,6 @@ use dash_num::Hash256;
 use dash_types::codec::{Hashable, TypeId};
 use dash_types::{derive_bytes, impl_bytes};
 
-use core::fmt;
 use core::marker::PhantomData;
 
 /// Raw BLS signature length (G2 compressed).
@@ -53,11 +52,6 @@ impl<S: BlsSchemeId> BlsSigBytes<S> {
   pub const fn into_bytes(self) -> [u8; BLS_SIG_LEN] {
     self.inner
   }
-
-  /// Returns `true` when every byte is zero.
-  pub fn is_null(&self) -> bool {
-    self.inner.iter().all(|&b| b == 0)
-  }
 }
 
 impl<S: BlsSchemeId> TypeId for BlsSigBytes<S> {
@@ -65,22 +59,3 @@ impl<S: BlsSchemeId> TypeId for BlsSigBytes<S> {
 }
 
 derive_bytes!(for[S: BlsSchemeId] BlsSigBytes<S>, BLS_SIG_LEN);
-
-impl<S: BlsSchemeId> fmt::Debug for BlsSigBytes<S> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "BlsSigBytes<{}>(", S::LABEL)?;
-    for byte in &self.inner {
-      write!(f, "{byte:02x}")?;
-    }
-    write!(f, ")")
-  }
-}
-
-impl<S: BlsSchemeId> fmt::Display for BlsSigBytes<S> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    for byte in &self.inner {
-      write!(f, "{byte:02x}")?;
-    }
-    Ok(())
-  }
-}

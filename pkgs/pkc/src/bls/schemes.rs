@@ -16,8 +16,6 @@ pub trait BlsSchemeId: 'static {
   const SK_TYPE_ID: u32;
   /// `TypeId` constant for `BlsSigBytes<Self>`.
   const SIG_TYPE_ID: u32;
-  /// Human-readable scheme label for `Debug`/`Display`.
-  const LABEL: &'static str;
 }
 
 /// Legacy (Chia) BLS scheme marker.
@@ -31,7 +29,6 @@ impl BlsSchemeId for BlsScChia {
   const SK_TYPE_ID: u32 = 0x3D50_6855;
   // xxh32(b"BlsSigBytesChia", 0)
   const SIG_TYPE_ID: u32 = 0xEF4A_E265;
-  const LABEL: &'static str = "Chia";
 }
 
 /// IETF-standard BLS scheme marker.
@@ -45,5 +42,4 @@ impl BlsSchemeId for BlsScIetf {
   const SK_TYPE_ID: u32 = 0xB5CE_BF45;
   // xxh32(b"BlsSigBytesIetf", 0)
   const SIG_TYPE_ID: u32 = 0xF57D_EF57;
-  const LABEL: &'static str = "Ietf";
 }

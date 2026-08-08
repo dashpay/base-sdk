@@ -526,6 +526,7 @@ dependencies = [
  "hex-conservative 0.3.2",
  "rstest",
  "serde",
+ "subtle",
  "zeroize",
 ]
 

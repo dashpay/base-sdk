@@ -329,6 +329,14 @@ macro_rules! derive_sbytes {
 
     impl<$($g)*> $crate::__private::zeroize::ZeroizeOnDrop for $ty {}
 
+    impl<$($g)*> $ty {
+      /// Returns `true` when every byte is zero.
+      pub fn is_null(&self) -> bool {
+        use $crate::__private::subtle::ConstantTimeEq as _;
+        self.as_bytes().ct_eq(&[0u8; $n]).into()
+      }
+    }
+
     impl<$($g)*> ::core::fmt::Debug for $ty {
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         // `type_name` rather than `stringify!`, which cannot see the generics

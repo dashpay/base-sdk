@@ -70,11 +70,6 @@ impl EcdsaSkBytes {
     result.filter(|sk| !sk.is_null())
   }
 
-  /// Returns `true` when every byte is zero.
-  pub fn is_null(&self) -> bool {
-    self.inner.ct_eq(&[0u8; ECDSA_SK_LEN]).into()
-  }
-
   /// Copy out the raw inner bytes.
   pub fn to_bytes(&self) -> Zeroizing<[u8; ECDSA_SK_LEN]> {
     Zeroizing::new(self.inner)

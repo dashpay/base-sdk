@@ -54,11 +54,6 @@ impl<S: BlsSchemeId> BlsSkBytes<S> {
   pub fn to_bytes(&self) -> Zeroizing<[u8; BLS_SK_LEN]> {
     Zeroizing::new(self.inner)
   }
-
-  /// Returns `true` when every byte is zero.
-  pub fn is_null(&self) -> bool {
-    self.inner.ct_eq(&[0u8; BLS_SK_LEN]).into()
-  }
 }
 
 impl<S: BlsSchemeId> TypeId for BlsSkBytes<S> {

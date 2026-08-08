@@ -99,6 +99,29 @@ macro_rules! derive_bytes {
       fn from(val: $ty) -> Self { *val.as_bytes() }
     }
 
+    impl<$($g)*> $ty {
+      /// Returns `true` when every byte is zero.
+      pub fn is_null(&self) -> bool { self.as_bytes().iter().all(|&b| b == 0) }
+    }
+
+    impl<$($g)*> core::fmt::Debug for $ty {
+      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
+        f.write_str("(")?;
+        ::core::fmt::Display::fmt(self, f)?;
+        f.write_str(")")
+      }
+    }
+
+    impl<$($g)*> core::fmt::Display for $ty {
+      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        for byte in self.as_bytes() {
+          ::core::write!(f, "{byte:02x}")?;
+        }
+        ::core::result::Result::Ok(())
+      }
+    }
+
     #[cfg(feature = "serde")]
     impl<$($g)*> ::serde::Serialize for $ty {
       fn serialize<Z: ::serde::Serializer>(&self, serializer: Z) -> Result<Z::Ok, Z::Error> {
@@ -156,36 +179,6 @@ macro_rules! make_bytes {
       /// Borrows the inner byte array.
       pub const fn as_bytes(&self) -> &[u8; $n] {
         &self.0
-      }
-
-      /// Returns `true` when every byte is zero.
-      pub fn is_null(&self) -> bool {
-        self.0.iter().all(|&b| b == 0)
-      }
-    }
-
-    impl core::fmt::Debug for $name {
-      fn fmt(
-        &self,
-        f: &mut core::fmt::Formatter<'_>,
-      ) -> core::fmt::Result {
-        write!(f, "{}(", stringify!($name))?;
-        for byte in &self.0 {
-          write!(f, "{:02x}", byte)?;
-        }
-        write!(f, ")")
-      }
-    }
-
-    impl core::fmt::Display for $name {
-      fn fmt(
-        &self,
-        f: &mut core::fmt::Formatter<'_>,
-      ) -> core::fmt::Result {
-        for byte in &self.0 {
-          write!(f, "{:02x}", byte)?;
-        }
-        Ok(())
       }
     }
   };
