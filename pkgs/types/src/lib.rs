@@ -29,7 +29,7 @@ pub mod serialize;
 
 pub use dash_types_marker::{TypeId, Unencodable};
 pub use entity::{VecDecoder, VecEncoder, MAX_SER_SIZE};
-pub use secret::{ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
+pub use secret::{qtypestr, ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
 
 #[doc(hidden)]
 pub mod __private {
@@ -39,4 +39,5 @@ pub mod __private {
   pub use bitcoin_consensus_encoding;
   #[cfg(feature = "serde")]
   pub use hex_conservative;
+  pub use zeroize;
 }

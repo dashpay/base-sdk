@@ -10,10 +10,9 @@ use super::Compression;
 use crate::prelude::*;
 
 use base58ck::{decode_check, encode_check};
+use dash_types::derive_sbytes;
 use subtle::ConstantTimeEq;
-use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
-
-use core::fmt;
+use zeroize::{Zeroize, Zeroizing};
 
 /// Raw secp256k1 secret key length.
 pub const ECDSA_SK_LEN: usize = 32;
@@ -23,7 +22,7 @@ pub const ECDSA_SK_LEN: usize = 32;
 /// Carries a compression flag that decides how the derived public key
 /// serializes. The bytes are unvalidated: DER needs an in-range scalar, so the
 /// wire codec lives in [`EcdsaSecretKey`](crate::ecdsa::EcdsaSecretKey).
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Zeroize)]
 pub struct EcdsaSkBytes {
   inner: [u8; ECDSA_SK_LEN],
   #[zeroize(skip)]
@@ -102,29 +101,7 @@ impl EcdsaSkBytes {
   }
 }
 
-impl AsRef<[u8]> for EcdsaSkBytes {
-  fn as_ref(&self) -> &[u8] {
-    &self.inner
-  }
-}
-
-impl AsRef<[u8; ECDSA_SK_LEN]> for EcdsaSkBytes {
-  fn as_ref(&self) -> &[u8; ECDSA_SK_LEN] {
-    &self.inner
-  }
-}
-
-impl fmt::Debug for EcdsaSkBytes {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "EcdsaSkBytes(..)")
-  }
-}
-
-impl fmt::Display for EcdsaSkBytes {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    fmt::Debug::fmt(self, f)
-  }
-}
+derive_sbytes!(EcdsaSkBytes, ECDSA_SK_LEN);
 
 impl Eq for EcdsaSkBytes {}
 

@@ -17,6 +17,37 @@ use core::fmt;
 /// Widest buffer [`ArrEncoder`] and [`ArrDecoder`] will wipe.
 pub const MAX_ARR_SIZE: usize = 512;
 
+/// Writes [`type_name`](core::any::type_name) output to `f` with its module
+/// qualifiers dropped.
+pub fn qtypestr(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
+  let bytes = path.as_bytes();
+  let (mut seg, mut i) = (0, 0);
+  while i < bytes.len() {
+    match bytes[i] {
+      // A qualifier: discard everything emitted since the last segment.
+      b':' if bytes.get(i + 1) == Some(&b':') => {
+        i += 2;
+        seg = i;
+      }
+      delim @ (b'<' | b'>' | b',') => {
+        f.write_str(&path[seg..i])?;
+        f.write_str(match delim {
+          b'<' => "<",
+          b'>' => ">",
+          _ => ", ",
+        })?;
+        i += 1;
+        while bytes.get(i) == Some(&b' ') {
+          i += 1;
+        }
+        seg = i;
+      }
+      _ => i += 1,
+    }
+  }
+  f.write_str(&path[seg..])
+}
+
 /// Fixed-size encode buffer backed by `[u8; N]`.
 ///
 /// # Panics
@@ -276,15 +307,69 @@ macro_rules! impl_sbytes {
   };
 }
 
+/// The secret counterpart to [`derive_bytes!`](crate::derive_bytes), for a
+/// fixed-size byte newtype holding key material.
+///
+/// Emits `Drop`, `ZeroizeOnDrop`, `is_null`, the `AsRef` pair, and a redacting
+/// `Debug`/`Display`. `Zeroize`, `Clone` and `Eq`/`PartialEq` are left to the
+/// type: only it knows which fields are secret, and equality must be
+/// constant-time.
+///
+/// Withholds `Copy`, `Default`, `Ord`/`PartialOrd`/`Hash`, `From<Self> for
+/// [u8; N]` and the hex `serde` pair, each because it either escapes the wipe
+/// or reads the plaintext. Do *not* implement them.
+#[macro_export]
+macro_rules! derive_sbytes {
+  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+    impl<$($g)*> ::core::ops::Drop for $ty {
+      fn drop(&mut self) {
+        <Self as $crate::__private::zeroize::Zeroize>::zeroize(self);
+      }
+    }
+
+    impl<$($g)*> $crate::__private::zeroize::ZeroizeOnDrop for $ty {}
+
+    impl<$($g)*> ::core::fmt::Debug for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        // `type_name` rather than `stringify!`, which cannot see the generics
+        $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
+        f.write_str("(..)")
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::Display for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        ::core::fmt::Debug::fmt(self, f)
+      }
+    }
+
+    impl<$($g)*> ::core::convert::AsRef<[u8]> for $ty {
+      fn as_ref(&self) -> &[u8] { self.as_bytes() }
+    }
+
+    impl<$($g)*> ::core::convert::AsRef<[u8; $n]> for $ty {
+      fn as_ref(&self) -> &[u8; $n] { self.as_bytes() }
+    }
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::derive_sbytes!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::derive_sbytes!(@parse [] $($args)*);
+  };
+}
+
 #[cfg(test)]
 mod tests {
-  use super::{ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
+  use super::{qtypestr, ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
   use crate::codec::{DecodeError, EncodeBuf};
   use crate::prelude::*;
 
   use bitcoin_consensus_encoding::{Decoder, Encoder};
   use rstest::*;
   use zeroize::Zeroize;
+
+  use core::fmt;
 
   fn filled<const N: usize>(fill: u8, len: usize) -> ArrayBuf<N> {
     let mut b = ArrayBuf::<N>::new();
@@ -363,5 +448,24 @@ mod tests {
 
     let adec = ArrDecoder::<Vec<u8>, 16>::new(take_all);
     assert!(format!("{adec:?}").contains("limit: 16"));
+  }
+
+  struct Qtype<'a>(&'a str);
+
+  impl fmt::Display for Qtype<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      qtypestr(f, self.0)
+    }
+  }
+
+  #[rstest]
+  #[case::plain("a::b::Foo", "Foo")]
+  #[case::unqualified("Foo", "Foo")]
+  #[case::one_arg("a::Foo<b::Bar>", "Foo<Bar>")]
+  #[case::two_args("a::Foo<b::Bar, c::Baz>", "Foo<Bar, Baz>")]
+  #[case::nested("a::Foo<b::Bar<c::Baz>>", "Foo<Bar<Baz>>")]
+  #[case::nested_pair("a::Foo<b::Bar<c::Baz>, d::Qux>", "Foo<Bar<Baz>, Qux>")]
+  fn qtypestr_drops_module_paths(#[case] path: &str, #[case] expect: &str) {
+    assert_eq!(Qtype(path).to_string(), expect);
   }
 }
