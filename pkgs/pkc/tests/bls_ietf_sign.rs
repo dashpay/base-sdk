@@ -12,7 +12,7 @@ use common::*;
 #[cfg(feature = "serde")]
 use dash_dev::assert_json_rt;
 use dash_pkc::{bls::tests as common, bls_ietf::SecretKey, bls_ietf::Signature};
-use hex_literal::hex;
+use hex_conservative::hex;
 use rstest::*;
 
 /// Sign then verify with a generated key succeeds and is

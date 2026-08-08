@@ -9,7 +9,4 @@
 #![allow(dead_code, reason = "usage dependent on build flags")]
 
 /// Shared test constants.
-pub const MSG_DEADBEEF: [u8; 32] = hex_literal::hex!(
-  "deadbeefdeadbeefdeadbeefdeadbeef"
-  "cafebabecafebabecafebabecafebabe"
-);
+pub const MSG_DEADBEEF: [u8; 32] = hex_conservative::hex!("deadbeefdeadbeefdeadbeefdeadbeefcafebabecafebabecafebabecafebabe");

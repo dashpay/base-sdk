@@ -13,16 +13,13 @@ use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScChia;
 
 use blst::min_pk;
-use hex_literal::hex;
+use hex_conservative::hex;
 use zeroize::Zeroize;
 
 /// y.c1 > (p-1)/2, matching the legacy sign convention.
 fn y_c1_is_larger(y_c1: &[u8]) -> bool {
-  const HALF_P: [u8; 48] = hex!(
-    "0d0088f5 1cbff34d 258dd3db 21a5d66b"
-    "b23ba5c2 79c2895f b3986950 7b587b12"
-    "0f55ffff 58a9ffff dcff7fff ffffd555"
-  );
+  const HALF_P: [u8; 48] =
+    hex!("0d0088f51cbff34d258dd3db21a5d66bb23ba5c279c2895fb39869507b587b120f55ffff58a9ffffdcff7fffffffd555");
 
   y_c1.len() >= 48 && y_c1[..48] > HALF_P[..]
 }

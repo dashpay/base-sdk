@@ -13,7 +13,7 @@ use dash_pkc::bls::tests as common;
 use dash_pkc::bls_ietf::{
   aggregate_pk, aggregate_sig, fast_verify_aggregates, verify_aggregates, PublicKey, SecretKey, Signature,
 };
-use hex_literal::hex;
+use hex_conservative::hex;
 use rstest::*;
 
 /// Aggregated public key serializes to 48 bytes.

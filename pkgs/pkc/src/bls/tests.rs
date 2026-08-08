@@ -10,7 +10,7 @@ use crate::bls_chia::SecretKey as ChiaSk;
 use crate::bls_ietf::SecretKey as IetfSk;
 use crate::prelude::*;
 
-use hex_literal::hex;
+use hex_conservative::hex;
 use rstest::*;
 
 /// IKM producing the first deterministic test key.

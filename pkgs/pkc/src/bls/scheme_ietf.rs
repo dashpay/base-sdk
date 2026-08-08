@@ -160,8 +160,8 @@ mod tests {
   use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
+  use hex_conservative::hex;
   use hex_conservative::DisplayHex;
-  use hex_literal::hex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -194,19 +194,14 @@ mod tests {
   #[test]
   fn pyecc_signature_matches() {
     let sk = BlsScIetf::sk_from_bytes(&hex!(
-      "0101010101010101010101010101010101"
-      "010101010101010101010101010101"
+      "0101010101010101010101010101010101010101010101010101010101010101"
     ))
     .unwrap();
     let msg = hex!("030104010509");
-    let expected = hex!(
-      "96ba34fac33c7f129d602a0bc8a3d43f"
-      "9abc014eceaab7359146b4b150e57b80"
-      "8645738f35671e9e10e0d862a30cab70"
-      "074eb5831d13e6a5b162d01eebe687d0"
-      "164adbd0a864370a7c222a2768d7704d"
-      "a254f1bf1823665bc2361f9dd8c00e99"
-    );
+    let expected = hex!(concat!(
+      "96ba34fac33c7f129d602a0bc8a3d43f9abc014eceaab7359146b4b150e57b808645738f35671e9e10e0d862a30cab70",
+      "074eb5831d13e6a5b162d01eebe687d0164adbd0a864370a7c222a2768d7704da254f1bf1823665bc2361f9dd8c00e99"
+    ));
     let sig = BlsScIetf::sign(&sk, &msg);
     assert_eq!(BlsScIetf::sig_to_bytes(&sig), expected);
     assert!(BlsScIetf::verify(&sig, &msg, &BlsScIetf::derive_pk(&sk)).is_ok());
