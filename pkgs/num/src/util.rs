@@ -22,7 +22,7 @@ macro_rules! cfg_serde {
   ($($item:tt)*) => {};
 }
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` for hash newtypes.
+/// Generates `BaseCodec` + `Encode` + `Decode` for hash newtypes.
 #[macro_export]
 macro_rules! impl_hash {
   ($base:ty, $($name:ident),* $(,)?) => { $(

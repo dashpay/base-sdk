@@ -4,7 +4,7 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Dash protocol version constants.
+//! Protocol version.
 
 use dash_primitives::hash_impl;
 use dash_types::make_num;

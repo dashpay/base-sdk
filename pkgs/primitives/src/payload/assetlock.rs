@@ -10,6 +10,7 @@ use crate::codec::codec_payload;
 use crate::prelude::*;
 use crate::transaction::TxOut;
 
+use dash_script::Recipient;
 use dash_types::codec::Checkable;
 use dash_types::{TypeId, Unencodable};
 
@@ -78,7 +79,10 @@ impl Checkable for AssetLock {
       if total > max_money {
         return Some(AssetLockInvalid::CreditOutOfRange { index: i });
       }
-      if !dash_script::is_p2pkh(out.script_pubkey.as_bytes()) {
+      if !matches!(
+        Recipient::from_script(out.script_pubkey.as_bytes()),
+        Some(Recipient::PubKeyHash(_))
+      ) {
         return Some(AssetLockInvalid::CreditNotP2pkh { index: i });
       }
     }

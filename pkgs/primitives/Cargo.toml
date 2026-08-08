@@ -31,19 +31,11 @@ serde = [
 full = ["std", "serde"]
 
 [dependencies]
-bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
-  "alloc",
-] }
-bitcoin-internals = { version = "0.5", default-features = false }
-bitcoin-primitives = { version = "0.102", default-features = false, features = [
-  "alloc",
-] }
-bitcoin_hashes = { version = "0.20", default-features = false, features = [
-  "alloc",
-] }
-bitcoin-units = { version = "0.3", default-features = false, features = [
-  "alloc",
-] }
+bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
+bitcoin-internals = { workspace = true }
+bitcoin-primitives = { workspace = true, features = ["alloc"] }
+bitcoin_hashes = { workspace = true, features = ["alloc"] }
+bitcoin-units = { workspace = true, features = ["alloc"] }
 dash-num = { version = "0.0.0", path = "../num" }
 dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false }
 dash-pow = { version = "0.0.0", path = "../pow" }

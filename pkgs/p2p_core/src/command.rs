@@ -1,0 +1,71 @@
+//
+// Copyright (c) 2026-present, The Dash Core developers
+// SPDX-License-Identifier: MIT
+// See the accompanying file LICENSE or https://opensource.org/license/MIT
+//
+
+//! Twelve-byte null-padded command string for P2P message dispatch.
+
+use dash_primitives::hash_impl;
+use dash_types::{impl_bytes, TypeId};
+
+use core::fmt;
+
+/// A 12-byte, null-padded ASCII command identifying a P2P message type.
+#[derive(Clone, Copy, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct CommandString([u8; 12]);
+
+impl_bytes!(CommandString, 12);
+
+hash_impl!(CommandString);
+
+impl CommandString {
+  /// Builds a command string from a static `&str` at compile time.
+  ///
+  /// # Panics
+  ///
+  /// Compile-time panic if `s` is longer than 12 bytes.
+  pub const fn from_static(s: &str) -> Self {
+    let b = s.as_bytes();
+    let len = b.len();
+    assert!(len <= 12, "command string exceeds 12 bytes");
+    let mut buf = [0u8; 12];
+    let mut i = 0;
+    while i < len {
+      buf[i] = b[i];
+      i += 1;
+    }
+    Self(buf)
+  }
+
+  /// Wraps raw bytes into a command string.
+  pub const fn from_bytes(bytes: [u8; 12]) -> Self {
+    Self(bytes)
+  }
+
+  /// Returns the raw 12-byte command buffer.
+  pub const fn as_bytes(&self) -> &[u8; 12] {
+    &self.0
+  }
+
+  /// Returns the command as a `&str` (trimmed of null padding).
+  pub fn as_str(&self) -> &str {
+    let end = self.0.iter().position(|&b| b == 0).unwrap_or(12);
+    // The bytes are always valid ASCII written by from_static or
+    // validated on decode, so this conversion is sound.
+    core::str::from_utf8(&self.0[..end]).unwrap_or("")
+  }
+}
+
+impl fmt::Debug for CommandString {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "CommandString(\"{}\")", self.as_str())
+  }
+}
+
+impl fmt::Display for CommandString {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}

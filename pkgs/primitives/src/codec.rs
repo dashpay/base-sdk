@@ -36,7 +36,7 @@ macro_rules! hash_impl {
   )* };
 }
 
-/// Generates `Encodable` + `Decodable` with payload size limit.
+/// Generates `Encode` + `Decode` with payload size limit.
 macro_rules! impl_payload {
   ($ty:ty) => {
     $crate::__private::dash_types::impl_type!($ty, crate::codec::MAX_SPTX_PAYLOAD_SIZE);
@@ -44,7 +44,7 @@ macro_rules! impl_payload {
 }
 pub(crate) use impl_payload;
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` for flat structs
+/// Generates `BaseCodec` + `Encode` + `Decode` for flat structs
 /// without `Hashable`.
 #[macro_export]
 macro_rules! codec_base {
@@ -68,7 +68,7 @@ macro_rules! codec_base {
   };
 }
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` + `Hashable` for
+/// Generates `BaseCodec` + `Encode` + `Decode` + `Hashable` for
 /// flat structs.
 #[macro_export]
 macro_rules! codec_type {
@@ -82,7 +82,7 @@ macro_rules! codec_type {
   };
 }
 
-/// Generates `BaseCodec` + `Encodable` + `Decodable` + `Hashable` for
+/// Generates `BaseCodec` + `Encode` + `Decode` + `Hashable` for
 /// flat structs with payload size limit.
 macro_rules! codec_payload {
   ($ty:ty { $($field:ident),+ $(,)? }) => {

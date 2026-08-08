@@ -323,7 +323,7 @@ class DeclSlot extends TDeclSlot {
     this = TNumCodecImpl() and result = "NumCodec impl"
     or
     this = TBaseCodecImpl() and
-    result = "BaseCodec/Encodable/Decodable impl"
+    result = "BaseCodec/Encode/Decode impl"
     or
     this = TCheckableImpl() and result = "Checkable impl"
     or
@@ -341,9 +341,9 @@ DeclSlot traitSlot(string traitName) {
   or
   traitName = "BaseCodec" and result = TBaseCodecImpl()
   or
-  traitName = "Encodable" and result = TBaseCodecImpl()
+  traitName = "Encode" and result = TBaseCodecImpl()
   or
-  traitName = "Decodable" and result = TBaseCodecImpl()
+  traitName = "Decode" and result = TBaseCodecImpl()
   or
   traitName = "Checkable" and result = TCheckableImpl()
   or

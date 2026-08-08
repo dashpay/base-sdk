@@ -310,6 +310,22 @@ macro_rules! type_cvrt {
   (for[$($generic:tt)*] $($args:tt)*) => {
     $crate::type_cvrt!(@parse [$($generic)*] $($args)*);
   };
+  (enum $enum:ident { $($variant:ident($inner:ty)),* $(,)? }) => { $(
+    impl ::core::convert::From<$inner> for $enum {
+      fn from(v: $inner) -> Self {
+        Self::$variant(v)
+      }
+    }
+    impl ::core::convert::TryFrom<$enum> for $inner {
+      type Error = $enum;
+      fn try_from(v: $enum) -> Result<Self, $enum> {
+        match v {
+          $enum::$variant(inner) => Ok(inner),
+          other => Err(other),
+        }
+      }
+    }
+  )* };
   ($($args:tt)*) => {
     $crate::type_cvrt!(@parse [] $($args)*);
   };

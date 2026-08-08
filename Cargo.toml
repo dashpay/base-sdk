@@ -13,6 +13,15 @@ members = [
 ]
 resolver = "2"
 
+[workspace.dependencies]
+base58ck = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+bitcoin-consensus-encoding = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+bitcoin-internals = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+bitcoin-p2p-messages = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+bitcoin-primitives = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+bitcoin-units = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+bitcoin_hashes = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+
 [workspace.lints.clippy]
 expect_used = "deny"
 panic = "deny"

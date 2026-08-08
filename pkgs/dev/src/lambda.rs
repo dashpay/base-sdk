@@ -8,7 +8,7 @@
 
 use crate::prelude::*;
 
-use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec, Decodable, Decoder, Encodable};
+use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec, Decode, Decoder, Encode};
 use dash_primitives::{Transaction, TxHash};
 use dash_types::codec::{BaseCodec, Checkable, Hashable};
 
@@ -26,7 +26,7 @@ use core::fmt::{Debug, Display};
 /// validation failure.
 pub fn check_tx<T>(raw: &[u8], details: &T, label: &str)
 where
-  T: Encodable + Decodable + Checkable + PartialEq + Debug,
+  T: Encode + Decode + Checkable + PartialEq + Debug,
   <T::Decoder as Decoder>::Error: Debug + Display,
   T::Error: Display,
 {
@@ -37,7 +37,7 @@ where
   }
 }
 
-/// Check function for wire-encoded types (`Encodable`/`Decodable`).
+/// Check function for wire-encoded types (`Encode`/`Decode`).
 ///
 /// Decodes `raw`, asserts equality with `details`, and verifies that
 /// re-encoding produces the original bytes.
@@ -47,7 +47,7 @@ where
 /// Panics on decode failure or mismatch.
 pub fn check_wire<T>(raw: &[u8], details: &T, label: &str)
 where
-  T: Encodable + Decodable + PartialEq + Debug,
+  T: Encode + Decode + PartialEq + Debug,
   <T::Decoder as Decoder>::Error: Debug + Display,
 {
   let decoded: T = decode_from_slice(raw).unwrap_or_else(|e| panic!("{label}: decode: {e}"));

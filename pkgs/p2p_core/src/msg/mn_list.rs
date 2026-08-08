@@ -4,7 +4,7 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Simplified masternode list types for `getmnlistd`/`mnlistdiff`.
+//! Simplified masternode list.
 
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
@@ -18,6 +18,121 @@ use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, NumCodec};
 use dash_types::TypeId;
 
 use core::fmt;
+
+/// Deleted quorum identifier (type + hash).
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct DeletedQuorum {
+  /// LLMQ type.
+  pub llmq_type: LlmqType,
+  /// Quorum hash.
+  pub hash: BlockHash,
+}
+
+codec_p2p!(DeletedQuorum { llmq_type, hash });
+
+/// Requests a masternode list diff between two blocks.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct GetMnListDiff {
+  /// Base block hash (beginning of range).
+  pub base_block_hash: BlockHash,
+  /// Target block hash (end of range).
+  pub block_hash: BlockHash,
+}
+
+codec_p2p!(GetMnListDiff {
+  base_block_hash,
+  block_hash
+});
+
+/// Response carrying the masternode list diff.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct MnListDiff {
+  /// The full diff payload.
+  pub payload: MnListDiffPayload,
+}
+
+codec_p2p!(MnListDiff { payload });
+
+/// Full masternode list diff payload.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct MnListDiffPayload {
+  /// Serialisation version.
+  pub version: u16,
+  /// Base block hash (start of the diff range).
+  pub base_block_hash: BlockHash,
+  /// Target block hash (end of the diff range).
+  pub block_hash: BlockHash,
+  /// Number of transactions in the coinbase merkle proof.
+  pub total_transactions: u32,
+  /// Merkle branch hashes.
+  pub merkle_hashes: Vec<TxHash>,
+  /// Merkle branch flag bytes.
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
+  pub merkle_flags: Vec<u8>,
+  /// Coinbase transaction (carries the MN list commitment).
+  pub cb_tx: Transaction,
+  /// ProTxHashes of removed masternodes.
+  pub deleted_mns: Vec<TxHash>,
+  /// New or updated masternode entries.
+  pub mn_list: Vec<SimplifiedMnListEntry>,
+  /// Removed quorums.
+  pub deleted_quorums: Vec<DeletedQuorum>,
+  /// New quorum final commitments.
+  pub new_quorums: Vec<Commitment>,
+  /// Chainlock signature mappings.
+  pub quorum_cl_sigs: Vec<QuorumClSig>,
+}
+
+codec_p2p!(MnListDiffPayload {
+  version,
+  base_block_hash,
+  block_hash,
+  total_transactions,
+  merkle_hashes,
+  merkle_flags,
+  cb_tx,
+  deleted_mns,
+  mn_list,
+  deleted_quorums,
+  new_quorums,
+  quorum_cl_sigs,
+});
+
+impl fmt::Display for MnListDiffPayload {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "mnlistdiff v{}: {}..{} ({} MNs, {} deleted)",
+      self.version,
+      self.base_block_hash,
+      self.block_hash,
+      self.mn_list.len(),
+      self.deleted_mns.len(),
+    )
+  }
+}
+
+/// Chainlock signature entry in the MN list diff.
+///
+/// Each entry maps a BLS signature to the indices (within
+/// `new_quorums`) of the quorums it covers.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct QuorumClSig {
+  /// BLS signature.
+  pub sig: BlsSigBytes<BlsScIetf>,
+  /// Indices into the `new_quorums` vector.
+  pub index_set: Vec<u16>,
+}
+
+codec_p2p!(QuorumClSig { sig, index_set });
 
 /// A single entry in the simplified masternode list.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
@@ -112,121 +227,6 @@ impl fmt::Display for SimplifiedMnListEntry {
     write!(f, "{}", self.pro_reg_tx_hash)
   }
 }
-
-/// Deleted quorum identifier (type + hash).
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub struct DeletedQuorum {
-  /// LLMQ type.
-  pub llmq_type: LlmqType,
-  /// Quorum hash.
-  pub hash: BlockHash,
-}
-
-codec_p2p!(DeletedQuorum { llmq_type, hash });
-
-/// Chainlock signature entry in the MN list diff.
-///
-/// Each entry maps a BLS signature to the indices (within
-/// `new_quorums`) of the quorums it covers.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub struct QuorumClSig {
-  /// BLS signature.
-  pub sig: BlsSigBytes<BlsScIetf>,
-  /// Indices into the `new_quorums` vector.
-  pub index_set: Vec<u16>,
-}
-
-codec_p2p!(QuorumClSig { sig, index_set });
-
-/// Full masternode list diff payload.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
-pub struct MnListDiffPayload {
-  /// Serialisation version.
-  pub version: u16,
-  /// Base block hash (start of the diff range).
-  pub base_block_hash: BlockHash,
-  /// Target block hash (end of the diff range).
-  pub block_hash: BlockHash,
-  /// Number of transactions in the coinbase merkle proof.
-  pub total_transactions: u32,
-  /// Merkle branch hashes.
-  pub merkle_hashes: Vec<TxHash>,
-  /// Merkle branch flag bytes.
-  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))]
-  pub merkle_flags: Vec<u8>,
-  /// Coinbase transaction (carries the MN list commitment).
-  pub cb_tx: Transaction,
-  /// ProTxHashes of removed masternodes.
-  pub deleted_mns: Vec<TxHash>,
-  /// New or updated masternode entries.
-  pub mn_list: Vec<SimplifiedMnListEntry>,
-  /// Removed quorums.
-  pub deleted_quorums: Vec<DeletedQuorum>,
-  /// New quorum final commitments.
-  pub new_quorums: Vec<Commitment>,
-  /// Chainlock signature mappings.
-  pub quorum_cl_sigs: Vec<QuorumClSig>,
-}
-
-codec_p2p!(MnListDiffPayload {
-  version,
-  base_block_hash,
-  block_hash,
-  total_transactions,
-  merkle_hashes,
-  merkle_flags,
-  cb_tx,
-  deleted_mns,
-  mn_list,
-  deleted_quorums,
-  new_quorums,
-  quorum_cl_sigs,
-});
-
-impl fmt::Display for MnListDiffPayload {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "mnlistdiff v{}: {}..{} ({} MNs, {} deleted)",
-      self.version,
-      self.base_block_hash,
-      self.block_hash,
-      self.mn_list.len(),
-      self.deleted_mns.len(),
-    )
-  }
-}
-
-/// Requests a masternode list diff between two blocks.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct GetMnListDiff {
-  /// Base block hash (beginning of range).
-  pub base_block_hash: BlockHash,
-  /// Target block hash (end of range).
-  pub block_hash: BlockHash,
-}
-
-codec_p2p!(GetMnListDiff {
-  base_block_hash,
-  block_hash
-});
-
-/// Response carrying the masternode list diff.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct MnListDiff {
-  /// The full diff payload.
-  pub payload: MnListDiffPayload,
-}
-
-codec_p2p!(MnListDiff { payload });
 
 #[cfg(all(test, feature = "serde"))]
 mod tests {

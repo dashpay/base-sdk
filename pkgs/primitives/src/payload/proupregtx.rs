@@ -13,7 +13,7 @@ use crate::TxHash;
 
 use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
-use dash_script::PubKeyHash;
+use dash_script::{PubKeyHash, Recipient};
 use dash_types::codec::Checkable;
 use dash_types::TypeId;
 
@@ -77,7 +77,10 @@ impl Checkable for ProUpRegTx {
     }
 
     let payout = self.script_payout.as_bytes();
-    if !dash_script::is_p2pkh(payout) && !dash_script::is_p2sh(payout) {
+    if !matches!(
+      Recipient::from_script(payout),
+      Some(Recipient::PubKeyHash(_) | Recipient::ScriptHash(_))
+    ) {
       return Some(ProTxInvalid::BadPayoutScript);
     }
 

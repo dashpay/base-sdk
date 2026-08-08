@@ -11,7 +11,7 @@ full = ["std", "serde"]
 serde = ["dep:serde", "dash-types/serde"]
 
 [dependencies]
-bitcoin-consensus-encoding = { version = "0.2", default-features = false }
+bitcoin-consensus-encoding = { workspace = true }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
 serde = { version = "1", default-features = false, features = [
   "derive",

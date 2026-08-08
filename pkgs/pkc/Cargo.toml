@@ -5,13 +5,9 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-base58ck = { version = "0.4", default-features = false, features = ["alloc"] }
-bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
-  "alloc",
-] }
-bitcoin_hashes = { version = "0.20", default-features = false, features = [
-  "alloc",
-] }
+base58ck = { workspace = true, features = ["alloc"] }
+bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
+bitcoin_hashes = { workspace = true, features = ["alloc"] }
 blst = { version = "0.3", default-features = false, optional = true }
 cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }

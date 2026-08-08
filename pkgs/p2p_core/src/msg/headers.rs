@@ -4,11 +4,11 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Block header messages: getheaders, headers, sendheaders.
+//! Standard header messages.
 
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
-use crate::primitives::ProtocolVersion;
+use crate::version::ProtocolVersion;
 
 use dash_primitives::{hash_impl, BlockHash, BlockHeader, MerkleRoot};
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};

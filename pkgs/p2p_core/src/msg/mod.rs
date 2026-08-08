@@ -6,319 +6,202 @@
 
 //! P2P message types and dispatch.
 
+mod addr;
+mod gov;
+mod headers;
+mod headers2;
+mod inv;
+mod mn_list;
+mod ping;
+mod version;
+
+use crate::command::CommandString;
 use crate::prelude::*;
-use crate::primitives::CommandString;
-use crate::primitives::ShortId;
-use crate::primitives::{GetMnListDiff, MnListDiff};
+use crate::short_id::ShortId;
 
 use bitcoin_consensus_encoding as encoding;
+use bitcoin_p2p_messages::message_bloom::{FilterAdd, FilterLoad};
+use bitcoin_p2p_messages::message_compact_blocks::SendCmpct;
+use bitcoin_p2p_messages::message_filter::{CFCheckpt, CFHeaders, CFilter, GetCFCheckpt, GetCFHeaders, GetCFilters};
+use dash_primitives::{GovObject, GovVote};
 use dash_types::Unencodable;
 
-pub mod addr;
-pub mod compact_filters;
-pub mod gov;
-pub mod headers;
-pub mod headers2;
-pub mod inv;
-pub mod ping;
-pub mod version;
-
 pub use addr::{Addr, AddrV2Entry, AddrV2Msg, TimestampedAddr};
-pub use compact_filters::{CFCheckpt, CFHeaders, CFilter, FilterType, GetCFCheckpt, GetCFHeaders, GetCFilters};
 pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
-pub use headers2::{GetHeaders2, Headers2};
-pub use inv::{GetData, Inv, NotFound};
+pub use headers2::{CompressionState, GetHeaders2, Headers2};
+pub use inv::{GetData, Inv, InvType, Inventory, NotFound};
+pub use mn_list::{DeletedQuorum, GetMnListDiff, MnListDiff, MnListDiffPayload, QuorumClSig, SimplifiedMnListEntry};
 pub use ping::{Ping, Pong};
-pub use version::{Version, VersionAddr};
+pub use version::{ServiceFlags, UserAgent, UserAgentTooLong, Version, VersionAddr};
 
-/// Decode helper: decode from slice, mapping the error.
-fn decode_msg<T: encoding::Decodable>(payload: &[u8]) -> Result<T, crate::P2pDecodeError>
-where
-  <T::Decoder as encoding::Decoder>::Error: core::fmt::Display,
-{
-  encoding::decode_from_slice(payload).map_err(|e| crate::P2pDecodeError::Consensus(format!("{e}")))
-}
-
-/// Generates `DashNetworkMessage`, its `command()`, `short_id()`,
-/// `is_stub()`, `decode_payload()`, and `encode_payload()` methods
-/// from a single definition table. Each entry is written once; the
-/// macro fans it out to every match arm and enum variant.
-macro_rules! define_network_messages {
-  (
-    // Fully-parsed messages with a typed payload.
-    parsed {
-      $(
-        $(#[$p_doc:meta])*
-        $p_variant:ident ( $p_type:ty ) => $p_cmd:ident
-      ),* $(,)?
-    }
-    // Fully-parsed messages with an empty payload.
-    parsed_empty {
-      $(
-        $(#[$pe_doc:meta])*
-        $pe_variant:ident => $pe_cmd:ident
-      ),* $(,)?
-    }
-    // Recognised but not-yet-implemented (raw `Vec<u8>` payload).
-    stub {
-      $(
-        $(#[$s_doc:meta])*
-        $s_variant:ident => $s_cmd:ident
-      ),* $(,)?
-    }
-    // Recognised but not-yet-implemented (empty payload).
-    stub_empty {
-      $(
-        $(#[$se_doc:meta])*
-        $se_variant:ident => $se_cmd:ident
-      ),* $(,)?
-    }
-  ) => {
-    /// A Dash P2P network message.
-    ///
-    /// Fully-parsed variants carry typed payloads. Recognised but
-    /// not-yet-implemented messages use `Vec<u8>` to hold the raw
-    /// payload so callers can identify *what* was received (for
-    /// logging) without needing a full decoder.
-    #[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable)]
-    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-    pub enum DashNetworkMessage {
-      $( $(#[$p_doc])* $p_variant($p_type), )*
-      $( $(#[$pe_doc])* $pe_variant, )*
-      $( $(#[$s_doc])* $s_variant(Vec<u8>), )*
-      $( $(#[$se_doc])* $se_variant, )*
-    }
-
-    impl DashNetworkMessage {
-      /// Returns the 12-byte command string for this message.
-      pub fn command(&self) -> CommandString {
-        match self {
-          $( Self::$p_variant(_) => CommandString::$p_cmd, )*
-          $( Self::$pe_variant => CommandString::$pe_cmd, )*
-          $( Self::$s_variant(_) => CommandString::$s_cmd, )*
-          $( Self::$se_variant => CommandString::$se_cmd, )*
-        }
-      }
-
-      /// Returns the V2 short ID for this message, if one exists.
-      pub fn short_id(&self) -> Option<ShortId> {
-        ShortId::from_command(&self.command())
-      }
-
-      /// Returns `true` when the message type is recognised but
-      /// its payload is not fully decoded (a stub).
-      pub fn is_stub(&self) -> bool {
-        match self {
-          $( Self::$p_variant(_) => false, )*
-          $( Self::$pe_variant => false, )*
-          $( Self::$s_variant(_) => true, )*
-          $( Self::$se_variant => true, )*
-        }
-      }
-
-      /// Decodes a message from its command string and raw payload.
-      ///
-      /// Fully-implemented messages are decoded into typed variants.
-      /// Recognised stubs retain the raw payload as `Vec<u8>`.
-      pub fn decode_payload(
-        cmd: &CommandString,
-        payload: &[u8],
-      ) -> Result<Self, crate::P2pDecodeError> {
-        let raw = || Vec::from(payload);
-        let msg = match *cmd {
-          $( CommandString::$p_cmd => Self::$p_variant(decode_msg(payload)?), )*
-          $( CommandString::$pe_cmd => Self::$pe_variant, )*
-          $( CommandString::$s_cmd => Self::$s_variant(raw()), )*
-          $( CommandString::$se_cmd => Self::$se_variant, )*
-          _ => return Err(crate::P2pDecodeError::UnknownCommand { bytes: *cmd.as_bytes() }),
-        };
-        Ok(msg)
-      }
-
-      /// Encodes this message's payload (without command/short-ID
-      /// framing).
-      pub fn encode_payload(&self, buf: &mut Vec<u8>) {
-        match self {
-          $(
-            Self::$p_variant(m) => {
-              buf.extend_from_slice(&encoding::encode_to_vec(m));
-            }
-          )*
-          $( Self::$pe_variant => {} )*
-          $( Self::$s_variant(raw) => buf.extend_from_slice(raw), )* // nosemgrep: codec-no-raw-extend
-          $( Self::$se_variant => {} )*
-        }
-      }
-    }
-  };
-}
-
-define_network_messages! {
+define_p2p! {
   parsed {
     /// Protocol version exchange.
-    Version(Version) => VERSION,
+    Version(Version) => VERSION "version",
     /// Keepalive request.
-    Ping(Ping) => PING,
+    Ping(Ping) => PING "ping" @ 18,
     /// Keepalive response.
-    Pong(Pong) => PONG,
+    Pong(Pong) => PONG "pong" @ 19,
     /// V1 address list.
-    Addr(Addr) => ADDR,
+    Addr(Addr) => ADDR "addr" @ 1,
     /// BIP155 V2 address list.
-    AddrV2(AddrV2Msg) => ADDRV2,
+    AddrV2(AddrV2Msg) => ADDRV2 "addrv2" @ 28,
     /// Inventory announcement.
-    Inv(Inv) => INV,
+    Inv(Inv) => INV "inv" @ 14,
     /// Request specific inventory.
-    GetData(GetData) => GETDATA,
+    GetData(GetData) => GETDATA "getdata" @ 11,
     /// Inventory not found.
-    NotFound(NotFound) => NOTFOUND,
+    NotFound(NotFound) => NOTFOUND "notfound" @ 17,
     /// Request block headers.
-    GetHeaders(GetHeaders) => GETHEADERS,
+    GetHeaders(GetHeaders) => GETHEADERS "getheaders" @ 12,
     /// Block headers.
-    Headers(Headers) => HEADERS,
+    Headers(Headers) => HEADERS "headers" @ 13,
     /// Request compressed block headers.
-    GetHeaders2(GetHeaders2) => GETHEADERS2,
+    GetHeaders2(GetHeaders2) => GETHEADERS2 "getheaders2" @ 163,
     /// Compressed block headers.
-    Headers2(Headers2) => HEADERS2,
+    Headers2(Headers2) => HEADERS2 "headers2" @ 165,
     /// Request compact filters.
-    GetCFilters(GetCFilters) => GETCFILTERS,
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfilters"))]
+    GetCFilters(GetCFilters) => GETCFILTERS "getcfilters" @ 22,
     /// Compact block filter.
-    CFilter(CFilter) => CFILTER,
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfilter"))]
+    CFilter(CFilter) => CFILTER "cfilter" @ 23,
     /// Request compact filter headers.
-    GetCFHeaders(GetCFHeaders) => GETCFHEADERS,
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfheaders"))]
+    GetCFHeaders(GetCFHeaders) => GETCFHEADERS "getcfheaders" @ 24,
     /// Compact filter headers.
-    CFHeaders(CFHeaders) => CFHEADERS,
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfheaders"))]
+    CFHeaders(CFHeaders) => CFHEADERS "cfheaders" @ 25,
     /// Request compact filter checkpoints.
-    GetCFCheckpt(GetCFCheckpt) => GETCFCHECKPT,
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfcheckpt"))]
+    GetCFCheckpt(GetCFCheckpt) => GETCFCHECKPT "getcfcheckpt" @ 26,
     /// Compact filter checkpoints.
-    CFCheckpt(CFCheckpt) => CFCHECKPT,
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfcheckpt"))]
+    CFCheckpt(CFCheckpt) => CFCHECKPT "cfcheckpt" @ 27,
     /// Governance sync request.
-    GovSync(GovSync) => GOVSYNC,
+    GovSync(GovSync) => GOVSYNC "govsync" @ 140,
     /// Governance object.
-    GovObj(dash_primitives::GovObject) => GOVOBJ,
+    GovObj(GovObject) => GOVOBJ "govobj" @ 141,
     /// Governance vote.
-    GovObjVote(dash_primitives::GovVote) => GOVOBJVOTE,
+    GovObjVote(GovVote) => GOVOBJVOTE "govobjvote" @ 142,
     /// Request MN list diff.
-    GetMnListDiff(GetMnListDiff) => GETMNLISTD,
+    GetMnListDiff(GetMnListDiff) => GETMNLISTD "getmnlistd" @ 143,
     /// MN list diff.
-    MnListDiff(MnListDiff) => MNLISTDIFF,
+    MnListDiff(MnListDiff) => MNLISTDIFF "mnlistdiff" @ 144,
+    /// BIP152: signal compact block support.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::send_cmpct"))]
+    SendCmpct(SendCmpct) => SENDCMPCT "sendcmpct" @ 20,
+    /// BIP37: load bloom filter.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::filter_load"))]
+    FilterLoad(FilterLoad) => FILTERLOAD "filterload" @ 8,
+    /// BIP37: add data to bloom filter.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::filter_add"))]
+    FilterAdd(FilterAdd) => FILTERADD "filteradd" @ 6,
   }
 
   parsed_empty {
     /// Version acknowledgement.
-    Verack => VERACK,
+    Verack => VERACK "verack",
     /// Request peer addresses.
-    GetAddr => GETADDR,
+    GetAddr => GETADDR "getaddr",
     /// Signal addrv2 support.
-    SendAddrV2 => SENDADDRV2,
+    SendAddrV2 => SENDADDRV2 "sendaddrv2",
     /// Prefer unsolicited header announcements.
-    SendHeaders => SENDHEADERS,
+    SendHeaders => SENDHEADERS "sendheaders",
     /// Prefer compressed header announcements.
-    SendHeaders2 => SENDHEADERS2,
+    SendHeaders2 => SENDHEADERS2 "sendheaders2" @ 164,
   }
 
   stub {
-    // Bitcoin base protocol
     /// Block data.
-    Block => BLOCK,
+    Block => BLOCK "block" @ 2,
     /// BIP152: compact block transactions.
-    BlockTxn => BLOCKTXN,
+    BlockTxn => BLOCKTXN "blocktxn" @ 3,
     /// BIP152: compact block.
-    CmpctBlock => CMPCTBLOCK,
-    /// BIP37: add data to bloom filter.
-    FilterAdd => FILTERADD,
-    /// BIP37: load bloom filter.
-    FilterLoad => FILTERLOAD,
+    CmpctBlock => CMPCTBLOCK "cmpctblock" @ 4,
     /// Request block hashes.
-    GetBlocks => GETBLOCKS,
+    GetBlocks => GETBLOCKS "getblocks" @ 9,
     /// BIP152: request compact block transactions.
-    GetBlockTxn => GETBLOCKTXN,
+    GetBlockTxn => GETBLOCKTXN "getblocktxn" @ 10,
     /// BIP37: filtered block.
-    MerkleBlock => MERKLEBLOCK,
-    /// BIP152: signal compact block support.
-    SendCmpct => SENDCMPCT,
+    MerkleBlock => MERKLEBLOCK "merkleblock" @ 16,
     /// Transaction.
-    Tx => TX,
+    Tx => TX "tx" @ 21,
     /// BIP330: transaction reconciliation.
-    SendTxRcncl => SENDTXRCNCL,
-    // Sporks
+    SendTxRcncl => SENDTXRCNCL "sendtxrcncl",
     /// Spork broadcast/request.
-    Spork => SPORK,
-    // CoinJoin
+    Spork => SPORK "spork" @ 128,
     /// CoinJoin: accept denomination.
-    Dsa => DSA,
+    Dsa => DSA "dsa" @ 131,
     /// CoinJoin: submit inputs.
-    Dsi => DSI,
+    Dsi => DSI "dsi" @ 132,
     /// CoinJoin: final transaction.
-    Dsf => DSF,
+    Dsf => DSF "dsf" @ 133,
     /// CoinJoin: sign final transaction.
-    Dss => DSS,
+    Dss => DSS "dss" @ 134,
     /// CoinJoin: complete.
-    Dsc => DSC,
+    Dsc => DSC "dsc" @ 135,
     /// CoinJoin: status update.
-    Dssu => DSSU,
+    Dssu => DSSU "dssu" @ 136,
     /// CoinJoin: broadcast transaction.
-    Dstx => DSTX,
+    Dstx => DSTX "dstx" @ 137,
     /// CoinJoin: queue entry.
-    Dsq => DSQ,
+    Dsq => DSQ "dsq" @ 138,
     /// Sync status count.
-    Ssc => SSC,
-    // LLMQ / Quorum
+    Ssc => SSC "ssc" @ 139,
     /// LLMQ: final commitment.
-    QfCommit => QFCOMMIT,
+    QfCommit => QFCOMMIT "qfcommit" @ 146,
     /// LLMQ: contribution.
-    QContrib => QCONTRIB,
+    QContrib => QCONTRIB "qcontrib" @ 147,
     /// LLMQ: complaint.
-    QComplaint => QCOMPLAINT,
+    QComplaint => QCOMPLAINT "qcomplaint" @ 148,
     /// LLMQ: justification.
-    QJustify => QJUSTIFY,
+    QJustify => QJUSTIFY "qjustify" @ 149,
     /// LLMQ: premature commitment.
-    QpCommit => QPCOMMIT,
+    QpCommit => QPCOMMIT "qpcommit" @ 150,
     /// LLMQ: signing session announcement.
-    QSigSesAnn => QSIGSESANN,
+    QSigSesAnn => QSIGSESANN "qsigsesann" @ 152,
     /// LLMQ: signature shares inventory.
-    QSigsInv => QSIGSINV,
+    QSigsInv => QSIGSINV "qsigsinv" @ 153,
     /// LLMQ: request signature shares.
-    QGetSigs => QGETSIGS,
+    QGetSigs => QGETSIGS "qgetsigs" @ 154,
     /// LLMQ: batched signature shares.
-    QbSigs => QBSIGS,
+    QbSigs => QBSIGS "qbsigs" @ 155,
     /// LLMQ: recovered signature.
-    QSigRec => QSIGREC,
+    QSigRec => QSIGREC "qsigrec" @ 156,
     /// LLMQ: single signature share.
-    QSigShare => QSIGSHARE,
+    QSigShare => QSIGSHARE "qsigshare" @ 157,
     /// LLMQ: request quorum data.
-    QGetData => QGETDATA,
+    QGetData => QGETDATA "qgetdata" @ 158,
     /// LLMQ: quorum data.
-    QData => QDATA,
-    // InstantSend / ChainLock
+    QData => QDATA "qdata" @ 159,
     /// ChainLock signature.
-    ClSig => CLSIG,
+    ClSig => CLSIG "clsig" @ 160,
     /// InstantSend deterministic lock.
-    IsdLock => ISDLOCK,
-    // Masternode auth / rotation
+    IsdLock => ISDLOCK "isdlock" @ 161,
     /// Masternode authentication.
-    MnAuth => MNAUTH,
+    MnAuth => MNAUTH "mnauth" @ 162,
     /// Request quorum rotation info.
-    GetQrInfo => GETQRINFO,
+    GetQrInfo => GETQRINFO "getqrinfo" @ 166,
     /// Quorum rotation info.
-    QrInfo => QRINFO,
-    // Platform
+    QrInfo => QRINFO "qrinfo" @ 167,
     /// DIP-0031: platform ban.
-    PlatformBan => PLATFORMBAN,
+    PlatformBan => PLATFORMBAN "platformban" @ 168,
   }
 
   stub_empty {
     /// BIP37: clear bloom filter.
-    FilterClear => FILTERCLEAR,
+    FilterClear => FILTERCLEAR "filterclear" @ 7,
     /// Request mempool contents.
-    Mempool => MEMPOOL,
+    Mempool => MEMPOOL "mempool" @ 15,
     /// Request active sporks.
-    GetSporks => GETSPORKS,
+    GetSporks => GETSPORKS "getsporks" @ 129,
     /// Signal CoinJoin queue relay.
-    SendDsq => SENDDSQ,
+    SendDsq => SENDDSQ "senddsq" @ 130,
     /// LLMQ: send recovered signatures.
-    QSendRecSigs => QSENDRECSIGS,
+    QSendRecSigs => QSENDRECSIGS "qsendrecsigs" @ 145,
     /// LLMQ: watch quorums.
-    QWatch => QWATCH,
+    QWatch => QWATCH "qwatch" @ 151,
   }
 }
