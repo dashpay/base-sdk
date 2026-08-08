@@ -10,10 +10,12 @@ use super::pk::PublicKey;
 use super::sig::Signature;
 use super::{DST, DST_POP, DST_POP_PROVE};
 use crate::bls::scheme_ops::BlsScheme;
-use crate::bls::{BlsError, BlsScIetf};
+use crate::bls::{BlsError, BlsScIetf, BlsSkBytes, BLS_SK_LEN};
 
 use blst::min_pk;
-use dash_types::Unencodable;
+use dash_num::Hash256;
+use dash_types::{dlgt_scodec, type_cvrt, Unencodable};
+use zeroize::Zeroizing;
 
 use core::fmt;
 
@@ -32,6 +34,8 @@ pub enum Scheme {
 /// Zeroised on drop by the blst crate.
 #[derive(Clone)]
 pub struct SecretKey(pub(super) min_pk::SecretKey);
+
+dlgt_scodec!(SecretKey => BlsSkBytes<BlsScIetf>, Hash256, BlsError, BLS_SK_LEN);
 
 impl SecretKey {
   pub(super) fn from_inner(inner: min_pk::SecretKey) -> Self {
@@ -89,3 +93,11 @@ impl fmt::Debug for SecretKey {
     write!(f, "SecretKey(..)")
   }
 }
+
+type_cvrt!(From<SecretKey> for BlsSkBytes<BlsScIetf>, |sk| {
+  Self::from_bytes(*Zeroizing::new(sk.to_bytes()))
+});
+
+type_cvrt!(TryFrom<BlsSkBytes<BlsScIetf>> for SecretKey, BlsError, |bytes| {
+  Self::from_bytes(bytes.as_bytes())
+});

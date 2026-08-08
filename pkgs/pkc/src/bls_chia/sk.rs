@@ -9,13 +9,19 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use crate::bls::scheme_ops::BlsScheme;
-use crate::bls::{BlsError, BlsScChia};
+use crate::bls::{BlsError, BlsScChia, BlsSkBytes, BLS_SK_LEN};
+
+use dash_num::Hash256;
+use dash_types::{dlgt_scodec, type_cvrt};
+use zeroize::Zeroizing;
 
 use core::fmt;
 
 /// A legacy BLS secret key (32-byte scalar).
 #[derive(Clone)]
 pub struct SecretKey(pub(super) blst::blst_scalar);
+
+dlgt_scodec!(SecretKey => BlsSkBytes<BlsScChia>, Hash256, BlsError, BLS_SK_LEN);
 
 impl SecretKey {
   pub(super) fn from_inner(inner: blst::blst_scalar) -> Self {
@@ -72,3 +78,11 @@ impl fmt::Debug for SecretKey {
     write!(f, "SecretKey(..)")
   }
 }
+
+type_cvrt!(From<SecretKey> for BlsSkBytes<BlsScChia>, |sk| {
+  Self::from_bytes(*Zeroizing::new(sk.to_bytes()))
+});
+
+type_cvrt!(TryFrom<BlsSkBytes<BlsScChia>> for SecretKey, BlsError, |bytes| {
+  Self::from_bytes(bytes.as_bytes())
+});

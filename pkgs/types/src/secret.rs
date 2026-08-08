@@ -367,6 +367,31 @@ macro_rules! derive_sbytes {
   };
 }
 
+/// The secret counterpart to [`dlgt_codec!`](crate::dlgt_codec), for an
+/// operational type whose wire image is key material.
+///
+/// Same delegation through `$bytes`, staged through
+/// [`impl_stype!`](crate::impl_stype)'s wiping pair rather than the growable
+/// one, which would strand the plaintext in a heap buffer nothing wipes.
+///
+/// `$n` bounds the encoded width rather than fixing it: the staging buffer is
+/// an [`ArrayBuf<$n>`](crate::ArrayBuf), so a narrower image is emitted as
+/// written and a wider one panics on the overflowing write.
+#[macro_export]
+macro_rules! dlgt_scodec {
+  (@parse [$($impl_generics:tt)*] $ops:ty => $bytes:ty, $hash:ty, $err:ty, $n:expr) => {
+    $crate::dlgt_codec!(@delegate [$($impl_generics)*] $ops => $bytes, $hash, $err);
+
+    $crate::impl_stype!(@parse [$($impl_generics)*] $ops, $n, $err);
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::dlgt_scodec!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::dlgt_scodec!(@parse [] $($args)*);
+  };
+}
+
 #[cfg(test)]
 mod tests {
   use super::{qtypestr, ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};

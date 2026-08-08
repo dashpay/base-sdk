@@ -351,3 +351,50 @@ macro_rules! make_bytes {
     }
   };
 }
+
+/// Delegates `BaseCodec`, `Hashable`, and `impl_type!` through another type.
+///
+/// Decoding is fallible (`$bytes` is unvalidated, so `TryFrom` guards the
+/// operational type), encoding is not: the operational type is already valid,
+/// so `From<&$ops> for $bytes` must exist.
+///
+/// An encode direction that could fail would have to either emit nothing or
+/// hash a placeholder, both of which silently corrupt the wire image.
+///
+/// `$max` bounds the `impl_type!` decoder buffer to the wrapped type's own
+/// maximum encoded length.
+#[macro_export]
+macro_rules! dlgt_codec {
+  // Shared by `dlgt_codec!` and `dlgt_scodec!`, only the encoder pair differs.
+  (@delegate [$($impl_generics:tt)*] $ops:ty => $bytes:ty, $hash:ty, $err:ty) => {
+    impl<$($impl_generics)*> $crate::codec::BaseCodec<$err> for $ops {
+      fn decode(data: &mut &[u8]) -> Result<Self, $crate::codec::DecodeError<$err>> {
+        let inner = <$bytes as $crate::codec::BaseCodec>::decode(data).map_err(|e| e.lift())?;
+        Self::try_from(inner).map_err($crate::codec::DecodeError::DecError)
+      }
+
+      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
+        $crate::codec::BaseCodec::encode(&<$bytes as core::convert::From<&Self>>::from(self), buf);
+      }
+    }
+
+    impl<$($impl_generics)*> $crate::codec::Hashable for $ops {
+      type Hash = $hash;
+
+      fn hash(&self) -> $hash {
+        $crate::codec::Hashable::hash(&<$bytes as core::convert::From<&Self>>::from(self))
+      }
+    }
+  };
+  (@parse [$($impl_generics:tt)*] $ops:ty => $bytes:ty, $hash:ty, $err:ty, $max:expr) => {
+    $crate::dlgt_codec!(@delegate [$($impl_generics)*] $ops => $bytes, $hash, $err);
+
+    $crate::impl_type!(@parse [$($impl_generics)*] $ops, $max, $err);
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::dlgt_codec!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::dlgt_codec!(@parse [] $($args)*);
+  };
+}
