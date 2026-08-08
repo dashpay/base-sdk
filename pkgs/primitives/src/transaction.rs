@@ -16,7 +16,7 @@ use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable, NumCodec};
-use dash_types::{impl_type, TypeId, Unencodable};
+use dash_types::{impl_type, CompactSize, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -216,7 +216,7 @@ impl BaseCodec for Transaction {
       outputs: Vec::decode(data)?,
       lock_time: u32::decode(data)?,
       extra_payload: if version >= 3 && tx_type != TxType::Spend {
-        let len = codec::read_compact_size(data, crate::codec::MAX_SPTX_PAYLOAD_SIZE)?;
+        let len = CompactSize::decode(data)?.into_len(crate::codec::MAX_SPTX_PAYLOAD_SIZE)?;
         codec::read_bytes(data, len)?.to_vec()
       } else {
         Vec::new()

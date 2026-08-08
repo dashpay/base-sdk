@@ -7,6 +7,7 @@
 //! Codec traits and helpers.
 
 use crate::prelude::*;
+use crate::CompactSize;
 
 use core::convert::Infallible;
 use core::fmt;
@@ -156,45 +157,6 @@ pub fn read_bytes<'a>(data: &mut &'a [u8], n: usize) -> Result<&'a [u8], DecodeE
   Ok(head)
 }
 
-/// Reads a CompactSize-encoded `u64` with minimal encoding check.
-pub fn read_compact_u64(data: &mut &[u8]) -> Result<u64, DecodeError> {
-  let first = u8::decode(data)?;
-  match first {
-    0..=0xFC => Ok(u64::from(first)),
-    0xFD => {
-      let v = u16::decode(data)?;
-      if v < 0xFD {
-        return Err(DecodeError::NonMinimalCompactSize { value: u64::from(v) });
-      }
-      Ok(u64::from(v))
-    }
-    0xFE => {
-      let v = u32::decode(data)?;
-      if v < 0x10000 {
-        return Err(DecodeError::NonMinimalCompactSize { value: u64::from(v) });
-      }
-      Ok(u64::from(v))
-    }
-    0xFF => {
-      let v = u64::decode(data)?;
-      if v < 0x1_0000_0000 {
-        return Err(DecodeError::NonMinimalCompactSize { value: v });
-      }
-      Ok(v)
-    }
-  }
-}
-
-/// Reads a CompactSize-encoded length with a limit.
-pub fn read_compact_size(data: &mut &[u8], limit: usize) -> Result<usize, DecodeError> {
-  let value = read_compact_u64(data)?;
-  let n = usize::try_from(value).map_err(|_| DecodeError::CompactSizeExceedsLimit { limit, value })?;
-  if n > limit {
-    return Err(DecodeError::CompactSizeExceedsLimit { limit, value });
-  }
-  Ok(n)
-}
-
 /// Append-only byte buffer used by [`BaseCodec::encode`].
 pub trait EncodeBuf {
   /// Appends a single byte.
@@ -211,30 +173,6 @@ impl EncodeBuf for Vec<u8> {
 
   fn extend_from_slice(&mut self, data: &[u8]) {
     self.extend_from_slice(data);
-  }
-}
-
-/// Encodes a `usize` as a CompactSize integer.
-pub fn write_compact_size(value: usize, buf: &mut impl EncodeBuf) {
-  write_compact_u64(value as u64, buf);
-}
-
-/// Encodes a `u64` as a CompactSize integer.
-pub fn write_compact_u64(value: u64, buf: &mut impl EncodeBuf) {
-  match value {
-    0..=0xFC => buf.push(value as u8),
-    0xFD..=0xFFFF => {
-      buf.push(0xFD);
-      buf.extend_from_slice(&(value as u16).to_le_bytes());
-    }
-    0x1_0000..=0xFFFF_FFFF => {
-      buf.push(0xFE);
-      buf.extend_from_slice(&(value as u32).to_le_bytes());
-    }
-    _ => {
-      buf.push(0xFF);
-      buf.extend_from_slice(&value.to_le_bytes());
-    }
   }
 }
 
@@ -375,7 +313,7 @@ impl<const N: usize> BaseCodec for [u8; N] {
 
 impl<T: BaseCodec> BaseCodec for Vec<T> {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let count = read_compact_size(data, data.len())?;
+    let count = CompactSize::decode(data)?.into_len(data.len())?;
     let batch = MAX_VECTOR_ALLOCATE / core::mem::size_of::<T>().max(1);
     let mut items = Vec::new();
     let mut allocated = 0usize;
@@ -390,7 +328,7 @@ impl<T: BaseCodec> BaseCodec for Vec<T> {
   }
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
-    write_compact_size(self.len(), buf);
+    CompactSize::from(self.len()).encode(buf);
     for item in self {
       item.encode(buf);
     }
@@ -404,7 +342,7 @@ impl BaseCodec for String {
   }
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
-    write_compact_size(self.len(), buf);
+    CompactSize::from(self.len()).encode(buf);
     buf.extend_from_slice(self.as_bytes());
   }
 }

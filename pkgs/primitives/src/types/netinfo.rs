@@ -12,7 +12,7 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{enum_map, impl_num, impl_type, TypeId, Unencodable};
+use dash_types::{enum_map, impl_num, impl_type, CompactSize, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -154,7 +154,7 @@ impl BaseCodec for NIEntry {
     match NIEntryCode::from_base(u8::decode(data)?) {
       NIEntryCode::Service => Ok(Self::Service(ServiceV2::decode(data)?)),
       NIEntryCode::Domain => {
-        let name_len = codec::read_compact_size(data, data.len())?;
+        let name_len = CompactSize::decode(data)?.into_len(data.len())?;
         let name = codec::read_bytes(data, name_len)?.to_vec();
         let port = codec::read_u16_be(data)?;
         Ok(Self::Domain { name, port })
@@ -302,11 +302,11 @@ impl_type!(NetInfoV2);
 impl BaseCodec for NetInfoV2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let version = u8::decode(data)?;
-    let purpose_count = codec::read_compact_size(data, data.len())?;
+    let purpose_count = CompactSize::decode(data)?.into_len(data.len())?;
     let mut entries = Vec::with_capacity(purpose_count);
     for _ in 0..purpose_count {
       let purpose = NIPurpose::from_base(u8::decode(data)?);
-      let entry_count = codec::read_compact_size(data, data.len())?;
+      let entry_count = CompactSize::decode(data)?.into_len(data.len())?;
       let mut group = Vec::with_capacity(entry_count);
       for _ in 0..entry_count {
         group.push(NIEntry::decode(data)?);
@@ -318,10 +318,10 @@ impl BaseCodec for NetInfoV2 {
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
     self.version.encode(buf);
-    codec::write_compact_size(self.entries.len(), buf);
+    CompactSize::from(self.entries.len()).encode(buf);
     for (purpose, group) in &self.entries {
       purpose.to_base().encode(buf);
-      codec::write_compact_size(group.len(), buf);
+      CompactSize::from(group.len()).encode(buf);
       for entry in group {
         entry.encode(buf);
       }

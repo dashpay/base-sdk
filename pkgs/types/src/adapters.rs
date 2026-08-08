@@ -11,14 +11,14 @@ macro_rules! adapt_codec {
   (<$gen:ident>, $ty:ty) => {
     impl<$gen> $crate::codec::BaseCodec for $ty {
       fn decode(data: &mut &[u8]) -> Result<Self, $crate::codec::DecodeError> {
-        let n = $crate::codec::read_compact_size(data, data.len())?;
+        let n = $crate::CompactSize::decode(data)?.into_len(data.len())?;
         let bytes = $crate::codec::read_bytes(data, n)?;
         Ok(Self::from_bytes(bytes.to_vec()))
       }
 
       fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
         let bytes = self.as_bytes();
-        $crate::codec::write_compact_size(bytes.len(), buf);
+        $crate::CompactSize::from(bytes.len()).encode(buf);
         buf.extend_from_slice(bytes);
       }
     }

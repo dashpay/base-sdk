@@ -11,7 +11,7 @@ use crate::prelude::*;
 
 use dash_primitives::hash_impl;
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::{TypeId, Unencodable};
+use dash_types::{CompactSize, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -39,7 +39,7 @@ impl fmt::Display for UserAgentTooLong {
 
 impl BaseCodec for UserAgent {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let len = codec::read_compact_size(data, MAX_USER_AGENT)?;
+    let len = CompactSize::decode(data)?.into_len(MAX_USER_AGENT)?;
     let raw = codec::read_bytes(data, len)?;
     Ok(Self(raw.to_vec()))
   }
