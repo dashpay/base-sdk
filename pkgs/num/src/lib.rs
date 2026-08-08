@@ -29,6 +29,8 @@ pub mod util;
 pub mod __private {
   pub use bitcoin_consensus_encoding;
   pub use dash_types;
+  #[cfg(feature = "serde")]
+  pub use serde;
 }
 
 pub use arith::ArithInt;

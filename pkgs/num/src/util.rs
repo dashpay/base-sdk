@@ -6,6 +6,22 @@
 
 //! Hash newtype macros.
 
+/// dash-num's [`cfg_serde!`](dash_types::cfg_serde), keyed to `dash-num/serde`
+/// (this crate) rather than `dash-types/serde`.
+#[cfg(feature = "serde")]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_serde {
+  ($($item:tt)*) => { $($item)* };
+}
+
+#[cfg(not(feature = "serde"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_serde {
+  ($($item:tt)*) => {};
+}
+
 /// Generates `BaseCodec` + `Encodable` + `Decodable` for hash newtypes.
 #[macro_export]
 macro_rules! impl_hash {
@@ -38,9 +54,25 @@ macro_rules! make_hash {
   ) => {
     $(#[$attr])*
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::__private::dash_types::TypeId)]
-    #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-    #[cfg_attr(feature = "serde", serde(transparent))]
     pub struct $name($base);
+
+    $crate::cfg_serde! {
+      impl $crate::__private::serde::Serialize for $name {
+        fn serialize<S: $crate::__private::serde::Serializer>(
+          &self, serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+          $crate::__private::serde::Serialize::serialize(&self.0, serializer)
+        }
+      }
+
+      impl<'de> $crate::__private::serde::Deserialize<'de> for $name {
+        fn deserialize<D: $crate::__private::serde::Deserializer<'de>>(
+          deserializer: D,
+        ) -> Result<Self, D::Error> {
+          <$base as $crate::__private::serde::Deserialize>::deserialize(deserializer).map(Self)
+        }
+      }
+    }
 
     impl $name {
       /// The all-zeros (null) hash.

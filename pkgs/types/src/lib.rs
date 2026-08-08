@@ -40,6 +40,8 @@ pub mod __private {
   pub use bitcoin_consensus_encoding;
   #[cfg(feature = "serde")]
   pub use hex_conservative;
+  #[cfg(feature = "serde")]
+  pub use serde;
   pub use subtle;
   pub use zeroize;
 }

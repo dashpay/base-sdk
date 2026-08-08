@@ -293,22 +293,28 @@ macro_rules! derive_bytes {
       }
     }
 
-    #[cfg(feature = "serde")]
-    impl<$($g)*> ::serde::Serialize for $ty {
-      fn serialize<Z: ::serde::Serializer>(&self, serializer: Z) -> Result<Z::Ok, Z::Error> {
-        use $crate::__private::hex_conservative::DisplayHex as _;
-        serializer.serialize_str(&self.as_bytes().to_lower_hex_string())
+    $crate::cfg_serde! {
+      impl<$($g)*> $crate::__private::serde::Serialize for $ty {
+        fn serialize<Z>(&self, serializer: Z) -> Result<Z::Ok, Z::Error>
+        where
+          Z: $crate::__private::serde::Serializer,
+        {
+          use $crate::__private::hex_conservative::DisplayHex as _;
+          serializer.serialize_str(&self.as_bytes().to_lower_hex_string())
+        }
       }
-    }
 
-    #[cfg(feature = "serde")]
-    impl<'de, $($g)*> ::serde::Deserialize<'de> for $ty {
-      fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use ::serde::de::Error as _;
-        let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
-        <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
-          .map(Self::from_bytes)
-          .map_err(D::Error::custom)
+      impl<'de, $($g)*> $crate::__private::serde::Deserialize<'de> for $ty {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+          D: $crate::__private::serde::Deserializer<'de>,
+        {
+          use $crate::__private::serde::de::Error as _;
+          let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
+          <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
+            .map(Self::from_bytes)
+            .map_err(D::Error::custom)
+        }
       }
     }
   };

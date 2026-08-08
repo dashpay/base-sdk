@@ -40,25 +40,25 @@ macro_rules! impl_num {
 
     $crate::impl_type!($name);
 
-    #[cfg(feature = "serde")]
-    impl ::serde::Serialize for $name {
-      fn serialize<S: ::serde::Serializer>(
-        &self, serializer: S,
-      ) -> Result<S::Ok, S::Error> {
-        ::serde::Serialize::serialize(
-          &<Self as $crate::codec::NumCodec<$uint>>::to_base(self),
-          serializer,
-        )
+    $crate::cfg_serde! {
+      impl $crate::__private::serde::Serialize for $name {
+        fn serialize<S: $crate::__private::serde::Serializer>(
+          &self, serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+          $crate::__private::serde::Serialize::serialize(
+            &<Self as $crate::codec::NumCodec<$uint>>::to_base(self),
+            serializer,
+          )
+        }
       }
-    }
 
-    #[cfg(feature = "serde")]
-    impl<'de> ::serde::Deserialize<'de> for $name {
-      fn deserialize<D: ::serde::Deserializer<'de>>(
-        deserializer: D,
-      ) -> Result<Self, D::Error> {
-        <$uint as ::serde::Deserialize>::deserialize(deserializer)
-          .map(<Self as $crate::codec::NumCodec<$uint>>::from_base)
+      impl<'de> $crate::__private::serde::Deserialize<'de> for $name {
+        fn deserialize<D: $crate::__private::serde::Deserializer<'de>>(
+          deserializer: D,
+        ) -> Result<Self, D::Error> {
+          <$uint as $crate::__private::serde::Deserialize>::deserialize(deserializer)
+            .map(<Self as $crate::codec::NumCodec<$uint>>::from_base)
+        }
       }
     }
   };

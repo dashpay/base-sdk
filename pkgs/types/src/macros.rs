@@ -6,6 +6,29 @@
 
 //! Shared macro definitions.
 
+/// Emits its body only when *this* crate has the `serde` feature.
+///
+/// `#[cfg(feature = "serde")]` written inside an exported macro resolves
+/// against the invoking crate, which doesn't need have a `serde` feature at
+/// all. This marker is compiled here, so it tracks `dash-types` instead.
+///
+/// The two arms must stay plain `#[cfg]` items. Wrapping them in `cfg_if!`
+/// makes the definition macro-expanded, and a macro-expanded `#[macro_export]`
+/// macro cannot be reached by `$crate::` from its own crate (rust#52234).
+#[cfg(feature = "serde")]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_serde {
+  ($($item:tt)*) => { $($item)* };
+}
+
+#[cfg(not(feature = "serde"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_serde {
+  ($($item:tt)*) => {};
+}
+
 /// Maps enum variants to integer constants and display strings.
 ///
 /// Generates the enum definition, integer mapping (via `NumCodec` or inherent
