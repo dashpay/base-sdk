@@ -21,6 +21,7 @@ full = ["std", "serde"]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 bitcoin-internals = { workspace = true }
 bitcoin-units = { workspace = true, features = ["alloc"] }
+cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
 dash-pkc = { version = "0.0.0", path = "../pkc" }
 dash-script = { version = "0.0.0", path = "../script" }

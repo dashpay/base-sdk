@@ -6,31 +6,32 @@
 
 //! P2P message types and dispatch.
 
+mod addr;
+mod compact_filters;
+mod gov;
+mod headers;
+mod headers2;
+mod inv;
+mod mn_list;
+mod ping;
+mod version;
+
+use crate::command::CommandString;
 use crate::prelude::*;
-use crate::primitives::CommandString;
-use crate::primitives::ShortId;
-use crate::primitives::{GetMnListDiff, MnListDiff};
+use crate::short_id::ShortId;
 
 use bitcoin_consensus_encoding as encoding;
 use dash_types::Unencodable;
-
-pub mod addr;
-pub mod compact_filters;
-pub mod gov;
-pub mod headers;
-pub mod headers2;
-pub mod inv;
-pub mod ping;
-pub mod version;
 
 pub use addr::{Addr, AddrV2Entry, AddrV2Msg, TimestampedAddr};
 pub use compact_filters::{CFCheckpt, CFHeaders, CFilter, FilterType, GetCFCheckpt, GetCFHeaders, GetCFilters};
 pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
-pub use headers2::{GetHeaders2, Headers2};
-pub use inv::{GetData, Inv, NotFound};
+pub use headers2::{CompressionState, GetHeaders2, Headers2};
+pub use inv::{GetData, Inv, InvType, Inventory, NotFound};
+pub use mn_list::{DeletedQuorum, GetMnListDiff, MnListDiff, MnListDiffPayload, QuorumClSig, SimplifiedMnListEntry};
 pub use ping::{Ping, Pong};
-pub use version::{Version, VersionAddr};
+pub use version::{ServiceFlags, UserAgent, UserAgentTooLong, Version, VersionAddr};
 
 /// Decode helper: decode from slice, mapping the error.
 fn decode_msg<T: encoding::Decode>(payload: &[u8]) -> Result<T, crate::P2pDecodeError>

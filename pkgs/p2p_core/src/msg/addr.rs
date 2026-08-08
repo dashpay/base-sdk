@@ -4,11 +4,11 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Address messages: addr, addrv2 (getaddr and sendaddrv2 are empty).
+//! Address messages.
 
+use super::version::ServiceFlags;
 use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
-use crate::primitives::ServiceFlags;
 
 use dash_primitives::{hash_impl, AddrV2, ServiceV1};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
@@ -16,19 +16,15 @@ use dash_types::{CompactSize, TypeId};
 
 use core::fmt;
 
-/// Timestamped v1 address entry used in `addr` messages.
+/// V1 address announcement carrying timestamped addresses.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct TimestampedAddr {
-  /// Seconds since Unix epoch.
-  pub time: u32,
-  /// Advertised services.
-  pub services: ServiceFlags,
-  /// IPv4-mapped IPv6 address + port.
-  pub addr: ServiceV1,
+pub struct Addr {
+  /// Timestamped v1 address entries.
+  pub addrs: Vec<TimestampedAddr>,
 }
 
-codec_p2p!(TimestampedAddr { time, services, addr });
+codec_p2p!(Addr { addrs });
 
 /// BIP155 timestamped v2 address entry used in `addrv2` messages.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
@@ -36,11 +32,11 @@ codec_p2p!(TimestampedAddr { time, services, addr });
 pub struct AddrV2Entry {
   /// Seconds since Unix epoch.
   pub time: u32,
-  /// Advertised services (CompactSize-encoded on wire).
+  /// Advertised services.
   pub services: ServiceFlags,
   /// Network address.
   pub addr: AddrV2,
-  /// Port number (big-endian on wire).
+  /// Port number.
   pub port: u16,
 }
 
@@ -76,16 +72,6 @@ impl fmt::Display for AddrV2Entry {
   }
 }
 
-/// V1 address announcement carrying timestamped addresses.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct Addr {
-  /// Timestamped v1 address entries.
-  pub addrs: Vec<TimestampedAddr>,
-}
-
-codec_p2p!(Addr { addrs });
-
 /// BIP155 v2 address announcement.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
@@ -95,3 +81,17 @@ pub struct AddrV2Msg {
 }
 
 codec_p2p!(AddrV2Msg { addrs });
+
+/// Timestamped v1 address entry used in `addr` messages.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct TimestampedAddr {
+  /// Seconds since Unix epoch.
+  pub time: u32,
+  /// Advertised services.
+  pub services: ServiceFlags,
+  /// Network address.
+  pub addr: ServiceV1,
+}
+
+codec_p2p!(TimestampedAddr { time, services, addr });

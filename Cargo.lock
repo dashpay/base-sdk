@@ -396,6 +396,7 @@ dependencies = [
  "bitcoin-consensus-encoding",
  "bitcoin-internals",
  "bitcoin-units",
+ "cfg-if",
  "dash-dev",
  "dash-num",
  "dash-params",

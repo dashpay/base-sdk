@@ -13,12 +13,15 @@ extern crate alloc;
 extern crate std;
 
 mod codec;
+mod command;
 mod error;
+mod magic;
 mod msg;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
-mod primitives;
+mod short_id;
 mod v2;
+mod version;
 
 #[doc(hidden)]
 pub mod __private {
@@ -26,15 +29,10 @@ pub mod __private {
   pub use dash_types;
 }
 
+pub use command::CommandString;
 pub use error::P2pDecodeError;
-pub use msg::{
-  Addr, AddrV2Entry, AddrV2Msg, CFCheckpt, CFHeaders, CFilter, DashNetworkMessage, FilterType, GetCFCheckpt,
-  GetCFHeaders, GetCFilters, GetData, GetHeaders, GetHeaders2, GovSync, Headers, Headers2, Inv, NotFound, Ping, Pong,
-  TimestampedAddr, Version, VersionAddr,
-};
-pub use primitives::{
-  CommandString, CompressionState, DeletedQuorum, GetMnListDiff, InvType, Inventory, Magic, MnListDiff,
-  MnListDiffPayload, ProtocolVersion, QuorumClSig, ServiceFlags, ShortId, SimplifiedMnListEntry, UserAgent,
-  UserAgentTooLong,
-};
+pub use magic::Magic;
+pub use msg::*;
+pub use short_id::ShortId;
 pub use v2::{decode_v2, encode_v2};
+pub use version::ProtocolVersion;

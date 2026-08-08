@@ -4,7 +4,7 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Ping and Pong keepalive messages.
+//! Keepalive messages.
 
 use crate::codec::codec_p2p;
 

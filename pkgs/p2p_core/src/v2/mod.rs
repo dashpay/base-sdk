@@ -9,10 +9,10 @@
 //! Handles the 1-byte short-ID dispatch layer that sits between
 //! the raw message payload and the BIP324 encrypted transport.
 
+use crate::command::CommandString;
 use crate::msg::DashNetworkMessage;
 use crate::prelude::*;
-use crate::primitives::CommandString;
-use crate::primitives::ShortId;
+use crate::short_id::ShortId;
 use crate::P2pDecodeError;
 
 /// Encodes a `DashNetworkMessage` into V2 framed bytes.

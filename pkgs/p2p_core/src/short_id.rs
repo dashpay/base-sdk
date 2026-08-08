@@ -6,7 +6,7 @@
 
 //! V2 short ID mapping for BIP324 message framing.
 
-use crate::primitives::CommandString;
+use crate::command::CommandString;
 
 use dash_types::Unencodable;
 
