@@ -68,7 +68,7 @@ pub fn legacy_sigop_count(script: &[u8]) -> usize {
 mod tests {
   use super::legacy_sigop_count;
 
-  use hex_literal::hex;
+  use hex_conservative::hex;
   use rstest::rstest;
 
   #[rstest]
@@ -79,12 +79,12 @@ mod tests {
   #[case::checkmultisigverify(&[0xaf], 20)]
   #[case::multisig_always_20(&hex!("5152ae"), 20)]
   #[case::multisig_then_checksig(
-    &hex!(
-      "51"
-      "1400000000000000000000000000000000000000001400000000000000000000000000000000000000"
-      "52ae"
-      "63ac68"
-    ),
+    &hex!(concat!(
+      "51",
+      "1400000000000000000000000000000000000000001400000000000000000000000000000000000000",
+      "52ae",
+      "63ac68",
+    )),
     21,
   )]
   #[case::p2pkh(&hex!("76a914000000000000000000000000000000000000000088ac"), 1)]

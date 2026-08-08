@@ -9,4 +9,5 @@
 pub(crate) use alloc::borrow::ToOwned;
 pub(crate) use alloc::string::String;
 pub(crate) use alloc::string::ToString;
+pub(crate) use alloc::vec;
 pub(crate) use alloc::vec::Vec;

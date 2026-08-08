@@ -17,7 +17,7 @@ use crate::{hash_impl, TxHash};
 
 use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
-use dash_script::PubKeyHash;
+use dash_script::{PubKeyHash, Recipient};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
 use dash_types::{make_bytes, TypeId};
 
@@ -203,8 +203,10 @@ impl Checkable for ProRegTx {
     }
 
     let payout = self.script_payout.as_bytes();
-    if !dash_script::is_p2pkh(payout) && !dash_script::is_p2sh(payout) {
-      return Some(ProTxInvalid::BadPayoutScript);
+    let recipient = Recipient::from_script(payout);
+    match &recipient {
+      Some(Recipient::PubKeyHash(_) | Recipient::ScriptHash(_)) => {}
+      _ => return Some(ProTxInvalid::BadPayoutScript),
     }
 
     let is_extended = matches!(self.net_info, NetInfo::Extended(_));
@@ -237,8 +239,8 @@ impl Checkable for ProRegTx {
       return Some(e);
     }
 
-    if let Some(hash) = dash_script::p2pkh_hash160(payout) {
-      if hash == self.key_id_owner.as_bytes() || hash == self.key_id_voting.as_bytes() {
+    if let Some(Recipient::PubKeyHash(hash)) = &recipient {
+      if *hash == self.key_id_owner || *hash == self.key_id_voting {
         return Some(ProTxInvalid::PayoutKeyReuse);
       }
     }

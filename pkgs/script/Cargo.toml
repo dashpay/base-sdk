@@ -7,7 +7,6 @@ license = "MIT"
 [features]
 default = []
 std = [
-  "bitcoin_hashes/std",
   "base58ck/std",
   "bitcoin-consensus-encoding/std",
   "dash-pkc/std",
@@ -21,10 +20,10 @@ base58ck = { version = "0.4", default-features = false, features = ["alloc"] }
 bitcoin-consensus-encoding = { version = "0.2", default-features = false, features = [
   "alloc",
 ] }
-bitcoin_hashes = { version = "0.20", default-features = false, features = [
-  "alloc",
+dash-num = { version = "0.0.0", path = "../num", default-features = false }
+dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false, features = [
+  "ecdsa",
 ] }
-dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false }
 dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
   "bitcoin-primitives",
 ] }
@@ -34,7 +33,7 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 
 [dev-dependencies]
-hex-literal = "0.4"
+hex-conservative = "0.3"
 rstest = "0.25"
 
 [lints]
