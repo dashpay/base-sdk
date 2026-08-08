@@ -203,26 +203,3 @@ macro_rules! make_bytes {
     }
   };
 }
-
-/// Wire-order hex for `Vec<u8>` and fixed-size byte arrays.
-///
-/// Use with `#[serde(with = "dash_types::serialize::hex")]` on
-/// `Vec<u8>` fields. For fixed-size byte arrays use a sub-module
-/// (e.g. `hex::w16` for `[u8; 16]`).
-#[cfg(feature = "serde")]
-pub mod serde {
-  use crate::prelude::*;
-
-  use hex_conservative::{DisplayHex, FromHex};
-
-  /// Serializes bytes as a wire-order hex string.
-  pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_str(&data.to_lower_hex_string())
-  }
-
-  /// Deserializes a hex string into bytes.
-  pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
-    let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
-    Vec::<u8>::from_hex(&s).map_err(::serde::de::Error::custom)
-  }
-}
