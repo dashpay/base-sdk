@@ -16,7 +16,6 @@ extern crate std;
 #[allow(unused_macros, reason = "used by feature-gated submodules")]
 mod adapters;
 mod entity;
-mod hex;
 mod macros;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;

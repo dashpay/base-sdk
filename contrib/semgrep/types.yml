@@ -7,7 +7,6 @@ rules:
       include: [/pkgs/types/src/**/*.rs]
       exclude:
         - /pkgs/types/src/entity.rs
-        - /pkgs/types/src/hex.rs
         - /pkgs/types/src/macros.rs
         - /pkgs/types/src/secret.rs
         - /pkgs/types/src/uint.rs
