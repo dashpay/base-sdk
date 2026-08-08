@@ -50,6 +50,10 @@ pub fn qtypestr(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
 
 /// Fixed-size encode buffer backed by `[u8; N]`.
 ///
+/// Implements [`Zeroize`] but has no `Drop`, so it does *not* wipe itself when
+/// it goes out of scope. To hold secret material, wrap it in `Zeroizing` or
+/// move it into [`ArrEncoder`] or [`ArrDecoder`], which wipe on drop.
+///
 /// # Panics
 ///
 /// Writing more than `N` bytes (via the [`EncodeBuf`] impl) panics with an
@@ -251,6 +255,11 @@ impl<T, const N: usize, E> Decoder for ArrDecoder<T, N, E> {
 
 /// Generates `Encodable` + `Decodable` for a `BaseCodec` implementor whose
 /// wire image is secret.
+///
+/// Stages through the wiping [`ArrEncoder`]/[`ArrDecoder`] pair, both sized by
+/// `$n` and capped at [`MAX_ARR_SIZE`]. For public material use
+/// [`impl_type!`](crate::impl_type), the same generator over the growable
+/// pair.
 #[macro_export]
 macro_rules! impl_stype {
   (@parse [$($impl_generics:tt)*] $ty:ty, $n:expr, $err:ty) => {
@@ -292,6 +301,9 @@ macro_rules! impl_stype {
 
 /// The secret counterpart to [`impl_bytes!`](crate::impl_bytes), for a
 /// fixed-size byte newtype whose contents are key material.
+///
+/// Same `BaseCodec` and `From<[u8; N]>`, staged through the wiping
+/// [`ArrEncoder`] rather than the growable [`VecEncoder`](crate::VecEncoder).
 #[macro_export]
 macro_rules! impl_sbytes {
   (@parse [$($g:tt)*] $ty:ty, $n:expr) => {

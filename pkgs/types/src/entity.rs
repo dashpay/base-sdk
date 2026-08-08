@@ -216,8 +216,11 @@ macro_rules! impl_bytes {
 /// through `from_bytes` / `as_bytes`.
 ///
 /// Emits `Clone`, `Copy`, `Default`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`,
-/// `Hash`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for [u8; N]`, and the
-/// hex `serde` pair.
+/// `Hash`, `is_null`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for
+/// [u8; N]`, a hex `Debug`/`Display`, and the hex `serde` pair.
+///
+/// For a newtype holding secrets use [`derive_sbytes!`](crate::derive_sbytes),
+/// which withholds everything that would read or copy out the plaintext.
 #[macro_export]
 macro_rules! derive_bytes {
   (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
@@ -317,8 +320,13 @@ macro_rules! derive_bytes {
   };
 }
 
-/// Generates a fixed-size byte newtype with consensus encoding traits and
-/// standard trait implementations.
+/// Declares a fixed-size byte newtype over `[u8; N]` with the `from_bytes` /
+/// `to_bytes` / `as_bytes` accessors.
+///
+/// Invokes [`impl_bytes!`](crate::impl_bytes) and
+/// [`derive_bytes!`](crate::derive_bytes). A newtype that needs a validating
+/// constructor, a scheme tag, or its own trait set should define itself and
+/// invoke those macros manually.
 #[macro_export]
 macro_rules! make_bytes {
   (
@@ -354,15 +362,14 @@ macro_rules! make_bytes {
 
 /// Delegates `BaseCodec`, `Hashable`, and `impl_type!` through another type.
 ///
-/// Decoding is fallible (`$bytes` is unvalidated, so `TryFrom` guards the
-/// operational type), encoding is not: the operational type is already valid,
-/// so `From<&$ops> for $bytes` must exist.
-///
-/// An encode direction that could fail would have to either emit nothing or
-/// hash a placeholder, both of which silently corrupt the wire image.
+/// Decode is fallible: `$bytes` is unvalidated, so `TryFrom<$bytes>` guards
+/// the operational type. Encode is not: the value is already valid, so
+/// `From<&$ops> for $bytes` must exist and must be infallible, since a failing
+/// encode could only emit nothing or a placeholder, corrupting the wire image.
 ///
 /// `$max` bounds the `impl_type!` decoder buffer to the wrapped type's own
-/// maximum encoded length.
+/// maximum encoded length. For a secret wire image use
+/// [`dlgt_scodec!`](crate::dlgt_scodec).
 #[macro_export]
 macro_rules! dlgt_codec {
   // Shared by `dlgt_codec!` and `dlgt_scodec!`, only the encoder pair differs.
