@@ -90,3 +90,70 @@ pub mod utf8 {
     Ok(s.into_bytes())
   }
 }
+
+/// Best-effort UTF-8 serde for `Vec<u8>` fields.
+///
+/// Unlike [`utf8`], which rejects anything that is not valid UTF-8,
+/// [`utf8_lossy`] will preserve arbitrary bytes in round-trips.
+pub mod utf8_lossy {
+  use crate::prelude::*;
+
+  use ::serde::de::{Error as DeError, SeqAccess, Visitor};
+
+  use core::fmt;
+  use core::str::from_utf8;
+
+  /// Serializes bytes as a string when valid UTF-8, otherwise as raw bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns a serialization error when the serializer rejects the value.
+  pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
+    match from_utf8(data) {
+      Ok(text) => serializer.serialize_str(text),
+      Err(_) => serializer.serialize_bytes(data),
+    }
+  }
+
+  /// Deserializes bytes from a string, a byte buffer, or a sequence of bytes.
+  ///
+  /// Length limits are a codec concern, so nothing is bounded here; a newtype
+  /// with a maximum enforces it in its own constructor.
+  ///
+  /// # Errors
+  ///
+  /// Returns a deserialization error when the input is none of those forms.
+  pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
+    struct BytesVisitor;
+
+    impl<'de> Visitor<'de> for BytesVisitor {
+      type Value = Vec<u8>;
+
+      fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("a string or byte sequence")
+      }
+
+      fn visit_str<E: DeError>(self, v: &str) -> Result<Self::Value, E> {
+        Ok(v.as_bytes().to_vec())
+      }
+
+      fn visit_bytes<E: DeError>(self, v: &[u8]) -> Result<Self::Value, E> {
+        Ok(v.to_vec())
+      }
+
+      fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+        let mut bytes = Vec::new();
+        while let Some(byte) = seq.next_element::<u8>()? {
+          bytes.push(byte);
+        }
+        Ok(bytes)
+      }
+    }
+
+    if deserializer.is_human_readable() {
+      deserializer.deserialize_any(BytesVisitor)
+    } else {
+      deserializer.deserialize_byte_buf(BytesVisitor)
+    }
+  }
+}

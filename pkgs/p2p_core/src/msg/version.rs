@@ -10,7 +10,6 @@ use crate::codec::{codec_p2p, impl_p2p};
 use crate::prelude::*;
 use crate::version::ProtocolVersion;
 
-use cfg_if::cfg_if;
 use dash_num::Hash256;
 use dash_primitives::{hash_impl, ServiceV1};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
@@ -86,7 +85,8 @@ impl fmt::Display for UserAgentTooLong {
 
 /// CompactSize-prefixed user agent bytestring.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
-pub struct UserAgent(Vec<u8>);
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+pub struct UserAgent(#[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::utf8_lossy"))] Vec<u8>);
 
 impl_p2p!(UserAgent);
 
@@ -147,25 +147,11 @@ impl fmt::Display for UserAgent {
   }
 }
 
-cfg_if! {
-  if #[cfg(feature = "serde")] {
-    use serde::{Serializer, Deserializer, ser::Error as SerError, de::Error as DeError};
+impl TryFrom<Vec<u8>> for UserAgent {
+  type Error = UserAgentTooLong;
 
-    impl ::serde::Serialize for UserAgent {
-      fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        match self.as_str() {
-          Some(text) => s.serialize_str(text),
-          None => Err(SerError::custom("user agent contains non-utf8 data")),
-        }
-      }
-    }
-
-    impl<'de> ::serde::Deserialize<'de> for UserAgent {
-      fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let text = <String as ::serde::Deserialize>::deserialize(d)?;
-        Self::new(text.into_bytes()).map_err(DeError::custom)
-      }
-    }
+  fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
+    Self::new(bytes)
   }
 }
 
@@ -239,8 +225,17 @@ codec_p2p!(Version {
 mod tests {
   use super::*;
 
-  use dash_dev::{assert_serde_rt, check_wire, Corpus};
+  use dash_dev::{assert_json_rt, assert_serde_rt, check_wire, Corpus};
   use rstest::rstest;
+
+  #[rstest]
+  #[case::utf8(alloc::vec![b'/', b'>', b'.', b'.', b'<', b'/'])]
+  #[case::non_utf8(alloc::vec![0xff, 0xfe, 0x80])]
+  #[case::empty(Vec::new())]
+  #[case::max(alloc::vec![0x80; MAX_USER_AGENT])]
+  fn user_agent_json_round_trips(#[case] bytes: Vec<u8>) {
+    assert_json_rt(&UserAgent(bytes));
+  }
 
   #[rstest]
   fn corpus_version() {
