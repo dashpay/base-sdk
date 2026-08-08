@@ -54,6 +54,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
+name = "bech32"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32637268377fc7b10a8c6d51de3e7fba1ce5dd371a96e342b34e6078db558e7f"
+
+[[package]]
+name = "bitcoin"
+version = "0.33.0-beta"
+source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+dependencies = [
+ "base58ck",
+ "base64",
+ "bech32",
+ "bitcoin-consensus-encoding",
+ "bitcoin-crypto",
+ "bitcoin-internals",
+ "bitcoin-io",
+ "bitcoin-network-kind",
+ "bitcoin-primitives",
+ "bitcoin-taproot-primitives",
+ "bitcoin-units",
+ "bitcoin_hashes",
+ "bitcoinconsensus",
+ "hex-conservative 0.3.2",
+ "hex-conservative 1.2.0",
+ "secp256k1",
+]
+
+[[package]]
 name = "bitcoin-consensus-encoding"
 version = "0.2.0"
 source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
@@ -62,11 +97,63 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitcoin-crypto"
+version = "0.2.0"
+source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+dependencies = [
+ "base58ck",
+ "bitcoin-internals",
+ "bitcoin-network-kind",
+ "bitcoin_hashes",
+ "hex-conservative 0.3.2",
+ "hex-conservative 1.2.0",
+ "secp256k1",
+ "serde",
+]
+
+[[package]]
 name = "bitcoin-internals"
 version = "0.5.0"
 source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
 dependencies = [
  "hex-conservative 0.3.2",
+ "serde",
+]
+
+[[package]]
+name = "bitcoin-io"
+version = "0.5.0"
+source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+dependencies = [
+ "bitcoin-consensus-encoding",
+ "bitcoin-internals",
+ "bitcoin_hashes",
+]
+
+[[package]]
+name = "bitcoin-network-kind"
+version = "0.1.0"
+source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+dependencies = [
+ "bitcoin-internals",
+ "serde",
+]
+
+[[package]]
+name = "bitcoin-p2p-messages"
+version = "0.1.0"
+source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+dependencies = [
+ "bitcoin",
+ "bitcoin-consensus-encoding",
+ "bitcoin-internals",
+ "bitcoin-io",
+ "bitcoin-network-kind",
+ "bitcoin-primitives",
+ "bitcoin-units",
+ "bitcoin_hashes",
+ "hex-conservative 0.3.2",
+ "hex-conservative 1.2.0",
  "serde",
 ]
 
@@ -81,6 +168,18 @@ dependencies = [
  "bitcoin_hashes",
  "hex-conservative 0.3.2",
  "hex-conservative 1.2.0",
+ "serde",
+]
+
+[[package]]
+name = "bitcoin-taproot-primitives"
+version = "0.1.0"
+source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+dependencies = [
+ "bitcoin-crypto",
+ "bitcoin-internals",
+ "bitcoin_hashes",
+ "secp256k1",
  "serde",
 ]
 
@@ -104,6 +203,15 @@ dependencies = [
  "hex-conservative 0.3.2",
  "hex-conservative 1.2.0",
  "serde",
+]
+
+[[package]]
+name = "bitcoinconsensus"
+version = "0.106.0+26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e12cba9cce5043cdda968e07b9df6d05ec6b0b38aa27a9a40bb575cf3e521ae9"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -334,7 +442,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dc92fb57ca44df6db8059111ab3af99a63d5d0f8375d9972e319a379c6bab76"
 dependencies = [
  "generic-array",
- "rand_core",
+ "rand_core 0.6.4",
  "subtle",
  "zeroize",
 ]
@@ -395,6 +503,8 @@ version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding",
  "bitcoin-internals",
+ "bitcoin-p2p-messages",
+ "bitcoin-primitives",
  "bitcoin-units",
  "cfg-if",
  "dash-dev",
@@ -441,7 +551,7 @@ dependencies = [
  "hex-conservative 0.3.2",
  "hex-literal",
  "k256",
- "rand_core",
+ "rand_core 0.6.4",
  "rayon",
  "rstest",
  "serde",
@@ -506,6 +616,7 @@ version = "0.0.0"
 dependencies = [
  "base58ck",
  "bitcoin-consensus-encoding",
+ "bitcoin-p2p-messages",
  "bitcoin-primitives",
  "bitcoin_hashes",
  "cfg-if",
@@ -615,7 +726,7 @@ dependencies = [
  "ff",
  "generic-array",
  "group",
- "rand_core",
+ "rand_core 0.6.4",
  "sec1",
  "subtle",
  "zeroize",
@@ -649,7 +760,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0b50bfb653653f9ca9095b427bed08ab8d75a137839d9ad64eb11810d5b6393"
 dependencies = [
- "rand_core",
+ "rand_core 0.6.4",
  "subtle",
 ]
 
@@ -740,13 +851,25 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi 5.3.0",
+ "wasip2",
+]
+
+[[package]]
+name = "getrandom"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
 dependencies = [
  "cfg-if",
  "libc",
- "r-efi",
+ "r-efi 6.0.0",
 ]
 
 [[package]]
@@ -775,7 +898,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0f9ef7462f7c099f518d754361858f86d8a07af53ba9af0fe635bbccb151a63"
 dependencies = [
  "ff",
- "rand_core",
+ "rand_core 0.6.4",
  "subtle",
 ]
 
@@ -1226,6 +1349,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ppv-lite86"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
+dependencies = [
+ "zerocopy",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1254,9 +1386,35 @@ dependencies = [
 
 [[package]]
 name = "r-efi"
+version = "5.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
+
+[[package]]
+name = "r-efi"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
+
+[[package]]
+name = "rand"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9ef1d0d795eb7d84685bca4f72f3649f064e6641543d3a8c415898726a57b41"
+dependencies = [
+ "rand_chacha",
+ "rand_core 0.9.5",
+]
+
+[[package]]
+name = "rand_chacha"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
+dependencies = [
+ "ppv-lite86",
+ "rand_core 0.9.5",
+]
 
 [[package]]
 name = "rand_core"
@@ -1265,6 +1423,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom 0.2.17",
+]
+
+[[package]]
+name = "rand_core"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
+dependencies = [
+ "getrandom 0.3.4",
 ]
 
 [[package]]
@@ -1410,6 +1577,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "secp256k1"
+version = "0.32.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c5fdc7d6e800869d3fd60ff857c479bf0a83ea7bf44b389e64461e844204994"
+dependencies = [
+ "rand",
+ "secp256k1-sys",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d3be00697c88c00fe102af8dc316038cc2062eab8da646e7463f4c0e70ca9fd"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "semver"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1495,7 +1681,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest",
- "rand_core",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -1721,6 +1907,15 @@ name = "wasi"
 version = "0.11.1+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
+
+[[package]]
+name = "wasip2"
+version = "1.0.4+wasi-0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b67efb37e106e55ce722a510d6b5f9c17f083e5fc79afc2badeb12cc313d9487"
+dependencies = [
+ "wit-bindgen",
+]
 
 [[package]]
 name = "wasm-bindgen"
@@ -2010,6 +2205,12 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "wit-bindgen"
+version = "0.57.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "writeable"

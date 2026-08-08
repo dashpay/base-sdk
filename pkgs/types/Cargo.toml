@@ -8,10 +8,12 @@ license = "MIT"
 default = []
 std = [
   "bitcoin-consensus-encoding/std",
+  "bitcoin-p2p-messages?/std",
   "bitcoin-primitives?/std",
   "hex-conservative?/std",
 ]
-full = ["std", "serde", "bitcoin-primitives"]
+full = ["std", "serde", "bitcoin-p2p-messages", "bitcoin-primitives"]
+bitcoin-p2p-messages = ["dep:bitcoin-p2p-messages"]
 bitcoin-primitives = [
   "dep:base58ck",
   "dep:bitcoin-primitives",
@@ -22,6 +24,7 @@ serde = ["dep:serde", "dep:hex-conservative"]
 [dependencies]
 base58ck = { workspace = true, optional = true, features = ["alloc"] }
 bitcoin-consensus-encoding = { workspace = true }
+bitcoin-p2p-messages = { workspace = true, optional = true }
 bitcoin_hashes = { workspace = true, optional = true, features = ["alloc"] }
 bitcoin-primitives = { workspace = true, optional = true, features = ["alloc"] }
 cfg-if = "1"

@@ -39,6 +39,15 @@ macro_rules! adapt_codec {
   };
 }
 
+#[cfg(feature = "bitcoin-p2p-messages")]
+mod bitcoin_p2p_messages {
+  // nosemgrep: macro-no-bare-foreign-crate
+  use ::bitcoin_p2p_messages::message_filter::{FilterHash, FilterHeader};
+
+  adapt_codec!(FilterHash, 32);
+  adapt_codec!(FilterHeader, 32);
+}
+
 #[cfg(feature = "bitcoin-primitives")]
 pub mod bitcoin_primitives {
   use crate::codec::{BaseCodec, EncodeBuf, Hashable};
@@ -46,9 +55,10 @@ pub mod bitcoin_primitives {
   use crate::prelude::*;
   use crate::secret::ArrayBuf;
 
+  // nosemgrep: macro-no-bare-foreign-crate
+  use ::bitcoin_primitives::script::{ScriptBuf, ScriptHashableTag};
   use base58ck::encode_check;
   use bitcoin_hashes::{ripemd160, sha256};
-  use bitcoin_primitives::script::{ScriptBuf, ScriptHashableTag};
 
   adapt_codec!(<T>, ScriptBuf<T>);
 

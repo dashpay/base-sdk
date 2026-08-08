@@ -6,9 +6,17 @@ license = "MIT"
 
 [features]
 default = []
-std = ["dash-pkc/std", "dash-primitives/std", "dash-script/std", "dash-types/std"]
+std = [
+  "bitcoin-p2p-messages/std",
+  "bitcoin-primitives/std",
+  "dash-pkc/std",
+  "dash-primitives/std",
+  "dash-script/std",
+  "dash-types/std",
+]
 serde = [
   "dep:serde",
+  "bitcoin-p2p-messages/serde",
   "dash-num/serde",
   "dash-pkc/serde",
   "dash-primitives/serde",
@@ -20,6 +28,8 @@ full = ["std", "serde"]
 [dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 bitcoin-internals = { workspace = true }
+bitcoin-p2p-messages = { workspace = true }
+bitcoin-primitives = { workspace = true }
 bitcoin-units = { workspace = true, features = ["alloc"] }
 cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
@@ -27,7 +37,9 @@ dash-pkc = { version = "0.0.0", path = "../pkc" }
 dash-script = { version = "0.0.0", path = "../script" }
 dash-params = { version = "0.0.0", path = "../params" }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
+dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+  "bitcoin-p2p-messages",
+] }
 serde = { version = "1", default-features = false, features = [
   "alloc",
   "derive",

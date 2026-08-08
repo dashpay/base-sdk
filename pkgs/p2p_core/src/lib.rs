@@ -30,6 +30,8 @@ pub mod __private {
   pub use dash_primitives;
   pub use dash_types;
 }
+#[cfg(feature = "serde")]
+pub(crate) mod serialize;
 
 pub use bip324::{decode_v2, encode_v2};
 pub use command::CommandString;

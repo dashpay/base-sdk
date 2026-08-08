@@ -7,7 +7,6 @@
 //! P2P message types and dispatch.
 
 mod addr;
-mod compact_filters;
 mod gov;
 mod headers;
 mod headers2;
@@ -21,10 +20,11 @@ use crate::prelude::*;
 use crate::short_id::ShortId;
 
 use bitcoin_consensus_encoding as encoding;
+use bitcoin_p2p_messages::message_filter::{CFCheckpt, CFHeaders, CFilter, GetCFCheckpt, GetCFHeaders, GetCFilters};
+use dash_primitives::{GovObject, GovVote};
 use dash_types::Unencodable;
 
 pub use addr::{Addr, AddrV2Entry, AddrV2Msg, TimestampedAddr};
-pub use compact_filters::{CFCheckpt, CFHeaders, CFilter, FilterType, GetCFCheckpt, GetCFHeaders, GetCFilters};
 pub use gov::GovSync;
 pub use headers::{GetHeaders, Headers};
 pub use headers2::{CompressionState, GetHeaders2, Headers2};
@@ -60,23 +60,29 @@ define_p2p! {
     /// Compressed block headers.
     Headers2(Headers2) => HEADERS2 "headers2" @ 165,
     /// Request compact filters.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfilters"))]
     GetCFilters(GetCFilters) => GETCFILTERS "getcfilters" @ 22,
     /// Compact block filter.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfilter"))]
     CFilter(CFilter) => CFILTER "cfilter" @ 23,
     /// Request compact filter headers.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfheaders"))]
     GetCFHeaders(GetCFHeaders) => GETCFHEADERS "getcfheaders" @ 24,
     /// Compact filter headers.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfheaders"))]
     CFHeaders(CFHeaders) => CFHEADERS "cfheaders" @ 25,
     /// Request compact filter checkpoints.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfcheckpt"))]
     GetCFCheckpt(GetCFCheckpt) => GETCFCHECKPT "getcfcheckpt" @ 26,
     /// Compact filter checkpoints.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfcheckpt"))]
     CFCheckpt(CFCheckpt) => CFCHECKPT "cfcheckpt" @ 27,
     /// Governance sync request.
     GovSync(GovSync) => GOVSYNC "govsync" @ 140,
     /// Governance object.
-    GovObj(dash_primitives::GovObject) => GOVOBJ "govobj" @ 141,
+    GovObj(GovObject) => GOVOBJ "govobj" @ 141,
     /// Governance vote.
-    GovObjVote(dash_primitives::GovVote) => GOVOBJVOTE "govobjvote" @ 142,
+    GovObjVote(GovVote) => GOVOBJVOTE "govobjvote" @ 142,
     /// Request MN list diff.
     GetMnListDiff(GetMnListDiff) => GETMNLISTD "getmnlistd" @ 143,
     /// MN list diff.
