@@ -6,6 +6,7 @@
 
 //! Shared macro definitions.
 
+use crate::codec::MAX_P2P_PAYLOAD_SIZE;
 use crate::prelude::*;
 use crate::P2pDecodeError;
 
@@ -19,43 +20,78 @@ where
   decode_from_slice(payload).map_err(|e| P2pDecodeError::Consensus(format!("{e}")))
 }
 
+/// Reject payloads that exceed the protocol limit.
+pub(crate) fn check_payload(command: &'static str, payload: &[u8]) -> Result<(), P2pDecodeError> {
+  if payload.len() > MAX_P2P_PAYLOAD_SIZE {
+    return Err(P2pDecodeError::PayloadTooLarge {
+      command,
+      size: payload.len(),
+      max: MAX_P2P_PAYLOAD_SIZE,
+    });
+  }
+  Ok(())
+}
+
+/// Reject payloads that should be empty.
+pub(crate) fn check_empty(command: &'static str, payload: &[u8]) -> Result<(), P2pDecodeError> {
+  if !payload.is_empty() {
+    return Err(P2pDecodeError::PayloadNotEmpty {
+      command,
+      size: payload.len(),
+    });
+  }
+  Ok(())
+}
+
 /// Generates `P2pMsg` definitions for every given valid message
 macro_rules! define_p2p {
   (
     // Fully-parsed messages with a typed payload.
     parsed {
       $(
-        $(#[$p_doc:meta])*
+        $(#[$p_attr:meta])*
         $p_variant:ident ( $p_type:ty ) => $p_cmd:ident $p_wire:literal $(@ $p_sid:literal)?
       ),* $(,)?
     }
     // Fully-parsed messages with an empty payload.
     parsed_empty {
       $(
-        $(#[$pe_doc:meta])*
+        $(#[$pe_attr:meta])*
         $pe_variant:ident => $pe_cmd:ident $pe_wire:literal $(@ $pe_sid:literal)?
       ),* $(,)?
     }
     // Recognised but not-yet-implemented (raw `Vec<u8>` payload).
     stub {
       $(
-        $(#[$s_doc:meta])*
+        $(#[$s_attr:meta])*
         $s_variant:ident => $s_cmd:ident $s_wire:literal $(@ $s_sid:literal)?
       ),* $(,)?
     }
     // Recognised but not-yet-implemented (empty payload).
     stub_empty {
       $(
-        $(#[$se_doc:meta])*
+        $(#[$se_attr:meta])*
         $se_variant:ident => $se_cmd:ident $se_wire:literal $(@ $se_sid:literal)?
       ),* $(,)?
     }
   ) => {
     impl CommandString {
-      $( $(#[$p_doc])* pub const $p_cmd: Self = Self::from_static($p_wire); )*
-      $( $(#[$pe_doc])* pub const $pe_cmd: Self = Self::from_static($pe_wire); )*
-      $( $(#[$s_doc])* pub const $s_cmd: Self = Self::from_static($s_wire); )*
-      $( $(#[$se_doc])* pub const $se_cmd: Self = Self::from_static($se_wire); )*
+      $(
+        #[doc = concat!("Command string for `", $p_wire, "` messages.")]
+        pub const $p_cmd: Self = Self::from_static($p_wire);
+      )*
+      $(
+        #[doc = concat!("Command string for `", $pe_wire, "` messages.")]
+        pub const $pe_cmd: Self = Self::from_static($pe_wire);
+      )*
+      $(
+        #[doc = concat!("Command string for `", $s_wire, "` messages.")]
+        pub const $s_cmd: Self = Self::from_static($s_wire);
+      )*
+      $(
+        #[doc = concat!("Command string for `", $se_wire, "` messages.")]
+        pub const $se_cmd: Self = Self::from_static($se_wire);
+      )*
     }
 
     impl ShortId {
@@ -89,10 +125,10 @@ macro_rules! define_p2p {
     #[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
     #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
     pub enum P2pMsg {
-      $( $(#[$p_doc])* $p_variant($p_type), )*
-      $( $(#[$pe_doc])* $pe_variant, )*
-      $( $(#[$s_doc])* $s_variant(Vec<u8>), )*
-      $( $(#[$se_doc])* $se_variant, )*
+      $( $(#[$p_attr])* $p_variant($p_type), )*
+      $( $(#[$pe_attr])* $pe_variant, )*
+      $( $(#[$s_attr])* $s_variant(Vec<u8>), )*
+      $( $(#[$se_attr])* $se_variant, )*
     }
 
     impl P2pMsg {
@@ -128,10 +164,30 @@ macro_rules! define_p2p {
       ) -> Result<Self, crate::P2pDecodeError> {
         let raw = || Vec::from(payload);
         let msg = match *cmd {
-          $( CommandString::$p_cmd => Self::$p_variant(crate::macros::decode_msg(payload)?), )*
-          $( CommandString::$pe_cmd => Self::$pe_variant, )*
-          $( CommandString::$s_cmd => Self::$s_variant(raw()), )*
-          $( CommandString::$se_cmd => Self::$se_variant, )*
+          $(
+            CommandString::$p_cmd => {
+              crate::macros::check_payload($p_wire, payload)?;
+              Self::$p_variant(crate::macros::decode_msg(payload)?)
+            }
+          )*
+          $(
+            CommandString::$pe_cmd => {
+              crate::macros::check_empty($pe_wire, payload)?;
+              Self::$pe_variant
+            }
+          )*
+          $(
+            CommandString::$s_cmd => {
+              crate::macros::check_payload($s_wire, payload)?;
+              Self::$s_variant(raw())
+            }
+          )*
+          $(
+            CommandString::$se_cmd => {
+              crate::macros::check_empty($se_wire, payload)?;
+              Self::$se_variant
+            }
+          )*
           _ => return Err(crate::P2pDecodeError::UnknownCommand { bytes: *cmd.as_bytes() }),
         };
         Ok(msg)

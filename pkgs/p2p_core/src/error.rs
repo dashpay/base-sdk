@@ -32,10 +32,17 @@ pub enum P2pDecodeError {
   PayloadTooLarge {
     /// Wire command name.
     command: &'static str,
-    /// Actual decoded size.
+    /// Size of the raw payload, in bytes.
     size: usize,
-    /// Maximum allowed size.
+    /// Maximum allowed size, in bytes.
     max: usize,
+  },
+  /// Message carries a payload where none is permitted.
+  PayloadNotEmpty {
+    /// Wire command name.
+    command: &'static str,
+    /// Size of the raw payload, in bytes.
+    size: usize,
   },
   /// A field value is outside the valid range.
   InvalidValue {
@@ -73,6 +80,9 @@ impl fmt::Display for P2pDecodeError {
       }
       Self::PayloadTooLarge { command, size, max } => {
         write!(f, "{command} payload too large: {size} bytes, max {max}")
+      }
+      Self::PayloadNotEmpty { command, size } => {
+        write!(f, "{command} must have an empty payload, got {size} bytes")
       }
       Self::InvalidValue { field } => {
         write!(f, "invalid value for {field}")
