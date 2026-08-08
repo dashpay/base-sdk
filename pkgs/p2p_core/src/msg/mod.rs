@@ -20,6 +20,7 @@ use crate::prelude::*;
 use crate::short_id::ShortId;
 
 use bitcoin_consensus_encoding as encoding;
+use bitcoin_p2p_messages::message_bloom::{FilterAdd, FilterLoad};
 use bitcoin_p2p_messages::message_compact_blocks::SendCmpct;
 use bitcoin_p2p_messages::message_filter::{CFCheckpt, CFHeaders, CFilter, GetCFCheckpt, GetCFHeaders, GetCFilters};
 use dash_primitives::{GovObject, GovVote};
@@ -91,6 +92,12 @@ define_p2p! {
     /// BIP152: signal compact block support.
     #[cfg_attr(feature = "serde", serde(with = "crate::serialize::send_cmpct"))]
     SendCmpct(SendCmpct) => SENDCMPCT "sendcmpct" @ 20,
+    /// BIP37: load bloom filter.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::filter_load"))]
+    FilterLoad(FilterLoad) => FILTERLOAD "filterload" @ 8,
+    /// BIP37: add data to bloom filter.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::filter_add"))]
+    FilterAdd(FilterAdd) => FILTERADD "filteradd" @ 6,
   }
 
   parsed_empty {
@@ -113,10 +120,6 @@ define_p2p! {
     BlockTxn => BLOCKTXN "blocktxn" @ 3,
     /// BIP152: compact block.
     CmpctBlock => CMPCTBLOCK "cmpctblock" @ 4,
-    /// BIP37: add data to bloom filter.
-    FilterAdd => FILTERADD "filteradd" @ 6,
-    /// BIP37: load bloom filter.
-    FilterLoad => FILTERLOAD "filterload" @ 8,
     /// Request block hashes.
     GetBlocks => GETBLOCKS "getblocks" @ 9,
     /// BIP152: request compact block transactions.

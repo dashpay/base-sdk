@@ -10,6 +10,7 @@ use crate::prelude::*;
 
 use bitcoin_primitives::BlockHash;
 use bitcoin_units::BlockHeight;
+use dash_types::Unencodable;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// For [`BlockHash`](bitcoin_primitives::BlockHash) as a hex string.
@@ -235,6 +236,98 @@ pub mod get_cfcheckpt {
       filter_type: r.filter_type,
       stop_hash: r.stop_hash,
     })
+  }
+}
+
+/// For [`FilterLoad`](bitcoin_p2p_messages::message_bloom::FilterLoad).
+pub mod filter_load {
+  use super::*;
+
+  use bitcoin_p2p_messages::message_bloom::{BloomFlags, FilterLoad};
+
+  #[derive(Clone, Debug, Eq, Hash, PartialEq, Unencodable, Serialize, Deserialize)]
+  enum FlagsRepr {
+    None,
+    All,
+    PubkeyOnly,
+  }
+
+  impl From<&BloomFlags> for FlagsRepr {
+    fn from(f: &BloomFlags) -> Self {
+      match f {
+        BloomFlags::None => Self::None,
+        BloomFlags::All => Self::All,
+        BloomFlags::PubkeyOnly => Self::PubkeyOnly,
+      }
+    }
+  }
+
+  impl From<FlagsRepr> for BloomFlags {
+    fn from(f: FlagsRepr) -> Self {
+      match f {
+        FlagsRepr::None => Self::None,
+        FlagsRepr::All => Self::All,
+        FlagsRepr::PubkeyOnly => Self::PubkeyOnly,
+      }
+    }
+  }
+
+  pub fn serialize<S: Serializer>(val: &FilterLoad, s: S) -> Result<S::Ok, S::Error> {
+    #[derive(Serialize)]
+    struct Ser<'a> {
+      filter: &'a [u8],
+      hash_funcs: u32,
+      tweak: u32,
+      flags: FlagsRepr,
+    }
+    Ser {
+      filter: &val.filter,
+      hash_funcs: val.hash_funcs,
+      tweak: val.tweak,
+      flags: FlagsRepr::from(&val.flags),
+    }
+    .serialize(s)
+  }
+
+  pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<FilterLoad, D::Error> {
+    #[derive(Deserialize)]
+    struct De {
+      filter: Vec<u8>,
+      hash_funcs: u32,
+      tweak: u32,
+      flags: FlagsRepr,
+    }
+    let r = De::deserialize(d)?;
+    Ok(FilterLoad {
+      filter: r.filter,
+      hash_funcs: r.hash_funcs,
+      tweak: r.tweak,
+      flags: r.flags.into(),
+    })
+  }
+}
+
+/// For [`FilterAdd`](bitcoin_p2p_messages::message_bloom::FilterAdd).
+pub mod filter_add {
+  use super::*;
+
+  use bitcoin_p2p_messages::message_bloom::FilterAdd;
+
+  pub fn serialize<S: Serializer>(val: &FilterAdd, s: S) -> Result<S::Ok, S::Error> {
+    #[derive(Serialize)]
+    struct Ser<'a> {
+      data: &'a [u8],
+    }
+    Ser { data: &val.data }.serialize(s)
+  }
+
+  pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<FilterAdd, D::Error> {
+    #[derive(Deserialize)]
+    struct De {
+      data: Vec<u8>,
+    }
+    let r = De::deserialize(d)?;
+    Ok(FilterAdd { data: r.data })
   }
 }
 
