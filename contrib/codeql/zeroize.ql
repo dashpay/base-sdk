@@ -143,7 +143,7 @@ predicate zeroizeSatisfied(TypeItem t) {
 /**
  * Holds if `t` reaches the wire through the wiping encoder pair.
  *
- * `impl_stype!`/`impl_sbyte!` emit `type Encoder = ArrEncoder<N>`; the plain
+ * `impl_stype!`/`impl_sbytes!` emit `type Encoder = ArrEncoder<N>`; the plain
  * `impl_type!`/`impl_bytes!` emit `type Encoder = VecEncoder`.
  */
 predicate usesSecretBridge(TypeItem t) {

@@ -137,10 +137,10 @@ pub const fn e8(h: &mut [u64; 16]) {
         }
         6 => {
           // Swap the two u64s in each pair
-          core::mem::swap(&mut h2, &mut h3);
-          core::mem::swap(&mut h6, &mut h7);
-          core::mem::swap(&mut ha, &mut hb);
-          core::mem::swap(&mut he, &mut hf);
+          ::core::mem::swap(&mut h2, &mut h3);
+          ::core::mem::swap(&mut h6, &mut h7);
+          ::core::mem::swap(&mut ha, &mut hb);
+          ::core::mem::swap(&mut he, &mut hf);
         }
         _ => {}
       }

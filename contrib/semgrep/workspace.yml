@@ -100,6 +100,23 @@ rules:
       include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
     pattern-regex: '\bimpl\b[^{]*\bInto\s*<.*>\s+for\b'
 
+  - id: macro-export-no-serde-cfg
+    message: "use `$crate::cfg_serde!` and `$crate::__private::serde` to root dependency and cfg flag to defining macro."
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include:
+        - /pkgs/**/*.rs
+      exclude:
+        - /pkgs/types/marker/**
+    pattern-regex: |-
+      (?sxm)
+      ^([ \t]*) \#\[macro_export\]
+      (?: \n\1 \#\[[^\]]*\] )*
+      \n\1 macro_rules!\s*\w+\s*\{
+      (?: (?!^\1\}) . )*?
+      (?: feature \s*=\s* "serde" | (?<![\w$:]) ::?serde:: )
+
   - id: macro-no-bare-foreign-crate
     message: >
       rooted foreign-crate paths (::crate::) in macros must route
@@ -115,6 +132,21 @@ rules:
       - pattern-regex: '(?<![:\w])::[a-z_0-9]+::'
       - pattern-not-regex: "::(?:core|alloc|std|serde)::"
       - pattern-not-regex: '\$crate::__private::'
+
+  - id: macro-no-bare-std-path
+    message: "root std-prefix paths (::core::, ::alloc::, ::std::) in macros"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include:
+        - /pkgs/**/*.rs
+      exclude:
+        - /pkgs/types/marker/**
+    pattern-regex: |-
+      (?sxm)
+      ^([ \t]*) macro_rules!\s*\w+\s*\{
+      (?: (?!^\1\}) . )*?
+      (?<![:\w$]) (?:core|alloc|std)::
 
   - id: prelude-no-use-alloc
     message: "use crate::prelude instead of alloc:: directly"

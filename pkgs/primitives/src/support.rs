@@ -10,7 +10,7 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::{enum_map, impl_num, impl_type, TypeId, Unencodable};
+use dash_types::{enum_map, impl_num, impl_type, CompactSize, TypeId, Unencodable};
 
 enum_map! {
   /// LLMQ type (quorum size/threshold configuration).
@@ -91,7 +91,7 @@ struct DynBitsetSerde {
 
 impl BaseCodec for DynBitset {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let num_bits = codec::read_compact_u64(data)?;
+    let num_bits = CompactSize::decode(data)?.get();
     let byte_len = usize::try_from(num_bits.div_ceil(8)).map_err(|_| DecodeError::CompactSizeExceedsLimit {
       limit: usize::MAX,
       value: num_bits,
@@ -114,7 +114,7 @@ impl BaseCodec for DynBitset {
   }
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
-    codec::write_compact_u64(self.num_bits, buf);
+    CompactSize::from(self.num_bits).encode(buf);
     let required = (self.num_bits as usize).div_ceil(8);
     let src = &self.data;
     let take = src.len().min(required);

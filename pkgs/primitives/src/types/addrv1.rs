@@ -24,7 +24,7 @@ const IPV4_MAPPED_PREFIX: [u8; 12] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
 #[derive(Clone, Copy, Default, Eq, Hash, PartialEq, TypeId)]
 pub struct AddrV1(pub [u8; 16]);
 
-impl_bytes!(16, AddrV1);
+impl_bytes!(AddrV1, 16);
 
 impl Checkable for AddrV1 {
   type Error = NetAddrError;
@@ -51,14 +51,19 @@ impl Checkable for AddrV1 {
 hash_impl!(AddrV1);
 
 impl AddrV1 {
-  /// Returns the inner byte array.
-  pub const fn to_bytes(self) -> [u8; 16] {
-    self.0
-  }
-
   /// Borrows the inner byte array.
   pub const fn as_bytes(&self) -> &[u8; 16] {
     &self.0
+  }
+
+  /// Wraps raw bytes without validation.
+  pub const fn from_bytes(bytes: [u8; 16]) -> Self {
+    Self(bytes)
+  }
+
+  /// Returns the inner byte array.
+  pub const fn to_bytes(self) -> [u8; 16] {
+    self.0
   }
 
   /// Returns `true` when every byte is zero.

@@ -13,8 +13,8 @@ use crate::{codec_base, codec_type, hash_impl};
 use bitcoin_hashes::sha256d;
 use dash_num::{make_hash, Arith256, CompactTarget, Hash256};
 use dash_pow::hash as pow_hash;
-use dash_types::codec::{ArrayBuf, BaseCodec, Checkable, Hashable};
-use dash_types::{TypeId, Unencodable};
+use dash_types::codec::{BaseCodec, Checkable, Hashable};
+use dash_types::{ArrayBuf, TypeId, Unencodable};
 
 use core::fmt;
 

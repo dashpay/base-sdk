@@ -4,217 +4,18 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Bridge utilities for `BaseCodec` types to `bitcoin_consensus_encoding`
-//! traits.
+//! Buffered codec implementation.
 
-use crate::codec::{ArrayBuf, DecodeError, EncodeBuf};
+use crate::codec::DecodeError;
 use crate::prelude::*;
 
 use bitcoin_consensus_encoding::{Decoder, Encoder};
-use zeroize::Zeroize;
 
 use core::convert::Infallible;
 use core::fmt;
 
 /// Maximum serialized object size (32 MiB).
 pub const MAX_SER_SIZE: usize = 0x0200_0000;
-
-/// Widest buffer [`ArrEncoder`] and [`ArrDecoder`] will wipe.
-pub const MAX_ARR_SIZE: usize = 512;
-
-/// A decoder that buffers all input and decodes in `end()`.
-///
-/// Wraps types with complex sequential decode logic (conditional fields,
-/// version branching) that cannot be expressed as a composable push-decoder
-/// without excessive boilerplate.
-pub struct BufferDecoder<T, E = Infallible> {
-  buf: Vec<u8>,
-  limit: usize,
-  decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>,
-}
-
-impl<T, E> BufferDecoder<T, E> {
-  /// Creates a new decoder with the given decode function and
-  /// maximum buffer size.
-  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>, limit: usize) -> Self {
-    Self {
-      buf: Vec::new(),
-      limit,
-      decode_fn,
-    }
-  }
-}
-
-impl<T, E> fmt::Debug for BufferDecoder<T, E> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("BufferDecoder")
-      .field("buf_len", &self.buf.len())
-      .field("limit", &self.limit)
-      .finish()
-  }
-}
-
-impl<T, E> Clone for BufferDecoder<T, E> {
-  fn clone(&self) -> Self {
-    Self {
-      buf: self.buf.clone(),
-      limit: self.limit,
-      decode_fn: self.decode_fn,
-    }
-  }
-}
-
-impl<T, E> Decoder for BufferDecoder<T, E> {
-  type Output = T;
-  type Error = DecodeError<E>;
-
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    let remaining = self.limit.saturating_sub(self.buf.len());
-    if remaining == 0 {
-      return Ok(false);
-    }
-    let take = bytes.len().min(remaining);
-    self.buf.extend_from_slice(&bytes[..take]);
-    *bytes = &bytes[take..];
-    Ok(true)
-  }
-
-  fn end(self) -> Result<Self::Output, Self::Error> {
-    let mut cursor = &self.buf[..];
-    let result = (self.decode_fn)(&mut cursor)?;
-    if !cursor.is_empty() {
-      return Err(DecodeError::TrailingBytes {
-        remaining: cursor.len(),
-      });
-    }
-    Ok(result)
-  }
-
-  fn read_limit(&self) -> usize {
-    self.limit.saturating_sub(self.buf.len())
-  }
-}
-
-/// An encoder for values whose encoded width is bounded at compile time.
-///
-/// Costs a byte-wise volatile write per byte of `N`, so it suits key material
-/// and other small fixed records, not block-sized payloads. [`MAX_ARR_SIZE`]
-/// caps `N` due to performance cost.
-pub struct ArrEncoder<const N: usize> {
-  data: ArrayBuf<N>,
-  done: bool,
-}
-
-impl<const N: usize> ArrEncoder<N> {
-  /// Wraps a filled buffer.
-  ///
-  /// Refuses to compile when `N` exceeds [`MAX_ARR_SIZE`].
-  pub const fn new(data: ArrayBuf<N>) -> Self {
-    const { assert!(N <= MAX_ARR_SIZE, "unusually large zeroized buffer") };
-    Self { data, done: false }
-  }
-}
-
-impl<const N: usize> fmt::Debug for ArrEncoder<N> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("ArrEncoder")
-      .field("len", &self.data.len())
-      .field("done", &self.done)
-      .finish()
-  }
-}
-
-impl<const N: usize> Drop for ArrEncoder<N> {
-  fn drop(&mut self) {
-    self.data.zeroize();
-  }
-}
-
-impl<const N: usize> Encoder for ArrEncoder<N> {
-  fn current_chunk(&self) -> &[u8] {
-    if self.done {
-      &[]
-    } else {
-      self.data.as_bytes()
-    }
-  }
-
-  fn advance(&mut self) -> bool {
-    if self.done {
-      false
-    } else {
-      self.done = true;
-      false
-    }
-  }
-}
-
-/// A decoder for values whose encoded width is bounded by `N`.
-pub struct ArrDecoder<T, const N: usize, E = Infallible> {
-  buf: ArrayBuf<N>,
-  decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>,
-}
-
-impl<T, const N: usize, E> ArrDecoder<T, N, E> {
-  /// Creates a decoder that accepts at most `N` bytes.
-  ///
-  /// Refuses to compile when `N` exceeds [`MAX_ARR_SIZE`].
-  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>) -> Self {
-    const { assert!(N <= MAX_ARR_SIZE, "unusually large zeroized buffer") };
-    Self {
-      buf: ArrayBuf::new(),
-      decode_fn,
-    }
-  }
-}
-
-impl<T, const N: usize, E> fmt::Debug for ArrDecoder<T, N, E> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("ArrDecoder")
-      .field("buf_len", &self.buf.len())
-      .field("limit", &N)
-      .finish()
-  }
-}
-
-impl<T, const N: usize, E> Drop for ArrDecoder<T, N, E> {
-  fn drop(&mut self) {
-    self.buf.zeroize();
-  }
-}
-
-impl<T, const N: usize, E> Decoder for ArrDecoder<T, N, E> {
-  type Output = T;
-  type Error = DecodeError<E>;
-
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    let remaining = self.buf.spare();
-    if remaining == 0 {
-      return Ok(false);
-    }
-    let take = bytes.len().min(remaining);
-    self.buf.extend_from_slice(&bytes[..take]);
-    *bytes = &bytes[take..];
-    Ok(true)
-  }
-
-  fn end(self) -> Result<Self::Output, Self::Error> {
-    // Borrow rather than destructure: `Drop` wipes the buffer on the way out,
-    // including on the early return below.
-    let mut cursor = self.buf.as_bytes();
-    let result = (self.decode_fn)(&mut cursor)?;
-    if !cursor.is_empty() {
-      return Err(DecodeError::TrailingBytes {
-        remaining: cursor.len(),
-      });
-    }
-    Ok(result)
-  }
-
-  fn read_limit(&self) -> usize {
-    self.buf.spare()
-  }
-}
 
 /// An encoder that wraps a pre-built byte vector.
 #[derive(Clone)]
@@ -258,15 +59,88 @@ impl Encoder for VecEncoder {
   }
 }
 
+/// A decoder that buffers all input and decodes in `end()`.
+///
+/// Wraps types with complex sequential decode logic (conditional fields,
+/// version branching) that cannot be expressed as a composable push-decoder
+/// without excessive boilerplate.
+pub struct VecDecoder<T, E = Infallible> {
+  buf: Vec<u8>,
+  limit: usize,
+  decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>,
+}
+
+impl<T, E> VecDecoder<T, E> {
+  /// Creates a new decoder with the given decode function and
+  /// maximum buffer size.
+  pub const fn new(decode_fn: fn(&mut &[u8]) -> Result<T, DecodeError<E>>, limit: usize) -> Self {
+    Self {
+      buf: Vec::new(),
+      limit,
+      decode_fn,
+    }
+  }
+}
+
+impl<T, E> fmt::Debug for VecDecoder<T, E> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("VecDecoder")
+      .field("buf_len", &self.buf.len())
+      .field("limit", &self.limit)
+      .finish()
+  }
+}
+
+impl<T, E> Clone for VecDecoder<T, E> {
+  fn clone(&self) -> Self {
+    Self {
+      buf: self.buf.clone(),
+      limit: self.limit,
+      decode_fn: self.decode_fn,
+    }
+  }
+}
+
+impl<T, E> Decoder for VecDecoder<T, E> {
+  type Output = T;
+  type Error = DecodeError<E>;
+
+  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
+    let remaining = self.limit.saturating_sub(self.buf.len());
+    if remaining == 0 {
+      return Ok(false);
+    }
+    let take = bytes.len().min(remaining);
+    self.buf.extend_from_slice(&bytes[..take]);
+    *bytes = &bytes[take..];
+    Ok(true)
+  }
+
+  fn end(self) -> Result<Self::Output, Self::Error> {
+    let mut cursor = &self.buf[..];
+    let result = (self.decode_fn)(&mut cursor)?;
+    if !cursor.is_empty() {
+      return Err(DecodeError::TrailingBytes {
+        remaining: cursor.len(),
+      });
+    }
+    Ok(result)
+  }
+
+  fn read_limit(&self) -> usize {
+    self.limit.saturating_sub(self.buf.len())
+  }
+}
+
 /// Generates `Encodable` + `Decodable` for a `BaseCodec` implementor.
 ///
-/// Stages through the growable [`VecEncoder`]/[`BufferDecoder`] pair. For
+/// Stages through the growable [`VecEncoder`]/[`VecDecoder`] pair. For
 /// secret material use [`impl_stype!`](crate::impl_stype) instead, which is
 /// the same generator over the wiping fixed-width pair.
 #[macro_export]
 macro_rules! impl_type {
   (@parse [$($impl_generics:tt)*] $ty:ty, $max:expr, $err:ty) => {
-    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
+    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
       type Encoder<'e> = $crate::VecEncoder;
       fn encoder(&self) -> Self::Encoder<'_> {
         let mut buf = ::alloc::vec::Vec::new();
@@ -275,10 +149,10 @@ macro_rules! impl_type {
       }
     }
 
-    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
-      type Decoder = $crate::BufferDecoder<$ty, $err>;
+    impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
+      type Decoder = $crate::VecDecoder<$ty, $err>;
       fn decoder() -> Self::Decoder {
-        $crate::BufferDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode, $max)
+        $crate::VecDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode, $max)
       }
     }
   };
@@ -293,152 +167,247 @@ macro_rules! impl_type {
     $crate::impl_type!(@parse [$($impl_generics)*] $ty, $crate::MAX_SER_SIZE);
   };
   (for[$($generic:tt)*] $($args:tt)*) => {
-    $crate::impl_type!(@parse [<$($generic)*>] $($args)*);
+    $crate::impl_type!(@parse [$($generic)*] $($args)*);
   };
   ($($args:tt)*) => {
     $crate::impl_type!(@parse [] $($args)*);
   };
 }
 
-/// Generates `Encodable` + `Decodable` for a `BaseCodec` implementor whose
-/// wire image is secret.
+/// Generates `BaseCodec` + `Encodable` + `Decodable` + `From<[u8; N]>` for a
+/// fixed-size byte newtype, expressed only through `from_bytes` / `as_bytes`.
+///
+/// Staged through the growable [`VecEncoder`]. For a newtype whose contents
+/// are secret use [`impl_sbytes!`](crate::impl_sbytes).
 #[macro_export]
-macro_rules! impl_stype {
-  (@parse [$($impl_generics:tt)*] $ty:ty, $n:expr, $err:ty) => {
-    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Encodable for $ty {
-      type Encoder<'e> = $crate::ArrEncoder<{ $n }>;
-      fn encoder(&self) -> Self::Encoder<'_> {
-        let mut buf = $crate::codec::ArrayBuf::<{ $n }>::new();
-        <$ty as $crate::codec::BaseCodec<$err>>::encode(self, &mut buf);
-        $crate::ArrEncoder::new(buf)
+macro_rules! impl_bytes {
+  // Shared by `impl_bytes!` and `impl_sbytes!`, only the encoder pair differs.
+  (@codec [$($g:tt)*] $ty:ty, $n:expr) => {
+    impl<$($g)*> $crate::codec::BaseCodec for $ty {
+      fn decode(
+        data: &mut &[u8],
+      ) -> Result<Self, $crate::codec::DecodeError> {
+        $crate::codec::take::<$n>(data).map(Self::from_bytes)
+      }
+
+      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
+        buf.extend_from_slice(self.as_bytes());
       }
     }
 
-    impl $($impl_generics)* $crate::__private::bitcoin_consensus_encoding::Decodable for $ty {
-      type Decoder = $crate::ArrDecoder<$ty, { $n }, $err>;
-      fn decoder() -> Self::Decoder {
-        $crate::ArrDecoder::new(<$ty as $crate::codec::BaseCodec<$err>>::decode)
-      }
+    impl<$($g)*> ::core::convert::From<[u8; $n]> for $ty {
+      fn from(bytes: [u8; $n]) -> Self { Self::from_bytes(bytes) }
     }
   };
-  (@parse [$($impl_generics:tt)*] $ty:ty, $n:expr) => {
-    $crate::impl_stype!(
-      @parse [$($impl_generics)*] $ty,
-      $n,
-      ::core::convert::Infallible
-    );
-  };
-  (@parse [$($impl_generics:tt)*] $ty:ty) => {
-    ::core::compile_error!(concat!(
-      "impl_stype! needs the fixed width of ",
-      stringify!($ty),
-      ": write impl_stype!(", stringify!($ty), ", N)"
-    ));
+  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+    $crate::impl_bytes!(@codec [$($g)*] $ty, $n);
+
+    $crate::impl_type!(@parse [$($g)*] $ty, $n);
   };
   (for[$($generic:tt)*] $($args:tt)*) => {
-    $crate::impl_stype!(@parse [<$($generic)*>] $($args)*);
+    $crate::impl_bytes!(@parse [$($generic)*] $($args)*);
   };
   ($($args:tt)*) => {
-    $crate::impl_stype!(@parse [] $($args)*);
+    $crate::impl_bytes!(@parse [] $($args)*);
   };
 }
 
-#[cfg(test)]
-mod tests {
-  use super::{ArrDecoder, ArrEncoder, BufferDecoder, VecEncoder, MAX_ARR_SIZE};
-  use crate::codec::{ArrayBuf, DecodeError, EncodeBuf};
-  use crate::prelude::*;
+/// The standard trait set for a fixed-size byte newtype, expressed only
+/// through `from_bytes` / `as_bytes`.
+///
+/// Emits `Clone`, `Copy`, `Default`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`,
+/// `Hash`, `is_null`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for
+/// [u8; N]`, a hex `Debug`/`Display`, and the hex `serde` pair.
+///
+/// For a newtype holding secrets use [`derive_sbytes!`](crate::derive_sbytes),
+/// which withholds everything that would read or copy out the plaintext.
+#[macro_export]
+macro_rules! derive_bytes {
+  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+    impl<$($g)*> ::core::clone::Clone for $ty {
+      fn clone(&self) -> Self { *self }
+    }
 
-  use bitcoin_consensus_encoding::{Decoder, Encoder};
-  use rstest::*;
-  use zeroize::Zeroize;
+    impl<$($g)*> ::core::marker::Copy for $ty {}
 
-  fn filled<const N: usize>(fill: u8, len: usize) -> ArrayBuf<N> {
-    let mut b = ArrayBuf::<N>::new();
-    b.extend_from_slice(&vec![fill; len]);
-    b
-  }
+    impl<$($g)*> ::core::default::Default for $ty {
+      fn default() -> Self { Self::from_bytes([0u8; $n]) }
+    }
 
-  /// Consumes the whole cursor, so `end()` sees no trailing bytes.
-  fn take_all(data: &mut &[u8]) -> Result<Vec<u8>, DecodeError> {
-    let out = data.to_vec();
-    *data = &[];
-    Ok(out)
-  }
+    impl<$($g)*> ::core::cmp::Eq for $ty {}
 
-  #[rstest]
-  fn arr_encoder_emits_written_prefix_only() {
-    // A short write into a wide buffer must not leak the zero padding.
-    let mut enc = ArrEncoder::new(filled::<64>(0xAB, 10));
-    assert_eq!(enc.current_chunk(), [0xAB; 10]);
-    assert!(!enc.advance());
-    assert_eq!(enc.current_chunk(), &[] as &[u8]);
-  }
+    impl<$($g)*> ::core::cmp::PartialEq for $ty {
+      fn eq(&self, other: &Self) -> bool { self.as_bytes() == other.as_bytes() }
+    }
 
-  /// The wipe itself. `Drop` on both types delegates straight to this, and
-  /// observing the freed storage directly would need `unsafe`, which the
-  /// workspace denies.
-  #[rstest]
-  fn arrbuf_zeroize_clears_contents_and_len() {
-    let mut buf = filled::<32>(0xCD, 32);
-    assert_eq!(buf.as_bytes(), [0xCD; 32]);
-    buf.zeroize();
-    assert_eq!(buf.len(), 0);
-    assert_eq!(buf.spare(), 32);
-    assert_eq!(buf.as_bytes(), &[] as &[u8]);
-    // Re-fill and confirm the backing array really was zeroed, not just the
-    // length reset.
-    buf.extend_from_slice(&[0u8; 32]);
-    assert_eq!(buf.as_bytes(), [0u8; 32]);
-  }
+    impl<$($g)*> ::core::cmp::Ord for $ty {
+      fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
+        self.as_bytes().cmp(other.as_bytes())
+      }
+    }
 
-  /// The cap is a compile-time assert, so only the accepted side is testable
-  /// here; `N` above the bound fails to build with "unusually large zeroized
-  /// buffer" wherever the encoder or decoder is instantiated.
-  #[rstest]
-  fn max_width_is_accepted() {
-    let enc = ArrEncoder::new(ArrayBuf::<{ MAX_ARR_SIZE }>::new());
-    assert_eq!(enc.current_chunk(), &[] as &[u8]);
-    let dec = ArrDecoder::<Vec<u8>, { MAX_ARR_SIZE }>::new(take_all);
-    assert_eq!(dec.read_limit(), MAX_ARR_SIZE);
-  }
+    impl<$($g)*> ::core::cmp::PartialOrd for $ty {
+      fn partial_cmp(&self, other: &Self) -> ::core::option::Option<::core::cmp::Ordering> {
+        ::core::option::Option::Some(::core::cmp::Ord::cmp(self, other))
+      }
+    }
 
-  #[rstest]
-  fn arr_decoder_roundtrips_and_bounds_reads() {
-    let mut dec = ArrDecoder::<Vec<u8>, 8>::new(take_all);
-    assert_eq!(dec.read_limit(), 8);
-    let mut input: &[u8] = &[1, 2, 3];
-    assert!(dec.push_bytes(&mut input).unwrap_or(false));
-    assert!(input.is_empty());
-    assert_eq!(dec.read_limit(), 5);
-    assert_eq!(dec.end().unwrap_or_default(), vec![1, 2, 3]);
-  }
+    impl<$($g)*> ::core::hash::Hash for $ty {
+      fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+        ::core::hash::Hash::hash(self.as_bytes(), state);
+      }
+    }
 
-  #[rstest]
-  fn arr_decoder_stops_at_capacity() {
-    let mut dec = ArrDecoder::<Vec<u8>, 4>::new(take_all);
-    let mut input: &[u8] = &[9; 10];
-    assert!(dec.push_bytes(&mut input).unwrap_or(false));
-    assert_eq!(input.len(), 6, "excess must be left for the caller");
-    assert_eq!(dec.read_limit(), 0);
-    assert!(!dec.push_bytes(&mut input).unwrap_or(true));
-  }
+    impl<$($g)*> ::core::convert::AsRef<[u8]> for $ty {
+      fn as_ref(&self) -> &[u8] { self.as_bytes() }
+    }
 
-  /// Both encoders redact: a `{:?}` in a panic must not print key material.
-  #[rstest]
-  fn debug_impls_redact_contents() {
-    let enc = ArrEncoder::new(filled::<8>(0xFF, 8));
-    let dbg = format!("{enc:?}");
-    assert!(!dbg.contains("255") && !dbg.contains("ff"), "{dbg}");
-    assert!(dbg.contains("len: 8"));
+    impl<$($g)*> ::core::convert::AsRef<[u8; $n]> for $ty {
+      fn as_ref(&self) -> &[u8; $n] { self.as_bytes() }
+    }
 
-    let venc = VecEncoder::new(vec![0xFFu8; 8]);
-    assert!(!format!("{venc:?}").contains("255"));
+    impl<$($g)*> ::core::convert::From<$ty> for [u8; $n] {
+      fn from(val: $ty) -> Self { *val.as_bytes() }
+    }
 
-    let vdec = BufferDecoder::<Vec<u8>>::new(take_all, 16);
-    assert!(format!("{vdec:?}").contains("limit: 16"));
+    impl<$($g)*> $ty {
+      /// Returns `true` when every byte is zero.
+      pub fn is_null(&self) -> bool { self.as_bytes().iter().all(|&b| b == 0) }
+    }
 
-    let adec = ArrDecoder::<Vec<u8>, 16>::new(take_all);
-    assert!(format!("{adec:?}").contains("limit: 16"));
-  }
+    impl<$($g)*> ::core::fmt::Debug for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
+        f.write_str("(")?;
+        ::core::fmt::Display::fmt(self, f)?;
+        f.write_str(")")
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::Display for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        for byte in self.as_bytes() {
+          ::core::write!(f, "{byte:02x}")?;
+        }
+        ::core::result::Result::Ok(())
+      }
+    }
+
+    $crate::cfg_serde! {
+      impl<$($g)*> $crate::__private::serde::Serialize for $ty {
+        fn serialize<Z>(&self, serializer: Z) -> Result<Z::Ok, Z::Error>
+        where
+          Z: $crate::__private::serde::Serializer,
+        {
+          use $crate::__private::hex_conservative::DisplayHex as _;
+          serializer.serialize_str(&self.as_bytes().to_lower_hex_string())
+        }
+      }
+
+      impl<'de, $($g)*> $crate::__private::serde::Deserialize<'de> for $ty {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+          D: $crate::__private::serde::Deserializer<'de>,
+        {
+          use $crate::__private::serde::de::Error as _;
+          let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
+          <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
+            .map(Self::from_bytes)
+            .map_err(D::Error::custom)
+        }
+      }
+    }
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::derive_bytes!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::derive_bytes!(@parse [] $($args)*);
+  };
+}
+
+/// Declares a fixed-size byte newtype over `[u8; N]` with the `from_bytes` /
+/// `to_bytes` / `as_bytes` accessors.
+///
+/// Invokes [`impl_bytes!`](crate::impl_bytes) and
+/// [`derive_bytes!`](crate::derive_bytes). A newtype that needs a validating
+/// constructor, a scheme tag, or its own trait set should define itself and
+/// invoke those macros manually.
+#[macro_export]
+macro_rules! make_bytes {
+  (
+    $(#[$attr:meta])*
+    $name:ident, $n:literal
+  ) => {
+    $(#[$attr])*
+    #[derive($crate::TypeId)]
+    pub struct $name(pub [u8; $n]);
+
+    $crate::impl_bytes!($name, $n);
+
+    $crate::derive_bytes!($name, $n);
+
+    impl $name {
+      /// Wraps raw bytes without validation.
+      pub const fn from_bytes(bytes: [u8; $n]) -> Self {
+        Self(bytes)
+      }
+
+      /// Returns the inner byte array.
+      pub const fn to_bytes(self) -> [u8; $n] {
+        self.0
+      }
+
+      /// Borrows the inner byte array.
+      pub const fn as_bytes(&self) -> &[u8; $n] {
+        &self.0
+      }
+    }
+  };
+}
+
+/// Delegates `BaseCodec`, `Hashable`, and `impl_type!` through another type.
+///
+/// Decode is fallible: `$bytes` is unvalidated, so `TryFrom<$bytes>` guards
+/// the operational type. Encode is not: the value is already valid, so
+/// `From<&$ops> for $bytes` must exist and must be infallible, since a failing
+/// encode could only emit nothing or a placeholder, corrupting the wire image.
+///
+/// `$max` bounds the `impl_type!` decoder buffer to the wrapped type's own
+/// maximum encoded length. For a secret wire image use
+/// [`dlgt_scodec!`](crate::dlgt_scodec).
+#[macro_export]
+macro_rules! dlgt_codec {
+  // Shared by `dlgt_codec!` and `dlgt_scodec!`, only the encoder pair differs.
+  (@delegate [$($impl_generics:tt)*] $ops:ty => $bytes:ty, $hash:ty, $err:ty) => {
+    impl<$($impl_generics)*> $crate::codec::BaseCodec<$err> for $ops {
+      fn decode(data: &mut &[u8]) -> Result<Self, $crate::codec::DecodeError<$err>> {
+        let inner = <$bytes as $crate::codec::BaseCodec>::decode(data).map_err(|e| e.lift())?;
+        Self::try_from(inner).map_err($crate::codec::DecodeError::DecError)
+      }
+
+      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
+        $crate::codec::BaseCodec::encode(&<$bytes as ::core::convert::From<&Self>>::from(self), buf);
+      }
+    }
+
+    impl<$($impl_generics)*> $crate::codec::Hashable for $ops {
+      type Hash = $hash;
+
+      fn hash(&self) -> $hash {
+        $crate::codec::Hashable::hash(&<$bytes as ::core::convert::From<&Self>>::from(self))
+      }
+    }
+  };
+  (@parse [$($impl_generics:tt)*] $ops:ty => $bytes:ty, $hash:ty, $err:ty, $max:expr) => {
+    $crate::dlgt_codec!(@delegate [$($impl_generics)*] $ops => $bytes, $hash, $err);
+
+    $crate::impl_type!(@parse [$($impl_generics)*] $ops, $max, $err);
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::dlgt_codec!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::dlgt_codec!(@parse [] $($args)*);
+  };
 }

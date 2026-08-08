@@ -11,11 +11,9 @@ use crate::prelude::*;
 
 use bitcoin_hashes::{ripemd160, sha256};
 use cfg_if::cfg_if;
-use dash_types::codec::{
-  read_bytes, read_compact_size, write_compact_size, BaseCodec, DecodeError, EncodeBuf, Hashable,
-};
+use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
 use dash_types::TypeId;
-use dash_types::{enum_map, impl_type};
+use dash_types::{enum_map, impl_type, CompactSize};
 
 use core::cmp::Ordering;
 use core::fmt;
@@ -71,7 +69,7 @@ pub struct EcdsaPkBytes {
 
 impl BaseCodec for EcdsaPkBytes {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let n = read_compact_size(data, ECDSA_PK_LEN + 1)?;
+    let n = CompactSize::decode(data)?.into_len(ECDSA_PK_LEN + 1)?;
     let raw = read_bytes(data, n)?;
     let prefix = raw
       .first()
@@ -91,7 +89,7 @@ impl BaseCodec for EcdsaPkBytes {
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
     let bytes = self.as_bytes();
-    write_compact_size(bytes.len(), buf);
+    CompactSize::from(bytes.len()).encode(buf);
     buf.extend_from_slice(bytes); // nosemgrep: codec-no-raw-extend
   }
 }

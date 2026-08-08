@@ -9,8 +9,8 @@
 use crate::prelude::*;
 
 use base58ck::encode_check;
-use dash_types::codec::{ArrayBuf, BaseCodec, EncodeBuf};
-use dash_types::make_bytes;
+use dash_types::codec::{BaseCodec, EncodeBuf};
+use dash_types::{make_bytes, ArrayBuf};
 
 make_bytes! {
   /// 20-byte public key hash.

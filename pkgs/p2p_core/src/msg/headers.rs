@@ -11,8 +11,8 @@ use crate::prelude::*;
 use crate::primitives::ProtocolVersion;
 
 use dash_primitives::{hash_impl, BlockHash, BlockHeader, MerkleRoot};
-use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::TypeId;
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{CompactSize, TypeId};
 
 /// Maximum headers per message.
 const MAX_HEADERS: usize = 2_000;
@@ -50,7 +50,7 @@ impl_p2p!(Headers);
 
 impl BaseCodec for Headers {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let count = codec::read_compact_size(data, MAX_HEADERS)?;
+    let count = CompactSize::decode(data)?.into_len(MAX_HEADERS)?;
     let mut headers = Vec::with_capacity(count);
     for _ in 0..count {
       headers.push(BlockHeader {
@@ -62,13 +62,13 @@ impl BaseCodec for Headers {
         nonce: u32::decode(data)?,
       });
       // Consume the trailing tx_count (always 0).
-      codec::read_compact_size(data, 0)?;
+      CompactSize::decode(data)?.into_len(0)?;
     }
     Ok(Self { headers })
   }
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
-    codec::write_compact_size(self.headers.len(), buf);
+    CompactSize::from(self.headers.len()).encode(buf);
     for h in &self.headers {
       h.version.encode(buf);
       h.prev_hash.encode(buf);

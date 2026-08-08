@@ -15,19 +15,22 @@ extern crate std;
 
 #[allow(unused_macros, reason = "used by feature-gated submodules")]
 mod adapters;
+mod compact;
 mod entity;
-mod hex;
 mod macros;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
+mod secret;
 mod uint;
 
 pub mod codec;
 #[cfg(feature = "serde")]
 pub mod serialize;
 
+pub use compact::CompactSize;
 pub use dash_types_marker::{TypeId, Unencodable};
-pub use entity::{ArrDecoder, ArrEncoder, BufferDecoder, VecEncoder, MAX_ARR_SIZE, MAX_SER_SIZE};
+pub use entity::{VecDecoder, VecEncoder, MAX_SER_SIZE};
+pub use secret::{qtypestr, ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
 
 #[doc(hidden)]
 pub mod __private {
@@ -37,4 +40,8 @@ pub mod __private {
   pub use bitcoin_consensus_encoding;
   #[cfg(feature = "serde")]
   pub use hex_conservative;
+  #[cfg(feature = "serde")]
+  pub use serde;
+  pub use subtle;
+  pub use zeroize;
 }

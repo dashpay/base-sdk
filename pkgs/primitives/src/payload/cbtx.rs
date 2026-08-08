@@ -11,8 +11,8 @@ use crate::{hash_impl, MerkleRoot};
 
 use bitcoin_units::BlockHeight;
 use dash_pkc::bls::{BlsScIetf, BlsSigBytes};
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
-use dash_types::{TypeId, Unencodable};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
+use dash_types::{CompactSize, TypeId, Unencodable};
 
 use core::fmt;
 
@@ -55,7 +55,7 @@ impl BaseCodec for CoinbaseCommitment {
     };
     let (best_cl_height_diff, best_cl_signature, credit_pool_balance) = if version >= 3 {
       (
-        Some(codec::read_compact_u64(data)?),
+        Some(CompactSize::decode(data)?.get()),
         Some(BlsSigBytes::<BlsScIetf>::decode(data)?),
         Some(i64::decode(data)?),
       )
@@ -86,7 +86,7 @@ impl BaseCodec for CoinbaseCommitment {
       self.best_cl_signature,
       self.credit_pool_balance,
     ) {
-      codec::write_compact_u64(diff, buf);
+      CompactSize::from(diff).encode(buf);
       sig.encode(buf);
       bal.encode(buf);
     }

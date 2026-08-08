@@ -12,7 +12,7 @@ use crate::primitives::ServiceFlags;
 
 use dash_primitives::{hash_impl, AddrV2, ServiceV1};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::TypeId;
+use dash_types::{CompactSize, TypeId};
 
 use core::fmt;
 
@@ -47,7 +47,7 @@ pub struct AddrV2Entry {
 impl BaseCodec for AddrV2Entry {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let time = u32::decode(data)?;
-    let services = ServiceFlags(codec::read_compact_u64(data)?);
+    let services = ServiceFlags(CompactSize::decode(data)?.get());
     let addr = AddrV2::decode(data)?;
     let port = codec::read_u16_be(data)?;
     Ok(Self {
@@ -60,7 +60,7 @@ impl BaseCodec for AddrV2Entry {
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
     self.time.encode(buf);
-    codec::write_compact_u64(self.services.0, buf);
+    CompactSize::from(self.services.0).encode(buf);
     self.addr.encode(buf);
     buf.extend_from_slice(&self.port.to_be_bytes());
   }

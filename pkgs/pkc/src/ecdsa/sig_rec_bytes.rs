@@ -13,10 +13,8 @@ use crate::prelude::*;
 use bitcoin_hashes::sha256d;
 use cfg_if::cfg_if;
 use dash_num::Hash256;
-use dash_types::codec::{
-  read_bytes, read_compact_size, write_compact_size, BaseCodec, DecodeError, EncodeBuf, Hashable,
-};
-use dash_types::{enum_map, impl_type, type_cvrt, TypeId};
+use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
+use dash_types::{enum_map, impl_type, type_cvrt, CompactSize, TypeId};
 
 use core::fmt;
 
@@ -91,7 +89,7 @@ pub struct EcdsaRecSigBytes {
 
 impl BaseCodec for EcdsaRecSigBytes {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    let n = read_compact_size(data, ECDSA_SIG_LEN + 1)?;
+    let n = CompactSize::decode(data)?.into_len(ECDSA_SIG_LEN + 1)?;
     if n != ECDSA_SIG_LEN + 1 {
       return Err(DecodeError::BadLen {
         expected: vec![ECDSA_SIG_LEN + 1],
@@ -115,7 +113,7 @@ impl BaseCodec for EcdsaRecSigBytes {
   }
 
   fn encode(&self, buf: &mut impl EncodeBuf) {
-    write_compact_size(ECDSA_SIG_LEN + 1, buf);
+    CompactSize::from(ECDSA_SIG_LEN + 1).encode(buf);
     buf.push(self.flags.to_base());
     let sig = self.sig.as_bytes();
     buf.extend_from_slice(sig); // nosemgrep: codec-no-raw-extend

@@ -6,34 +6,30 @@
 
 //! Reusable serde helpers for `#[serde(with = "...")]`.
 
-// nosemgrep: use-pub-roots-only
-pub use crate::hex::serde as hex;
-
-/// UTF-8 serde for `Vec<u8>` fields that hold text.
-pub mod utf8 {
+/// Wire-order hex for `Vec<u8>`.
+pub mod hex {
   use crate::prelude::*;
 
-  use core::str::from_utf8;
+  use hex_conservative::{DisplayHex, FromHex};
 
-  /// Serializes bytes as a UTF-8 string.
+  /// Serializes bytes as a wire-order hex string.
   ///
   /// # Errors
   ///
-  /// Returns a serialization error when bytes are not valid UTF-8.
+  /// Returns a serialization error when the serializer rejects the string.
   pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
-    let s = from_utf8(data).map_err(::serde::ser::Error::custom)?;
-    serializer.serialize_str(s)
+    serializer.serialize_str(&data.to_lower_hex_string())
   }
 
-  /// Deserializes a string into bytes.
+  /// Deserializes a hex string into bytes.
   ///
   /// # Errors
   ///
-  /// Returns a deserialization error when the input is not
-  /// a valid string.
+  /// Returns a deserialization error when the input is not a string, or when
+  /// it is not valid hex.
   pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
     let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
-    Ok(s.into_bytes())
+    Vec::<u8>::from_hex(&s).map_err(::serde::de::Error::custom)
   }
 }
 
@@ -65,5 +61,32 @@ pub mod str_u64 {
     }
 
     d.deserialize_any(Visitor)
+  }
+}
+
+/// UTF-8 serde for `Vec<u8>` fields that hold text.
+pub mod utf8 {
+  use crate::prelude::*;
+
+  use core::str::from_utf8;
+
+  /// Serializes bytes as a UTF-8 string.
+  ///
+  /// # Errors
+  ///
+  /// Returns a serialization error when bytes are not valid UTF-8.
+  pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
+    let s = from_utf8(data).map_err(::serde::ser::Error::custom)?;
+    serializer.serialize_str(s)
+  }
+
+  /// Deserializes a string into bytes.
+  ///
+  /// # Errors
+  ///
+  /// Returns a deserialization error when the input is not a valid string.
+  pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
+    let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
+    Ok(s.into_bytes())
   }
 }

@@ -14,7 +14,7 @@ use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{impl_type, type_cvrt, TypeId};
+use dash_types::{impl_type, type_cvrt, CompactSize, TypeId};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};
@@ -50,7 +50,7 @@ impl BaseCodec for AddrV2 {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let net_byte = u8::decode(data)?;
     let network = NetworkType::from_base(net_byte);
-    let len = codec::read_compact_size(data, MAX_ADDR_LEN)?;
+    let len = CompactSize::decode(data)?.into_len(MAX_ADDR_LEN)?;
     if let Some(expected) = network.expected_len() {
       if len != expected {
         return Err(DecodeError::BadLen {
@@ -101,7 +101,7 @@ impl BaseCodec for AddrV2 {
   fn encode(&self, buf: &mut impl EncodeBuf) {
     self.network().to_base().encode(buf);
     let bytes = self.bytes();
-    codec::write_compact_size(bytes.len(), buf);
+    CompactSize::from(bytes.len()).encode(buf);
     buf.extend_from_slice(bytes); // nosemgrep: codec-no-raw-extend
   }
 }

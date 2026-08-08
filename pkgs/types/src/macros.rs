@@ -6,6 +6,29 @@
 
 //! Shared macro definitions.
 
+/// Emits its body only when *this* crate has the `serde` feature.
+///
+/// `#[cfg(feature = "serde")]` written inside an exported macro resolves
+/// against the invoking crate, which doesn't need have a `serde` feature at
+/// all. This marker is compiled here, so it tracks `dash-types` instead.
+///
+/// The two arms must stay plain `#[cfg]` items. Wrapping them in `cfg_if!`
+/// makes the definition macro-expanded, and a macro-expanded `#[macro_export]`
+/// macro cannot be reached by `$crate::` from its own crate (rust#52234).
+#[cfg(feature = "serde")]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_serde {
+  ($($item:tt)*) => { $($item)* };
+}
+
+#[cfg(not(feature = "serde"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_serde {
+  ($($item:tt)*) => {};
+}
+
 /// Maps enum variants to integer constants and display strings.
 ///
 /// Generates the enum definition, integer mapping (via `NumCodec` or inherent
@@ -227,10 +250,10 @@ macro_rules! enum_map {
   (@display_catch_all $enum:ident, $catch_all:ident {
     $($variant:ident = $display:expr),+
   }) => {
-    impl core::fmt::Display for $enum {
+    impl ::core::fmt::Display for $enum {
       fn fmt(
-        &self, f: &mut core::fmt::Formatter<'_>,
-      ) -> core::fmt::Result {
+        &self, f: &mut ::core::fmt::Formatter<'_>,
+      ) -> ::core::fmt::Result {
         match self {
           $(Self::$variant => f.write_str($display),)+
           Self::$catch_all(v) => write!(f, "unknown({v})"),
@@ -242,10 +265,10 @@ macro_rules! enum_map {
   (@display $enum:ident {
     $($variant:ident = $display:expr),+
   }) => {
-    impl core::fmt::Display for $enum {
+    impl ::core::fmt::Display for $enum {
       fn fmt(
-        &self, f: &mut core::fmt::Formatter<'_>,
-      ) -> core::fmt::Result {
+        &self, f: &mut ::core::fmt::Formatter<'_>,
+      ) -> ::core::fmt::Result {
         match self {
           $(Self::$variant => f.write_str($display),)+
         }
@@ -259,73 +282,36 @@ macro_rules! enum_map {
 #[macro_export]
 macro_rules! type_cvrt {
   (@parse [$($impl_generics:tt)*] From<$src:ty> for $dst:ty, |$v:ident| $body:expr) => {
-    impl $($impl_generics)* core::convert::From<&$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::From<&$src> for $dst {
       fn from($v: &$src) -> Self {
         $body
       }
     }
-    impl $($impl_generics)* core::convert::From<$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::From<$src> for $dst {
       fn from(v: $src) -> Self {
         Self::from(&v)
       }
     }
   };
   (@parse [$($impl_generics:tt)*] TryFrom<$src:ty> for $dst:ty, $err:ty, |$v:ident| $body:expr) => {
-    impl $($impl_generics)* core::convert::TryFrom<&$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::TryFrom<&$src> for $dst {
       type Error = $err;
       fn try_from($v: &$src) -> Result<Self, Self::Error> {
         $body
       }
     }
-    impl $($impl_generics)* core::convert::TryFrom<$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::TryFrom<$src> for $dst {
       type Error = $err;
       fn try_from(v: $src) -> Result<Self, Self::Error> {
         Self::try_from(&v)
       }
     }
   };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::type_cvrt!(@parse [$($generic)*] $($args)*);
+  };
   ($($args:tt)*) => {
     $crate::type_cvrt!(@parse [] $($args)*);
-  };
-}
-
-/// Delegates `BaseCodec`, `Hashable`, and `impl_type!` through another type.
-///
-/// Decoding is fallible (`$bytes` is unvalidated, so `TryFrom` guards the
-/// operational type), encoding is not: the operational type is already valid,
-/// so `From<&$ops> for $bytes` must exist.
-///
-/// An encode direction that could fail would have to either emit nothing or
-/// hash a placeholder, both of which silently corrupt the wire image.
-///
-/// `$max` bounds the `impl_type!` decoder buffer to the wrapped type's own
-/// maximum encoded length.
-#[macro_export]
-macro_rules! dlgt_codec {
-  (@parse [$($impl_generics:tt)*] $ops:ty => $bytes:ty, $hash:ty, $err:ty, $max:expr) => {
-    impl $($impl_generics)* $crate::codec::BaseCodec<$err> for $ops {
-      fn decode(data: &mut &[u8]) -> Result<Self, $crate::codec::DecodeError<$err>> {
-        let inner = <$bytes as $crate::codec::BaseCodec>::decode(data).map_err(|e| e.lift())?;
-        Self::try_from(inner).map_err($crate::codec::DecodeError::DecError)
-      }
-
-      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
-        <$bytes as core::convert::From<&Self>>::from(self).encode(buf);
-      }
-    }
-
-    impl $($impl_generics)* $crate::codec::Hashable for $ops {
-      type Hash = $hash;
-
-      fn hash(&self) -> $hash {
-        $crate::codec::Hashable::hash(&<$bytes as core::convert::From<&Self>>::from(self))
-      }
-    }
-
-    $crate::impl_type!(@parse [$($impl_generics)*] $ops, $max, $err);
-  };
-  ($($args:tt)*) => {
-    $crate::dlgt_codec!(@parse [] $($args)*);
   };
 }
 

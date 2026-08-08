@@ -10,10 +10,9 @@ use crate::bls::BlsSchemeId;
 
 use bitcoin_hashes::sha256d::Hash as Sha256d;
 use dash_num::Hash256;
-use dash_types::codec::{take, BaseCodec, DecodeError, EncodeBuf, Hashable, TypeId};
-use dash_types::{derive_bytes, impl_type};
+use dash_types::codec::{Hashable, TypeId};
+use dash_types::{derive_bytes, impl_bytes};
 
-use core::fmt;
 use core::marker::PhantomData;
 
 /// Raw BLS public key length (G1 compressed).
@@ -25,17 +24,7 @@ pub struct BlsPkBytes<S: BlsSchemeId> {
   _scheme: PhantomData<S>,
 }
 
-impl<S: BlsSchemeId> BaseCodec for BlsPkBytes<S> {
-  fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
-    take::<BLS_PK_LEN>(data).map(Self::from_bytes)
-  }
-
-  fn encode(&self, buf: &mut impl EncodeBuf) {
-    buf.extend_from_slice(&self.inner); // nosemgrep: codec-no-raw-extend
-  }
-}
-
-impl_type!(for[S: BlsSchemeId] BlsPkBytes<S>, BLS_PK_LEN);
+impl_bytes!(for[S: BlsSchemeId] BlsPkBytes<S>, BLS_PK_LEN);
 
 impl<S: BlsSchemeId> Hashable for BlsPkBytes<S> {
   type Hash = Hash256;
@@ -63,11 +52,6 @@ impl<S: BlsSchemeId> BlsPkBytes<S> {
   pub const fn into_bytes(self) -> [u8; BLS_PK_LEN] {
     self.inner
   }
-
-  /// Returns `true` when every byte is zero.
-  pub fn is_null(&self) -> bool {
-    self.inner.iter().all(|&b| b == 0)
-  }
 }
 
 impl<S: BlsSchemeId> TypeId for BlsPkBytes<S> {
@@ -75,22 +59,3 @@ impl<S: BlsSchemeId> TypeId for BlsPkBytes<S> {
 }
 
 derive_bytes!(for[S: BlsSchemeId] BlsPkBytes<S>, BLS_PK_LEN);
-
-impl<S: BlsSchemeId> fmt::Debug for BlsPkBytes<S> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "BlsPkBytes<{}>(", S::LABEL)?;
-    for byte in &self.inner {
-      write!(f, "{byte:02x}")?;
-    }
-    write!(f, ")")
-  }
-}
-
-impl<S: BlsSchemeId> fmt::Display for BlsPkBytes<S> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    for byte in &self.inner {
-      write!(f, "{byte:02x}")?;
-    }
-    Ok(())
-  }
-}
