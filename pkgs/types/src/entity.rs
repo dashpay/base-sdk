@@ -275,8 +275,8 @@ macro_rules! derive_bytes {
       pub fn is_null(&self) -> bool { self.as_bytes().iter().all(|&b| b == 0) }
     }
 
-    impl<$($g)*> core::fmt::Debug for $ty {
-      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    impl<$($g)*> ::core::fmt::Debug for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
         f.write_str("(")?;
         ::core::fmt::Display::fmt(self, f)?;
@@ -284,8 +284,8 @@ macro_rules! derive_bytes {
       }
     }
 
-    impl<$($g)*> core::fmt::Display for $ty {
-      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    impl<$($g)*> ::core::fmt::Display for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         for byte in self.as_bytes() {
           ::core::write!(f, "{byte:02x}")?;
         }
@@ -381,7 +381,7 @@ macro_rules! dlgt_codec {
       }
 
       fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
-        $crate::codec::BaseCodec::encode(&<$bytes as core::convert::From<&Self>>::from(self), buf);
+        $crate::codec::BaseCodec::encode(&<$bytes as ::core::convert::From<&Self>>::from(self), buf);
       }
     }
 
@@ -389,7 +389,7 @@ macro_rules! dlgt_codec {
       type Hash = $hash;
 
       fn hash(&self) -> $hash {
-        $crate::codec::Hashable::hash(&<$bytes as core::convert::From<&Self>>::from(self))
+        $crate::codec::Hashable::hash(&<$bytes as ::core::convert::From<&Self>>::from(self))
       }
     }
   };

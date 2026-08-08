@@ -88,19 +88,19 @@ macro_rules! make_hash {
       fn default() -> Self { Self::ZERO }
     }
 
-    impl core::fmt::Display for $name {
-      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        core::fmt::Display::fmt(&self.0, f)
+    impl ::core::fmt::Display for $name {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        ::core::fmt::Display::fmt(&self.0, f)
       }
     }
 
-    impl core::fmt::Debug for $name {
-      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    impl ::core::fmt::Debug for $name {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         write!(f, "{}({})", stringify!($name), self.0)
       }
     }
 
-    impl core::str::FromStr for $name {
+    impl ::core::str::FromStr for $name {
       type Err = $crate::ParseHexError;
 
       fn from_str(s: &str) -> Result<Self, Self::Err> {

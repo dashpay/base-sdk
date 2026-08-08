@@ -232,14 +232,14 @@ macro_rules! define_hash {
     }
 
     impl Ord for $name {
-      fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+      fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
         // Lexicographic on raw bytes (consensus ordering).
         self.0.cmp(&other.0)
       }
     }
 
     impl PartialOrd for $name {
-      fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+      fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
         Some(self.cmp(other))
       }
     }

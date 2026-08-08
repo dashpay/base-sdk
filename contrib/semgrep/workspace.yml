@@ -116,6 +116,21 @@ rules:
       - pattern-not-regex: "::(?:core|alloc|std|serde)::"
       - pattern-not-regex: '\$crate::__private::'
 
+  - id: macro-no-bare-std-path
+    message: "root std-prefix paths (::core::, ::alloc::, ::std::) in macros"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include:
+        - /pkgs/**/*.rs
+      exclude:
+        - /pkgs/types/marker/**
+    pattern-regex: |-
+      (?sxm)
+      ^([ \t]*) macro_rules!\s*\w+\s*\{
+      (?: (?!^\1\}) . )*?
+      (?<![:\w$]) (?:core|alloc|std)::
+
   - id: prelude-no-use-alloc
     message: "use crate::prelude instead of alloc:: directly"
     severity: ERROR

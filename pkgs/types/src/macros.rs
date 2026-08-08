@@ -227,10 +227,10 @@ macro_rules! enum_map {
   (@display_catch_all $enum:ident, $catch_all:ident {
     $($variant:ident = $display:expr),+
   }) => {
-    impl core::fmt::Display for $enum {
+    impl ::core::fmt::Display for $enum {
       fn fmt(
-        &self, f: &mut core::fmt::Formatter<'_>,
-      ) -> core::fmt::Result {
+        &self, f: &mut ::core::fmt::Formatter<'_>,
+      ) -> ::core::fmt::Result {
         match self {
           $(Self::$variant => f.write_str($display),)+
           Self::$catch_all(v) => write!(f, "unknown({v})"),
@@ -242,10 +242,10 @@ macro_rules! enum_map {
   (@display $enum:ident {
     $($variant:ident = $display:expr),+
   }) => {
-    impl core::fmt::Display for $enum {
+    impl ::core::fmt::Display for $enum {
       fn fmt(
-        &self, f: &mut core::fmt::Formatter<'_>,
-      ) -> core::fmt::Result {
+        &self, f: &mut ::core::fmt::Formatter<'_>,
+      ) -> ::core::fmt::Result {
         match self {
           $(Self::$variant => f.write_str($display),)+
         }
@@ -259,25 +259,25 @@ macro_rules! enum_map {
 #[macro_export]
 macro_rules! type_cvrt {
   (@parse [$($impl_generics:tt)*] From<$src:ty> for $dst:ty, |$v:ident| $body:expr) => {
-    impl<$($impl_generics)*> core::convert::From<&$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::From<&$src> for $dst {
       fn from($v: &$src) -> Self {
         $body
       }
     }
-    impl<$($impl_generics)*> core::convert::From<$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::From<$src> for $dst {
       fn from(v: $src) -> Self {
         Self::from(&v)
       }
     }
   };
   (@parse [$($impl_generics:tt)*] TryFrom<$src:ty> for $dst:ty, $err:ty, |$v:ident| $body:expr) => {
-    impl<$($impl_generics)*> core::convert::TryFrom<&$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::TryFrom<&$src> for $dst {
       type Error = $err;
       fn try_from($v: &$src) -> Result<Self, Self::Error> {
         $body
       }
     }
-    impl<$($impl_generics)*> core::convert::TryFrom<$src> for $dst {
+    impl<$($impl_generics)*> ::core::convert::TryFrom<$src> for $dst {
       type Error = $err;
       fn try_from(v: $src) -> Result<Self, Self::Error> {
         Self::try_from(&v)

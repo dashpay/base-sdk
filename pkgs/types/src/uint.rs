@@ -114,15 +114,15 @@ macro_rules! make_num {
       }
     }
 
-    impl core::fmt::Debug for $name {
-      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    impl ::core::fmt::Debug for $name {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         write!(f, "{}({})", stringify!($name), self.0)
       }
     }
 
-    impl core::fmt::Display for $name {
-      fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        core::fmt::Display::fmt(&self.0, f)
+    impl ::core::fmt::Display for $name {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        ::core::fmt::Display::fmt(&self.0, f)
       }
     }
   };
