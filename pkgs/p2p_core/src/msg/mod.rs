@@ -20,6 +20,7 @@ use crate::prelude::*;
 use crate::short_id::ShortId;
 
 use bitcoin_consensus_encoding as encoding;
+use bitcoin_p2p_messages::message_compact_blocks::SendCmpct;
 use bitcoin_p2p_messages::message_filter::{CFCheckpt, CFHeaders, CFilter, GetCFCheckpt, GetCFHeaders, GetCFilters};
 use dash_primitives::{GovObject, GovVote};
 use dash_types::Unencodable;
@@ -87,6 +88,9 @@ define_p2p! {
     GetMnListDiff(GetMnListDiff) => GETMNLISTD "getmnlistd" @ 143,
     /// MN list diff.
     MnListDiff(MnListDiff) => MNLISTDIFF "mnlistdiff" @ 144,
+    /// BIP152: signal compact block support.
+    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::send_cmpct"))]
+    SendCmpct(SendCmpct) => SENDCMPCT "sendcmpct" @ 20,
   }
 
   parsed_empty {
@@ -119,8 +123,6 @@ define_p2p! {
     GetBlockTxn => GETBLOCKTXN "getblocktxn" @ 10,
     /// BIP37: filtered block.
     MerkleBlock => MERKLEBLOCK "merkleblock" @ 16,
-    /// BIP152: signal compact block support.
-    SendCmpct => SENDCMPCT "sendcmpct" @ 20,
     /// Transaction.
     Tx => TX "tx" @ 21,
     /// BIP330: transaction reconciliation.

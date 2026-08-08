@@ -238,6 +238,39 @@ pub mod get_cfcheckpt {
   }
 }
 
+/// For [`SendCmpct`](bitcoin_p2p_messages::message_compact_blocks::SendCmpct).
+pub mod send_cmpct {
+  use super::*;
+
+  use bitcoin_p2p_messages::message_compact_blocks::SendCmpct;
+
+  pub fn serialize<S: Serializer>(val: &SendCmpct, s: S) -> Result<S::Ok, S::Error> {
+    #[derive(Serialize)]
+    struct Ser {
+      send_compact: bool,
+      version: u64,
+    }
+    Ser {
+      send_compact: val.send_compact,
+      version: val.version,
+    }
+    .serialize(s)
+  }
+
+  pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<SendCmpct, D::Error> {
+    #[derive(Deserialize)]
+    struct De {
+      send_compact: bool,
+      version: u64,
+    }
+    let r = De::deserialize(d)?;
+    Ok(SendCmpct {
+      send_compact: r.send_compact,
+      version: r.version,
+    })
+  }
+}
+
 /// For [`CFCheckpt`](bitcoin_p2p_messages::message_filter::CFCheckpt).
 pub mod cfcheckpt {
   use super::*;
