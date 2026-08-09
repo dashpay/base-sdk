@@ -236,6 +236,27 @@ mod tests {
     assert_ne!(chia.public_key().to_bytes(), ietf.public_key().to_bytes());
   }
 
+  fn assert_codec_roundtrip<S: BlsScheme>() {
+    use dash_types::codec::BaseCodec;
+
+    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let mut buf = Vec::new();
+    sk.encode(&mut buf);
+    assert_eq!(buf.len(), 32);
+
+    let mut slice = buf.as_slice();
+    let decoded = BlsSecretKey::<S>::decode(&mut slice).unwrap();
+    assert_eq!(decoded.to_bytes(), sk.to_bytes());
+    assert!(slice.is_empty());
+  }
+
+  #[rstest]
+  #[case::chia(assert_codec_roundtrip::<BlsScChia>)]
+  #[case::ietf(assert_codec_roundtrip::<BlsScIetf>)]
+  fn codec_roundtrip(#[case] assertion: fn()) {
+    assertion();
+  }
+
   /// Summing scalars is scheme-independent, so one corpus serves both.
   fn assert_aggregate_vectors<S: BlsScheme>() {
     let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate");
