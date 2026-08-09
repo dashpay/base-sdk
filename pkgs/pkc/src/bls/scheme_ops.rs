@@ -34,7 +34,7 @@ pub(crate) fn verify_ok(result: BLST_ERROR) -> Result<(), BlsError> {
 }
 
 /// BLS operations tied to a specific scheme.
-pub(crate) trait BlsScheme: BlsSchemeId {
+pub trait BlsScheme: BlsSchemeId {
   /// Inner secret key representation.
   type InnerSk: Clone;
   /// Inner public key representation.
