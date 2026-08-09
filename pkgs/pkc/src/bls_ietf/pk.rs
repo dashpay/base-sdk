@@ -8,11 +8,11 @@
 
 use super::sig::Signature;
 use super::sk::SecretKey;
-use super::DST_POP_PROVE;
-use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::scheme_ietf::DST_POP_PROVE;
+use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsPkBytes, BlsScIetf};
 
-use blst::{min_pk, BLST_ERROR};
+use blst::min_pk;
 use dash_types::Unencodable;
 
 /// A BLS public key (48-byte compressed G1 point).
@@ -61,12 +61,7 @@ impl PublicKey {
   /// Returns [`BlsError::VerifyFailed`] if the proof does not verify.
   pub fn verify_possession(&self, pop: &Signature) -> Result<(), BlsError> {
     let pk_bytes = self.to_bytes();
-    let result = pop.0.verify(true, &pk_bytes, DST_POP_PROVE, &[], &self.0, true);
-    if result == BLST_ERROR::BLST_SUCCESS {
-      Ok(())
-    } else {
-      Err(BlsError::VerifyFailed)
-    }
+    verify_ok(pop.0.verify(true, &pk_bytes, DST_POP_PROVE, &[], &self.0, true))
   }
 }
 

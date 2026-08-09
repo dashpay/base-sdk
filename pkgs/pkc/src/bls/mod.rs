@@ -23,10 +23,10 @@ pub use sig_id::BlsSigId;
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod scheme_chia;
-    mod scheme_ietf;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
+    pub(crate) mod scheme_ietf;
     pub(crate) mod scheme_ops;
 
     #[cfg(feature = "tests")]

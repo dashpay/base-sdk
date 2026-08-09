@@ -8,12 +8,17 @@
 
 use super::blst_ffi::{G1Affine, G2Affine, G1, G2};
 use super::error::BlsError;
-use super::scheme_ops::BlsScheme;
+use super::scheme_ops::{verify_ok, BlsScheme};
 use super::schemes::BlsScIetf;
-use crate::bls_ietf::DST_BASIC;
 
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
-use blst::BLST_ERROR;
+
+/// Domain separation tag for the basic (NUL) signature scheme.
+pub(crate) const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
+/// Domain separation tag for signatures in the proof-of-possession scheme.
+pub(crate) const DST_POP: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+/// Domain separation tag for proofs of possession.
+pub(crate) const DST_POP_PROVE: &[u8] = b"BLS_POP_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 
 impl BlsScheme for BlsScIetf {
   type InnerSk = SecretKey;
@@ -112,12 +117,7 @@ impl BlsScheme for BlsScIetf {
 
   /// Verify against the basic-scheme DST.
   fn verify(sig: &Self::InnerSig, msg: &Self::Msg, pk: &Self::InnerPk) -> Result<(), BlsError> {
-    let result = sig.verify(true, msg, DST_BASIC, &[], pk, true);
-    if result == BLST_ERROR::BLST_SUCCESS {
-      Ok(())
-    } else {
-      Err(BlsError::VerifyFailed)
-    }
+    verify_ok(sig.verify(true, msg, DST_BASIC, &[], pk, true))
   }
 
   /// Aggregate the public keys via blst.
@@ -143,12 +143,7 @@ impl BlsScheme for BlsScIetf {
     if pks.is_empty() {
       return Err(BlsError::EmptyAggregation);
     }
-    let result = sig.fast_aggregate_verify(true, msg, DST_BASIC, pks);
-    if result == BLST_ERROR::BLST_SUCCESS {
-      Ok(())
-    } else {
-      Err(BlsError::VerifyFailed)
-    }
+    verify_ok(sig.fast_aggregate_verify(true, msg, DST_BASIC, pks))
   }
 }
 

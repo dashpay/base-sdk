@@ -9,12 +9,12 @@
 use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
-use super::DST;
-use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::scheme_ietf::DST_BASIC;
+use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsScIetf};
 use crate::prelude::*;
 
-use blst::{min_pk, BLST_ERROR};
+use blst::min_pk;
 
 /// Aggregate multiple public keys into one.
 pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, BlsError> {
@@ -43,12 +43,7 @@ pub fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) ->
     return Err(BlsError::EmptyAggregation);
   }
   let inner_pks: Vec<&min_pk::PublicKey> = pks.iter().map(|k| &k.0).collect();
-  let result = sig.0.aggregate_verify(true, msgs, DST, &inner_pks, true);
-  if result == BLST_ERROR::BLST_SUCCESS {
-    Ok(())
-  } else {
-    Err(BlsError::VerifyFailed)
-  }
+  verify_ok(sig.0.aggregate_verify(true, msgs, DST_BASIC, &inner_pks, true))
 }
 
 /// Securely aggregate and verify signatures with public-key weighting.

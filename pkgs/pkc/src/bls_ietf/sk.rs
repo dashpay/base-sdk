@@ -8,7 +8,7 @@
 
 use super::pk::PublicKey;
 use super::sig::Signature;
-use super::{DST, DST_POP, DST_POP_PROVE};
+use crate::bls::scheme_ietf::{DST_BASIC, DST_POP, DST_POP_PROVE};
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScIetf, BlsSkBytes, BLS_SK_LEN};
 
@@ -74,7 +74,7 @@ impl SecretKey {
   /// Sign with a specific scheme.
   pub fn sign_with(&self, msg: &[u8], scheme: Scheme) -> Signature {
     let dst = match scheme {
-      Scheme::Basic => DST,
+      Scheme::Basic => DST_BASIC,
       Scheme::ProofOfPossession => DST_POP,
     };
     Signature::from_inner(self.0.sign(msg, dst, &[]))

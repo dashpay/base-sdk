@@ -8,11 +8,11 @@
 
 use super::pk::PublicKey;
 use super::sk::Scheme;
-use super::{DST, DST_POP};
-use crate::bls::scheme_ops::BlsScheme;
+use crate::bls::scheme_ietf::{DST_BASIC, DST_POP};
+use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsScIetf, BlsSigBytes};
 
-use blst::{min_pk, BLST_ERROR};
+use blst::min_pk;
 use dash_types::Unencodable;
 
 /// A BLS signature (96-byte compressed G2 point).
@@ -60,19 +60,14 @@ impl Signature {
   /// Returns [`BlsError::VerifyFailed`] if the signature does not verify.
   pub fn verify_with(&self, msg: &[u8], pk: &PublicKey, scheme: Scheme) -> Result<(), BlsError> {
     let dst = match scheme {
-      Scheme::Basic => DST,
+      Scheme::Basic => DST_BASIC,
       Scheme::ProofOfPossession => DST_POP,
     };
     self.verify_raw(msg, pk, dst)
   }
 
   fn verify_raw(&self, msg: &[u8], pk: &PublicKey, dst: &[u8]) -> Result<(), BlsError> {
-    let result = self.0.verify(true, msg, dst, &[], &pk.0, true);
-    if result == BLST_ERROR::BLST_SUCCESS {
-      Ok(())
-    } else {
-      Err(BlsError::VerifyFailed)
-    }
+    verify_ok(self.0.verify(true, msg, dst, &[], &pk.0, true))
   }
 }
 

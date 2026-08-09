@@ -11,6 +11,7 @@ use super::error::BlsError;
 use super::schemes::BlsSchemeId;
 use crate::prelude::*;
 
+use blst::BLST_ERROR;
 use dash_num::Hash256;
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
@@ -22,6 +23,15 @@ use core::fmt::Debug;
 /// The weight is an unreduced SHA-256 digest, so it needs the full width
 /// rather than [`blst_ffi::FR_BITS`].
 const WEIGHT_BITS: usize = 256;
+
+/// Map a blst verification outcome onto a [`BlsError`].
+pub(crate) fn verify_ok(result: BLST_ERROR) -> Result<(), BlsError> {
+  if result == BLST_ERROR::BLST_SUCCESS {
+    Ok(())
+  } else {
+    Err(BlsError::VerifyFailed)
+  }
+}
 
 /// BLS operations tied to a specific scheme.
 pub(crate) trait BlsScheme: BlsSchemeId {
