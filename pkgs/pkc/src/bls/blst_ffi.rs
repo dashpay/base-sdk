@@ -342,7 +342,7 @@ pub(crate) trait Point: Copy + Default + Add<Output = Self> {
 /// A point of the G1 group (over `Fp`) in projective coordinates,
 /// suitable for accumulation before a single conversion to affine.
 #[derive(Clone, Copy, Debug, Default, Unencodable)]
-pub(crate) struct G1(blst_p1);
+pub struct G1(blst_p1);
 
 impl G1 {
   /// Convert to affine coordinates.
@@ -381,7 +381,7 @@ type_cvrt!(From<blst_p1> for G1, |raw| Self(*raw));
 /// A point of the G1 group in affine coordinates, the canonical form
 /// used for serialization and pairing inputs.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub(crate) struct G1Affine(blst_p1_affine);
+pub struct G1Affine(blst_p1_affine);
 
 impl G1Affine {
   /// The conventional G1 generator.
@@ -426,7 +426,7 @@ type_cvrt!(From<blst_p1_affine> for G1Affine, |raw| Self(*raw));
 /// A point of the G2 group (over `Fp2`) in projective coordinates,
 /// suitable for accumulation before a single conversion to affine.
 #[derive(Clone, Copy, Debug, Default, Unencodable)]
-pub(crate) struct G2(blst_p2);
+pub struct G2(blst_p2);
 
 impl G2 {
   /// The conventional G2 generator.
@@ -487,7 +487,7 @@ type_cvrt!(From<G2> for blst_p2, |g| g.0);
 /// A point of the G2 group in affine coordinates, the canonical form
 /// used for serialization and pairing inputs.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub(crate) struct G2Affine(blst_p2_affine);
+pub struct G2Affine(blst_p2_affine);
 
 impl G2Affine {
   /// Construct from affine `x` and `y` coordinates in `Fp2`.

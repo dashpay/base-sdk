@@ -6,12 +6,9 @@
 
 //! Shared test fixtures and constants.
 
-use crate::bls_chia::SecretKey as ChiaSk;
-use crate::bls_ietf::SecretKey as IetfSk;
 use crate::prelude::*;
 
-use hex_literal::hex;
-use rstest::*;
+use hex_conservative::hex;
 
 /// IKM producing the first deterministic test key.
 pub const SEED_0: [u8; 32] = [0u8; 32];
@@ -43,36 +40,6 @@ pub fn make_id(i: u32) -> dash_num::Hash256 {
 /// Build `n` sequential participant ids `1..=n`.
 pub fn sequential_ids(n: usize) -> Vec<dash_num::Hash256> {
   (1..=n).map(|i| make_id(i as u32)).collect()
-}
-
-/// Shared 32-byte test message fixture.
-#[fixture]
-pub fn msg32() -> [u8; 32] {
-  MSG_DEADBEEF
-}
-
-/// Key derived from all-zero IKM.
-#[fixture]
-pub fn chia_sk0() -> ChiaSk {
-  ChiaSk::generate(&RSEED[0]).unwrap()
-}
-
-/// Key derived from all-zero IKM.
-#[fixture]
-pub fn ietf_sk0() -> IetfSk {
-  IetfSk::generate(&RSEED[0]).unwrap()
-}
-
-/// Key derived from all-one IKM.
-#[fixture]
-pub fn chia_sk1() -> ChiaSk {
-  ChiaSk::generate(&RSEED[1]).unwrap()
-}
-
-/// Key derived from all-one IKM.
-#[fixture]
-pub fn ietf_sk1() -> IetfSk {
-  IetfSk::generate(&RSEED[1]).unwrap()
 }
 
 /// Build a distinct 32-byte IKM from an index, for multi-signer tests.

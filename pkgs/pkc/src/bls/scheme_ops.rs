@@ -11,6 +11,7 @@ use super::error::BlsError;
 use super::schemes::BlsSchemeId;
 use crate::prelude::*;
 
+use blst::BLST_ERROR;
 use dash_num::Hash256;
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
@@ -23,14 +24,23 @@ use core::fmt::Debug;
 /// rather than [`blst_ffi::FR_BITS`].
 const WEIGHT_BITS: usize = 256;
 
+/// Map a blst verification outcome onto a [`BlsError`].
+pub(crate) fn verify_ok(result: BLST_ERROR) -> Result<(), BlsError> {
+  if result == BLST_ERROR::BLST_SUCCESS {
+    Ok(())
+  } else {
+    Err(BlsError::VerifyFailed)
+  }
+}
+
 /// BLS operations tied to a specific scheme.
-pub(crate) trait BlsScheme: BlsSchemeId {
+pub trait BlsScheme: BlsSchemeId {
   /// Inner secret key representation.
-  type InnerSk: Clone;
+  type InnerSk: Clone + Send + Sync;
   /// Inner public key representation.
-  type InnerPk: Clone + Debug + PartialEq + Eq;
+  type InnerPk: Clone + Debug + PartialEq + Eq + Send + Sync;
   /// Inner signature representation.
-  type InnerSig: Clone + Debug + PartialEq + Eq;
+  type InnerSig: Clone + Debug + PartialEq + Eq + Send + Sync;
   /// Message type accepted by signing and verification.
   type Msg: ?Sized;
 
@@ -115,6 +125,9 @@ pub(crate) trait BlsScheme: BlsSchemeId {
   ///
   /// Returns `VerifyFailed` when the pairing check does not hold.
   fn verify(sig: &Self::InnerSig, msg: &Self::Msg, pk: &Self::InnerPk) -> Result<(), BlsError>;
+
+  /// Reborrow a fixed 32-byte message as the scheme's message type.
+  fn msg_ref(m: &[u8; 32]) -> &Self::Msg;
 
   /// Compute the Diffie-Hellman shared key `sk * peer_pk`.
   ///

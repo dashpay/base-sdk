@@ -8,62 +8,41 @@
 
 use super::blst_ffi::{Fp, Fp2, G2Affine, Point, G2};
 
-use hex_literal::hex;
+use hex_conservative::hex;
 use sha2::{Digest, Sha256};
 
-// sqrt(-3) mod p (big-endian, 48 bytes, left-padded from 40-byte hex
-// B12_P381_S3).
-const S3: [u8; 48] = hex!(
-  "00000000 00000000 be32ce5f beed9ca3"
-  "74d38c0e d41eefd5 bb675277 cdf12d11"
-  "bc2fb026 c4140004 5c03ffff fffdfffd"
-);
+// sqrt(-3) mod p (big-endian, left-padded from 40-byte B12_P381_S3).
+const S3: [u8; 48] =
+  hex!("0000000000000000be32ce5fbeed9ca374d38c0ed41eefd5bb675277cdf12d11bc2fb026c41400045c03fffffffdfffd");
 
-// (sqrt(-3) - 1) / 2 mod p (big-endian, 48 bytes, left-padded from 40-byte hex
-// B12_P381_S32).
-const S32: [u8; 48] = hex!(
-  "00000000 00000000 5f19672f df76ce51"
-  "ba69c607 6a0f77ea ddb3a93b e6f89688"
-  "de17d813 620a0002 2e01ffff fffefffe"
-);
+// (sqrt(-3) - 1) / 2 mod p (big-endian, left-padded from 40-byte B12_P381_S32).
+const S32: [u8; 48] =
+  hex!("00000000000000005f19672fdf76ce51ba69c6076a0f77eaddb3a93be6f89688de17d813620a00022e01fffffffefffe");
 
 // BLS12-381 curve parameter |x| in little-endian byte order.
-// x = -(2^63 + 2^62 + 2^60 + 2^57 + 2^48 + 2^16)
+//  x  = -(2^63 + 2^62 + 2^60 + 2^57 + 2^48 + 2^16)
 // |x| = 0xD201000000010000
-const BLS_X_LE: [u8; 8] = hex!("00000100 000001d2");
+const BLS_X_LE: [u8; 8] = hex!("00000100000001d2");
 const BLS_X_BITS: usize = 64;
 
 // Frobenius endomorphism constants for the BLS12-381 M-type twist.
 // psi(x,y) = (conj(x)*PSI_COEFF_X, conj(y)*PSI_COEFF_Y)
 
-// PSI_COEFF_X = (0, 0x1a0111ea397fe699ec02408663d4de85aa0d857d89759ad4
-//                   897d29650fb85f9b409427eb4f49fffd8bfd00000000aaad)
-const PSI_COEFF_X_C1: [u8; 48] = hex!(
-  "1a0111ea 397fe699 ec024086 63d4de85"
-  "aa0d857d 89759ad4 897d2965 0fb85f9b"
-  "409427eb 4f49fffd 8bfd0000 0000aaad"
-);
+// PSI_COEFF_X.c0 is zero, so only c1 is carried.
+const PSI_COEFF_X_C1: [u8; 48] =
+  hex!("1a0111ea397fe699ec02408663d4de85aa0d857d89759ad4897d29650fb85f9b409427eb4f49fffd8bfd00000000aaad");
 
 // PSI_COEFF_Y.c0
-const PSI_COEFF_Y_C0: [u8; 48] = hex!(
-  "135203e6 0180a68e e2e9c448 d77a2cd9"
-  "1c3dedd9 30b1cf60 ef396489 f61eb45e"
-  "304466cf 3e67fa0a f1ee7b04 121bdea2"
-);
+const PSI_COEFF_Y_C0: [u8; 48] =
+  hex!("135203e60180a68ee2e9c448d77a2cd91c3dedd930b1cf60ef396489f61eb45e304466cf3e67fa0af1ee7b04121bdea2");
 
 // PSI_COEFF_Y.c1
-const PSI_COEFF_Y_C1: [u8; 48] = hex!(
-  "06af0e04 37ff400b 6831e36d 6bd17ffe"
-  "48395dab c2d3435e 77f76e17 009241c5"
-  "ee67992f 72ec05f4 c81084fb ede3cc09"
-);
+const PSI_COEFF_Y_C1: [u8; 48] =
+  hex!("06af0e0437ff400b6831e36d6bd17ffe48395dabc2d3435e77f76e17009241c5ee67992f72ec05f4c81084fbede3cc09");
 
-// 2^384 mod p for BLS12-381 (big-endian, 48 bytes). Used in wide reduction.
-const R_MOD_P: [u8; 48] = hex!(
-  "15f65ec3 fa80e493 5c071a97 a256ec6d"
-  "77ce5853 70525745 5f489857 53c758ba"
-  "ebf4000b c40c0002 76090000 0002fffd"
-);
+// 2^384 mod p for BLS12-381 (big-endian). Used in wide reduction.
+const R_MOD_P: [u8; 48] =
+  hex!("15f65ec3fa80e4935c071a97a256ec6d77ce5853705257455f48985753c758baebf4000bc40c0002760900000002fffd");
 
 // The 'b' coefficient for BLS12-381 twist curve: y^2 = x^3 + 4(1+i).
 fn curve_b() -> Fp2 {
@@ -95,9 +74,9 @@ pub(crate) fn hash_to_g2(msg: &[u8; 32]) -> G2 {
 
 /// Cofactor clearing via the Budroni-Pintore method.
 ///
-/// Computes `(x^2-x-1)*P + psi((x-1)*P) + psi^2(2*P)`
-/// where `x` is the BLS12-381 curve parameter and `psi`
-/// is the Frobenius endomorphism on the twist.
+/// Computes `(x^2-x-1)*P + psi((x-1)*P) + psi^2(2*P)` where `x` is the
+/// BLS12-381 curve parameter and `psi` is the Frobenius endomorphism on the
+/// twist.
 fn mul_cof_b12(p: &G2) -> G2 {
   // t0 = x·P  (x is negative, so negate after multiplying by |x|)
   let t0 = -p.mul_scalar(&BLS_X_LE, BLS_X_BITS);
@@ -121,9 +100,8 @@ fn mul_cof_b12(p: &G2) -> G2 {
 
 /// Frobenius endomorphism psi on E'(Fp2).
 ///
-/// `psi(x, y) = (conj(x) * PSI_COEFF_X, conj(y) * PSI_COEFF_Y)`
-///
-/// where `conj(a + b*u) = a - b*u`.
+/// `psi(x, y) = (conj(x) * PSI_COEFF_X, conj(y) * PSI_COEFF_Y)` where
+/// `conj(a + b*u) = a - b*u`.
 fn psi(p: &G2Affine) -> G2Affine {
   // Conjugate x and y (negate the c1 component of each).
   let x = p.x().with_c1(-p.x().c1());
@@ -273,7 +251,7 @@ fn curve_rhs(x: &Fp2) -> Fp2 {
   x3 + b
 }
 
-#[cfg(all(test, feature = "tests"))]
+#[cfg(test)]
 mod tests {
   use super::*;
   use crate::prelude::*;

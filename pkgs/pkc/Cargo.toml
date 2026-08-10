@@ -12,8 +12,9 @@ blst = { version = "0.3", default-features = false, optional = true }
 cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
-hex-conservative = { version = "0.3", optional = true }
-hex-literal = "0.4"
+hex-conservative = { version = "0.3", default-features = false, features = [
+  "alloc",
+] }
 k256 = { version = "0.13", default-features = false, features = [
   "arithmetic",
   "ecdsa",
@@ -51,10 +52,10 @@ std = [
   "rand_core/getrandom",
 ]
 bls = ["dep:blst", "dep:sha2"]
-ecdsa = ["dep:k256", "dep:hex-conservative"]
-serde = ["dep:serde", "dep:hex-conservative", "dash-num/serde", "dash-types/serde"]
+ecdsa = ["dep:k256"]
+serde = ["dep:serde", "dash-num/serde", "dash-types/serde"]
 full = ["ecdsa", "bls", "serde", "std", "tests"]
-tests = ["std", "dep:hex-conservative", "dep:rstest"]
+tests = ["std", "dep:rstest"]
 
 [lints]
 workspace = true
@@ -67,60 +68,4 @@ name = "pkc"
 path = "bench/main.rs"
 harness = false
 required-features = ["tests"]
-
-[[test]]
-name = "bls_chia_aggregate"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_dh"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_keygen"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_llmq"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_ser"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_sign"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_threshold"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_aggregate"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_dh"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_keygen"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_llmq"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_pop"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_sign"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_threshold"
-required-features = ["bls", "tests"]
 

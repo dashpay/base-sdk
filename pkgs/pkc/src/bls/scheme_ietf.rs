@@ -8,12 +8,18 @@
 
 use super::blst_ffi::{G1Affine, G2Affine, G1, G2};
 use super::error::BlsError;
-use super::scheme_ops::BlsScheme;
+use super::scheme_ops::{verify_ok, BlsScheme};
 use super::schemes::BlsScIetf;
-use crate::bls_ietf::DST_BASIC;
+use super::sig_id::BlsSigId;
 
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
-use blst::BLST_ERROR;
+
+/// Domain separation tag for the basic (NUL) signature scheme.
+const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
+/// Domain separation tag for signatures in the proof-of-possession scheme.
+const DST_POP: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+/// Domain separation tag for proofs of possession.
+const DST_POP_PROVE: &[u8] = b"BLS_POP_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 
 impl BlsScheme for BlsScIetf {
   type InnerSk = SecretKey;
@@ -41,9 +47,11 @@ impl BlsScheme for BlsScIetf {
     sk.sk_to_pk()
   }
 
-  /// No-op; `blst` zeroizes the key on drop.
-  fn zeroize_sk(_sk: &mut Self::InnerSk) {
-    // blst::min_pk::SecretKey zeroizes on drop internally.
+  /// Wipe the scalar limbs.
+  fn zeroize_sk(sk: &mut Self::InnerSk) {
+    // blst's SecretKey wipes itself on drop but exposes no in-place wipe,
+    // so assign over it. The old value drops, dropping is the wipe.
+    *sk = SecretKey::default();
   }
 
   /// Decode the compressed G1 point and run `validate`.
@@ -112,12 +120,12 @@ impl BlsScheme for BlsScIetf {
 
   /// Verify against the basic-scheme DST.
   fn verify(sig: &Self::InnerSig, msg: &Self::Msg, pk: &Self::InnerPk) -> Result<(), BlsError> {
-    let result = sig.verify(true, msg, DST_BASIC, &[], pk, true);
-    if result == BLST_ERROR::BLST_SUCCESS {
-      Ok(())
-    } else {
-      Err(BlsError::VerifyFailed)
-    }
+    verify_ok(sig.verify(true, msg, DST_BASIC, &[], pk, true))
+  }
+
+  /// IETF messages are unsized slices; a fixed array reborrows as one.
+  fn msg_ref(m: &[u8; 32]) -> &Self::Msg {
+    m
   }
 
   /// Aggregate the public keys via blst.
@@ -143,16 +151,67 @@ impl BlsScheme for BlsScIetf {
     if pks.is_empty() {
       return Err(BlsError::EmptyAggregation);
     }
-    let result = sig.fast_aggregate_verify(true, msg, DST_BASIC, pks);
-    if result == BLST_ERROR::BLST_SUCCESS {
-      Ok(())
-    } else {
-      Err(BlsError::VerifyFailed)
-    }
+    verify_ok(sig.fast_aggregate_verify(true, msg, DST_BASIC, pks))
   }
 }
 
-#[cfg(all(test, feature = "tests"))]
+impl BlsScIetf {
+  /// Sign under the DST selected by `id`.
+  pub(crate) fn sign_with(sk: &SecretKey, msg: &[u8], id: BlsSigId) -> Signature {
+    let dst = match id {
+      BlsSigId::Basic => DST_BASIC,
+      BlsSigId::ProofOfPossession => DST_POP,
+    };
+    sk.sign(msg, dst, &[])
+  }
+
+  /// Verify under the DST selected by `id`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the pairing check does not hold.
+  pub(crate) fn verify_with(sig: &Signature, msg: &[u8], pk: &PublicKey, id: BlsSigId) -> Result<(), BlsError> {
+    let dst = match id {
+      BlsSigId::Basic => DST_BASIC,
+      BlsSigId::ProofOfPossession => DST_POP,
+    };
+    verify_ok(sig.verify(true, msg, dst, &[], pk, true))
+  }
+
+  /// Prove possession by signing the public key under the PoP-prove DST.
+  pub(crate) fn prove_possession(sk: &SecretKey, pk: &PublicKey) -> Signature {
+    sk.sign(&pk.compress(), DST_POP_PROVE, &[])
+  }
+
+  /// Verify a proof of possession under the PoP-prove DST.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the proof does not match the key.
+  pub(crate) fn verify_possession(pk: &PublicKey, pop: &Signature) -> Result<(), BlsError> {
+    verify_ok(pop.verify(true, &pk.compress(), DST_POP_PROVE, &[], pk, true))
+  }
+
+  /// Verify an aggregated signature where each signer signed a distinct
+  /// message.
+  ///
+  /// # Errors
+  ///
+  /// Returns `CountMismatch` when the message and key counts differ,
+  /// `EmptyAggregation` when no keys are given, or `VerifyFailed` on
+  /// mismatch.
+  pub(crate) fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) -> Result<(), BlsError> {
+    if pks.len() != msgs.len() {
+      return Err(BlsError::CountMismatch);
+    }
+    if pks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+    verify_ok(sig.aggregate_verify(true, msgs, DST_BASIC, pks, true))
+  }
+}
+
+#[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
@@ -160,8 +219,8 @@ mod tests {
   use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
+  use hex_conservative::hex;
   use hex_conservative::DisplayHex;
-  use hex_literal::hex;
   use serde::Deserialize;
 
   #[derive(Deserialize)]
@@ -194,19 +253,14 @@ mod tests {
   #[test]
   fn pyecc_signature_matches() {
     let sk = BlsScIetf::sk_from_bytes(&hex!(
-      "0101010101010101010101010101010101"
-      "010101010101010101010101010101"
+      "0101010101010101010101010101010101010101010101010101010101010101"
     ))
     .unwrap();
     let msg = hex!("030104010509");
-    let expected = hex!(
-      "96ba34fac33c7f129d602a0bc8a3d43f"
-      "9abc014eceaab7359146b4b150e57b80"
-      "8645738f35671e9e10e0d862a30cab70"
-      "074eb5831d13e6a5b162d01eebe687d0"
-      "164adbd0a864370a7c222a2768d7704d"
-      "a254f1bf1823665bc2361f9dd8c00e99"
-    );
+    let expected = hex!(concat!(
+      "96ba34fac33c7f129d602a0bc8a3d43f9abc014eceaab7359146b4b150e57b808645738f35671e9e10e0d862a30cab70",
+      "074eb5831d13e6a5b162d01eebe687d0164adbd0a864370a7c222a2768d7704da254f1bf1823665bc2361f9dd8c00e99"
+    ));
     let sig = BlsScIetf::sign(&sk, &msg);
     assert_eq!(BlsScIetf::sig_to_bytes(&sig), expected);
     assert!(BlsScIetf::verify(&sig, &msg, &BlsScIetf::derive_pk(&sk)).is_ok());

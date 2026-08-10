@@ -299,7 +299,7 @@ predicate variableTimeSecretTest(Function f, string how) {
  * this query exists to examine unchecked.
  */
 predicate secretType(TypeItem t) {
-  isSecretType(t) and
+  (isSecretType(t) or wipesSelf(t)) and
   fileOf(t).fromSource() and
   not isTestCode(t)
 }

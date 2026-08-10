@@ -549,7 +549,6 @@ dependencies = [
  "dash-types",
  "divan",
  "hex-conservative 0.3.2",
- "hex-literal",
  "k256",
  "rand_core 0.6.4",
  "rayon",
