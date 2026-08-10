@@ -205,6 +205,21 @@ fn secure_aggregate_n<S: BlsScheme>(bencher: Bencher, n: usize) {
     .bench(|| BlsSignature::<S>::secure_aggregate(&sig_refs, &pk_refs));
 }
 
+/// Evaluating the master secret polynomial at a participant id, over a master
+/// key of `n` coefficients.
+#[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 5, 10])]
+fn derive_share_n<S: BlsScheme>(bencher: Bencher, n: usize) {
+  let master: Vec<_> = (0..n)
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .collect();
+  let master_refs: Vec<&BlsSecretKey<S>> = master.iter().collect();
+  let id = sequential_ids(1)[0];
+
+  bencher
+    .counter(ItemsCount::new(n))
+    .bench(|| BlsSecretKey::<S>::derive_share(&master_refs, &id));
+}
+
 /// IETF-only BLS operations.
 mod ietf {
   use super::*;

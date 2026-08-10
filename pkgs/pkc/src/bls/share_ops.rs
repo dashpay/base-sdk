@@ -145,6 +145,19 @@ impl<S: BlsScheme> BlsSecretKey<S> {
       BlsSkShare::new(id, BlsSecretKey::from_inner(inner))
     })
   }
+
+  /// Derive a secret key share by evaluating the master secret polynomial at
+  /// the given participant id.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidVerificationVector` when fewer than two master keys are
+  /// given, `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey`
+  /// when the result is not a valid scalar.
+  pub fn derive_share(master_sks: &[&Self], id: &Hash256) -> Result<Self, BlsError> {
+    let inner_refs: Vec<&S::InnerSk> = master_sks.iter().map(|sk| &sk.0).collect();
+    S::derive_sk_share(&inner_refs, id).map(Self::from_inner)
+  }
 }
 
 impl<S: BlsScheme> BlsPublicKey<S> {
@@ -166,7 +179,7 @@ impl<S: BlsScheme> BlsPublicKey<S> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{hash_from_hex, make_id, sequential_ids, GROUP_ORDER, MSG_DEADBEEF, SEED_0, SEED_1};
+  use crate::bls::tests::{hash_from_hex, make_id, sequential_ids, GROUP_ORDER, MSG_DEADBEEF, RSEED, SEED_0, SEED_1};
   use crate::bls::{BlsScChia, BlsScIetf};
 
   use cfg_if::cfg_if;
@@ -243,6 +256,42 @@ mod tests {
   #[case::chia(assert_congruent_ids_rejected::<BlsScChia>)]
   #[case::ietf(assert_congruent_ids_rejected::<BlsScIetf>)]
   fn split_rejects_congruent_ids(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// The secret and public evaluations are the same polynomial, so a derived
+  /// secret share must expose exactly the public share derived from the
+  /// verification vector.
+  fn assert_sk_share_matches_pk_share<S: BlsScheme>() {
+    let master: Vec<BlsSecretKey<S>> = [&RSEED[0], &RSEED[1], &RSEED[2]]
+      .iter()
+      .map(|ikm| BlsSecretKey::<S>::generate(*ikm).unwrap())
+      .collect();
+    let master_refs: Vec<&BlsSecretKey<S>> = master.iter().collect();
+    let vvec: Vec<BlsPublicKey<S>> = master.iter().map(BlsSecretKey::public_key).collect();
+    let vvec_refs: Vec<&BlsPublicKey<S>> = vvec.iter().collect();
+
+    for i in 1..=4u32 {
+      let id = make_id(i);
+      let sk_share = BlsSecretKey::<S>::derive_share(&master_refs, &id).unwrap();
+      let pk_share = BlsPublicKey::<S>::derive_share(&vvec_refs, &id).unwrap();
+      assert_eq!(sk_share.public_key(), pk_share);
+    }
+
+    assert!(matches!(
+      BlsSecretKey::<S>::derive_share(&master_refs[..1], &make_id(1)),
+      Err(BlsError::InvalidVerificationVector)
+    ));
+    assert!(matches!(
+      BlsSecretKey::<S>::derive_share(&master_refs, &Hash256::from_bytes([0u8; 32])),
+      Err(BlsError::InvalidShareId)
+    ));
+  }
+
+  #[rstest]
+  #[case::chia(assert_sk_share_matches_pk_share::<BlsScChia>)]
+  #[case::ietf(assert_sk_share_matches_pk_share::<BlsScIetf>)]
+  fn sk_share_matches_pk_share(#[case] assertion: fn()) {
     assertion();
   }
 

@@ -350,6 +350,42 @@ pub trait BlsScheme: BlsSchemeId {
 
     Self::g1_to_pk(result)
   }
+
+  /// Evaluate the master secret polynomial at a participant id, the secret
+  /// counterpart to [`Self::derive_pk_share`].
+  ///
+  /// The secret and public evaluations are one polynomial over different
+  /// groups, which is why they share an error contract: two coefficients are
+  /// the minimum that describes a polynomial, and the id reduces first.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidVerificationVector` when fewer than two keys are given,
+  /// `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey` when the
+  /// result is not a valid scalar.
+  fn derive_sk_share(master_sks: &[&Self::InnerSk], id: &Hash256) -> Result<Self::InnerSk, BlsError> {
+    if master_sks.len() < 2 {
+      return Err(BlsError::InvalidVerificationVector);
+    }
+
+    let mut coeffs = Zeroizing::new(Vec::with_capacity(master_sks.len()));
+    for sk in master_sks {
+      let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+      let mut scalar = blst_ffi::scalar_from_bendian(&bytes);
+      coeffs.push(Fr::from(&scalar));
+      scalar.b.zeroize();
+    }
+
+    let x = reduce_id(id)?;
+    let mut y = poly_eval(&coeffs, &x);
+
+    let mut y_scalar = blst::blst_scalar::from(&y);
+    let y_bytes = Zeroizing::new(blst_ffi::bendian_from_scalar(&y_scalar));
+    y_scalar.b.zeroize();
+    y.zeroize();
+
+    Self::sk_from_bytes(&y_bytes)
+  }
 }
 
 /// The scalar each key is weighted by, for key encodings in sorted order.
