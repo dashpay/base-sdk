@@ -69,19 +69,3 @@ path = "bench/main.rs"
 harness = false
 required-features = ["tests"]
 
-[[test]]
-name = "bls_chia_llmq"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_threshold"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_llmq"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_threshold"
-required-features = ["bls", "tests"]
-

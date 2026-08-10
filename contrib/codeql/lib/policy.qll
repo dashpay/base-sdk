@@ -52,9 +52,9 @@ predicate isSecretType(TypeItem t) {
     t.getName().getText() = "Fr"
   ) and
   // A share *of a signature* is published, so it holds nothing to protect. Excluded by
-  // exact name because `SecretKeyShare` and `RawShare` match the same Share substring
+  // exact name because `BlsSkShare` and `RawShare` match the same Share substring
   // and do carry secret scalars.
-  not t.getName().getText() = "SignatureShare" and
+  not t.getName().getText() = "BlsSigShare" and
   // Serde artifact to deserialize a tagged enum.
   not t.getName().getText() = "__Seed"
 }

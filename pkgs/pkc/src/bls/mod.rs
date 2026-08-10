@@ -26,9 +26,11 @@ cfg_if::cfg_if! {
     mod scheme_chia;
     mod scheme_ietf;
     mod secret_ops;
+    mod share_ops;
     mod sig_aggregate;
     mod sig_basic;
     mod sig_pop;
+    mod sig_threshold;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
@@ -42,6 +44,7 @@ cfg_if::cfg_if! {
     pub use public_ops::BlsPublicKey;
     pub use scheme_ops::BlsScheme;
     pub use secret_ops::BlsSecretKey;
+    pub use share_ops::{BlsSigShare, BlsSkShare};
     pub use sig_basic::BlsSignature;
   }
 }

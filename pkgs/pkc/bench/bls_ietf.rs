@@ -8,7 +8,11 @@
 
 use common::*;
 use dash_pkc::bls::tests as common;
-use dash_pkc::bls_ietf::{PublicKey, SecretKey, Signature};
+use dash_pkc::bls::{BlsPublicKey, BlsScIetf, BlsSecretKey, BlsSignature};
+
+type PublicKey = BlsPublicKey<BlsScIetf>;
+type SecretKey = BlsSecretKey<BlsScIetf>;
+type Signature = BlsSignature<BlsScIetf>;
 
 /// Single signature creation.
 #[divan::bench]
@@ -142,29 +146,27 @@ fn deser_sig(bencher: divan::Bencher) {
 /// Threshold secret key splitting at various quorum sizes.
 #[divan::bench(args = [5, 10, 50])]
 fn split_threshold(bencher: divan::Bencher, n: usize) {
-  use dash_pkc::bls_ietf::threshold;
   let sk = SecretKey::generate(&test_ikm(1)).unwrap();
   let t = n.div_ceil(2);
   let ids = sequential_ids(n);
   bencher
     .counter(divan::counter::ItemsCount::new(n))
-    .bench(|| threshold::split_sk(&sk, t, &ids, &mut rand_core::OsRng));
+    .bench(|| sk.split(t, &ids, &mut rand_core::OsRng));
 }
 
 /// Threshold signature recovery via Lagrange interpolation.
 #[divan::bench(args = [3, 5, 10])]
 fn recover_threshold(bencher: divan::Bencher, t: usize) {
-  use dash_pkc::bls_ietf::threshold;
   let sk = SecretKey::generate(&test_ikm(1)).unwrap();
   let n = t * 2;
   let ids = sequential_ids(n);
-  let shares = threshold::split_sk(&sk, t, &ids, &mut rand_core::OsRng).unwrap();
+  let shares = sk.split(t, &ids, &mut rand_core::OsRng).unwrap();
   let msg = test_msg(42);
   let sig_shares: Vec<_> = shares.iter().map(|s| s.sign(&msg)).collect();
-  let subset: Vec<&threshold::SignatureShare> = sig_shares.iter().take(t).collect();
+  let subset: Vec<&dash_pkc::bls::BlsSigShare<BlsScIetf>> = sig_shares.iter().take(t).collect();
   bencher
     .counter(divan::counter::ItemsCount::new(t))
-    .bench(|| threshold::recover_sig(&subset));
+    .bench(|| Signature::recover(&subset));
 }
 
 /// Proof of possession creation.
@@ -185,7 +187,8 @@ fn verify_pop(bencher: divan::Bencher) {
 
 #[cfg(feature = "std")]
 mod worker_benches {
-  use dash_pkc::bls_ietf::{PublicKey, SecretKey, Signature};
+  use super::{PublicKey, SecretKey, Signature};
+
   use dash_pkc::worker;
 
   fn setup_sigs(n: usize) -> Vec<(Signature, PublicKey, Vec<u8>)> {

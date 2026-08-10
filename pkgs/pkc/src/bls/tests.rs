@@ -6,8 +6,6 @@
 
 //! Shared test fixtures and constants.
 
-use crate::bls_chia::SecretKey as ChiaSk;
-use crate::bls_ietf::SecretKey as IetfSk;
 use crate::prelude::*;
 
 use hex_conservative::hex;
@@ -49,30 +47,6 @@ pub fn sequential_ids(n: usize) -> Vec<dash_num::Hash256> {
 #[fixture]
 pub fn msg32() -> [u8; 32] {
   MSG_DEADBEEF
-}
-
-/// Key derived from all-zero IKM.
-#[fixture]
-pub fn chia_sk0() -> ChiaSk {
-  ChiaSk::generate(&RSEED[0]).unwrap()
-}
-
-/// Key derived from all-zero IKM.
-#[fixture]
-pub fn ietf_sk0() -> IetfSk {
-  IetfSk::generate(&RSEED[0]).unwrap()
-}
-
-/// Key derived from all-one IKM.
-#[fixture]
-pub fn chia_sk1() -> ChiaSk {
-  ChiaSk::generate(&RSEED[1]).unwrap()
-}
-
-/// Key derived from all-one IKM.
-#[fixture]
-pub fn ietf_sk1() -> IetfSk {
-  IetfSk::generate(&RSEED[1]).unwrap()
 }
 
 /// Build a distinct 32-byte IKM from an index, for multi-signer tests.
