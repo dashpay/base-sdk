@@ -35,10 +35,12 @@ impl<S: BlsScheme> BlsSignature<S> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::bls::scheme_ops::BlsScheme;
-  use crate::bls::tests::{sequential_ids, MSG_DEADBEEF, SEED_0};
-  use crate::bls::{BlsError, BlsScChia, BlsScIetf, BlsSecretKey, BlsSigShare, BlsSignature};
+  use crate::bls::tests::{make_id, sequential_ids, MSG_DEADBEEF, SEED_0};
+  use crate::bls::{BlsError, BlsScChia, BlsScIetf, BlsSecretKey, BlsSigShare, BlsSignature, BlsSkShare};
   use crate::prelude::*;
 
+  use dash_dev::{arr_from_hex, Corpus, Value};
+  use hex_conservative::DisplayHex;
   use rand_core::OsRng;
   use rstest::rstest;
 
@@ -118,5 +120,69 @@ mod tests {
   #[case::ietf(assert_insufficient_shares_rejected::<BlsScIetf>)]
   fn recover_rejects_insufficient_shares(#[case] assertion: fn()) {
     assertion();
+  }
+
+  /// Shares come from the corpus rather than a fresh `split`, whose random
+  /// polynomial leaves nothing to assert against but a round trip. `full_sig`
+  /// cross-checks interpolation against the master's own signature.
+  fn assert_recovery_matches_vectors<S: BlsScheme>(corpus: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+    let case = &f["recover_sig"];
+    let inputs = &case["inputs"];
+    let threshold = inputs["t"].as_u64().unwrap() as usize;
+    let total = inputs["n"].as_u64().unwrap() as usize;
+    let msg: [u8; 32] = arr_from_hex(inputs["msg"].as_str().unwrap());
+
+    // The polynomial's constant term is the master secret key.
+    let master = BlsSecretKey::<S>::from_bytes(&arr_from_hex(inputs["master_sks"][0].as_str().unwrap())).unwrap();
+
+    for out in case["outputs"].as_array().unwrap() {
+      let sk_shares = out["sk_shares"].as_array().unwrap();
+      let sig_shares = out["sig_shares"].as_array().unwrap();
+      assert_eq!(sk_shares.len(), total);
+      assert_eq!(sig_shares.len(), total);
+
+      // Each share key signs the message to its recorded signature share.
+      for (i, (sk_hex, sig_hex)) in sk_shares.iter().zip(sig_shares).enumerate() {
+        let sk = BlsSecretKey::<S>::from_bytes(&arr_from_hex(sk_hex.as_str().unwrap())).unwrap();
+        let share = BlsSkShare::new(make_id(i as u32 + 1), sk);
+        let signed = share.sign(S::msg_ref(&msg));
+        assert_eq!(
+          signed.signature().to_bytes().to_lower_hex_string(),
+          sig_hex.as_str().unwrap()
+        );
+      }
+
+      // Recover from the recorded shares, so interpolation is pinned even if
+      // share signing were to regress.
+      let ids = out["recover_ids"].as_array().unwrap();
+      assert_eq!(ids.len(), threshold);
+      let picked: Vec<BlsSigShare<S>> = ids
+        .iter()
+        .map(|id| {
+          let i = id.as_u64().unwrap() as usize;
+          let sig = BlsSignature::<S>::from_bytes(&arr_from_hex(sig_shares[i - 1].as_str().unwrap())).unwrap();
+          BlsSigShare::new(make_id(i as u32), sig)
+        })
+        .collect();
+      let refs: Vec<&BlsSigShare<S>> = picked.iter().collect();
+      let recovered = BlsSignature::<S>::recover(&refs).unwrap();
+
+      let expected = out["recovered_sig"].as_str().unwrap();
+      assert_eq!(recovered.to_bytes().to_lower_hex_string(), expected);
+      assert_eq!(
+        out["full_sig"].as_str().unwrap(),
+        expected,
+        "recovery must match the master"
+      );
+      assert_eq!(master.sign(S::msg_ref(&msg)).to_bytes().to_lower_hex_string(), expected);
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_recovery_matches_vectors::<BlsScChia>, "bls_chia_threshold")]
+  #[case::ietf(assert_recovery_matches_vectors::<BlsScIetf>, "bls_ietf_threshold")]
+  fn recovery_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
+    assertion(corpus);
   }
 }
