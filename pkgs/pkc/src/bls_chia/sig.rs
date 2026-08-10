@@ -6,7 +6,7 @@
 
 //! Legacy BLS signature (96-byte G2 point, legacy serialization).
 
-use super::PublicKey;
+use super::{PublicKey, SecretKey};
 use crate::bls::blst_ffi::G2Affine;
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScChia, BlsSigBytes};
@@ -41,6 +41,14 @@ impl Signature {
   /// e(sig, G1) == e(H(msg), pk).
   pub fn verify(&self, msg: &[u8; 32], pk: &PublicKey) -> Result<(), BlsError> {
     BlsScChia::verify(&self.0, msg, &pk.0)
+  }
+}
+
+impl SecretKey {
+  /// Sign a 32-byte message hash using the legacy scheme (no DST, Shallue-van
+  /// de Woestijne hash-to-G2).
+  pub fn sign(&self, msg: &[u8; 32]) -> Signature {
+    Signature::from_inner(BlsScChia::sign(&self.0, msg))
   }
 }
 

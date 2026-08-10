@@ -7,7 +7,6 @@
 //! Aggregation and batch verification for IETF BLS.
 
 use super::sig::Signature;
-use super::sk::SecretKey;
 use super::PublicKey;
 use crate::bls::scheme_ietf::DST_BASIC;
 use crate::bls::scheme_ops::{verify_ok, BlsScheme};
@@ -52,10 +51,4 @@ pub fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) ->
 pub fn secure_verify_aggregates(sig: &Signature, msg: &[u8], pks: &[&PublicKey]) -> Result<(), BlsError> {
   let inner: Vec<_> = pks.iter().map(|pk| &pk.0).collect();
   BlsScIetf::secure_verify_aggregates(&sig.0, msg, &inner)
-}
-
-/// Sum multiple secret keys (mod group order).
-pub fn aggregate_sk(keys: &[&SecretKey]) -> Result<SecretKey, BlsError> {
-  let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
-  BlsScIetf::aggregate_sk(&inner).map(SecretKey::from_inner)
 }

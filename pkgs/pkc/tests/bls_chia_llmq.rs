@@ -132,7 +132,7 @@ fn llmq_commit_sk_share() {
     }
 
     let refs: Vec<&SecretKey> = received.iter().collect();
-    let agg = dash_pkc::bls_chia::aggregate_sk(&refs).unwrap();
+    let agg = SecretKey::aggregate(&refs).unwrap();
     assert_eq!(agg.to_bytes().to_lower_hex_string(), expected_share);
   }
 }

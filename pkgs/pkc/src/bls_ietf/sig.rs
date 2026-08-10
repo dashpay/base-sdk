@@ -6,8 +6,7 @@
 
 //! IETF BLS signature (96-byte compressed G2 point).
 
-use super::sk::Scheme;
-use super::PublicKey;
+use super::{PublicKey, Scheme, SecretKey};
 use crate::bls::scheme_ietf::{DST_BASIC, DST_POP, DST_POP_PROVE};
 use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsScIetf, BlsSigBytes};
@@ -68,6 +67,29 @@ impl Signature {
 
   fn verify_raw(&self, msg: &[u8], pk: &PublicKey, dst: &[u8]) -> Result<(), BlsError> {
     verify_ok(self.0.verify(true, msg, dst, &[], &pk.0, true))
+  }
+}
+
+impl SecretKey {
+  /// Sign with the Basic scheme.
+  pub fn sign(&self, msg: &[u8]) -> Signature {
+    Signature::from_inner(BlsScIetf::sign(&self.0, msg))
+  }
+
+  /// Sign with a specific scheme.
+  pub fn sign_with(&self, msg: &[u8], scheme: Scheme) -> Signature {
+    let dst = match scheme {
+      Scheme::Basic => DST_BASIC,
+      Scheme::ProofOfPossession => DST_POP,
+    };
+    Signature::from_inner(self.0.sign(msg, dst, &[]))
+  }
+
+  /// Produce a proof of possession by signing the serialized public key with
+  /// the PoP DST.
+  pub fn prove_possession(&self) -> Signature {
+    let pk_bytes = self.public_key().to_bytes();
+    Signature::from_inner(self.0.sign(&pk_bytes, DST_POP_PROVE, &[]))
   }
 }
 

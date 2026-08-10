@@ -74,14 +74,6 @@ name = "bls_chia_aggregate"
 required-features = ["bls", "tests"]
 
 [[test]]
-name = "bls_chia_dh"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_keygen"
-required-features = ["bls", "tests"]
-
-[[test]]
 name = "bls_chia_llmq"
 required-features = ["bls", "tests"]
 
@@ -99,14 +91,6 @@ required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_aggregate"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_dh"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_keygen"
 required-features = ["bls", "tests"]
 
 [[test]]

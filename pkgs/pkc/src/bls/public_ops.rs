@@ -102,8 +102,8 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsPkBytes<S>> for BlsPublicKey<S>, BlsErro
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::SEED_0;
-  use crate::bls::{BlsScChia, BlsScIetf};
+  use crate::bls::tests::{SEED_0, SEED_1};
+  use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey};
 
   use cfg_if::cfg_if;
   use dash_dev::{arr_from_hex, Corpus};
@@ -123,8 +123,50 @@ mod tests {
     agg_pk: String,
   }
 
+  #[derive(Deserialize)]
+  struct DhVec {
+    sk: String,
+    peer_pk: String,
+    shared: String,
+  }
+
+  fn assert_dh_matches_vectors<S: BlsScheme>(corpus: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
+    let vecs: Vec<DhVec> = corpus.vectors("dh_exchange");
+
+    for v in &vecs {
+      let sk = BlsSecretKey::<S>::from_bytes(&arr_from_hex(&v.sk)).unwrap();
+      let peer = BlsPublicKey::<S>::from_bytes(&arr_from_hex(&v.peer_pk)).unwrap();
+      let shared = sk.dh_exchange(&peer).unwrap();
+      assert_eq!(shared.to_bytes().to_lower_hex_string(), v.shared);
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_dh_matches_vectors::<BlsScChia>, "bls_chia_dh")]
+  #[case::ietf(assert_dh_matches_vectors::<BlsScIetf>, "bls_ietf_dh")]
+  fn dh_exchange_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
+    assertion(corpus);
+  }
+
+  fn assert_dh_roundtrip<S: BlsScheme>() {
+    let sk_a = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk_b = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+
+    let shared_ab = sk_a.dh_exchange(&sk_b.public_key()).unwrap();
+    let shared_ba = sk_b.dh_exchange(&sk_a.public_key()).unwrap();
+    assert_eq!(shared_ab.to_bytes(), shared_ba.to_bytes());
+  }
+
+  #[rstest]
+  #[case::chia(assert_dh_roundtrip::<BlsScChia>)]
+  #[case::ietf(assert_dh_roundtrip::<BlsScIetf>)]
+  fn dh_exchange_roundtrip(#[case] assertion: fn()) {
+    assertion();
+  }
+
   fn assert_pk_roundtrip<S: BlsScheme>() {
-    let pk = BlsPublicKey::<S>::from_inner(S::derive_pk(&S::generate(&SEED_0).unwrap()));
+    let pk = BlsSecretKey::<S>::generate(&SEED_0).unwrap().public_key();
     let bytes = pk.to_bytes();
     assert_eq!(BlsPublicKey::<S>::from_bytes(&bytes).unwrap().to_bytes(), bytes);
   }
@@ -149,7 +191,10 @@ mod tests {
   /// round-trips back to its canonical form.
   #[rstest]
   fn chia_masks_stray_public_key_bits() {
-    let clean = BlsScChia::pk_to_bytes(&BlsScChia::derive_pk(&BlsScChia::generate(&SEED_0).unwrap()));
+    let clean = BlsSecretKey::<BlsScChia>::generate(&SEED_0)
+      .unwrap()
+      .public_key()
+      .to_bytes();
 
     let mut mutated = clean;
     mutated[0] |= 0x20;

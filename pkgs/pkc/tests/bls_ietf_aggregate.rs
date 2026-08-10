@@ -139,12 +139,6 @@ mod kat {
   }
 
   #[derive(Deserialize)]
-  struct AggregateSkVector {
-    sks: Vec<String>,
-    agg_sk: String,
-  }
-
-  #[derive(Deserialize)]
   #[expect(dead_code, reason = "deserialized from corpus JSON")]
   struct SecureAggVector {
     msg: String,
@@ -170,26 +164,6 @@ mod kat {
       let sig_refs: Vec<_> = sigs.iter().collect();
       let agg = dash_pkc::bls_ietf::aggregate_sig(&sig_refs).unwrap();
       assert_eq!(agg.to_bytes().to_lower_hex_string(), v.agg_sig);
-    }
-  }
-
-  #[test]
-  fn kat_aggregate_sk() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate");
-    let vecs: Vec<AggregateSkVector> = corpus.vectors("aggregate_sk");
-
-    for v in &vecs {
-      let sks: Vec<dash_pkc::bls_ietf::SecretKey> = v
-        .sks
-        .iter()
-        .map(|h| {
-          let b: [u8; 32] = arr_from_hex(h);
-          dash_pkc::bls_ietf::SecretKey::from_bytes(&b).unwrap()
-        })
-        .collect();
-      let sk_refs: Vec<_> = sks.iter().collect();
-      let agg = dash_pkc::bls_ietf::aggregate_sk(&sk_refs).unwrap();
-      assert_eq!(agg.to_bytes().to_lower_hex_string(), v.agg_sk);
     }
   }
 

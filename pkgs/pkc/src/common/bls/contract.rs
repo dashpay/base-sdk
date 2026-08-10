@@ -14,21 +14,6 @@
 //! `Hash256` participant IDs (big-endian, reduced mod the scalar field
 //! order).
 
-/// Marker trait asserting the minimum BLS secret key API.
-pub(crate) trait BlsSecretKey: Clone + Sized {
-  type Error;
-  type PublicKey;
-  type Signature;
-  type Msg: ?Sized;
-
-  fn generate(ikm: &[u8]) -> Result<Self, Self::Error>;
-  fn from_bytes(bytes: &[u8; 32]) -> Result<Self, Self::Error>;
-  fn to_bytes(&self) -> [u8; 32];
-  fn public_key(&self) -> Self::PublicKey;
-  fn sign(&self, msg: &Self::Msg) -> Self::Signature;
-  fn dh_exchange(&self, peer_pk: &Self::PublicKey) -> Result<Self::PublicKey, Self::Error>;
-}
-
 /// Marker trait asserting the minimum BLS signature API.
 pub(crate) trait BlsSignature: Clone + Sized {
   type Error;

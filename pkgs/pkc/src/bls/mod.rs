@@ -24,6 +24,7 @@ cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod public_ops;
     mod scheme_chia;
+    mod secret_ops;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
@@ -37,5 +38,6 @@ cfg_if::cfg_if! {
 
     pub use public_ops::BlsPublicKey;
     pub use scheme_ops::BlsScheme;
+    pub use secret_ops::BlsSecretKey;
   }
 }

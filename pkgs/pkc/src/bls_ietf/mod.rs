@@ -8,47 +8,26 @@
 
 mod agg;
 mod sig;
-mod sk;
 
 pub mod threshold;
 
 pub use crate::bls::BlsError;
+/// BLS signature scheme (determines the DST).
+pub use crate::bls::BlsSigId as Scheme;
 
-pub use agg::{aggregate_sig, aggregate_sk, fast_verify_aggregates, secure_verify_aggregates, verify_aggregates};
+pub use agg::{aggregate_sig, fast_verify_aggregates, secure_verify_aggregates, verify_aggregates};
 pub use sig::Signature;
-pub use sk::{Scheme, SecretKey};
 
 /// An IETF BLS public key (48-byte compressed G1 point).
 pub type PublicKey = crate::bls::BlsPublicKey<crate::bls::BlsScIetf>;
+
+/// An IETF BLS secret key (32-byte scalar).
+pub type SecretKey = crate::bls::BlsSecretKey<crate::bls::BlsScIetf>;
 
 // Compile-time contract: if any of these methods are
 // removed or their signatures change, this block fails.
 const _: () = {
   use crate::common::bls::contract::*;
-  impl BlsSecretKey for SecretKey {
-    type Error = BlsError;
-    type PublicKey = PublicKey;
-    type Signature = Signature;
-    type Msg = [u8];
-    fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
-      SecretKey::generate(ikm)
-    }
-    fn from_bytes(b: &[u8; 32]) -> Result<Self, BlsError> {
-      SecretKey::from_bytes(b)
-    }
-    fn to_bytes(&self) -> [u8; 32] {
-      self.to_bytes()
-    }
-    fn public_key(&self) -> PublicKey {
-      self.public_key()
-    }
-    fn sign(&self, msg: &[u8]) -> Signature {
-      self.sign(msg)
-    }
-    fn dh_exchange(&self, peer_pk: &PublicKey) -> Result<PublicKey, BlsError> {
-      self.dh_exchange(peer_pk)
-    }
-  }
   impl BlsSignature for Signature {
     type Error = BlsError;
     type PublicKey = PublicKey;
