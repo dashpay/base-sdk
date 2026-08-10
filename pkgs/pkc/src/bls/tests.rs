@@ -43,17 +43,41 @@ pub fn sequential_ids(n: usize) -> Vec<dash_num::Hash256> {
 }
 
 /// Build a distinct 32-byte IKM from an index, for multi-signer tests.
-pub fn test_ikm(i: u8) -> [u8; 32] {
+///
+/// The index is carried in full, so a run of more than 256 signers gets that
+/// many distinct keys instead of wrapping at 256.
+pub fn test_ikm(i: usize) -> [u8; 32] {
   let mut ikm = [0u8; 32];
-  ikm[0] = i;
-  ikm[31] = i.wrapping_add(1);
+  ikm[..8].copy_from_slice(&(i as u64).to_be_bytes());
+  ikm[24..].copy_from_slice(&(i as u64).wrapping_add(1).to_be_bytes());
   ikm
 }
 
 /// Build a distinct 32-byte message from an index, for multi-signer tests.
-pub fn test_msg(i: u8) -> [u8; 32] {
+///
+/// As with [`test_ikm`], the index is carried in full to keep messages
+/// distinct past 256.
+pub fn test_msg(i: usize) -> [u8; 32] {
   let mut m = [0u8; 32];
-  m[0] = i.wrapping_mul(7);
-  m[15] = i;
+  m[..8].copy_from_slice(&(i as u64).to_be_bytes());
+  m[8..16].copy_from_slice(&(i as u64).wrapping_mul(7).to_be_bytes());
   m
+}
+
+#[cfg(test)]
+mod builders {
+  use super::*;
+
+  use rstest::rstest;
+
+  #[rstest]
+  #[case::ikm(test_ikm)]
+  #[case::msg(test_msg)]
+  fn injective_past_256(#[case] build: fn(usize) -> [u8; 32]) {
+    let mut built: Vec<[u8; 32]> = (0..1000).map(build).collect();
+    built.sort_unstable();
+    let total = built.len();
+    built.dedup();
+    assert_eq!(built.len(), total, "index does not survive into the output");
+  }
 }

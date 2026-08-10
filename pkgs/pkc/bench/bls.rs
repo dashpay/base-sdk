@@ -36,7 +36,7 @@ fn verify<S: BlsScheme>(bencher: Bencher) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 5, 25, 50, 100])]
 fn aggregate_pk_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let pks: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i as u8)).unwrap().public_key())
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap().public_key())
     .collect();
   let pk_refs: Vec<_> = pks.iter().collect();
   bencher
@@ -48,12 +48,12 @@ fn aggregate_pk_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 10, 100])]
 fn aggregate_sig_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i as u8)).unwrap())
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
     .collect();
   let sigs: Vec<_> = keys
     .iter()
     .enumerate()
-    .map(|(i, key)| key.sign(S::msg_ref(&test_msg(i as u8))))
+    .map(|(i, key)| key.sign(S::msg_ref(&test_msg(i))))
     .collect();
   let sig_refs: Vec<&BlsSignature<S>> = sigs.iter().collect();
   bencher
@@ -65,9 +65,9 @@ fn aggregate_sig_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [100, 1000])]
 fn verify_n_individual<S: BlsScheme>(bencher: Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i as u8)).unwrap())
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
     .collect();
-  let msgs: Vec<[u8; 32]> = (0..n).map(|i| test_msg(i as u8)).collect();
+  let msgs: Vec<[u8; 32]> = (0..n).map(test_msg).collect();
   let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
   let sigs: Vec<_> = keys
     .iter()
@@ -86,7 +86,7 @@ fn verify_n_individual<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [10, 100, 1000])]
 fn fast_verify_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i as u8)).unwrap())
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
     .collect();
   let msg = test_msg(42);
   let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
@@ -169,9 +169,9 @@ mod ietf {
   #[divan::bench(args = [10, 100, 1000])]
   fn verify_aggregated_block(bencher: Bencher, n: usize) {
     let keys: Vec<_> = (0..n)
-      .map(|i| BlsSecretKey::<BlsScIetf>::generate(&test_ikm(i as u8)).unwrap())
+      .map(|i| BlsSecretKey::<BlsScIetf>::generate(&test_ikm(i)).unwrap())
       .collect();
-    let msgs: Vec<[u8; 32]> = (0..n).map(|i| test_msg(i as u8)).collect();
+    let msgs: Vec<[u8; 32]> = (0..n).map(test_msg).collect();
     let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
     let sigs: Vec<_> = keys
       .iter()
@@ -214,8 +214,8 @@ mod worker {
   fn setup_sigs<S: BlsScheme>(n: usize) -> Vec<(BlsSignature<S>, BlsPublicKey<S>, [u8; 32])> {
     (0..n)
       .map(|i| {
-        let sk = BlsSecretKey::<S>::generate(&test_ikm(i as u8)).unwrap();
-        let msg = test_msg(i as u8);
+        let sk = BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap();
+        let msg = test_msg(i);
         let pk = sk.public_key();
         let sig = sk.sign(S::msg_ref(&msg));
         (sig, pk, msg)
@@ -234,7 +234,7 @@ mod worker {
   #[divan::bench(types = [BlsScChia, BlsScIetf], args = [100, 1000])]
   fn aggregate_pk_n<S: BlsScheme>(bencher: Bencher, n: usize) {
     let pks: Vec<BlsPublicKey<S>> = (0..n)
-      .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i as u8)).unwrap().public_key())
+      .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap().public_key())
       .collect();
     bencher
       .counter(ItemsCount::new(n))
