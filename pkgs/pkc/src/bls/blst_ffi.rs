@@ -440,6 +440,12 @@ impl G2 {
     Self(unsafe { *blst_p2_generator() })
   }
 
+  /// Whether the point lies in the prime-order subgroup.
+  #[cfg(test)]
+  pub(crate) fn in_subgroup(&self) -> bool {
+    unsafe { blst_p2_in_g2(&self.0) }
+  }
+
   /// Point doubling.
   pub(crate) fn double(&self) -> Self {
     let mut out = blst_p2::default();

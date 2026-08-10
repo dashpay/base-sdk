@@ -40,6 +40,20 @@ pub const G1_OFF_SUBGROUP_IETF: [u8; 48] =
 pub const G1_X_GE_PRIME_CHIA: [u8; 48] =
   hex!("1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaaf");
 
+/// Smallest off-subgroup G2 point, Chia-encoded: `x.c0 = 2` is the least
+/// value with `x^3 + 4(1 + u)` square in `Fp2` and `[r]P != O`.
+pub const G2_OFF_SUBGROUP_CHIA: [u8; 96] = hex!(concat!(
+  "800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002",
+  "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+));
+
+/// [`G2_OFF_SUBGROUP_CHIA`] in the IETF encoding: `[x.c1, x.c0]` order,
+/// compression bit and sign bit set.
+pub const G2_OFF_SUBGROUP_IETF: [u8; 96] = hex!(concat!(
+  "a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002"
+));
+
 /// Re-encode a Chia G1 coordinate under the IETF compression bit.
 pub const fn ietf_g1_encoding(mut chia: [u8; 48]) -> [u8; 48] {
   chia[0] |= 0x80;

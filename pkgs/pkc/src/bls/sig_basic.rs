@@ -111,7 +111,7 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsSigBytes<S>> for BlsSignature<S>, BlsErr
 mod tests {
   use super::*;
   use crate::bls::secret_ops::BlsSecretKey;
-  use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
+  use crate::bls::tests::{G2_OFF_SUBGROUP_CHIA, G2_OFF_SUBGROUP_IETF, MSG_DEADBEEF, SEED_0, SEED_1};
   use crate::bls::{BlsScChia, BlsScIetf};
   use crate::prelude::*;
 
@@ -213,15 +213,53 @@ mod tests {
     assertion();
   }
 
-  /// The legacy decoder rejects the all-zero encoding and the infinity marker
-  /// rather than yielding an identity signature.
-  #[rstest]
-  fn chia_rejects_identity_signature() {
-    assert!(BlsSignature::<BlsScChia>::from_bytes(&[0u8; 96]).is_err());
+  /// A small fixed vector set can miss one half of the compressed-point sign
+  /// convention. Exercise many deterministic keys and require both sign-bit
+  /// branches to round-trip for public keys and signatures.
+  fn assert_many_serialization_roundtrips<S: BlsScheme>(sign_bit: u8) {
+    let mut pk_signs = [false; 2];
+    let mut sig_signs = [false; 2];
 
+    for seed_byte in 0..64u8 {
+      let sk = BlsSecretKey::<S>::generate(&[seed_byte; 32]).unwrap();
+      let pk = sk.public_key();
+      let sig = sk.sign(S::msg_ref(&MSG_DEADBEEF));
+
+      let pk_bytes = pk.to_bytes();
+      let sig_bytes = sig.to_bytes();
+      pk_signs[usize::from(pk_bytes[0] & sign_bit != 0)] = true;
+      sig_signs[usize::from(sig_bytes[0] & sign_bit != 0)] = true;
+
+      assert_eq!(BlsPublicKey::<S>::from_bytes(&pk_bytes).unwrap(), pk);
+      assert_eq!(BlsSignature::<S>::from_bytes(&sig_bytes).unwrap(), sig);
+    }
+
+    assert!(pk_signs.into_iter().all(core::convert::identity));
+    assert!(sig_signs.into_iter().all(core::convert::identity));
+  }
+
+  #[rstest]
+  #[case::chia(assert_many_serialization_roundtrips::<BlsScChia>, 0x80)]
+  #[case::ietf(assert_many_serialization_roundtrips::<BlsScIetf>, 0x20)]
+  fn many_serialization_roundtrips(#[case] assertion: fn(u8), #[case] sign_bit: u8) {
+    assertion(sign_bit);
+  }
+
+  /// Neither decoder yields an identity signature. Chia guards the marker and
+  /// the all-zero buffer outright, IETF reaches the same answer through
+  /// `validate`, which refuses the identity despite a canonical encoding.
+  fn assert_identity_signature_rejected<S: BlsScheme>() {
     let mut infinity = [0u8; 96];
     infinity[0] = 0xc0;
-    assert!(BlsSignature::<BlsScChia>::from_bytes(&infinity).is_err());
+    assert!(BlsSignature::<S>::from_bytes(&infinity).is_err());
+    assert!(BlsSignature::<S>::from_bytes(&[0u8; 96]).is_err());
+  }
+
+  #[rstest]
+  #[case::chia(assert_identity_signature_rejected::<BlsScChia>)]
+  #[case::ietf(assert_identity_signature_rejected::<BlsScIetf>)]
+  fn identity_signature_rejected(#[case] assertion: fn()) {
+    assertion();
   }
 
   /// Only bit 7 of byte 0 is the legacy sign flag, and unlike G1 the legacy
@@ -245,14 +283,44 @@ mod tests {
     assert!(BlsSignature::<BlsScChia>::from_bytes(&mutated).is_err());
   }
 
-  /// The IETF decoder runs `validate`, which rejects the identity even though
-  /// its encoding is canonical.
+  /// Rejection alone is weak evidence, since the policy test below cannot
+  /// tell a composite-order point from a malformed one. Hold both encodings
+  /// to a single point so that distinction is made here.
   #[rstest]
-  fn ietf_rejects_identity_signature() {
-    let mut infinity = [0u8; 96];
-    infinity[0] = 0xc0;
-    assert!(BlsSignature::<BlsScIetf>::from_bytes(&infinity).is_err());
-    assert!(BlsSignature::<BlsScIetf>::from_bytes(&[0u8; 96]).is_err());
+  fn off_subgroup_g2_fixtures_are_one_point() {
+    let chia = BlsSignature::<BlsScChia>::from_bytes(&G2_OFF_SUBGROUP_CHIA).unwrap();
+    let point = BlsScChia::sig_to_g2(&chia.0).unwrap();
+
+    assert!(!point.in_subgroup(), "fixture is not off-subgroup");
+    assert_eq!(
+      point.to_affine().compress(),
+      G2_OFF_SUBGROUP_IETF,
+      "the IETF fixture encodes a different point"
+    );
+  }
+
+  /// Chia has no prime-order subgroup check, so a composite-order G2 point
+  /// decodes and round-trips. IETF validates and refuses the same point in
+  /// its own encoding.
+  fn assert_off_subgroup_signature_policy<S: BlsScheme>(encoded: &[u8; 96], accepted: bool) {
+    match BlsSignature::<S>::from_bytes(encoded) {
+      Ok(sig) => {
+        assert!(accepted, "off-subgroup signature accepted");
+        assert_eq!(sig.to_bytes(), *encoded);
+      }
+      Err(_) => assert!(!accepted, "off-subgroup signature rejected"),
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_off_subgroup_signature_policy::<BlsScChia>, &G2_OFF_SUBGROUP_CHIA, true)]
+  #[case::ietf(assert_off_subgroup_signature_policy::<BlsScIetf>, &G2_OFF_SUBGROUP_IETF, false)]
+  fn off_subgroup_signature_policy(
+    #[case] assertion: fn(&[u8; 96], bool),
+    #[case] encoded: &[u8; 96],
+    #[case] accepted: bool,
+  ) {
+    assertion(encoded, accepted);
   }
 
   /// The same G2 point encodes differently under the two schemes, and each
@@ -304,7 +372,7 @@ mod tests {
 
   cfg_if! {
     if #[cfg(feature = "serde")] {
-      use dash_dev::assert_json_rt;
+      use dash_dev::{assert_json_rt, to_json};
 
       /// The wrapper serializes through the byte bag, so the round-trip is
       /// pinned per scheme.
@@ -314,6 +382,19 @@ mod tests {
         assert_json_rt(&chia.sign(&MSG_DEADBEEF));
         let ietf = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
         assert_json_rt(&ietf.sign(&MSG_DEADBEEF));
+      }
+
+      #[rstest]
+      fn serde_emits_hex_string() {
+        let chia = BlsSecretKey::<BlsScChia>::generate(&SEED_0)
+          .unwrap()
+          .sign(&MSG_DEADBEEF);
+        let ietf = BlsSecretKey::<BlsScIetf>::generate(&SEED_0)
+          .unwrap()
+          .sign(&MSG_DEADBEEF);
+
+        assert_eq!(to_json(&chia), format!("\"{}\"", chia.to_bytes().to_lower_hex_string()));
+        assert_eq!(to_json(&ietf), format!("\"{}\"", ietf.to_bytes().to_lower_hex_string()));
       }
     }
   }
