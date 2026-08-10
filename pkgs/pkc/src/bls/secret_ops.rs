@@ -13,8 +13,9 @@ use super::{BlsSkBytes, BLS_SK_LEN};
 use crate::prelude::*;
 
 use dash_num::Hash256;
+use dash_types::codec::TypeId;
 use dash_types::{dlgt_scodec, qtypestr, type_cvrt};
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};
 
@@ -43,9 +44,9 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     S::sk_from_bytes(bytes).map(Self)
   }
 
-  /// Serialize to 32 bytes.
-  pub fn to_bytes(&self) -> [u8; 32] {
-    S::sk_to_bytes(&self.0)
+  /// Serialize to 32 bytes, wiped when the returned value drops.
+  pub fn to_bytes(&self) -> Zeroizing<[u8; 32]> {
+    Zeroizing::new(S::sk_to_bytes(&self.0))
   }
 
   /// Derive the corresponding public key.
@@ -91,7 +92,7 @@ impl<S: BlsScheme> Clone for BlsSecretKey<S> {
 
 impl<S: BlsScheme> Drop for BlsSecretKey<S> {
   fn drop(&mut self) {
-    S::zeroize_sk(&mut self.0);
+    self.zeroize();
   }
 }
 
@@ -102,8 +103,29 @@ impl<S: BlsScheme> Debug for BlsSecretKey<S> {
   }
 }
 
+impl<S: BlsScheme> Eq for BlsSecretKey<S> {}
+
+impl<S: BlsScheme> PartialEq for BlsSecretKey<S> {
+  fn eq(&self, other: &Self) -> bool {
+    use subtle::ConstantTimeEq;
+    (*self.to_bytes()).ct_eq(&*other.to_bytes()).into()
+  }
+}
+
+impl<S: BlsScheme> Zeroize for BlsSecretKey<S> {
+  fn zeroize(&mut self) {
+    S::zeroize_sk(&mut self.0);
+  }
+}
+
+impl<S: BlsScheme> ZeroizeOnDrop for BlsSecretKey<S> {}
+
+impl<S: BlsScheme> TypeId for BlsSecretKey<S> {
+  const TYPE_ID: u32 = S::SK_TYPE_ID;
+}
+
 type_cvrt!(for[S: BlsScheme] From<BlsSecretKey<S>> for BlsSkBytes<S>, |sk| {
-  Self::from_bytes(*Zeroizing::new(sk.to_bytes()))
+  Self::from_bytes(*sk.to_bytes())
 });
 
 type_cvrt!(for[S: BlsScheme] TryFrom<BlsSkBytes<S>> for BlsSecretKey<S>, BlsError, |bytes| {

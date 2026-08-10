@@ -46,9 +46,11 @@ impl BlsScheme for BlsScIetf {
     sk.sk_to_pk()
   }
 
-  /// No-op; `blst` zeroizes the key on drop.
-  fn zeroize_sk(_sk: &mut Self::InnerSk) {
-    // blst::min_pk::SecretKey zeroizes on drop internally.
+  /// Wipe the scalar limbs.
+  fn zeroize_sk(sk: &mut Self::InnerSk) {
+    // blst's SecretKey wipes itself on drop but exposes no in-place wipe,
+    // so assign over it. The old value drops, dropping is the wipe.
+    *sk = SecretKey::default();
   }
 
   /// Decode the compressed G1 point and run `validate`.
