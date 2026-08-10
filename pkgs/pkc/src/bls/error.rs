@@ -13,6 +13,8 @@ use core::fmt;
 pub enum BlsError {
   /// public key and message counts do not match
   CountMismatch,
+  /// repeated message in a distinct-message aggregate
+  DuplicateMessage,
   /// duplicate share id in recovery set
   DuplicateShareId,
   /// no items provided for aggregation
@@ -41,6 +43,7 @@ impl fmt::Display for BlsError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::CountMismatch => write!(f, "public key and message counts differ"),
+      Self::DuplicateMessage => write!(f, "repeated message in a distinct-message aggregate"),
       Self::DuplicateShareId => write!(f, "duplicate share id in recovery set"),
       Self::EmptyAggregation => write!(f, "no items provided for aggregation"),
       Self::InsufficientShares => write!(f, "not enough shares to recover"),

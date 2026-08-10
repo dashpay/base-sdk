@@ -58,14 +58,15 @@ impl<S: BlsScheme> BlsSignature<S> {
 }
 
 impl BlsSignature<BlsScIetf> {
-  /// Verify an aggregated signature where each signer signed a distinct
-  /// message.
+  /// Verify an aggregate carrying one message per signer. Two equal messages
+  /// collapse into a check on the sum of their keys, which one signer could
+  /// pick to cancel the other, so a repeat is rejected rather than verified.
   ///
   /// # Errors
   ///
   /// Returns `CountMismatch` when the message and key counts differ,
-  /// `EmptyAggregation` when no keys are given, or `VerifyFailed` on
-  /// mismatch.
+  /// `EmptyAggregation` when no keys are given, `DuplicateMessage` when a
+  /// message repeats, or `VerifyFailed` on mismatch.
   pub fn verify_aggregates(&self, msgs: &[&[u8]], pks: &[&BlsPublicKey<BlsScIetf>]) -> Result<(), BlsError> {
     let inner_pks: Vec<_> = pks.iter().map(|k| &k.0).collect();
     BlsScIetf::verify_aggregates(&self.0, msgs, &inner_pks)
@@ -162,6 +163,35 @@ mod tests {
     let pk2 = sk2.public_key();
     assert!(agg.verify_aggregates(&[msg1, msg2], &[&pk1, &pk2]).is_ok());
     assert!(agg.verify_aggregates(&[msg2, msg1], &[&pk1, &pk2]).is_err());
+
+    assert_eq!(
+      agg.verify_aggregates(&[msg1], &[&pk1, &pk2]),
+      Err(BlsError::CountMismatch)
+    );
+    assert_eq!(agg.verify_aggregates(&[], &[]), Err(BlsError::EmptyAggregation));
+  }
+
+  /// Repeating a message collapses the check onto the sum of the repeated
+  /// signers' keys, which either of them could have picked to cancel the
+  /// other, so verification refuses it outright.
+  #[rstest]
+  fn ietf_verify_rejects_duplicate_messages() {
+    let sk1 = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
+    let sk2 = BlsSecretKey::<BlsScIetf>::generate(&SEED_1).unwrap();
+
+    let msg: &[u8] = b"shared message";
+    let sig1 = sk1.sign(msg);
+    let sig2 = sk2.sign(msg);
+    let agg = BlsSignature::aggregate(&[&sig1, &sig2]).unwrap();
+
+    let pk1 = sk1.public_key();
+    let pk2 = sk2.public_key();
+    assert_eq!(
+      agg.verify_aggregates(&[msg, msg], &[&pk1, &pk2]),
+      Err(BlsError::DuplicateMessage)
+    );
+    // The same aggregate over the same message is what fast-verify is for.
+    assert!(agg.fast_verify_aggregates(msg, &[&pk1, &pk2]).is_ok());
   }
 
   /// An empty aggregate has no signers to bind, so both aggregation entry

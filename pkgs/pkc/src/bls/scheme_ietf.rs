@@ -11,6 +11,7 @@ use super::error::BlsError;
 use super::scheme_ops::{verify_ok, BlsScheme};
 use super::schemes::BlsScIetf;
 use super::sig_id::BlsSigId;
+use crate::prelude::*;
 
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
 
@@ -198,14 +199,22 @@ impl BlsScIetf {
   /// # Errors
   ///
   /// Returns `CountMismatch` when the message and key counts differ,
-  /// `EmptyAggregation` when no keys are given, or `VerifyFailed` on
-  /// mismatch.
+  /// `EmptyAggregation` when no keys are given, `DuplicateMessage` when a
+  /// message repeats, or `VerifyFailed` on mismatch.
   pub(crate) fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) -> Result<(), BlsError> {
     if pks.len() != msgs.len() {
       return Err(BlsError::CountMismatch);
     }
     if pks.is_empty() {
       return Err(BlsError::EmptyAggregation);
+    }
+    // Two equal messages collapse to `e(H(m), pk_a + pk_b)`, proving only
+    // that someone holds the sum. Absent a proof of possession, one signer
+    // can pick `pk_b` to cancel `pk_a` and verify without them.
+    let mut sorted: Vec<&[u8]> = msgs.to_vec();
+    sorted.sort_unstable();
+    if sorted.windows(2).any(|pair| pair[0] == pair[1]) {
+      return Err(BlsError::DuplicateMessage);
     }
     verify_ok(sig.aggregate_verify(true, msgs, DST_BASIC, pks, true))
   }
@@ -216,7 +225,6 @@ impl BlsScIetf {
 mod tests {
   use super::*;
   use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
-  use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
   use hex_conservative::hex;
