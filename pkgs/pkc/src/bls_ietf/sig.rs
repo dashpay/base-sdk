@@ -6,9 +6,9 @@
 
 //! IETF BLS signature (96-byte compressed G2 point).
 
-use super::pk::PublicKey;
 use super::sk::Scheme;
-use crate::bls::scheme_ietf::{DST_BASIC, DST_POP};
+use super::PublicKey;
+use crate::bls::scheme_ietf::{DST_BASIC, DST_POP, DST_POP_PROVE};
 use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsScIetf, BlsSigBytes};
 
@@ -68,6 +68,18 @@ impl Signature {
 
   fn verify_raw(&self, msg: &[u8], pk: &PublicKey, dst: &[u8]) -> Result<(), BlsError> {
     verify_ok(self.0.verify(true, msg, dst, &[], &pk.0, true))
+  }
+}
+
+impl PublicKey {
+  /// Verify a proof of possession against this key.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`BlsError::VerifyFailed`] if the proof does not verify.
+  pub fn verify_possession(&self, pop: &Signature) -> Result<(), BlsError> {
+    let pk_bytes = self.to_bytes();
+    verify_ok(pop.0.verify(true, &pk_bytes, DST_POP_PROVE, &[], &self.0, true))
   }
 }
 

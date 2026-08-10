@@ -6,8 +6,8 @@
 
 //! IETF BLS secret key.
 
-use super::pk::PublicKey;
 use super::sig::Signature;
+use super::PublicKey;
 use crate::bls::scheme_ietf::{DST_BASIC, DST_POP, DST_POP_PROVE};
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScIetf, BlsSkBytes, BLS_SK_LEN};

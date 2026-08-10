@@ -22,6 +22,7 @@ pub use sig_id::BlsSigId;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
+    mod public_ops;
     mod scheme_chia;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
@@ -33,5 +34,8 @@ cfg_if::cfg_if! {
     #[doc(hidden)]
     #[expect(clippy::unwrap_used, reason = "test support code")]
     pub mod tests;
+
+    pub use public_ops::BlsPublicKey;
+    pub use scheme_ops::BlsScheme;
   }
 }

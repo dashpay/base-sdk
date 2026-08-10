@@ -7,7 +7,6 @@
 //! Legacy BLS signatures (non-standard hash-to-G2, min-pubkey-size).
 
 mod agg;
-mod pk;
 mod sig;
 mod sk;
 
@@ -15,12 +14,12 @@ pub mod threshold;
 
 pub use crate::bls::BlsError;
 
-pub use agg::{
-  aggregate_pk, aggregate_sig, aggregate_sk, fast_verify_aggregates, secure_verify_aggregates, verify_aggregates,
-};
-pub use pk::PublicKey;
+pub use agg::{aggregate_sig, aggregate_sk, fast_verify_aggregates, secure_verify_aggregates, verify_aggregates};
 pub use sig::Signature;
 pub use sk::SecretKey;
+
+/// A legacy BLS public key (48-byte G1 point in legacy serialization).
+pub type PublicKey = crate::bls::BlsPublicKey<crate::bls::BlsScChia>;
 
 // Compile-time contract: must match bls_ietf's shared API surface.
 const _: () = {
@@ -47,16 +46,6 @@ const _: () = {
     }
     fn dh_exchange(&self, peer_pk: &PublicKey) -> Result<PublicKey, BlsError> {
       self.dh_exchange(peer_pk)
-    }
-  }
-  impl BlsPublicKey for PublicKey {
-    type Error = BlsError;
-    type SecretKey = SecretKey;
-    fn from_bytes(b: &[u8; 48]) -> Result<Self, BlsError> {
-      PublicKey::from_bytes(b)
-    }
-    fn to_bytes(&self) -> [u8; 48] {
-      self.to_bytes()
     }
   }
   impl BlsSignature for Signature {

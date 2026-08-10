@@ -6,18 +6,12 @@
 
 //! Aggregation and secure verification for legacy BLS.
 
-use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
+use super::PublicKey;
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScChia};
 use crate::prelude::*;
-
-/// Aggregate multiple legacy BLS public keys (simple point addition in G1).
-pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, BlsError> {
-  let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
-  BlsScChia::aggregate_pk(&inner).map(PublicKey::from_inner)
-}
 
 /// Aggregate multiple legacy BLS signatures (simple point addition in G2).
 pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, BlsError> {

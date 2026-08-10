@@ -6,7 +6,7 @@
 
 //! Legacy BLS signature (96-byte G2 point, legacy serialization).
 
-use super::pk::PublicKey;
+use super::PublicKey;
 use crate::bls::blst_ffi::G2Affine;
 use crate::bls::scheme_ops::BlsScheme;
 use crate::bls::{BlsError, BlsScChia, BlsSigBytes};

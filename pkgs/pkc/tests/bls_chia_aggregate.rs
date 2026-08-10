@@ -10,7 +10,7 @@
 
 use common::*;
 use dash_pkc::bls::tests as common;
-use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, verify_aggregates, PublicKey, SecretKey, Signature};
+use dash_pkc::bls_chia::{aggregate_sig, verify_aggregates, PublicKey, SecretKey, Signature};
 use rstest::*;
 
 /// Aggregate then verify over a shared message.
@@ -29,7 +29,7 @@ fn aggregate_and_verify(chia_sk0: SecretKey, chia_sk1: SecretKey) {
 #[rstest]
 fn aggregate_empty_fails() {
   let empty_pk: Vec<&dash_pkc::bls_chia::PublicKey> = vec![];
-  assert!(aggregate_pk(&empty_pk).is_err());
+  assert!(PublicKey::aggregate(&empty_pk).is_err());
   let empty_sig: Vec<&Signature> = vec![];
   assert!(aggregate_sig(&empty_sig).is_err());
 }
@@ -113,12 +113,6 @@ mod kat {
   use serde::Deserialize;
 
   #[derive(Deserialize)]
-  struct AggregatePkVector {
-    pks: Vec<String>,
-    agg_pk: String,
-  }
-
-  #[derive(Deserialize)]
   struct AggregateSigVector {
     sigs: Vec<String>,
     agg_sig: String,
@@ -131,26 +125,6 @@ mod kat {
     pks: Vec<String>,
     sigs: Vec<String>,
     agg_sig_secure: String,
-  }
-
-  #[test]
-  fn kat_aggregate_pk() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_aggregate");
-    let vecs: Vec<AggregatePkVector> = corpus.vectors("aggregate_pk");
-
-    for v in &vecs {
-      let pks: Vec<dash_pkc::bls_chia::PublicKey> = v
-        .pks
-        .iter()
-        .map(|h| {
-          let b: [u8; 48] = arr_from_hex(h);
-          dash_pkc::bls_chia::PublicKey::from_bytes(&b).unwrap()
-        })
-        .collect();
-      let pk_refs: Vec<_> = pks.iter().collect();
-      let agg = dash_pkc::bls_chia::aggregate_pk(&pk_refs).unwrap();
-      assert_eq!(agg.to_bytes().to_lower_hex_string(), v.agg_pk);
-    }
   }
 
   #[test]

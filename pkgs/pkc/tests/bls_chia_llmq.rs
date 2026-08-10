@@ -11,7 +11,7 @@
 use dash_dev::{arr_from_hex, Corpus};
 use dash_num::Hash256;
 use dash_pkc::bls::tests as common;
-use dash_pkc::bls_chia::{aggregate_pk, aggregate_sig, threshold, PublicKey, SecretKey, Signature};
+use dash_pkc::bls_chia::{aggregate_sig, threshold, PublicKey, SecretKey, Signature};
 use hex_conservative::DisplayHex;
 
 #[test]
@@ -114,7 +114,7 @@ fn llmq_commit_quorum_key() {
     .map(|c| PublicKey::from_bytes(&arr_from_hex(c["vvec"][0].as_str().unwrap())).unwrap())
     .collect();
   let pk_refs: Vec<&PublicKey> = member_pks.iter().collect();
-  let agg_pk = aggregate_pk(&pk_refs).unwrap();
+  let agg_pk = PublicKey::aggregate(&pk_refs).unwrap();
   assert_eq!(agg_pk.to_bytes().to_lower_hex_string(), expected_qpk);
 }
 

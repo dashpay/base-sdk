@@ -6,21 +6,15 @@
 
 //! Aggregation and batch verification for IETF BLS.
 
-use super::pk::PublicKey;
 use super::sig::Signature;
 use super::sk::SecretKey;
+use super::PublicKey;
 use crate::bls::scheme_ietf::DST_BASIC;
 use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsScIetf};
 use crate::prelude::*;
 
 use blst::min_pk;
-
-/// Aggregate multiple public keys into one.
-pub fn aggregate_pk(keys: &[&PublicKey]) -> Result<PublicKey, BlsError> {
-  let inner: Vec<_> = keys.iter().map(|key| &key.0).collect();
-  BlsScIetf::aggregate_pk(&inner).map(PublicKey::from_inner)
-}
 
 /// Aggregate multiple signatures into one.
 pub fn aggregate_sig(sigs: &[&Signature]) -> Result<Signature, BlsError> {
