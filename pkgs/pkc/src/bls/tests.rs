@@ -25,6 +25,27 @@ pub const RSEED: [[u8; 32]; 4] = [[0u8; 32], [1u8; 32], [2u8; 32], [3u8; 32]];
 /// Test message.
 pub const MSG_DEADBEEF: [u8; 32] = hex!("deadbeefdeadbeefdeadbeefdeadbeefcafebabecafebabecafebabecafebabe");
 
+/// Smallest off-subgroup G1 point, Chia-encoded: `x = 4` is the least `x`
+/// with `x^3 + 4` a residue mod `p` and `[r]P != O`.
+pub const G1_OFF_SUBGROUP_CHIA: [u8; 48] =
+  hex!("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004");
+
+/// [`G1_OFF_SUBGROUP_CHIA`] in the IETF encoding: compression bit set, sign
+/// bit clear.
+pub const G1_OFF_SUBGROUP_IETF: [u8; 48] =
+  hex!("800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004");
+
+/// [`G1_OFF_SUBGROUP_CHIA`] with the field prime added to `x`, so the
+/// coordinate is out of range while the flag bits stay untouched.
+pub const G1_X_GE_PRIME_CHIA: [u8; 48] =
+  hex!("1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaaf");
+
+/// Re-encode a Chia G1 coordinate under the IETF compression bit.
+pub const fn ietf_g1_encoding(mut chia: [u8; 48]) -> [u8; 48] {
+  chia[0] |= 0x80;
+  chia
+}
+
 /// Parse a 32-byte hash from a hex string.
 pub fn hash_from_hex(s: &str) -> dash_num::Hash256 {
   dash_num::Hash256::from_hex(s).unwrap()

@@ -102,7 +102,9 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsPkBytes<S>> for BlsPublicKey<S>, BlsErro
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{SEED_0, SEED_1};
+  use crate::bls::tests::{
+    ietf_g1_encoding, G1_OFF_SUBGROUP_CHIA, G1_OFF_SUBGROUP_IETF, G1_X_GE_PRIME_CHIA, SEED_0, SEED_1,
+  };
   use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey};
 
   use cfg_if::cfg_if;
@@ -178,13 +180,58 @@ mod tests {
     assertion();
   }
 
-  /// The legacy decoder rejects the infinity marker rather than yielding an
-  /// identity public key.
-  #[rstest]
-  fn chia_rejects_identity_public_key() {
+  /// Neither decoder yields an identity key. Chia guards the marker and the
+  /// all-zero buffer outright, IETF reaches the same answer through
+  /// `validate`, which refuses the identity despite a canonical encoding.
+  fn assert_identity_public_key_rejected<S: BlsScheme>() {
     let mut infinity = [0u8; 48];
     infinity[0] = 0xc0;
-    assert!(BlsPublicKey::<BlsScChia>::from_bytes(&infinity).is_err());
+    assert!(BlsPublicKey::<S>::from_bytes(&infinity).is_err());
+    assert!(BlsPublicKey::<S>::from_bytes(&[0u8; 48]).is_err());
+  }
+
+  #[rstest]
+  #[case::chia(assert_identity_public_key_rejected::<BlsScChia>)]
+  #[case::ietf(assert_identity_public_key_rejected::<BlsScIetf>)]
+  fn identity_public_key_rejected(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// Chia has no prime-order subgroup check, so a composite-order point decodes
+  /// and round-trips; refusing it would diverge on a value Chia encodings
+  /// already carry. IETF validates and refuses it.
+  fn assert_off_subgroup_public_key_policy<S: BlsScheme>(encoded: &[u8; 48], accepted: bool) {
+    match BlsPublicKey::<S>::from_bytes(encoded) {
+      Ok(pk) => {
+        assert!(accepted, "off-subgroup key accepted");
+        assert_eq!(pk.to_bytes(), *encoded);
+      }
+      Err(_) => assert!(!accepted, "off-subgroup key rejected"),
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_off_subgroup_public_key_policy::<BlsScChia>, &G1_OFF_SUBGROUP_CHIA, true)]
+  #[case::ietf(assert_off_subgroup_public_key_policy::<BlsScIetf>, &G1_OFF_SUBGROUP_IETF, false)]
+  fn off_subgroup_public_key_policy(
+    #[case] assertion: fn(&[u8; 48], bool),
+    #[case] encoded: &[u8; 48],
+    #[case] accepted: bool,
+  ) {
+    assertion(encoded, accepted);
+  }
+
+  /// An `x` at or above the field prime is not a coordinate, and neither scheme
+  /// reduces it into range.
+  fn assert_out_of_range_coordinate_rejected<S: BlsScheme>(encoded: [u8; 48]) {
+    assert!(BlsPublicKey::<S>::from_bytes(&encoded).is_err());
+  }
+
+  #[rstest]
+  #[case::chia(assert_out_of_range_coordinate_rejected::<BlsScChia>, G1_X_GE_PRIME_CHIA)]
+  #[case::ietf(assert_out_of_range_coordinate_rejected::<BlsScIetf>, ietf_g1_encoding(G1_X_GE_PRIME_CHIA))]
+  fn out_of_range_coordinate_rejected(#[case] assertion: fn([u8; 48]), #[case] encoded: [u8; 48]) {
+    assertion(encoded);
   }
 
   /// The legacy decoder normalizes stray high bits, so a mutated encoding
@@ -202,8 +249,37 @@ mod tests {
     assert_eq!(decoded.to_bytes(), clean);
   }
 
-  /// The same G1 point encodes differently under the two schemes, and the
-  /// legacy encoding must round-trip through the wrapper.
+  /// Bit 6 has no meaning on its own in the Chia encoding and is masked like
+  /// bit 5; paired with bit 7 it is read as the infinity marker instead, which
+  /// the decoder rejects whether or not the rest of the buffer is zero.
+  #[rstest]
+  fn chia_masks_stray_bit_six() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
+    let v = corpus.vectors::<PkSerVec>("pk_serialization").swap_remove(0);
+
+    // Clear the sign bit so bit 6 is the only stray bit under test.
+    let mut clean: [u8; 48] = arr_from_hex(&v.pk_legacy);
+    clean[0] &= 0x1f;
+    assert_eq!(BlsPublicKey::<BlsScChia>::from_bytes(&clean).unwrap().to_bytes(), clean);
+
+    let mut stray = clean;
+    stray[0] |= 0x40;
+    assert_eq!(
+      BlsPublicKey::<BlsScChia>::from_bytes(&stray).unwrap().to_bytes(),
+      clean,
+      "bit 6 alone must be masked, not read as a flag"
+    );
+
+    let mut marker = clean;
+    marker[0] |= 0xc0;
+    assert!(
+      BlsPublicKey::<BlsScChia>::from_bytes(&marker).is_err(),
+      "bits 6 and 7 together mark infinity, which the decoder rejects"
+    );
+  }
+
+  /// The same G1 point encodes differently under the two schemes, and each
+  /// encoding must round-trip through the wrapper of its own scheme.
   #[rstest]
   fn serialization_formats_match_vectors() {
     let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
@@ -212,6 +288,9 @@ mod tests {
     for v in &vecs {
       let legacy = BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&v.pk_legacy)).unwrap();
       assert_eq!(legacy.to_bytes().to_lower_hex_string(), v.pk_legacy);
+
+      let ietf = BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&v.pk_ietf)).unwrap();
+      assert_eq!(ietf.to_bytes().to_lower_hex_string(), v.pk_ietf);
 
       assert_ne!(v.pk_legacy, v.pk_ietf, "legacy and ietf should differ");
     }
@@ -242,7 +321,18 @@ mod tests {
 
   cfg_if! {
     if #[cfg(feature = "serde")] {
-      use dash_dev::assert_json_rt;
+      use dash_dev::{assert_json_rt, to_json};
+
+      #[rstest]
+      fn serde_emits_hex_string() {
+        let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
+        let v = corpus.vectors::<PkSerVec>("pk_serialization").swap_remove(0);
+
+        let chia = BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&v.pk_legacy)).unwrap();
+        let ietf = BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&v.pk_ietf)).unwrap();
+        assert_eq!(to_json(&chia), format!("\"{}\"", v.pk_legacy));
+        assert_eq!(to_json(&ietf), format!("\"{}\"", v.pk_ietf));
+      }
 
       #[rstest]
       fn serde_roundtrip() {
