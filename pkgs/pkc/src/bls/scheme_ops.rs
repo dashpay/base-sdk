@@ -126,6 +126,9 @@ pub trait BlsScheme: BlsSchemeId {
   /// Returns `VerifyFailed` when the pairing check does not hold.
   fn verify(sig: &Self::InnerSig, msg: &Self::Msg, pk: &Self::InnerPk) -> Result<(), BlsError>;
 
+  /// Reborrow a fixed 32-byte message as the scheme's message type.
+  fn msg_ref(m: &[u8; 32]) -> &Self::Msg;
+
   /// Compute the Diffie-Hellman shared key `sk * peer_pk`.
   ///
   /// # Errors

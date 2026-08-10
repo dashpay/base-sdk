@@ -9,7 +9,8 @@
 use super::error::BlsError;
 use super::public_ops::BlsPublicKey;
 use super::scheme_ops::BlsScheme;
-use super::{BlsSkBytes, BLS_SK_LEN};
+use super::sig_basic::BlsSignature;
+use super::{BlsScIetf, BlsSigId, BlsSkBytes, BLS_SK_LEN};
 use crate::prelude::*;
 
 use dash_num::Hash256;
@@ -54,6 +55,11 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     BlsPublicKey(S::derive_pk(&self.0))
   }
 
+  /// Sign a message of the scheme's message type.
+  pub fn sign(&self, msg: &S::Msg) -> BlsSignature<S> {
+    BlsSignature::from_inner(S::sign(&self.0, msg))
+  }
+
   /// Compute a DH shared key: `self * peer_pk`.
   ///
   /// The result is secret material despite its [`BlsPublicKey`] type: it is a
@@ -81,6 +87,13 @@ impl<S: BlsScheme> BlsSecretKey<S> {
 
   pub(crate) fn from_inner(inner: S::InnerSk) -> Self {
     Self(inner)
+  }
+}
+
+impl BlsSecretKey<BlsScIetf> {
+  /// Sign under the domain separation tag selected by `scheme`.
+  pub fn sign_with(&self, msg: &[u8], scheme: BlsSigId) -> BlsSignature<BlsScIetf> {
+    BlsSignature::from_inner(BlsScIetf::sign_with(&self.0, msg, scheme))
   }
 }
 

@@ -138,7 +138,7 @@ impl BlsScheme for BlsScChia {
 
     // After swizzling, byte 48 (top of `x.c1`) sits in the IETF flag byte,
     // where blst reads flags instead of range-checking, so reject its stray
-    // high bits here: the reference feeds them to relic as `x >= p`.
+    // high bits here: kept, they would make `x.c1 >= p`.
     if b[48] & 0xe0 != 0 {
       return Err(BlsError::InvalidSignature);
     }
@@ -221,6 +221,11 @@ impl BlsScheme for BlsScChia {
     } else {
       Err(BlsError::VerifyFailed)
     }
+  }
+
+  /// The Chia message type is already a fixed 32-byte array.
+  fn msg_ref(m: &[u8; 32]) -> &Self::Msg {
+    m
   }
 
   /// Sum the public keys in G1.

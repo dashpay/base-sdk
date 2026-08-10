@@ -78,14 +78,6 @@ name = "bls_chia_llmq"
 required-features = ["bls", "tests"]
 
 [[test]]
-name = "bls_chia_ser"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_chia_sign"
-required-features = ["bls", "tests"]
-
-[[test]]
 name = "bls_chia_threshold"
 required-features = ["bls", "tests"]
 
@@ -99,10 +91,6 @@ required-features = ["bls", "tests"]
 
 [[test]]
 name = "bls_ietf_pop"
-required-features = ["bls", "tests"]
-
-[[test]]
-name = "bls_ietf_sign"
 required-features = ["bls", "tests"]
 
 [[test]]

@@ -7,20 +7,21 @@
 //! Legacy BLS signatures (non-standard hash-to-G2, min-pubkey-size).
 
 mod agg;
-mod sig;
 
 pub mod threshold;
 
 pub use crate::bls::BlsError;
 
 pub use agg::{aggregate_sig, fast_verify_aggregates, secure_verify_aggregates, verify_aggregates};
-pub use sig::Signature;
 
 /// A legacy BLS public key (48-byte G1 point in legacy serialization).
 pub type PublicKey = crate::bls::BlsPublicKey<crate::bls::BlsScChia>;
 
 /// A legacy BLS secret key (32-byte scalar).
 pub type SecretKey = crate::bls::BlsSecretKey<crate::bls::BlsScChia>;
+
+/// A legacy BLS signature (96-byte G2 point in legacy serialization).
+pub type Signature = crate::bls::BlsSignature<crate::bls::BlsScChia>;
 
 // Compile-time contract: must match bls_ietf's shared API surface.
 const _: () = {

@@ -6,85 +6,12 @@
 
 //! IETF BLS signature (96-byte compressed G2 point).
 
-use super::{PublicKey, Scheme, SecretKey};
-use crate::bls::scheme_ietf::{DST_BASIC, DST_POP, DST_POP_PROVE};
-use crate::bls::scheme_ops::{verify_ok, BlsScheme};
-use crate::bls::{BlsError, BlsScIetf, BlsSigBytes};
-
-use blst::min_pk;
-use dash_types::Unencodable;
-
-/// A BLS signature (96-byte compressed G2 point).
-#[derive(Clone, Debug, Eq, PartialEq, Unencodable)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-#[cfg_attr(
-  feature = "serde",
-  serde(into = "BlsSigBytes<BlsScIetf>", try_from = "BlsSigBytes<BlsScIetf>",)
-)]
-pub struct Signature(pub(super) min_pk::Signature);
-
-impl Signature {
-  pub(super) fn from_inner(inner: min_pk::Signature) -> Self {
-    Self(inner)
-  }
-
-  /// Deserialize from 96 compressed bytes.
-  ///
-  /// # Errors
-  ///
-  /// Returns [`BlsError::InvalidSignature`] when the bytes are not a valid
-  /// encoding or the point fails `validate` (identity or non-prime-order).
-  pub fn from_bytes(bytes: &[u8; 96]) -> Result<Self, BlsError> {
-    BlsScIetf::sig_from_bytes(bytes).map(Self)
-  }
-
-  /// Serialize to 96 compressed bytes.
-  pub fn to_bytes(&self) -> [u8; 96] {
-    BlsScIetf::sig_to_bytes(&self.0)
-  }
-
-  /// Verify with the Basic scheme.
-  ///
-  /// # Errors
-  ///
-  /// Returns [`BlsError::VerifyFailed`] if the signature does not verify.
-  pub fn verify(&self, msg: &[u8], pk: &PublicKey) -> Result<(), BlsError> {
-    BlsScIetf::verify(&self.0, msg, &pk.0)
-  }
-
-  /// Verify with a specific scheme.
-  ///
-  /// # Errors
-  ///
-  /// Returns [`BlsError::VerifyFailed`] if the signature does not verify.
-  pub fn verify_with(&self, msg: &[u8], pk: &PublicKey, scheme: Scheme) -> Result<(), BlsError> {
-    let dst = match scheme {
-      Scheme::Basic => DST_BASIC,
-      Scheme::ProofOfPossession => DST_POP,
-    };
-    self.verify_raw(msg, pk, dst)
-  }
-
-  fn verify_raw(&self, msg: &[u8], pk: &PublicKey, dst: &[u8]) -> Result<(), BlsError> {
-    verify_ok(self.0.verify(true, msg, dst, &[], &pk.0, true))
-  }
-}
+use super::{PublicKey, SecretKey, Signature};
+use crate::bls::scheme_ietf::DST_POP_PROVE;
+use crate::bls::scheme_ops::verify_ok;
+use crate::bls::BlsError;
 
 impl SecretKey {
-  /// Sign with the Basic scheme.
-  pub fn sign(&self, msg: &[u8]) -> Signature {
-    Signature::from_inner(BlsScIetf::sign(&self.0, msg))
-  }
-
-  /// Sign with a specific scheme.
-  pub fn sign_with(&self, msg: &[u8], scheme: Scheme) -> Signature {
-    let dst = match scheme {
-      Scheme::Basic => DST_BASIC,
-      Scheme::ProofOfPossession => DST_POP,
-    };
-    Signature::from_inner(self.0.sign(msg, dst, &[]))
-  }
-
   /// Produce a proof of possession by signing the serialized public key with
   /// the PoP DST.
   pub fn prove_possession(&self) -> Signature {
@@ -102,21 +29,5 @@ impl PublicKey {
   pub fn verify_possession(&self, pop: &Signature) -> Result<(), BlsError> {
     let pk_bytes = self.to_bytes();
     verify_ok(pop.0.verify(true, &pk_bytes, DST_POP_PROVE, &[], &self.0, true))
-  }
-}
-
-crate::common::bls::impl_hash_via_bytes!(Signature);
-
-impl From<Signature> for BlsSigBytes<BlsScIetf> {
-  fn from(sig: Signature) -> Self {
-    Self::from_bytes(sig.to_bytes())
-  }
-}
-
-impl TryFrom<BlsSigBytes<BlsScIetf>> for Signature {
-  type Error = BlsError;
-
-  fn try_from(bytes: BlsSigBytes<BlsScIetf>) -> Result<Self, Self::Error> {
-    Self::from_bytes(bytes.as_bytes())
   }
 }

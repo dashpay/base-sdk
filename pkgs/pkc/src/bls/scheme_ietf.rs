@@ -10,13 +10,14 @@ use super::blst_ffi::{G1Affine, G2Affine, G1, G2};
 use super::error::BlsError;
 use super::scheme_ops::{verify_ok, BlsScheme};
 use super::schemes::BlsScIetf;
+use super::sig_id::BlsSigId;
 
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
 
 /// Domain separation tag for the basic (NUL) signature scheme.
 pub(crate) const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
 /// Domain separation tag for signatures in the proof-of-possession scheme.
-pub(crate) const DST_POP: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+const DST_POP: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 /// Domain separation tag for proofs of possession.
 pub(crate) const DST_POP_PROVE: &[u8] = b"BLS_POP_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 
@@ -122,6 +123,11 @@ impl BlsScheme for BlsScIetf {
     verify_ok(sig.verify(true, msg, DST_BASIC, &[], pk, true))
   }
 
+  /// IETF messages are unsized slices; a fixed array reborrows as one.
+  fn msg_ref(m: &[u8; 32]) -> &Self::Msg {
+    m
+  }
+
   /// Aggregate the public keys via blst.
   fn aggregate_pk(pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError> {
     if pks.is_empty() {
@@ -146,6 +152,30 @@ impl BlsScheme for BlsScIetf {
       return Err(BlsError::EmptyAggregation);
     }
     verify_ok(sig.fast_aggregate_verify(true, msg, DST_BASIC, pks))
+  }
+}
+
+impl BlsScIetf {
+  /// Sign under the DST selected by `id`.
+  pub(crate) fn sign_with(sk: &SecretKey, msg: &[u8], id: BlsSigId) -> Signature {
+    let dst = match id {
+      BlsSigId::Basic => DST_BASIC,
+      BlsSigId::ProofOfPossession => DST_POP,
+    };
+    sk.sign(msg, dst, &[])
+  }
+
+  /// Verify under the DST selected by `id`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the pairing check does not hold.
+  pub(crate) fn verify_with(sig: &Signature, msg: &[u8], pk: &PublicKey, id: BlsSigId) -> Result<(), BlsError> {
+    let dst = match id {
+      BlsSigId::Basic => DST_BASIC,
+      BlsSigId::ProofOfPossession => DST_POP,
+    };
+    verify_ok(sig.verify(true, msg, dst, &[], pk, true))
   }
 }
 

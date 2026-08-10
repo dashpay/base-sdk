@@ -16,13 +16,15 @@ pub use crate::bls::BlsError;
 pub use crate::bls::BlsSigId as Scheme;
 
 pub use agg::{aggregate_sig, fast_verify_aggregates, secure_verify_aggregates, verify_aggregates};
-pub use sig::Signature;
 
 /// An IETF BLS public key (48-byte compressed G1 point).
 pub type PublicKey = crate::bls::BlsPublicKey<crate::bls::BlsScIetf>;
 
 /// An IETF BLS secret key (32-byte scalar).
 pub type SecretKey = crate::bls::BlsSecretKey<crate::bls::BlsScIetf>;
+
+/// An IETF BLS signature (96-byte compressed G2 point).
+pub type Signature = crate::bls::BlsSignature<crate::bls::BlsScIetf>;
 
 // Compile-time contract: if any of these methods are
 // removed or their signatures change, this block fails.

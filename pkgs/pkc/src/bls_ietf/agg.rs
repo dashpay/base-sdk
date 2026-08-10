@@ -6,8 +6,7 @@
 
 //! Aggregation and batch verification for IETF BLS.
 
-use super::sig::Signature;
-use super::PublicKey;
+use super::{PublicKey, Signature};
 use crate::bls::scheme_ietf::DST_BASIC;
 use crate::bls::scheme_ops::{verify_ok, BlsScheme};
 use crate::bls::{BlsError, BlsScIetf};

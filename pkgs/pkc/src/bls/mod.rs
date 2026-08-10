@@ -25,6 +25,7 @@ cfg_if::cfg_if! {
     mod public_ops;
     mod scheme_chia;
     mod secret_ops;
+    mod sig_basic;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
@@ -39,5 +40,6 @@ cfg_if::cfg_if! {
     pub use public_ops::BlsPublicKey;
     pub use scheme_ops::BlsScheme;
     pub use secret_ops::BlsSecretKey;
+    pub use sig_basic::BlsSignature;
   }
 }
