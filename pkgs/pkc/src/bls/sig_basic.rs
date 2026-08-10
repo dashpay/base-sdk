@@ -153,6 +153,38 @@ mod tests {
     assertion();
   }
 
+  /// The byte-oriented IETF entry points must bind a signature to the selected
+  /// DST. Correct variants verify, while the other variant, another message,
+  /// and another key all fail.
+  #[rstest]
+  fn ietf_signature_variant_contract() {
+    let sk = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
+    let pk = sk.public_key();
+    let other_pk = BlsSecretKey::<BlsScIetf>::generate(&SEED_1).unwrap().public_key();
+    let msg = b"variant-bound message";
+    let wrong_msg = b"another message";
+
+    for (variant, other) in [
+      (BlsSigId::Basic, BlsSigId::ProofOfPossession),
+      (BlsSigId::ProofOfPossession, BlsSigId::Basic),
+    ] {
+      let sig = sk.sign_with(msg, variant);
+      assert!(sig.verify_with(msg, &pk, variant).is_ok());
+      assert!(sig.verify_with(msg, &pk, other).is_err());
+      assert!(sig.verify_with(wrong_msg, &pk, variant).is_err());
+      assert!(sig.verify_with(msg, &other_pk, variant).is_err());
+
+      let decoded = BlsSignature::<BlsScIetf>::from_bytes(&sig.to_bytes()).unwrap();
+      assert!(decoded.verify_with(msg, &pk, variant).is_ok());
+    }
+
+    assert_ne!(
+      sk.sign_with(msg, BlsSigId::Basic),
+      sk.sign_with(msg, BlsSigId::ProofOfPossession),
+      "different DSTs must produce different signatures",
+    );
+  }
+
   /// BLS signing draws no randomness, so the same key over the same message
   /// yields the same signature every time.
   fn assert_sign_is_deterministic<S: BlsScheme>() {

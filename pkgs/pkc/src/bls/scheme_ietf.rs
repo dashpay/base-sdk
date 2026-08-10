@@ -156,13 +156,17 @@ impl BlsScheme for BlsScIetf {
 }
 
 impl BlsScIetf {
-  /// Sign under the DST selected by `id`.
-  pub(crate) fn sign_with(sk: &SecretKey, msg: &[u8], id: BlsSigId) -> Signature {
-    let dst = match id {
+  /// The domain separation tag `id` signs and verifies under.
+  const fn dst_of(id: BlsSigId) -> &'static [u8] {
+    match id {
       BlsSigId::Basic => DST_BASIC,
       BlsSigId::ProofOfPossession => DST_POP,
-    };
-    sk.sign(msg, dst, &[])
+    }
+  }
+
+  /// Sign under the DST selected by `id`.
+  pub(crate) fn sign_with(sk: &SecretKey, msg: &[u8], id: BlsSigId) -> Signature {
+    sk.sign(msg, Self::dst_of(id), &[])
   }
 
   /// Verify under the DST selected by `id`.
@@ -171,11 +175,7 @@ impl BlsScIetf {
   ///
   /// Returns `VerifyFailed` when the pairing check does not hold.
   pub(crate) fn verify_with(sig: &Signature, msg: &[u8], pk: &PublicKey, id: BlsSigId) -> Result<(), BlsError> {
-    let dst = match id {
-      BlsSigId::Basic => DST_BASIC,
-      BlsSigId::ProofOfPossession => DST_POP,
-    };
-    verify_ok(sig.verify(true, msg, dst, &[], pk, true))
+    verify_ok(sig.verify(true, msg, Self::dst_of(id), &[], pk, true))
   }
 
   /// Prove possession by signing the public key under the PoP-prove DST.
