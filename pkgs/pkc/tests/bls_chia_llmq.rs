@@ -11,7 +11,7 @@
 use dash_dev::{arr_from_hex, Corpus};
 use dash_num::Hash256;
 use dash_pkc::bls::tests as common;
-use dash_pkc::bls_chia::{aggregate_sig, threshold, PublicKey, SecretKey, Signature};
+use dash_pkc::bls_chia::{threshold, PublicKey, SecretKey, Signature};
 use hex_conservative::DisplayHex;
 
 #[test]
@@ -264,7 +264,7 @@ fn llmq_finalize_aggregated_member_sigs() {
     .collect();
   let sig_refs: Vec<&Signature> = member_sigs.iter().collect();
 
-  let agg_sig = aggregate_sig(&sig_refs).unwrap();
+  let agg_sig = Signature::aggregate(&sig_refs).unwrap();
 
   let member_pks: Vec<PublicKey> = commits
     .iter()
@@ -276,7 +276,7 @@ fn llmq_finalize_aggregated_member_sigs() {
   let pk_refs: Vec<&PublicKey> = member_pks.iter().collect();
 
   assert!(
-    dash_pkc::bls_chia::fast_verify_aggregates(&agg_sig, &commitment_hash, &pk_refs,).is_ok(),
+    agg_sig.fast_verify_aggregates(&commitment_hash, &pk_refs).is_ok(),
     "aggregated member sigs failed fast_verify"
   );
 }

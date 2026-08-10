@@ -15,7 +15,7 @@ use super::sig_id::BlsSigId;
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
 
 /// Domain separation tag for the basic (NUL) signature scheme.
-pub(crate) const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
+const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
 /// Domain separation tag for signatures in the proof-of-possession scheme.
 const DST_POP: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 /// Domain separation tag for proofs of possession.
@@ -176,6 +176,24 @@ impl BlsScIetf {
       BlsSigId::ProofOfPossession => DST_POP,
     };
     verify_ok(sig.verify(true, msg, dst, &[], pk, true))
+  }
+
+  /// Verify an aggregated signature where each signer signed a distinct
+  /// message.
+  ///
+  /// # Errors
+  ///
+  /// Returns `CountMismatch` when the message and key counts differ,
+  /// `EmptyAggregation` when no keys are given, or `VerifyFailed` on
+  /// mismatch.
+  pub(crate) fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) -> Result<(), BlsError> {
+    if pks.len() != msgs.len() {
+      return Err(BlsError::CountMismatch);
+    }
+    if pks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+    verify_ok(sig.aggregate_verify(true, msgs, DST_BASIC, pks, true))
   }
 }
 

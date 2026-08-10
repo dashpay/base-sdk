@@ -25,6 +25,7 @@ cfg_if::cfg_if! {
     mod public_ops;
     mod scheme_chia;
     mod secret_ops;
+    mod sig_aggregate;
     mod sig_basic;
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;

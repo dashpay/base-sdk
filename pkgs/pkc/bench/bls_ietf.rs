@@ -8,7 +8,7 @@
 
 use common::*;
 use dash_pkc::bls::tests as common;
-use dash_pkc::bls_ietf::{aggregate_sig, fast_verify_aggregates, verify_aggregates, PublicKey, SecretKey, Signature};
+use dash_pkc::bls_ietf::{PublicKey, SecretKey, Signature};
 
 /// Single signature creation.
 #[divan::bench]
@@ -57,7 +57,7 @@ fn aggregate_sig_n(bencher: divan::Bencher, n: usize) {
   let sig_refs: Vec<&Signature> = sigs.iter().collect();
   bencher
     .counter(divan::counter::ItemsCount::new(n))
-    .bench(|| aggregate_sig(&sig_refs));
+    .bench(|| Signature::aggregate(&sig_refs));
 }
 
 /// N individual verifications in a loop.
@@ -86,12 +86,12 @@ fn verify_aggregated_block(bencher: divan::Bencher, n: usize) {
   let pks: Vec<_> = keys.iter().map(|k| k.public_key()).collect();
   let sigs: Vec<_> = keys.iter().zip(msgs.iter()).map(|(k, m)| k.sign(m)).collect();
   let sig_refs: Vec<&Signature> = sigs.iter().collect();
-  let agg_sig = aggregate_sig(&sig_refs).unwrap();
+  let agg_sig = Signature::aggregate(&sig_refs).unwrap();
   let pk_refs: Vec<_> = pks.iter().collect();
   let msg_slices: Vec<&[u8]> = msgs.iter().map(|m| m.as_slice()).collect();
   bencher
     .counter(divan::counter::ItemsCount::new(n))
-    .bench(|| verify_aggregates(&agg_sig, &msg_slices, &pk_refs));
+    .bench(|| agg_sig.verify_aggregates(&msg_slices, &pk_refs));
 }
 
 /// Fast aggregate verify (same message, N signers).
@@ -104,11 +104,11 @@ fn fast_verify_n(bencher: divan::Bencher, n: usize) {
   let pks: Vec<_> = keys.iter().map(|k| k.public_key()).collect();
   let sigs: Vec<_> = keys.iter().map(|k| k.sign(&msg)).collect();
   let sig_refs: Vec<&Signature> = sigs.iter().collect();
-  let agg_sig = aggregate_sig(&sig_refs).unwrap();
+  let agg_sig = Signature::aggregate(&sig_refs).unwrap();
   let pk_refs: Vec<_> = pks.iter().collect();
   bencher
     .counter(divan::counter::ItemsCount::new(n))
-    .bench(|| fast_verify_aggregates(&agg_sig, &msg, &pk_refs));
+    .bench(|| agg_sig.fast_verify_aggregates(&msg, &pk_refs));
 }
 
 /// Public key serialization (compress).
