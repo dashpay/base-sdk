@@ -103,7 +103,8 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsPkBytes<S>> for BlsPublicKey<S>, BlsErro
 mod tests {
   use super::*;
   use crate::bls::tests::{
-    ietf_g1_encoding, G1_OFF_SUBGROUP_CHIA, G1_OFF_SUBGROUP_IETF, G1_X_GE_PRIME_CHIA, SEED_0, SEED_1,
+    ietf_g1_encoding, G1_OFF_SUBGROUP_CHIA, G1_OFF_SUBGROUP_IETF, G1_X_EQ_PRIME_CHIA, G1_X_GE_PRIME_CHIA,
+    G1_X_MAX_CHIA, SEED_0, SEED_1,
   };
   use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey};
 
@@ -265,13 +266,27 @@ mod tests {
 
   /// An `x` at or above the field prime is not a coordinate, and neither scheme
   /// reduces it into range.
+  ///
+  /// Under Chia the refusal is a divergence rather than agreement, since the
+  /// read error is suppressed there and the G1 value left behind is not the
+  /// identity, which is all the consumer tests before calling a key valid.
+  ///
+  /// It stands because the alternative is a decoded point for bytes that hold
+  /// none, and the value left behind verifies nothing in any case.
+  ///
+  /// Each case was measured, not assumed: `p`, `p + 4` and an all-ones `x`
+  /// decode under Chia and are refused under IETF.
   fn assert_out_of_range_coordinate_rejected<S: BlsScheme>(encoded: [u8; 48]) {
     assert!(BlsPublicKey::<S>::from_bytes(&encoded).is_err());
   }
 
   #[rstest]
-  #[case::chia(assert_out_of_range_coordinate_rejected::<BlsScChia>, G1_X_GE_PRIME_CHIA)]
-  #[case::ietf(assert_out_of_range_coordinate_rejected::<BlsScIetf>, ietf_g1_encoding(G1_X_GE_PRIME_CHIA))]
+  #[case::chia_eq_prime(assert_out_of_range_coordinate_rejected::<BlsScChia>, G1_X_EQ_PRIME_CHIA)]
+  #[case::chia_gt_prime(assert_out_of_range_coordinate_rejected::<BlsScChia>, G1_X_GE_PRIME_CHIA)]
+  #[case::chia_max(assert_out_of_range_coordinate_rejected::<BlsScChia>, G1_X_MAX_CHIA)]
+  #[case::ietf_eq_prime(assert_out_of_range_coordinate_rejected::<BlsScIetf>, ietf_g1_encoding(G1_X_EQ_PRIME_CHIA))]
+  #[case::ietf_gt_prime(assert_out_of_range_coordinate_rejected::<BlsScIetf>, ietf_g1_encoding(G1_X_GE_PRIME_CHIA))]
+  #[case::ietf_max(assert_out_of_range_coordinate_rejected::<BlsScIetf>, ietf_g1_encoding(G1_X_MAX_CHIA))]
   fn out_of_range_coordinate_rejected(#[case] assertion: fn([u8; 48]), #[case] encoded: [u8; 48]) {
     assertion(encoded);
   }

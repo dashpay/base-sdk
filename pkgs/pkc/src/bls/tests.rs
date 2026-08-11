@@ -40,6 +40,15 @@ pub const G1_OFF_SUBGROUP_IETF: [u8; 48] =
 pub const G1_X_GE_PRIME_CHIA: [u8; 48] =
   hex!("1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaaf");
 
+/// The least out-of-range `x`, the field prime itself, Chia-encoded.
+pub const G1_X_EQ_PRIME_CHIA: [u8; 48] =
+  hex!("1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab");
+
+/// The largest `x` the Chia encoding can carry, every bit below the three
+/// flags set, so nothing beyond the flags is left to reinterpret.
+pub const G1_X_MAX_CHIA: [u8; 48] =
+  hex!("1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
 /// Smallest off-subgroup G2 point, Chia-encoded: `x.c0 = 2` is the least
 /// value with `x^3 + 4(1 + u)` square in `Fp2` and `[r]P != O`.
 pub const G2_OFF_SUBGROUP_CHIA: [u8; 96] = hex!(concat!(
