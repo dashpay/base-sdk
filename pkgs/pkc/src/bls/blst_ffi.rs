@@ -345,6 +345,12 @@ pub(crate) trait Point: Copy + Default + Add<Output = Self> {
 pub struct G1(blst_p1);
 
 impl G1 {
+  /// Whether the point lies in the prime-order subgroup.
+  #[cfg(test)]
+  pub(crate) fn in_subgroup(&self) -> bool {
+    unsafe { blst_p1_in_g1(&self.0) }
+  }
+
   /// Convert to affine coordinates.
   pub(crate) fn to_affine(self) -> G1Affine {
     let mut aff = blst_p1_affine::default();

@@ -167,6 +167,48 @@ mod tests {
     assertion();
   }
 
+  /// In the Chia scheme, DH weighs whatever the decoder passed, which leaks
+  /// the scalar mod the cofactor's small factors. IETF rejects this.
+  fn assert_off_subgroup_peer_policy<S: BlsScheme>(encoded: &[u8; 48], reaches_dh: bool) {
+    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+
+    match BlsPublicKey::<S>::from_bytes(encoded) {
+      Ok(peer) => {
+        assert!(reaches_dh, "decoder admitted an off-subgroup key");
+        assert!(!S::pk_to_g1(&peer.0).unwrap().in_subgroup());
+        assert!(sk.dh_exchange(&peer).is_ok(), "weighted without complaint");
+      }
+      Err(_) => assert!(!reaches_dh, "decoder refused it before DH could see it"),
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_off_subgroup_peer_policy::<BlsScChia>, &G1_OFF_SUBGROUP_CHIA, true)]
+  #[case::ietf(assert_off_subgroup_peer_policy::<BlsScIetf>, &G1_OFF_SUBGROUP_IETF, false)]
+  fn off_subgroup_peer_policy(
+    #[case] assertion: fn(&[u8; 48], bool),
+    #[case] encoded: &[u8; 48],
+    #[case] reaches_dh: bool,
+  ) {
+    assertion(encoded, reaches_dh);
+  }
+
+  /// Rejection alone is weak evidence, since the policy test below cannot
+  /// tell a composite-order point from a malformed one. Hold both encodings
+  /// to a single point so that distinction is made here.
+  #[rstest]
+  fn off_subgroup_g1_fixtures_are_one_point() {
+    let chia = BlsPublicKey::<BlsScChia>::from_bytes(&G1_OFF_SUBGROUP_CHIA).unwrap();
+    let point = BlsScChia::pk_to_g1(&chia.0).unwrap();
+
+    assert!(!point.in_subgroup(), "fixture is not off-subgroup");
+    assert_eq!(
+      point.to_affine().compress(),
+      G1_OFF_SUBGROUP_IETF,
+      "the IETF fixture encodes a different point"
+    );
+  }
+
   fn assert_pk_roundtrip<S: BlsScheme>() {
     let pk = BlsSecretKey::<S>::generate(&SEED_0).unwrap().public_key();
     let bytes = pk.to_bytes();
