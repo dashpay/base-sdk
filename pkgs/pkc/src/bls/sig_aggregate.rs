@@ -259,6 +259,25 @@ mod tests {
     }
   }
 
+  /// An identity aggregate encodes to the canonical infinity form, `0xc0` over
+  /// zeros. The decoder refuses that encoding as the identity is reachable
+  /// by computation, not off the wire.
+  #[rstest]
+  fn chia_identity_encodes_canonically() {
+    let sk = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
+    let sig = sk.sign(&[0x11u8; 32]);
+
+    let mut neg_bytes = sig.to_bytes();
+    neg_bytes[0] ^= 0x80;
+    let neg_sig = BlsSignature::<BlsScChia>::from_bytes(&neg_bytes).unwrap();
+    let identity = BlsSignature::<BlsScChia>::aggregate(&[&sig, &neg_sig]).unwrap();
+
+    let mut expected = [0u8; 96];
+    expected[0] = 0xc0;
+    assert_eq!(identity.to_bytes(), expected);
+    assert!(BlsSignature::<BlsScChia>::from_bytes(&expected).is_err());
+  }
+
   #[rstest]
   #[case::chia(assert_identity_cancellation::<BlsScChia>, 0x80, true)]
   #[case::ietf(assert_identity_cancellation::<BlsScIetf>, 0x20, false)]

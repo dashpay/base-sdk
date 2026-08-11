@@ -527,6 +527,11 @@ impl G2Affine {
     G2(out)
   }
 
+  /// Whether the point is at infinity.
+  pub(crate) fn is_inf(&self) -> bool {
+    unsafe { blst_p2_affine_is_inf(&self.0) }
+  }
+
   /// Serialize to the 96-byte compressed encoding.
   pub(crate) fn compress(&self) -> [u8; 96] {
     let mut out = [0u8; 96];

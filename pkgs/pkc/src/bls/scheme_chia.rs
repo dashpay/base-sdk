@@ -173,14 +173,16 @@ impl BlsScheme for BlsScChia {
   /// convention differences: blst lays out `[x.c1, x.c0, y.c1, y.c0]`,
   /// legacy `[x.c0, x.c1]` with the sign at byte\[0\] bit 7.
   fn sig_to_bytes(sig: &Self::InnerSig) -> [u8; 96] {
-    let uncomp = sig.serialize();
-
-    if uncomp.iter().all(|&b| b == 0) {
+    // Take blst's own infinity flag rather than testing the buffer: its
+    // uncompressed form sets bit 6 of byte 0 and zeroes the rest, so an
+    // all-zero test never fires and the swizzle would relocate that flag.
+    if sig.is_inf() {
       let mut out = [0u8; 96];
       out[0] = 0xc0;
       return out;
     }
 
+    let uncomp = sig.serialize();
     let x_c1 = &uncomp[0..48];
     let x_c0 = &uncomp[48..96];
     let y_c1 = &uncomp[96..144];
