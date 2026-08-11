@@ -205,26 +205,48 @@ pub trait BlsScheme: BlsSchemeId {
     let mut sorted: Vec<[u8; 48]> = pks.iter().map(|pk| Self::pk_to_bytes(pk)).collect();
     sorted.sort_unstable();
 
-    let mut hasher = Sha256::new();
-    for pk_bytes in &sorted {
-      hasher.update(pk_bytes);
-    }
-    let pk_hash: [u8; 32] = hasher.finalize().into();
-
     let mut acc = G1::identity();
-    for (i, pk_bytes) in sorted.iter().enumerate() {
-      // weight = SHA256(i_as_4_bytes_be || pk_hash), reduced by blst_p1_mult.
-      let mut weight_hasher = Sha256::new();
-      weight_hasher.update((i as u32).to_be_bytes());
-      weight_hasher.update(pk_hash);
-      let weight_hash: [u8; 32] = weight_hasher.finalize().into();
-      let weight = blst_ffi::scalar_from_bendian(&weight_hash);
-
+    for (pk_bytes, weight) in sorted.iter().zip(secure_weights(&sorted)) {
       acc = acc + Self::secure_agg_point(pk_bytes)?.mul_scalar(&weight.b, WEIGHT_BITS);
     }
 
     let agg_pk = Self::g1_to_pk(acc)?;
     Self::verify(sig, msg, &agg_pk)
+  }
+
+  /// Aggregate signatures under the same public-key weighting that
+  /// [`Self::secure_verify_aggregates`] checks.
+  ///
+  /// # Errors
+  ///
+  /// Returns `CountMismatch` when the signature and key counts differ,
+  /// `EmptyAggregation` when nothing is given, or `InvalidSignature` when a
+  /// signature or the weighted sum fails to decode.
+  fn secure_aggregate_sig(sigs: &[&Self::InnerSig], pks: &[&Self::InnerPk]) -> Result<Self::InnerSig, BlsError> {
+    if sigs.len() != pks.len() {
+      return Err(BlsError::CountMismatch);
+    }
+    if sigs.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+
+    // Each signature takes the weight of its own key, so the pairs travel
+    // together through the same sort the verifying side applies.
+    let mut paired: Vec<([u8; 48], &Self::InnerSig)> = pks
+      .iter()
+      .zip(sigs)
+      .map(|(pk, sig)| (Self::pk_to_bytes(pk), *sig))
+      .collect();
+    paired.sort_by_key(|(pk_bytes, _)| *pk_bytes);
+
+    let sorted: Vec<[u8; 48]> = paired.iter().map(|(pk_bytes, _)| *pk_bytes).collect();
+
+    let mut acc = G2::identity();
+    for ((_, sig), weight) in paired.iter().zip(secure_weights(&sorted)) {
+      acc = acc + Self::sig_to_g2(sig)?.mul_scalar(&weight.b, WEIGHT_BITS);
+    }
+
+    Self::g2_to_sig(acc)
   }
 
   /// Sum multiple secret keys (mod group order).
@@ -328,6 +350,29 @@ pub trait BlsScheme: BlsSchemeId {
 
     Self::g1_to_pk(result)
   }
+}
+
+/// The scalar each key is weighted by, for key encodings in sorted order.
+///
+/// `SHA256(index || SHA256(all keys))`, kept in one place so the secure
+/// aggregate and its verification cannot drift apart.
+fn secure_weights(sorted_pks: &[[u8; 48]]) -> Vec<blst::blst_scalar> {
+  let mut hasher = Sha256::new();
+  for pk_bytes in sorted_pks {
+    hasher.update(pk_bytes);
+  }
+  let pk_hash: [u8; 32] = hasher.finalize().into();
+
+  (0..sorted_pks.len())
+    .map(|i| {
+      let mut weight_hasher = Sha256::new();
+      // The index is represented on the hash wire as 4-byte unsigned big-endian
+      weight_hasher.update((i as u32).to_be_bytes());
+      weight_hasher.update(pk_hash);
+      let weight_hash: [u8; 32] = weight_hasher.finalize().into();
+      blst_ffi::scalar_from_bendian(&weight_hash)
+    })
+    .collect()
 }
 
 /// Sum secret key scalars (mod group order).

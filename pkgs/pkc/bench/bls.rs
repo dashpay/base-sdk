@@ -187,6 +187,24 @@ where
     .bench(|| aggregate.verify_aggregates(&msg_refs, &pk_refs));
 }
 
+/// Public-key-weighted aggregation, one scalar multiplication per signature on
+/// top of the plain sum.
+#[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 10, 100])]
+fn secure_aggregate_n<S: BlsScheme>(bencher: Bencher, n: usize) {
+  let keys: Vec<_> = (0..n)
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .collect();
+  let msg = test_msg(42);
+  let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
+  let sigs: Vec<_> = keys.iter().map(|key| key.sign(S::msg_ref(&msg))).collect();
+  let sig_refs: Vec<&BlsSignature<S>> = sigs.iter().collect();
+  let pk_refs: Vec<_> = pks.iter().collect();
+
+  bencher
+    .counter(ItemsCount::new(n))
+    .bench(|| BlsSignature::<S>::secure_aggregate(&sig_refs, &pk_refs));
+}
+
 /// IETF-only BLS operations.
 mod ietf {
   use super::*;

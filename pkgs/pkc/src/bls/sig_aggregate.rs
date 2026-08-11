@@ -43,6 +43,21 @@ impl<S: BlsScheme> BlsSignature<S> {
     S::fast_verify_aggregates(&self.0, msg, &inner_pks)
   }
 
+  /// Aggregate signatures under public-key weighting, the counterpart to
+  /// [`Self::secure_verify_aggregates`]: each signature is raised to its own
+  /// key's weight, so a rogue key cannot cancel an honest one.
+  ///
+  /// # Errors
+  ///
+  /// Returns `CountMismatch` when the signature and key counts differ,
+  /// `EmptyAggregation` when nothing is given, or `InvalidSignature` when a
+  /// signature or the weighted sum fails to decode.
+  pub fn secure_aggregate(sigs: &[&Self], pks: &[&BlsPublicKey<S>]) -> Result<Self, BlsError> {
+    let inner_sigs: Vec<&S::InnerSig> = sigs.iter().map(|sig| &sig.0).collect();
+    let inner_pks: Vec<&S::InnerPk> = pks.iter().map(|pk| &pk.0).collect();
+    S::secure_aggregate_sig(&inner_sigs, &inner_pks).map(Self::from_inner)
+  }
+
   /// Securely aggregate and verify signatures with public-key
   /// weighting.
   ///
@@ -87,6 +102,7 @@ mod tests {
   struct SecureVec {
     msg: String,
     pks: Vec<String>,
+    sigs: Vec<String>,
     agg_sig_secure: String,
   }
 
@@ -207,6 +223,106 @@ mod tests {
   #[case::ietf(assert_duplicate_message_policy::<BlsScIetf>, false)]
   fn verify_policy_duplicate_messages(#[case] assertion: fn(bool), #[case] accepted: bool) {
     assertion(accepted);
+  }
+
+  /// The weighted aggregate is what the weighted verify accepts, and the
+  /// weights follow the sorted keys rather than the caller's order, so the
+  /// same set aggregates alike however it is presented.
+  fn assert_secure_aggregate_round_trips<S: BlsScheme>() {
+    let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+    let msg = S::msg_ref(&MSG_DEADBEEF);
+
+    let sig1 = sk1.sign(msg);
+    let sig2 = sk2.sign(msg);
+    let pk1 = sk1.public_key();
+    let pk2 = sk2.public_key();
+
+    let agg = BlsSignature::<S>::secure_aggregate(&[&sig1, &sig2], &[&pk1, &pk2]).unwrap();
+    assert!(agg.secure_verify_aggregates(msg, &[&pk1, &pk2]).is_ok());
+
+    let swapped = BlsSignature::<S>::secure_aggregate(&[&sig2, &sig1], &[&pk2, &pk1]).unwrap();
+    assert_eq!(agg, swapped, "weights follow the keys, not the argument order");
+
+    // A plain aggregate carries no weights, so the weighted check rejects it.
+    let plain = BlsSignature::<S>::aggregate(&[&sig1, &sig2]).unwrap();
+    assert!(plain.secure_verify_aggregates(msg, &[&pk1, &pk2]).is_err());
+
+    assert_eq!(
+      BlsSignature::<S>::secure_aggregate(&[&sig1], &[&pk1, &pk2]),
+      Err(BlsError::CountMismatch)
+    );
+    assert_eq!(
+      BlsSignature::<S>::secure_aggregate(&[], &[]),
+      Err(BlsError::EmptyAggregation)
+    );
+  }
+
+  /// A wrong sort order or weight formula would still round-trip against our
+  /// own verifier above, so only the recorded aggregate can catch a convention
+  /// that is self-consistent and still not canonical.
+  fn assert_secure_aggregate_matches_vectors<S: BlsScheme>(corpus: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
+    let vecs: Vec<SecureVec> = corpus.vectors("secure_verify_aggregates");
+    for v in &vecs {
+      let pks: Vec<BlsPublicKey<S>> = v
+        .pks
+        .iter()
+        .map(|pk| BlsPublicKey::<S>::from_bytes(&arr_from_hex(pk)).unwrap())
+        .collect();
+      let sigs: Vec<BlsSignature<S>> = v
+        .sigs
+        .iter()
+        .map(|sig| BlsSignature::<S>::from_bytes(&arr_from_hex(sig)).unwrap())
+        .collect();
+      let pk_refs: Vec<&BlsPublicKey<S>> = pks.iter().collect();
+      let sig_refs: Vec<&BlsSignature<S>> = sigs.iter().collect();
+
+      let agg = BlsSignature::<S>::secure_aggregate(&sig_refs, &pk_refs).unwrap();
+      assert_eq!(agg.to_bytes().to_lower_hex_string(), v.agg_sig_secure);
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_secure_aggregate_matches_vectors::<BlsScChia>, "bls_chia_secure_aggregate")]
+  #[case::ietf(assert_secure_aggregate_matches_vectors::<BlsScIetf>, "bls_ietf_secure_aggregate")]
+  fn secure_aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
+    assertion(corpus);
+  }
+
+  #[rstest]
+  #[case::chia(assert_secure_aggregate_round_trips::<BlsScChia>)]
+  #[case::ietf(assert_secure_aggregate_round_trips::<BlsScIetf>)]
+  fn secure_aggregate_round_trips(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// Weights go by position in the sorted keys, so a repeated key leaves two
+  /// weights and nothing in the keys to say which signature takes which.
+  ///
+  /// A stable sort settles that by argument order and an unstable one settles
+  /// it otherwise, so a duplicated key costs the caller a canonical aggregate
+  /// whichever implementation computes it.
+  ///
+  /// [`secure_aggregate_round_trips`] holds the distinct-key case, where the
+  /// keys give a total order and the argument order stops mattering.
+  fn assert_duplicate_key_pairing_is_order_bound<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let pk = sk.public_key();
+
+    let sig_a = sk.sign(S::msg_ref(&[0x11u8; 32]));
+    let sig_b = sk.sign(S::msg_ref(&MSG_DEADBEEF));
+
+    let ab = BlsSignature::<S>::secure_aggregate(&[&sig_a, &sig_b], &[&pk, &pk]).unwrap();
+    let ba = BlsSignature::<S>::secure_aggregate(&[&sig_b, &sig_a], &[&pk, &pk]).unwrap();
+    assert_ne!(ab, ba, "a repeated key leaves the pairing to the caller's order");
+  }
+
+  #[rstest]
+  #[case::chia(assert_duplicate_key_pairing_is_order_bound::<BlsScChia>)]
+  #[case::ietf(assert_duplicate_key_pairing_is_order_bound::<BlsScIetf>)]
+  fn secure_aggregate_duplicate_key_pairing(#[case] assertion: fn()) {
+    assertion();
   }
 
   /// An empty aggregate has no signers to bind, so both aggregation entry

@@ -11,7 +11,7 @@ use core::fmt;
 /// Errors produced by BLS operations.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BlsError {
-  /// public key and message counts do not match
+  /// paired input counts do not match
   CountMismatch,
   /// repeated message in a distinct-message aggregate
   DuplicateMessage,
@@ -42,7 +42,7 @@ pub enum BlsError {
 impl fmt::Display for BlsError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Self::CountMismatch => write!(f, "public key and message counts differ"),
+      Self::CountMismatch => write!(f, "paired input counts differ"),
       Self::DuplicateMessage => write!(f, "repeated message in a distinct-message aggregate"),
       Self::DuplicateShareId => write!(f, "duplicate share id in recovery set"),
       Self::EmptyAggregation => write!(f, "no items provided for aggregation"),
