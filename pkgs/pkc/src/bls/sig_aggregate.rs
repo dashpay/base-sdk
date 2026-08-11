@@ -112,6 +112,14 @@ mod tests {
     agg_sig: String,
   }
 
+  #[derive(Deserialize)]
+  struct AggVerifyVec {
+    pks: Vec<String>,
+    msgs: Vec<String>,
+    agg_sig: String,
+    accepted: bool,
+  }
+
   fn assert_aggregate_same_message<S: BlsScheme>() {
     let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
     let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
@@ -223,6 +231,39 @@ mod tests {
   #[case::ietf(assert_duplicate_message_policy::<BlsScIetf>, false)]
   fn verify_policy_duplicate_messages(#[case] assertion: fn(bool), #[case] accepted: bool) {
     assertion(accepted);
+  }
+
+  fn assert_aggregate_verify_matches_vectors<S: BlsScheme>(corpus: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
+    let vecs: Vec<AggVerifyVec> = corpus.vectors("aggregate_verify");
+    assert!(!vecs.is_empty(), "corpus section is empty");
+
+    for v in &vecs {
+      let pks: Vec<BlsPublicKey<S>> = v
+        .pks
+        .iter()
+        .map(|pk| BlsPublicKey::<S>::from_bytes(&arr_from_hex(pk)).unwrap())
+        .collect();
+      let pk_refs: Vec<&BlsPublicKey<S>> = pks.iter().collect();
+      let msgs: Vec<[u8; 32]> = v.msgs.iter().map(|m| arr_from_hex(m)).collect();
+      let msg_refs: Vec<&S::Msg> = msgs.iter().map(|m| S::msg_ref(m)).collect();
+      let agg = BlsSignature::<S>::from_bytes(&arr_from_hex(&v.agg_sig)).unwrap();
+      assert_eq!(agg.to_bytes().to_lower_hex_string(), v.agg_sig);
+
+      assert_eq!(
+        agg.verify_aggregates(&msg_refs, &pk_refs).is_ok(),
+        v.accepted,
+        "reference verdict for {} signers",
+        v.pks.len()
+      );
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_aggregate_verify_matches_vectors::<BlsScChia>, "bls_chia_aggregate")]
+  #[case::ietf(assert_aggregate_verify_matches_vectors::<BlsScIetf>, "bls_ietf_aggregate")]
+  fn aggregate_verify_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
+    assertion(corpus);
   }
 
   /// The weighted aggregate is what the weighted verify accepts, and the
