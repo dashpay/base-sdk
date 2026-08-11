@@ -161,32 +161,35 @@ fn recover_threshold<S: BlsScheme>(bencher: Bencher, threshold: usize) {
     .bench(|| BlsSignature::<S>::recover(&subset));
 }
 
+/// Aggregate signatures over distinct messages, then verify.
+#[divan::bench(types = [BlsScChia, BlsScIetf], args = [10, 100, 1000])]
+fn verify_aggregated_block<S: BlsScheme>(bencher: Bencher, n: usize)
+where
+  S::Msg: Sync,
+{
+  let keys: Vec<_> = (0..n)
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .collect();
+  let msgs: Vec<[u8; 32]> = (0..n).map(test_msg).collect();
+  let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
+  let sigs: Vec<_> = keys
+    .iter()
+    .zip(&msgs)
+    .map(|(key, msg)| key.sign(S::msg_ref(msg)))
+    .collect();
+  let sig_refs: Vec<&BlsSignature<S>> = sigs.iter().collect();
+  let aggregate = BlsSignature::<S>::aggregate(&sig_refs).unwrap();
+  let pk_refs: Vec<_> = pks.iter().collect();
+  let msg_refs: Vec<&S::Msg> = msgs.iter().map(|msg| S::msg_ref(msg)).collect();
+
+  bencher
+    .counter(ItemsCount::new(n))
+    .bench(|| aggregate.verify_aggregates(&msg_refs, &pk_refs));
+}
+
 /// IETF-only BLS operations.
 mod ietf {
   use super::*;
-
-  /// Aggregate signatures over distinct messages, then verify.
-  #[divan::bench(args = [10, 100, 1000])]
-  fn verify_aggregated_block(bencher: Bencher, n: usize) {
-    let keys: Vec<_> = (0..n)
-      .map(|i| BlsSecretKey::<BlsScIetf>::generate(&test_ikm(i)).unwrap())
-      .collect();
-    let msgs: Vec<[u8; 32]> = (0..n).map(test_msg).collect();
-    let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
-    let sigs: Vec<_> = keys
-      .iter()
-      .zip(&msgs)
-      .map(|(key, msg)| key.sign(msg.as_slice()))
-      .collect();
-    let sig_refs: Vec<&BlsSignature<BlsScIetf>> = sigs.iter().collect();
-    let aggregate = BlsSignature::<BlsScIetf>::aggregate(&sig_refs).unwrap();
-    let pk_refs: Vec<_> = pks.iter().collect();
-    let msg_refs: Vec<&[u8]> = msgs.iter().map(|msg| msg.as_slice()).collect();
-
-    bencher
-      .counter(ItemsCount::new(n))
-      .bench(|| aggregate.verify_aggregates(&msg_refs, &pk_refs));
-  }
 
   /// Proof of possession creation.
   #[divan::bench]

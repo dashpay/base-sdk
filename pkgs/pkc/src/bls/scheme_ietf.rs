@@ -154,6 +154,25 @@ impl BlsScheme for BlsScIetf {
     }
     verify_ok(sig.fast_aggregate_verify(true, msg, DST_BASIC, pks))
   }
+
+  fn verify_aggregates(sig: &Self::InnerSig, msgs: &[&Self::Msg], pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+    if pks.len() != msgs.len() {
+      return Err(BlsError::CountMismatch);
+    }
+    if pks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+
+    // Two equal messages collapse to `e(H(m), pk_a + pk_b)`, proving only
+    // that someone holds the sum. Absent a proof of possession, one signer
+    // can pick `pk_b` to cancel `pk_a` and verify without them.
+    let mut sorted: Vec<&[u8]> = msgs.to_vec();
+    sorted.sort_unstable();
+    if sorted.windows(2).any(|pair| pair[0] == pair[1]) {
+      return Err(BlsError::DuplicateMessage);
+    }
+    verify_ok(sig.aggregate_verify(true, msgs, DST_BASIC, pks, true))
+  }
 }
 
 impl BlsScIetf {
@@ -191,32 +210,6 @@ impl BlsScIetf {
   /// Returns `VerifyFailed` when the proof does not match the key.
   pub(crate) fn verify_possession(pk: &PublicKey, pop: &Signature) -> Result<(), BlsError> {
     verify_ok(pop.verify(true, &pk.compress(), DST_POP_PROVE, &[], pk, true))
-  }
-
-  /// Verify an aggregated signature where each signer signed a distinct
-  /// message.
-  ///
-  /// # Errors
-  ///
-  /// Returns `CountMismatch` when the message and key counts differ,
-  /// `EmptyAggregation` when no keys are given, `DuplicateMessage` when a
-  /// message repeats, or `VerifyFailed` on mismatch.
-  pub(crate) fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) -> Result<(), BlsError> {
-    if pks.len() != msgs.len() {
-      return Err(BlsError::CountMismatch);
-    }
-    if pks.is_empty() {
-      return Err(BlsError::EmptyAggregation);
-    }
-    // Two equal messages collapse to `e(H(m), pk_a + pk_b)`, proving only
-    // that someone holds the sum. Absent a proof of possession, one signer
-    // can pick `pk_b` to cancel `pk_a` and verify without them.
-    let mut sorted: Vec<&[u8]> = msgs.to_vec();
-    sorted.sort_unstable();
-    if sorted.windows(2).any(|pair| pair[0] == pair[1]) {
-      return Err(BlsError::DuplicateMessage);
-    }
-    verify_ok(sig.aggregate_verify(true, msgs, DST_BASIC, pks, true))
   }
 }
 

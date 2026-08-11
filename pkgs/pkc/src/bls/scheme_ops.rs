@@ -169,6 +169,15 @@ pub trait BlsScheme: BlsSchemeId {
   /// when the aggregate does not verify.
   fn fast_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError>;
 
+  /// Verify an aggregate carrying one message per signer.
+  ///
+  /// # Errors
+  ///
+  /// Returns `CountMismatch` when the message and key counts differ,
+  /// `EmptyAggregation` when no keys are given, `DuplicateMessage` where the
+  /// scheme refuses a repeat, or `VerifyFailed` on mismatch.
+  fn verify_aggregates(sig: &Self::InnerSig, msgs: &[&Self::Msg], pks: &[&Self::InnerPk]) -> Result<(), BlsError>;
+
   /// Decode a sorted input public key from its 48-byte encoding to a G1 point
   /// for secure aggregation.
   ///

@@ -24,6 +24,32 @@ pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
   out
 }
 
+/// Whether `e(G1 generator, lhs_g2)` equals the product of `e(g1, g2)` over
+/// the paired slices, the multi-pairing behind per-signer-message verifying.
+pub(crate) fn pairings_equal_with_g1_generator_prod(lhs_g2: &G2Affine, rhs_g2: &[G2], rhs_g1: &[&G1Affine]) -> bool {
+  if rhs_g2.len() != rhs_g1.len() || rhs_g2.is_empty() {
+    return false;
+  }
+
+  let lhs_g2_aff = blst_p2_affine::from(*lhs_g2);
+  let g1_generator = blst_p1_affine::from(G1Affine::generator());
+  let mut lhs = blst_fp12::default();
+
+  unsafe {
+    blst_miller_loop(&mut lhs, &lhs_g2_aff, &g1_generator);
+    let mut rhs = *blst_fp12_one();
+    for (g2, g1) in rhs_g2.iter().zip(rhs_g1) {
+      let g2_aff = blst_p2_affine::from(g2.to_affine());
+      let g1_aff = blst_p1_affine::from(**g1);
+      let mut term = blst_fp12::default();
+      blst_miller_loop(&mut term, &g2_aff, &g1_aff);
+      let acc = rhs;
+      blst_fp12_mul(&mut rhs, &acc, &term);
+    }
+    blst_fp12_finalverify(&lhs, &rhs)
+  }
+}
+
 /// Pairing check `e(lhs_g2, G1) == e(rhs_g2, rhs_g1)`
 pub(crate) fn pairings_equal_with_g1_generator(lhs_g2: &G2Affine, rhs_g2: &G2, rhs_g1: &G1Affine) -> bool {
   let lhs_g2_aff = blst_p2_affine::from(*lhs_g2);

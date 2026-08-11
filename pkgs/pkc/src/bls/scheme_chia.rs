@@ -11,6 +11,7 @@ use super::chia_h2c;
 use super::error::BlsError;
 use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScChia;
+use crate::prelude::*;
 
 use blst::min_pk;
 use hex_conservative::hex;
@@ -262,6 +263,23 @@ impl BlsScheme for BlsScChia {
     let agg_pk = Self::aggregate_pk(pks)?;
     Self::verify(sig, msg, &agg_pk)
   }
+
+  /// Hash each message on its own, then verify all pairs in one multi-pairing.
+  fn verify_aggregates(sig: &Self::InnerSig, msgs: &[&Self::Msg], pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+    if pks.len() != msgs.len() {
+      return Err(BlsError::CountMismatch);
+    }
+    if pks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+
+    let hashes: Vec<G2> = msgs.iter().map(|msg| chia_h2c::hash_to_g2(msg)).collect();
+    if blst_ffi::pairings_equal_with_g1_generator_prod(sig, &hashes, pks) {
+      Ok(())
+    } else {
+      Err(BlsError::VerifyFailed)
+    }
+  }
 }
 
 #[cfg(test)]
@@ -269,7 +287,6 @@ impl BlsScheme for BlsScChia {
 mod tests {
   use super::*;
   use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
-  use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;

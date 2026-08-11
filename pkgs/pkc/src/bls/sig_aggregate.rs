@@ -10,7 +10,6 @@ use super::error::BlsError;
 use super::public_ops::BlsPublicKey;
 use super::scheme_ops::BlsScheme;
 use super::sig_basic::BlsSignature;
-use super::BlsScIetf;
 use crate::prelude::*;
 
 impl<S: BlsScheme> BlsSignature<S> {
@@ -57,19 +56,17 @@ impl<S: BlsScheme> BlsSignature<S> {
   }
 }
 
-impl BlsSignature<BlsScIetf> {
-  /// Verify an aggregate carrying one message per signer. Two equal messages
-  /// collapse into a check on the sum of their keys, which one signer could
-  /// pick to cancel the other, so a repeat is rejected rather than verified.
+impl<S: BlsScheme> BlsSignature<S> {
+  /// Verify an aggregate carrying one message per signer.
   ///
   /// # Errors
   ///
   /// Returns `CountMismatch` when the message and key counts differ,
-  /// `EmptyAggregation` when no keys are given, `DuplicateMessage` when a
-  /// message repeats, or `VerifyFailed` on mismatch.
-  pub fn verify_aggregates(&self, msgs: &[&[u8]], pks: &[&BlsPublicKey<BlsScIetf>]) -> Result<(), BlsError> {
+  /// `EmptyAggregation` when no keys are given, `DuplicateMessage` where the
+  /// scheme refuses a repeat, or `VerifyFailed` on mismatch.
+  pub fn verify_aggregates(&self, msgs: &[&S::Msg], pks: &[&BlsPublicKey<S>]) -> Result<(), BlsError> {
     let inner_pks: Vec<_> = pks.iter().map(|k| &k.0).collect();
-    BlsScIetf::verify_aggregates(&self.0, msgs, &inner_pks)
+    S::verify_aggregates(&self.0, msgs, &inner_pks)
   }
 }
 
@@ -148,16 +145,18 @@ mod tests {
     assertion(corpus);
   }
 
-  #[rstest]
-  fn ietf_verify_distinct_messages() {
-    let sk1 = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
-    let sk2 = BlsSecretKey::<BlsScIetf>::generate(&SEED_1).unwrap();
+  /// Per-signer messages verify, and each binds to its own signer, swapping
+  /// the two fails. Both schemes agree here, along with the count and
+  /// emptiness contracts.
+  fn assert_distinct_messages_verify<S: BlsScheme>() {
+    let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
 
-    let msg1: &[u8] = b"first message";
-    let msg2: &[u8] = b"second message";
+    let msg1 = S::msg_ref(&[0x11u8; 32]);
+    let msg2 = S::msg_ref(&MSG_DEADBEEF);
     let sig1 = sk1.sign(msg1);
     let sig2 = sk2.sign(msg2);
-    let agg = BlsSignature::aggregate(&[&sig1, &sig2]).unwrap();
+    let agg = BlsSignature::<S>::aggregate(&[&sig1, &sig2]).unwrap();
 
     let pk1 = sk1.public_key();
     let pk2 = sk2.public_key();
@@ -171,27 +170,43 @@ mod tests {
     assert_eq!(agg.verify_aggregates(&[], &[]), Err(BlsError::EmptyAggregation));
   }
 
-  /// Repeating a message collapses the check onto the sum of the repeated
-  /// signers' keys, which either of them could have picked to cancel the
-  /// other, so verification refuses it outright.
   #[rstest]
-  fn ietf_verify_rejects_duplicate_messages() {
-    let sk1 = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
-    let sk2 = BlsSecretKey::<BlsScIetf>::generate(&SEED_1).unwrap();
+  #[case::chia(assert_distinct_messages_verify::<BlsScChia>)]
+  #[case::ietf(assert_distinct_messages_verify::<BlsScIetf>)]
+  fn verify_aggregate_distinct_messages(#[case] assertion: fn()) {
+    assertion();
+  }
 
-    let msg: &[u8] = b"shared message";
+  /// A repeat collapses the check onto the sum of the repeated signers' keys,
+  /// which either could have picked to cancel the other. IETF refuses it; Chia
+  /// accepts.
+  fn assert_duplicate_message_policy<S: BlsScheme>(accepted: bool) {
+    let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+
+    let msg = S::msg_ref(&MSG_DEADBEEF);
     let sig1 = sk1.sign(msg);
     let sig2 = sk2.sign(msg);
-    let agg = BlsSignature::aggregate(&[&sig1, &sig2]).unwrap();
+    let agg = BlsSignature::<S>::aggregate(&[&sig1, &sig2]).unwrap();
 
     let pk1 = sk1.public_key();
     let pk2 = sk2.public_key();
-    assert_eq!(
-      agg.verify_aggregates(&[msg, msg], &[&pk1, &pk2]),
-      Err(BlsError::DuplicateMessage)
-    );
-    // The same aggregate over the same message is what fast-verify is for.
+    let res = agg.verify_aggregates(&[msg, msg], &[&pk1, &pk2]);
+    assert_eq!(res.is_ok(), accepted, "duplicate-message policy");
+    if !accepted {
+      assert_eq!(res, Err(BlsError::DuplicateMessage));
+    }
+
+    // Sound results either way through the shared-message entry point, so the
+    // refusal above is a matter of policy and not a bad aggregate.
     assert!(agg.fast_verify_aggregates(msg, &[&pk1, &pk2]).is_ok());
+  }
+
+  #[rstest]
+  #[case::chia(assert_duplicate_message_policy::<BlsScChia>, true)]
+  #[case::ietf(assert_duplicate_message_policy::<BlsScIetf>, false)]
+  fn verify_policy_duplicate_messages(#[case] assertion: fn(bool), #[case] accepted: bool) {
+    assertion(accepted);
   }
 
   /// An empty aggregate has no signers to bind, so both aggregation entry
