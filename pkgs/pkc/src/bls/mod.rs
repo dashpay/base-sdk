@@ -6,6 +6,7 @@
 
 //! Unified BLS cryptography module.
 
+mod dh_bytes;
 mod error;
 mod public_bytes;
 mod schemes;
@@ -13,6 +14,7 @@ mod secret_bytes;
 mod sig_bytes;
 mod sig_id;
 
+pub use dh_bytes::{BlsDhBytes, BLS_DH_LEN};
 pub use error::BlsError;
 pub use public_bytes::{BlsPkBytes, BLS_PK_LEN};
 pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};

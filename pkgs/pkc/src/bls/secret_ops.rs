@@ -6,6 +6,7 @@
 
 //! Scheme-generic BLS secret key.
 
+use super::dh_bytes::BlsDhBytes;
 use super::error::BlsError;
 use super::public_ops::BlsPublicKey;
 use super::scheme_ops::BlsScheme;
@@ -62,16 +63,13 @@ impl<S: BlsScheme> BlsSecretKey<S> {
 
   /// Compute a DH shared key: `self * peer_pk`.
   ///
-  /// The result is secret material despite its [`BlsPublicKey`] type: it is a
-  /// shared secret, so it must not be published, logged, or compared
-  /// non-uniformly the way a real public key may be.
-  ///
   /// # Errors
   ///
   /// Returns `InvalidPublicKey` when the peer key or the product point
   /// is invalid.
-  pub fn dh_exchange(&self, peer_pk: &BlsPublicKey<S>) -> Result<BlsPublicKey<S>, BlsError> {
-    S::dh_exchange(&self.0, &peer_pk.0).map(BlsPublicKey::from_inner)
+  pub fn dh_exchange(&self, peer_pk: &BlsPublicKey<S>) -> Result<BlsDhBytes<S>, BlsError> {
+    let shared = S::dh_exchange(&self.0, &peer_pk.0)?;
+    Ok(BlsDhBytes::from_bytes(S::pk_to_bytes(&shared)))
   }
 
   /// Sum multiple secret keys (mod group order).

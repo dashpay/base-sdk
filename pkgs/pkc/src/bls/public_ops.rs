@@ -153,7 +153,7 @@ mod tests {
       let sk = BlsSecretKey::<S>::from_bytes(&arr_from_hex(&v.sk)).unwrap();
       let peer = BlsPublicKey::<S>::from_bytes(&arr_from_hex(&v.peer_pk)).unwrap();
       let shared = sk.dh_exchange(&peer).unwrap();
-      assert_eq!(shared.to_bytes().to_lower_hex_string(), v.shared);
+      assert_eq!(shared.as_bytes().to_lower_hex_string(), v.shared);
     }
   }
 
@@ -170,7 +170,7 @@ mod tests {
 
     let shared_ab = sk_a.dh_exchange(&sk_b.public_key()).unwrap();
     let shared_ba = sk_b.dh_exchange(&sk_a.public_key()).unwrap();
-    assert_eq!(shared_ab.to_bytes(), shared_ba.to_bytes());
+    assert_eq!(shared_ab, shared_ba);
   }
 
   #[rstest]
