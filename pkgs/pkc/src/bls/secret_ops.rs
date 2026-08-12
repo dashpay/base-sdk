@@ -6,6 +6,7 @@
 
 //! Scheme-generic BLS secret key.
 
+use super::dh_bytes::BlsDhBytes;
 use super::error::BlsError;
 use super::public_ops::BlsPublicKey;
 use super::scheme_ops::BlsScheme;
@@ -62,16 +63,13 @@ impl<S: BlsScheme> BlsSecretKey<S> {
 
   /// Compute a DH shared key: `self * peer_pk`.
   ///
-  /// The result is secret material despite its [`BlsPublicKey`] type: it is a
-  /// shared secret, so it must not be published, logged, or compared
-  /// non-uniformly the way a real public key may be.
-  ///
   /// # Errors
   ///
   /// Returns `InvalidPublicKey` when the peer key or the product point
   /// is invalid.
-  pub fn dh_exchange(&self, peer_pk: &BlsPublicKey<S>) -> Result<BlsPublicKey<S>, BlsError> {
-    S::dh_exchange(&self.0, &peer_pk.0).map(BlsPublicKey::from_inner)
+  pub fn dh_exchange(&self, peer_pk: &BlsPublicKey<S>) -> Result<BlsDhBytes<S>, BlsError> {
+    let shared = S::dh_exchange(&self.0, &peer_pk.0)?;
+    Ok(BlsDhBytes::from_bytes(S::pk_to_bytes(&shared)))
   }
 
   /// Sum multiple secret keys (mod group order).
@@ -234,6 +232,27 @@ mod tests {
     let chia = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
     let ietf = BlsSecretKey::<BlsScIetf>::from_bytes(&chia.to_bytes()).unwrap();
     assert_ne!(chia.public_key().to_bytes(), ietf.public_key().to_bytes());
+  }
+
+  fn assert_codec_roundtrip<S: BlsScheme>() {
+    use dash_types::codec::BaseCodec;
+
+    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let mut buf = Vec::new();
+    sk.encode(&mut buf);
+    assert_eq!(buf.len(), 32);
+
+    let mut slice = buf.as_slice();
+    let decoded = BlsSecretKey::<S>::decode(&mut slice).unwrap();
+    assert_eq!(decoded.to_bytes(), sk.to_bytes());
+    assert!(slice.is_empty());
+  }
+
+  #[rstest]
+  #[case::chia(assert_codec_roundtrip::<BlsScChia>)]
+  #[case::ietf(assert_codec_roundtrip::<BlsScIetf>)]
+  fn codec_roundtrip(#[case] assertion: fn()) {
+    assertion();
   }
 
   /// Summing scalars is scheme-independent, so one corpus serves both.

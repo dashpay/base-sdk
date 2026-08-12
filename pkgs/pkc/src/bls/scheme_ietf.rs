@@ -11,6 +11,7 @@ use super::error::BlsError;
 use super::scheme_ops::{verify_ok, BlsScheme};
 use super::schemes::BlsScIetf;
 use super::sig_id::BlsSigId;
+use crate::prelude::*;
 
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
 
@@ -153,16 +154,39 @@ impl BlsScheme for BlsScIetf {
     }
     verify_ok(sig.fast_aggregate_verify(true, msg, DST_BASIC, pks))
   }
+
+  fn verify_aggregates(sig: &Self::InnerSig, msgs: &[&Self::Msg], pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+    if pks.len() != msgs.len() {
+      return Err(BlsError::CountMismatch);
+    }
+    if pks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+
+    // Two equal messages collapse to `e(H(m), pk_a + pk_b)`, proving only
+    // that someone holds the sum. Absent a proof of possession, one signer
+    // can pick `pk_b` to cancel `pk_a` and verify without them.
+    let mut sorted: Vec<&[u8]> = msgs.to_vec();
+    sorted.sort_unstable();
+    if sorted.windows(2).any(|pair| pair[0] == pair[1]) {
+      return Err(BlsError::DuplicateMessage);
+    }
+    verify_ok(sig.aggregate_verify(true, msgs, DST_BASIC, pks, true))
+  }
 }
 
 impl BlsScIetf {
-  /// Sign under the DST selected by `id`.
-  pub(crate) fn sign_with(sk: &SecretKey, msg: &[u8], id: BlsSigId) -> Signature {
-    let dst = match id {
+  /// The domain separation tag `id` signs and verifies under.
+  const fn dst_of(id: BlsSigId) -> &'static [u8] {
+    match id {
       BlsSigId::Basic => DST_BASIC,
       BlsSigId::ProofOfPossession => DST_POP,
-    };
-    sk.sign(msg, dst, &[])
+    }
+  }
+
+  /// Sign under the DST selected by `id`.
+  pub(crate) fn sign_with(sk: &SecretKey, msg: &[u8], id: BlsSigId) -> Signature {
+    sk.sign(msg, Self::dst_of(id), &[])
   }
 
   /// Verify under the DST selected by `id`.
@@ -171,11 +195,7 @@ impl BlsScIetf {
   ///
   /// Returns `VerifyFailed` when the pairing check does not hold.
   pub(crate) fn verify_with(sig: &Signature, msg: &[u8], pk: &PublicKey, id: BlsSigId) -> Result<(), BlsError> {
-    let dst = match id {
-      BlsSigId::Basic => DST_BASIC,
-      BlsSigId::ProofOfPossession => DST_POP,
-    };
-    verify_ok(sig.verify(true, msg, dst, &[], pk, true))
+    verify_ok(sig.verify(true, msg, Self::dst_of(id), &[], pk, true))
   }
 
   /// Prove possession by signing the public key under the PoP-prove DST.
@@ -191,24 +211,6 @@ impl BlsScIetf {
   pub(crate) fn verify_possession(pk: &PublicKey, pop: &Signature) -> Result<(), BlsError> {
     verify_ok(pop.verify(true, &pk.compress(), DST_POP_PROVE, &[], pk, true))
   }
-
-  /// Verify an aggregated signature where each signer signed a distinct
-  /// message.
-  ///
-  /// # Errors
-  ///
-  /// Returns `CountMismatch` when the message and key counts differ,
-  /// `EmptyAggregation` when no keys are given, or `VerifyFailed` on
-  /// mismatch.
-  pub(crate) fn verify_aggregates(sig: &Signature, msgs: &[&[u8]], pks: &[&PublicKey]) -> Result<(), BlsError> {
-    if pks.len() != msgs.len() {
-      return Err(BlsError::CountMismatch);
-    }
-    if pks.is_empty() {
-      return Err(BlsError::EmptyAggregation);
-    }
-    verify_ok(sig.aggregate_verify(true, msgs, DST_BASIC, pks, true))
-  }
 }
 
 #[cfg(test)]
@@ -216,7 +218,6 @@ impl BlsScIetf {
 mod tests {
   use super::*;
   use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
-  use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
   use hex_conservative::hex;

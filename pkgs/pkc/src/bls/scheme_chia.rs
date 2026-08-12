@@ -11,6 +11,7 @@ use super::chia_h2c;
 use super::error::BlsError;
 use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScChia;
+use crate::prelude::*;
 
 use blst::min_pk;
 use hex_conservative::hex;
@@ -173,14 +174,16 @@ impl BlsScheme for BlsScChia {
   /// convention differences: blst lays out `[x.c1, x.c0, y.c1, y.c0]`,
   /// legacy `[x.c0, x.c1]` with the sign at byte\[0\] bit 7.
   fn sig_to_bytes(sig: &Self::InnerSig) -> [u8; 96] {
-    let uncomp = sig.serialize();
-
-    if uncomp.iter().all(|&b| b == 0) {
+    // Take blst's own infinity flag rather than testing the buffer: its
+    // uncompressed form sets bit 6 of byte 0 and zeroes the rest, so an
+    // all-zero test never fires and the swizzle would relocate that flag.
+    if sig.is_inf() {
       let mut out = [0u8; 96];
       out[0] = 0xc0;
       return out;
     }
 
+    let uncomp = sig.serialize();
     let x_c1 = &uncomp[0..48];
     let x_c0 = &uncomp[48..96];
     let y_c1 = &uncomp[96..144];
@@ -260,6 +263,23 @@ impl BlsScheme for BlsScChia {
     let agg_pk = Self::aggregate_pk(pks)?;
     Self::verify(sig, msg, &agg_pk)
   }
+
+  /// Hash each message on its own, then verify all pairs in one multi-pairing.
+  fn verify_aggregates(sig: &Self::InnerSig, msgs: &[&Self::Msg], pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+    if pks.len() != msgs.len() {
+      return Err(BlsError::CountMismatch);
+    }
+    if pks.is_empty() {
+      return Err(BlsError::EmptyAggregation);
+    }
+
+    let hashes: Vec<G2> = msgs.iter().map(|msg| chia_h2c::hash_to_g2(msg)).collect();
+    if blst_ffi::pairings_equal_with_g1_generator_prod(sig, &hashes, pks) {
+      Ok(())
+    } else {
+      Err(BlsError::VerifyFailed)
+    }
+  }
 }
 
 #[cfg(test)]
@@ -267,7 +287,6 @@ impl BlsScheme for BlsScChia {
 mod tests {
   use super::*;
   use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
-  use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
