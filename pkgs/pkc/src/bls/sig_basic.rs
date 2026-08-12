@@ -42,6 +42,19 @@ impl<S: BlsScheme> BlsSignature<S> {
     S::sig_to_bytes(&self.0)
   }
 
+  /// Re-encode this signature under another scheme.
+  ///
+  /// The signature is lifted to its point and lowered again, so the target
+  /// scheme's admission rules apply. Message augmentation is unaffected and a
+  /// converted signature still verifies only under the scheme that produced it.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSignature` when the target scheme refuses the point.
+  pub fn to_scheme<T: BlsScheme>(&self) -> Result<BlsSignature<T>, BlsError> {
+    T::g2_to_sig(S::sig_to_g2(&self.0)?).map(BlsSignature::from_inner)
+  }
+
   /// Verify over a message of the scheme's message type.
   ///
   /// # Errors
@@ -368,6 +381,47 @@ mod tests {
     let chia = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
     let ietf = BlsSecretKey::<BlsScIetf>::from_bytes(&chia.to_bytes()).unwrap();
     assert_ne!(chia.sign(&MSG_DEADBEEF).to_bytes(), ietf.sign(&MSG_DEADBEEF).to_bytes());
+  }
+
+  /// Conversion re-encodes one point, so a round trip returns the original.
+  fn assert_sig_scheme_conversion_round_trips<S: BlsScheme, T: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sig = sk.sign(S::msg_ref(&MSG_DEADBEEF));
+    let there = sig.to_scheme::<T>().unwrap();
+
+    assert_eq!(there.to_scheme::<S>().unwrap().to_bytes(), sig.to_bytes());
+  }
+
+  #[rstest]
+  #[case::chia_to_ietf(assert_sig_scheme_conversion_round_trips::<BlsScChia, BlsScIetf>)]
+  #[case::ietf_to_chia(assert_sig_scheme_conversion_round_trips::<BlsScIetf, BlsScChia>)]
+  #[case::chia_to_chia(assert_sig_scheme_conversion_round_trips::<BlsScChia, BlsScChia>)]
+  fn sig_scheme_conversion_round_trips(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// Conversion moves the encoding and nothing else, so the signature still
+  /// answers to the scheme that made it: the message is hashed differently
+  /// under each, and a converted signature verifies under neither the target's
+  /// hash nor the target's key.
+  #[rstest]
+  fn sig_scheme_conversion_does_not_move_the_augmentation() {
+    let sk = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
+    let sig = sk.sign(&MSG_DEADBEEF);
+
+    let converted = sig.to_scheme::<BlsScIetf>().unwrap();
+    let pk_ietf = sk.public_key().to_scheme::<BlsScIetf>().unwrap();
+    assert!(converted.verify(&MSG_DEADBEEF, &pk_ietf).is_err());
+  }
+
+  /// A signature Chia admits and IETF does not must not become an IETF one by
+  /// being converted.
+  #[rstest]
+  fn sig_scheme_conversion_applies_target_rules() {
+    let off_subgroup = BlsSignature::<BlsScChia>::from_bytes(&G2_OFF_SUBGROUP_CHIA).unwrap();
+
+    assert!(off_subgroup.to_scheme::<BlsScChia>().is_ok());
+    assert!(off_subgroup.to_scheme::<BlsScIetf>().is_err());
   }
 
   cfg_if! {

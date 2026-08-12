@@ -43,6 +43,18 @@ impl<S: BlsScheme> BlsPublicKey<S> {
     S::pk_to_bytes(&self.0)
   }
 
+  /// Re-encode this key under another scheme.
+  ///
+  /// The key is lifted to its point and lowered again, so the target scheme's
+  /// admission rules apply.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidPublicKey` when the target scheme refuses the point.
+  pub fn to_scheme<T: BlsScheme>(&self) -> Result<BlsPublicKey<T>, BlsError> {
+    T::g1_to_pk(S::pk_to_g1(&self.0)?).map(BlsPublicKey::from_inner)
+  }
+
   /// Aggregate multiple public keys into one.
   ///
   /// # Errors
@@ -192,6 +204,35 @@ mod tests {
     #[case] reaches_dh: bool,
   ) {
     assertion(encoded, reaches_dh);
+  }
+
+  /// Conversion re-encodes one point, so a round trip returns the original and
+  /// the same-scheme case is a copy.
+  fn assert_scheme_conversion_round_trips<S: BlsScheme, T: BlsScheme>() {
+    let pk = BlsSecretKey::<S>::generate(&SEED_0).unwrap().public_key();
+    let there = pk.to_scheme::<T>().unwrap();
+
+    assert_eq!(there.to_scheme::<S>().unwrap().to_bytes(), pk.to_bytes());
+  }
+
+  #[rstest]
+  #[case::chia_to_ietf(assert_scheme_conversion_round_trips::<BlsScChia, BlsScIetf>)]
+  #[case::ietf_to_chia(assert_scheme_conversion_round_trips::<BlsScIetf, BlsScChia>)]
+  #[case::chia_to_chia(assert_scheme_conversion_round_trips::<BlsScChia, BlsScChia>)]
+  #[case::ietf_to_ietf(assert_scheme_conversion_round_trips::<BlsScIetf, BlsScIetf>)]
+  fn scheme_conversion_round_trips(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// A key Chia admits and IETF does not must not become an IETF key by being
+  /// converted, or the conversion would launder it past the check that refused
+  /// it at the decoder.
+  #[rstest]
+  fn scheme_conversion_applies_target_rules() {
+    let off_subgroup = BlsPublicKey::<BlsScChia>::from_bytes(&G1_OFF_SUBGROUP_CHIA).unwrap();
+
+    assert!(off_subgroup.to_scheme::<BlsScChia>().is_ok());
+    assert!(off_subgroup.to_scheme::<BlsScIetf>().is_err());
   }
 
   /// Rejection alone is weak evidence, since the policy test below cannot
