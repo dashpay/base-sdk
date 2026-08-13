@@ -527,7 +527,6 @@ dependencies = [
  "bitcoin-primitives",
  "bitcoin-units",
  "dash-num",
- "dash-pow",
  "dash-primitives",
  "dash-script",
  "dash-types",
@@ -563,7 +562,6 @@ name = "dash-pow"
 version = "0.0.0"
 dependencies = [
  "dash-dev",
- "dash-num",
  "divan",
  "hex-literal",
  "rstest",

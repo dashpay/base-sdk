@@ -10,8 +10,6 @@ use super::consts::{BLOCK, IV, NW};
 use crate::util::memops::{load_u64_le, store_u64_le};
 use crate::util::threefish::encrypt;
 
-use dash_num::Hash512;
-
 /// UBI type code for message blocks.
 pub(super) const TYPE_MSG: u64 = 48;
 /// UBI type code for output blocks.
@@ -126,7 +124,7 @@ pub fn output_block(state: &mut Chaining) {
   ubi(state, &zero, tweak);
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let mut state = IV;
   hash_message_blocks(&mut state, data);
   output_block(&mut state);
@@ -137,5 +135,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     store_u64_le(&mut out, index, state[index]);
     index += 1;
   }
-  out.into()
+  out
 }

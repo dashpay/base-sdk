@@ -10,8 +10,6 @@ use super::consts::{BLOCK, IV, NW};
 use crate::util::memops::{extract, load_u64_le, store_u64_le};
 use crate::util::threefish;
 
-use dash_num::Hash512;
-
 /// UBI chaining: processes one 64-byte block.
 ///
 /// `etype` encodes the block type and first/final flags in bits 55..62.
@@ -37,7 +35,7 @@ pub const fn ubi(h: &mut [u64; NW], block: &[u8], bcount: u64, extra: usize, ety
   }
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut h = IV;
   let mut bcount: u64 = 0;
 
@@ -77,7 +75,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u64_le(&mut out, i, h[i]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -85,5 +83,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

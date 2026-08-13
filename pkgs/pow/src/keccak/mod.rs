@@ -21,7 +21,7 @@ pub use simd::hash512;
 
 /// Keccak-512 sponge parameterised over a permutation function.
 #[cfg(feature = "simd")]
-pub(crate) fn sponge(data: &[u8], perm: fn(&mut [u64; 25])) -> dash_num::Hash512 {
+pub(crate) fn sponge(data: &[u8], perm: fn(&mut [u64; 25])) -> [u8; 64] {
   use crate::util::memops::{load_u64_le, store_u64_le};
 
   use consts::RATE;
@@ -56,5 +56,5 @@ pub(crate) fn sponge(data: &[u8], perm: fn(&mut [u64; 25])) -> dash_num::Hash512
     store_u64_le(&mut out, i, state[i]);
     i += 1;
   }
-  dash_num::Hash512::from(out)
+  out
 }

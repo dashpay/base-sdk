@@ -10,8 +10,6 @@ use super::consts::BLOCK;
 use crate::util::aes::{round, round_nk};
 use crate::util::memops::{extract, load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 /// Increments a 128-bit counter by `val`.
 const fn inc_counter(cnt: &mut [u32; 4], val: u32) {
   cnt[0] = cnt[0].wrapping_add(val);
@@ -151,7 +149,7 @@ pub const fn compress(v: &mut [[u32; 4]; 8], buf: &[u8], cnt: &[u32; 4]) {
   }
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut v = [[512, 0, 0, 0]; 8];
   let mut cnt = [0u32; 4];
 
@@ -223,7 +221,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     }
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -231,5 +229,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

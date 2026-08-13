@@ -10,8 +10,6 @@ use super::consts::{BLOCK, IV};
 use crate::util::aes::cpu::round_nk;
 use crate::util::memops::{load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 const SCHEDULE_BUNDLES: usize = 112;
 type Bundle = [u32; 4];
 type State = [u32; 16];
@@ -325,7 +323,7 @@ fn hash_to_words(data: &[u8]) -> State {
   chaining_value
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let result = hash_to_words(data);
   let mut out = [0u8; 64];
   let mut word = 0;
@@ -333,5 +331,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     store_u32_le(&mut out, word, result[word]);
     word += 1;
   }
-  out.into()
+  out
 }

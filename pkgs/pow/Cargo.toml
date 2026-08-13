@@ -11,9 +11,6 @@ full = ["std", "aes_hw", "simd"]
 aes_hw = []
 simd = []
 
-[dependencies]
-dash-num = { version = "0.0.0", path = "../num" }
-
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 divan = "0.1"

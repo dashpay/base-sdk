@@ -19,8 +19,6 @@
 use super::consts::{BLOCK, CB, IV, SIGMA};
 use crate::util::memops::{load_u64_le, store_u64_le};
 
-use dash_num::Hash512;
-
 /// Compresses one 128-byte block into the chaining state.
 ///
 /// `t0` and `t1` are the 128-bit bit counter after this block has been counted.
@@ -140,7 +138,7 @@ pub fn hash_to_state(data: &[u8]) -> [u64; 8] {
   h
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let h = hash_to_state(data);
   let mut out = [0u8; 64];
   let mut i = 0;
@@ -148,5 +146,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     store_u64_le(&mut out, i, h[i].swap_bytes());
     i += 1;
   }
-  out.into()
+  out
 }

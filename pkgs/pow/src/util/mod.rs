@@ -25,7 +25,7 @@ pub(crate) const fn parse_hex(b: u8) -> u8 {
 }
 
 #[cfg(test)]
-pub(crate) fn from_hex(s: &str) -> dash_num::Hash512 {
+pub(crate) fn from_hex(s: &str) -> [u8; 64] {
   let s = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
   assert_eq!(s.len(), 128, "expected 128 hex chars for a 512-bit digest");
   let b = s.as_bytes();
@@ -35,13 +35,13 @@ pub(crate) fn from_hex(s: &str) -> dash_num::Hash512 {
     out[i] = (parse_hex(b[2 * i]) << 4) | parse_hex(b[2 * i + 1]);
     i += 1;
   }
-  dash_num::Hash512::from(out)
+  out
 }
 
 #[cfg(test)]
-pub(crate) fn to_hex(digest: &dash_num::Hash512) -> [u8; 128] {
+pub(crate) fn to_hex(digest: &[u8; 64]) -> [u8; 128] {
   const LUT: &[u8; 16] = b"0123456789abcdef";
-  let b = digest.as_bytes();
+  let b = digest;
   let mut out = [0u8; 128];
   let mut i = 0;
   while i < 64 {

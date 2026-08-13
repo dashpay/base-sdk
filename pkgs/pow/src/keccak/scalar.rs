@@ -9,8 +9,6 @@
 use super::consts::{RATE, RC, ROTC};
 use crate::util::memops::{extract, load_u64_le, store_u64_le};
 
-use dash_num::Hash512;
-
 /// Applies the Keccak-f[1600] permutation in place (24 rounds).
 ///
 /// State is a 5x5 matrix of 64-bit lanes stored in row-major order as
@@ -78,7 +76,7 @@ const fn absorb_block(state: &mut [u64; 25], block: &[u8]) {
   keccak_f1600(state);
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut state = [0u64; 25];
 
   // Absorb full blocks
@@ -107,7 +105,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u64_le(&mut out, i, state[i]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -115,5 +113,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

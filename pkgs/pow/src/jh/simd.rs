@@ -9,8 +9,6 @@
 use super::consts::{BLOCK, IV, ROUND_CONSTS};
 use crate::util::memops::{load_u64_le, store_u64_le};
 
-use dash_num::Hash512;
-
 use core::simd::{simd_swizzle, Simd};
 
 /// One 128-bit JH row, stored as four 32-bit lanes.
@@ -218,7 +216,7 @@ fn load_block_words(buf: &[u8]) -> [u64; 8] {
   core::array::from_fn(|i| load_u64_le(buf, i))
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let mut state = IV.map(row_from_u64_pair);
   let mut block_count = 0u64;
   let mut buf = [0u8; BLOCK];
@@ -257,5 +255,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     store_row(&mut out, row, state[row + 4]);
     row += 1;
   }
-  out.into()
+  out
 }

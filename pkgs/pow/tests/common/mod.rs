@@ -31,11 +31,11 @@ pub fn load(name: &str) -> NistVectors {
 }
 
 /// Runs all NIST KAT vectors for a given hash function.
-pub fn run_nist_kat(name: &str, vectors: &NistVectors, hash_fn: fn(&[u8]) -> dash_num::Hash512) {
+pub fn run_nist_kat(name: &str, vectors: &NistVectors, hash_fn: fn(&[u8]) -> [u8; 64]) {
   for (byte_len, digest) in vectors.iter().enumerate() {
     let input = nist_input(byte_len);
     let expected: [u8; 64] = arr_from_hex(digest);
     let got = hash_fn(input);
-    assert_eq!(got.to_bytes(), expected, "{name}: mismatch at byte_len={byte_len}");
+    assert_eq!(got, expected, "{name}: mismatch at byte_len={byte_len}");
   }
 }

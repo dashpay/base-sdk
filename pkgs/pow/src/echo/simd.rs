@@ -13,8 +13,6 @@ use crate::util::aes::cpu::{round, round_nk};
 use crate::util::aes::simd::xtime_packed_u32;
 use crate::util::memops::{load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 #[cfg(all(feature = "aes_hw", target_arch = "aarch64"))]
 use core::simd::Simd;
 
@@ -341,7 +339,7 @@ fn hash_to_cells(data: &[u8]) -> ChainingValue {
   chaining_value
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let cells = hash_to_cells(data);
   let mut out = [0u8; 64];
   let mut cell = 0;
@@ -353,5 +351,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     }
     cell += 1;
   }
-  out.into()
+  out
 }
