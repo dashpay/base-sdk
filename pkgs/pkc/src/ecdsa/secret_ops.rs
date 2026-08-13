@@ -21,8 +21,9 @@ use dash_types::{impl_stype, type_cvrt, ArrayBuf};
 use hex_conservative::hex;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
 use k256::elliptic_curve::ops::Neg;
-use k256::{elliptic_curve::sec1::ToEncodedPoint, AffinePoint};
-use rand_core::CryptoRngCore;
+use k256::elliptic_curve::Generate;
+use k256::{elliptic_curve::sec1::ToSec1Point, AffinePoint};
+use rand_core::CryptoRng;
 use zeroize::{Zeroize, Zeroizing};
 
 use core::fmt;
@@ -124,9 +125,9 @@ impl BaseCodec<EcdsaError> for EcdsaSecretKey {
   /// and zeroize or drop it themselves once done.
   fn encode(&self, buf: &mut impl EncodeBuf) {
     let scalar = self.to_bytes();
-    let public = self.inner.verifying_key().to_encoded_point(self.compressed);
+    let public = self.inner.verifying_key().to_sec1_point(self.compressed);
     let public = public.as_bytes();
-    let generator = AffinePoint::GENERATOR.to_encoded_point(self.compressed);
+    let generator = AffinePoint::GENERATOR.to_sec1_point(self.compressed);
     let generator = generator.as_bytes();
     let point_len = public.len();
     let params_len = point_len + 97;
@@ -182,9 +183,9 @@ impl EcdsaSecretKey {
   }
 
   /// Generate a new random secret key.
-  pub fn generate(rng: &mut impl CryptoRngCore, compressed: Compression) -> Self {
+  pub fn generate(rng: &mut impl CryptoRng, compressed: Compression) -> Self {
     Self {
-      inner: SigningKey::random(rng),
+      inner: SigningKey::generate_from_rng(rng),
       compressed: compressed.is_compressed(),
     }
   }

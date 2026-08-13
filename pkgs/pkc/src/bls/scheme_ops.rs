@@ -277,7 +277,7 @@ pub trait BlsScheme: BlsSchemeId {
     sk: &Self::InnerSk,
     threshold: usize,
     ids: &[BlsShareId],
-    rng: &mut impl rand_core::CryptoRngCore,
+    rng: &mut impl rand_core::CryptoRng,
     mut into_share: impl FnMut(BlsShareId, Self::InnerSk) -> S,
   ) -> Result<Vec<S>, BlsError> {
     if threshold < 2 || ids.is_empty() || threshold > ids.len() {
@@ -453,7 +453,7 @@ fn generate_shares(
   sk_bytes: &[u8; 32],
   threshold: usize,
   ids: &[BlsShareId],
-  rng: &mut impl rand_core::CryptoRngCore,
+  rng: &mut impl rand_core::CryptoRng,
 ) -> Result<Vec<RawShare>, ()> {
   let mut coeffs = Zeroizing::new(Vec::with_capacity(threshold));
 

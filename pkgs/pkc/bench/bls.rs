@@ -9,7 +9,8 @@
 use dash_pkc::bls::tests::{sequential_ids, test_ikm, test_msg};
 use dash_pkc::bls::{BlsPublicKey, BlsScChia, BlsScIetf, BlsScheme, BlsSecretKey, BlsSigShare, BlsSignature};
 use divan::{counter::ItemsCount, Bencher};
-use rand_core::OsRng;
+use getrandom::SysRng;
+use rand_core::UnwrapErr;
 
 /// Single signature creation.
 #[divan::bench(types = [BlsScChia, BlsScIetf])]
@@ -144,7 +145,7 @@ fn split_threshold<S: BlsScheme>(bencher: Bencher, n: usize) {
   let ids = sequential_ids(n);
   bencher
     .counter(ItemsCount::new(n))
-    .bench(|| sk.split(threshold, &ids, &mut OsRng));
+    .bench(|| sk.split(threshold, &ids, &mut UnwrapErr(SysRng)));
 }
 
 /// Threshold signature recovery via Lagrange interpolation.
@@ -152,7 +153,7 @@ fn split_threshold<S: BlsScheme>(bencher: Bencher, n: usize) {
 fn recover_threshold<S: BlsScheme>(bencher: Bencher, threshold: usize) {
   let sk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap();
   let ids = sequential_ids(threshold * 2);
-  let shares = sk.split(threshold, &ids, &mut OsRng).unwrap();
+  let shares = sk.split(threshold, &ids, &mut UnwrapErr(SysRng)).unwrap();
   let msg = test_msg(42);
   let sig_shares: Vec<_> = shares.iter().map(|share| share.sign(S::msg_ref(&msg))).collect();
   let subset: Vec<&BlsSigShare<S>> = sig_shares.iter().take(threshold).collect();

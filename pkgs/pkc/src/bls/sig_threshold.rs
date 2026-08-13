@@ -39,8 +39,9 @@ mod tests {
   use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, Corpus, Value};
+  use getrandom::SysRng;
   use hex_conservative::DisplayHex;
-  use rand_core::OsRng;
+  use rand_core::UnwrapErr;
   use rstest::rstest;
 
   fn assert_threshold_split_recover<S: BlsScheme>() {
@@ -48,7 +49,7 @@ mod tests {
     let pk = sk.public_key();
     let ids = sequential_ids(5);
 
-    let shares = sk.split(3, &ids, &mut OsRng).unwrap();
+    let shares = sk.split(3, &ids, &mut UnwrapErr(SysRng)).unwrap();
     assert_eq!(shares.len(), 5);
 
     // Any threshold-sized subset recovers the master signature. Comparing
@@ -80,7 +81,7 @@ mod tests {
   fn assert_sub_threshold_does_not_verify<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let pk = sk.public_key();
-    let shares = sk.split(3, &sequential_ids(5), &mut OsRng).unwrap();
+    let shares = sk.split(3, &sequential_ids(5), &mut UnwrapErr(SysRng)).unwrap();
     let msg = S::msg_ref(&MSG_DEADBEEF);
     let signed: Vec<BlsSigShare<S>> = shares.iter().map(|s| s.sign(msg)).collect();
 
@@ -106,7 +107,7 @@ mod tests {
 
     let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let ids = sequential_ids(3);
-    let shares = sk.split(2, &ids, &mut OsRng).unwrap();
+    let shares = sk.split(2, &ids, &mut UnwrapErr(SysRng)).unwrap();
     let one = shares[0].sign(S::msg_ref(&MSG_DEADBEEF));
     assert!(matches!(
       BlsSignature::<S>::recover(&[&one]),

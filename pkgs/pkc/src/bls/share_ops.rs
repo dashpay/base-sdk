@@ -16,7 +16,7 @@ use crate::prelude::*;
 
 use dash_types::qtypestr;
 use dash_types::type_id::Unencodable;
-use rand_core::CryptoRngCore;
+use rand_core::CryptoRng;
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};
 use core::hash::{Hash, Hasher};
@@ -140,7 +140,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     &self,
     threshold: usize,
     ids: &[BlsShareId],
-    rng: &mut impl CryptoRngCore,
+    rng: &mut impl CryptoRng,
   ) -> Result<Vec<BlsSkShare<S>>, BlsError> {
     S::split_sk(&self.0, threshold, ids, rng, |id, inner| {
       BlsSkShare::new(id, BlsSecretKey::from_inner(inner))
@@ -185,8 +185,9 @@ mod tests {
 
   use cfg_if::cfg_if;
   use dash_dev::{arr_from_hex, Corpus, Value};
+  use getrandom::SysRng;
   use hex_conservative::DisplayHex;
-  use rand_core::OsRng;
+  use rand_core::UnwrapErr;
   use rstest::rstest;
 
   /// The scalar-field order `r + 1`, congruent to `1` mod `r`.
@@ -210,11 +211,14 @@ mod tests {
     let ids = sequential_ids(5);
     for threshold in [0, 1, ids.len() + 1] {
       assert!(matches!(
-        sk.split(threshold, &ids, &mut OsRng),
+        sk.split(threshold, &ids, &mut UnwrapErr(SysRng)),
         Err(BlsError::ThresholdTooLarge)
       ));
     }
-    assert!(matches!(sk.split(2, &[], &mut OsRng), Err(BlsError::ThresholdTooLarge)));
+    assert!(matches!(
+      sk.split(2, &[], &mut UnwrapErr(SysRng)),
+      Err(BlsError::ThresholdTooLarge)
+    ));
   }
 
   #[rstest]
@@ -231,11 +235,17 @@ mod tests {
 
     let zero = BlsShareId::from_bytes([0u8; 32]);
     let ids = [make_id(1), zero];
-    assert!(matches!(sk.split(2, &ids, &mut OsRng), Err(BlsError::InvalidShareId)));
+    assert!(matches!(
+      sk.split(2, &ids, &mut UnwrapErr(SysRng)),
+      Err(BlsError::InvalidShareId)
+    ));
 
     let order = BlsShareId::from_bytes(GROUP_ORDER);
     let ids = [make_id(1), order];
-    assert!(matches!(sk.split(2, &ids, &mut OsRng), Err(BlsError::InvalidShareId)));
+    assert!(matches!(
+      sk.split(2, &ids, &mut UnwrapErr(SysRng)),
+      Err(BlsError::InvalidShareId)
+    ));
   }
 
   #[rstest]
@@ -250,7 +260,10 @@ mod tests {
   fn assert_congruent_ids_rejected<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let ids = [make_id(1), group_order_plus_one()];
-    assert!(matches!(sk.split(2, &ids, &mut OsRng), Err(BlsError::DuplicateShareId)));
+    assert!(matches!(
+      sk.split(2, &ids, &mut UnwrapErr(SysRng)),
+      Err(BlsError::DuplicateShareId)
+    ));
   }
 
   #[rstest]

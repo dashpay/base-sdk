@@ -14,6 +14,7 @@ use dash_num::Hash256;
 use dash_types::type_id::{TypeId, Unencodable};
 use dash_types::{dlgt_codec, type_cvrt};
 use k256::ecdsa::{DerSignature, Signature};
+use k256::elliptic_curve::scalar::IsHigh;
 
 use core::hash::{Hash, Hasher};
 
@@ -66,13 +67,14 @@ impl EcdsaSignature {
 
   /// Whether the S component is in the lower half of the curve order.
   pub fn is_low_s(&self) -> bool {
-    self.0.normalize_s().is_none()
+    !bool::from(self.0.s().is_high())
   }
 
   /// Return a signature with the S value normalised to the lower half of the
   /// curve order. Returns `None` if already normalised.
   pub fn normalize_s(&self) -> Option<Self> {
-    self.0.normalize_s().map(Self)
+    let normalized = self.0.normalize_s();
+    (normalized != self.0).then_some(Self(normalized))
   }
 
   /// Serialize as 64-byte compact format (r || s).

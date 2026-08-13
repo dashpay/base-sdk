@@ -128,7 +128,7 @@ impl EcdsaPublicKey {
 
   /// Serialize as 33-byte compressed SEC1.
   pub fn to_compressed(&self) -> [u8; 33] {
-    let pt = self.inner.to_encoded_point(true);
+    let pt = self.inner.to_sec1_point(true);
     let mut out = [0u8; 33];
     out.copy_from_slice(pt.as_bytes());
     out
@@ -143,7 +143,7 @@ impl EcdsaPublicKey {
 
   /// Serialize as 65-byte uncompressed SEC1.
   pub fn to_uncompressed(&self) -> [u8; 65] {
-    let pt = self.inner.to_encoded_point(false);
+    let pt = self.inner.to_sec1_point(false);
     let mut out = [0u8; 65];
     out.copy_from_slice(pt.as_bytes());
     out
