@@ -12,7 +12,6 @@ aes_hw = []
 simd = []
 
 [dependencies]
-cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
 
 [dev-dependencies]
