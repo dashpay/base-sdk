@@ -17,8 +17,6 @@ mod prelude;
 
 pub mod bls;
 pub mod ecdsa;
-#[cfg(feature = "std")]
-pub mod worker;
 
 #[doc(hidden)]
 pub mod __private {

@@ -551,7 +551,6 @@ dependencies = [
  "hex-conservative 0.3.2",
  "k256",
  "rand_core 0.6.4",
- "rayon",
  "rstest",
  "serde",
  "sha2",
@@ -568,7 +567,6 @@ dependencies = [
  "dash-num",
  "divan",
  "hex-literal",
- "rayon",
  "rstest",
 ]
 

@@ -25,15 +25,10 @@ mod groestl;
 mod jh;
 mod keccak;
 mod luffa;
-#[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
-mod prelude;
 mod shavite;
 mod simd_hash;
 mod skein;
 mod util;
-
-#[cfg(feature = "std")]
-pub mod worker;
 
 #[doc(hidden)]
 pub mod __private {
