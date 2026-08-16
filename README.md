@@ -36,14 +36,15 @@
 <!-- --8<-- [start:crate-graph] -->
 
 ```mermaid
+%%{init: { "flowchart": { "curve": "basis" } } }%%
 graph LR
   subgraph " "
     types[dash-types]
     num[dash-num]
+    pow[dash-pow]
   end
   subgraph "  "
     script[dash-script]
-    pow[dash-pow]
     pkc[dash-pkc]
   end
   subgraph "   "
@@ -54,21 +55,12 @@ graph LR
 
   types --> num
   types --> script
-  types --> pkc
-  types --> primitives
-  types --> p2p_core
-  num --> pow
   num --> pkc
   num --> primitives
-  num --> params
-  num --> p2p_core
   script --> primitives
-  script --> p2p_core
   pkc --> p2p_core
   pow --> primitives
-  pow -.-> params
   primitives --> params
-  primitives --> p2p_core
   params --> p2p_core
 ```
 
@@ -89,7 +81,7 @@ Specific crates define additional features:
 
 | Feature | Description | Crates |
 |---------|-------------|--------|
-| `k256` | Enable secp256k1 support | [pkc](./pkgs/pkc) |
+| `ecdsa` | Enable secp256k1 support | [pkc](./pkgs/pkc) |
 | `bls` | Enable standard and legacy BLS support | [pkc](./pkgs/pkc) |
 | `aes_hw` | Enable hardware-accelerated AES on supported platforms | [pow](./pkgs/pow) |
 | `simd` | Use SIMD backends (requires nightly) | [pow](./pkgs/pow) |
