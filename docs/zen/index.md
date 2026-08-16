@@ -15,42 +15,7 @@ utilised by your packages.
 * Base packages. These packages implement specific algorithms but without chain-distinguishing consensus logic.
 * Protocol packages. These packages define the Dash protocol as deployed, blocks, transactions, chain parameters.
 
-```mermaid
-graph LR
-  subgraph " "
-    types[dash-types]
-    num[dash-num]
-  end
-  subgraph "  "
-    script[dash-script]
-    pow[dash-pow]
-    pkc[dash-pkc]
-  end
-  subgraph "   "
-    primitives[dash-primitives]
-    params[dash-params]
-    p2p_core[dash-p2p-core]
-  end
-
-  types --> num
-  types --> script
-  types --> pkc
-  types --> primitives
-  types --> p2p_core
-  num --> pow
-  num --> pkc
-  num --> primitives
-  num --> params
-  num --> p2p_core
-  script --> primitives
-  script --> p2p_core
-  pkc --> p2p_core
-  pow --> primitives
-  pow -.-> params
-  primitives --> params
-  primitives --> p2p_core
-  params --> p2p_core
-```
+--8<-- "README.md:crate-graph"
 
 *Note: Solid lines are build dependencies, dotted lines are test dependencies.*
 

@@ -33,6 +33,8 @@
 > [!NOTE]
 > Solid lines are build dependencies. Dotted lines are test dependencies.
 
+<!-- --8<-- [start:crate-graph] -->
+
 ```mermaid
 graph LR
   subgraph " "
@@ -69,6 +71,8 @@ graph LR
   primitives --> p2p_core
   params --> p2p_core
 ```
+
+<!-- --8<-- [end:crate-graph] -->
 
 ## Features
 
