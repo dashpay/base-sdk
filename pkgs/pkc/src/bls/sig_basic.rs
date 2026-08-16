@@ -23,6 +23,7 @@ use core::hash::{Hash, Hasher};
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "BlsSigBytes<S>", try_from = "BlsSigBytes<S>"))]
 #[cfg_attr(feature = "serde", serde(bound(serialize = "", deserialize = "")))]
+#[derive(TypeId)]
 pub struct BlsSignature<S: BlsScheme>(pub(crate) S::InnerSig);
 
 dlgt_codec!(for[S: BlsScheme] BlsSignature<S> => BlsSigBytes<S>, Hash256, BlsError, BLS_SIG_LEN);
@@ -105,10 +106,6 @@ impl<S: BlsScheme> Hash for BlsSignature<S> {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.to_bytes().hash(state);
   }
-}
-
-impl<S: BlsScheme> TypeId for BlsSignature<S> {
-  const TYPE_ID: u32 = S::SIG_TYPE_ID;
 }
 
 type_cvrt!(for[S: BlsScheme] From<BlsSignature<S>> for BlsSigBytes<S>, |sig| {

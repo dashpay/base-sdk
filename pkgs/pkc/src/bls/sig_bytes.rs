@@ -20,6 +20,7 @@ use core::marker::PhantomData;
 pub const BLS_SIG_LEN: usize = 96;
 
 /// Scheme-tagged BLS signature bytes (96 bytes, unvalidated).
+#[derive(TypeId)]
 pub struct BlsSigBytes<S: BlsSchemeId> {
   inner: [u8; BLS_SIG_LEN],
   _scheme: PhantomData<S>,
@@ -53,10 +54,6 @@ impl<S: BlsSchemeId> BlsSigBytes<S> {
   pub const fn into_bytes(self) -> [u8; BLS_SIG_LEN] {
     self.inner
   }
-}
-
-impl<S: BlsSchemeId> TypeId for BlsSigBytes<S> {
-  const TYPE_ID: u32 = S::SIG_TYPE_ID;
 }
 
 derive_bytes!(for[S: BlsSchemeId] BlsSigBytes<S>, BLS_SIG_LEN);

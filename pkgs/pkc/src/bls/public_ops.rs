@@ -24,6 +24,7 @@ use core::hash::{Hash, Hasher};
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "BlsPkBytes<S>", try_from = "BlsPkBytes<S>",))]
 #[cfg_attr(feature = "serde", serde(bound(serialize = "", deserialize = "")))]
+#[derive(TypeId)]
 pub struct BlsPublicKey<S: BlsScheme>(pub(crate) S::InnerPk);
 
 dlgt_codec!(for[S: BlsScheme] BlsPublicKey<S> => BlsPkBytes<S>, Hash256, BlsError, BLS_PK_LEN);
@@ -96,10 +97,6 @@ impl<S: BlsScheme> PartialEq for BlsPublicKey<S> {
   fn eq(&self, other: &Self) -> bool {
     self.0 == other.0
   }
-}
-
-impl<S: BlsScheme> TypeId for BlsPublicKey<S> {
-  const TYPE_ID: u32 = S::PK_TYPE_ID;
 }
 
 type_cvrt!(for[S: BlsScheme] From<BlsPublicKey<S>> for BlsPkBytes<S>, |pk| {

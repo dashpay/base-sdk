@@ -22,6 +22,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 use core::fmt::{Debug, Formatter, Result as FmtResult};
 
 /// A BLS secret key (32-byte scalar).
+#[derive(TypeId)]
 pub struct BlsSecretKey<S: BlsScheme>(pub(crate) S::InnerSk);
 
 dlgt_scodec!(for[S: BlsScheme] BlsSecretKey<S> => BlsSkBytes<S>, Hash256, BlsError, BLS_SK_LEN);
@@ -130,10 +131,6 @@ impl<S: BlsScheme> Zeroize for BlsSecretKey<S> {
 }
 
 impl<S: BlsScheme> ZeroizeOnDrop for BlsSecretKey<S> {}
-
-impl<S: BlsScheme> TypeId for BlsSecretKey<S> {
-  const TYPE_ID: u32 = S::SK_TYPE_ID;
-}
 
 type_cvrt!(for[S: BlsScheme] From<BlsSecretKey<S>> for BlsSkBytes<S>, |sk| {
   Self::from_bytes(*sk.to_bytes())

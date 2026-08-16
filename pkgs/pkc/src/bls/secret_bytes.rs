@@ -22,6 +22,7 @@ use core::marker::PhantomData;
 pub const BLS_SK_LEN: usize = 32;
 
 /// Scheme-tagged BLS secret key bytes (32 bytes, zeroized on drop).
+#[derive(TypeId)]
 pub struct BlsSkBytes<S: BlsSchemeId> {
   inner: [u8; BLS_SK_LEN],
   _scheme: PhantomData<S>,
@@ -55,10 +56,6 @@ impl<S: BlsSchemeId> BlsSkBytes<S> {
   pub fn to_bytes(&self) -> Zeroizing<[u8; BLS_SK_LEN]> {
     Zeroizing::new(self.inner)
   }
-}
-
-impl<S: BlsSchemeId> TypeId for BlsSkBytes<S> {
-  const TYPE_ID: u32 = S::SK_TYPE_ID;
 }
 
 impl<S: BlsSchemeId> Zeroize for BlsSkBytes<S> {
