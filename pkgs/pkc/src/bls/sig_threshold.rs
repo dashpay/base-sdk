@@ -35,7 +35,7 @@ impl<S: BlsScheme> BlsSignature<S> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::bls::scheme_ops::BlsScheme;
-  use crate::bls::tests::{make_id, sequential_ids, MSG_DEADBEEF, SEED_0};
+  use crate::bls::tests::{make_id, sequential_ids, MSG_DEADBEEF, RSEED};
   use crate::bls::{BlsError, BlsScChia, BlsScIetf, BlsSecretKey, BlsSigShare, BlsSignature, BlsSkShare};
   use crate::prelude::*;
 
@@ -45,7 +45,7 @@ mod tests {
   use rstest::rstest;
 
   fn assert_threshold_split_recover<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let pk = sk.public_key();
     let ids = sequential_ids(5);
 
@@ -79,7 +79,7 @@ mod tests {
   /// Interpolating fewer than `threshold` shares still yields a point, so the
   /// guard against a short quorum is that the result fails verification.
   fn assert_sub_threshold_does_not_verify<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let pk = sk.public_key();
     let shares = sk.split(3, &sequential_ids(5), &mut OsRng).unwrap();
     let msg = S::msg_ref(&MSG_DEADBEEF);
@@ -105,7 +105,7 @@ mod tests {
       Err(BlsError::InsufficientShares)
     ));
 
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let ids = sequential_ids(3);
     let shares = sk.split(2, &ids, &mut OsRng).unwrap();
     let one = shares[0].sign(S::msg_ref(&MSG_DEADBEEF));

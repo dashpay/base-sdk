@@ -113,7 +113,7 @@ mod tests {
   use super::*;
   use crate::bls::tests::{
     ietf_g1_encoding, G1_OFF_SUBGROUP_CHIA, G1_OFF_SUBGROUP_IETF, G1_X_EQ_PRIME_CHIA, G1_X_GE_PRIME_CHIA,
-    G1_X_MAX_CHIA, SEED_0, SEED_1,
+    G1_X_MAX_CHIA, RSEED,
   };
   use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey};
 
@@ -162,8 +162,8 @@ mod tests {
   }
 
   fn assert_dh_roundtrip<S: BlsScheme>() {
-    let sk_a = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
-    let sk_b = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+    let sk_a = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk_b = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
 
     let shared_ab = sk_a.dh_exchange(&sk_b.public_key()).unwrap();
     let shared_ba = sk_b.dh_exchange(&sk_a.public_key()).unwrap();
@@ -180,7 +180,7 @@ mod tests {
   /// In the Chia scheme, DH weighs whatever the decoder passed, which leaks
   /// the scalar mod the cofactor's small factors. IETF rejects this.
   fn assert_off_subgroup_peer_policy<S: BlsScheme>(encoded: &[u8; 48], reaches_dh: bool) {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
 
     match BlsPublicKey::<S>::from_bytes(encoded) {
       Ok(peer) => {
@@ -206,7 +206,7 @@ mod tests {
   /// Conversion re-encodes one point, so a round trip returns the original and
   /// the same-scheme case is a copy.
   fn assert_scheme_conversion_round_trips<S: BlsScheme, T: BlsScheme>() {
-    let pk = BlsSecretKey::<S>::generate(&SEED_0).unwrap().public_key();
+    let pk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap().public_key();
     let there = pk.to_scheme::<T>().unwrap();
 
     assert_eq!(there.to_scheme::<S>().unwrap().to_bytes(), pk.to_bytes());
@@ -249,7 +249,7 @@ mod tests {
   }
 
   fn assert_pk_roundtrip<S: BlsScheme>() {
-    let pk = BlsSecretKey::<S>::generate(&SEED_0).unwrap().public_key();
+    let pk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap().public_key();
     let bytes = pk.to_bytes();
     assert_eq!(BlsPublicKey::<S>::from_bytes(&bytes).unwrap().to_bytes(), bytes);
   }
@@ -333,7 +333,7 @@ mod tests {
   /// round-trips back to its canonical form.
   #[rstest]
   fn chia_masks_stray_public_key_bits() {
-    let clean = BlsSecretKey::<BlsScChia>::generate(&SEED_0)
+    let clean = BlsSecretKey::<BlsScChia>::generate(&RSEED[0])
       .unwrap()
       .public_key()
       .to_bytes();

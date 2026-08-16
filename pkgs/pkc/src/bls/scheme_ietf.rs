@@ -217,7 +217,7 @@ impl BlsScIetf {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
+  use crate::bls::tests::{MSG_DEADBEEF, RSEED};
 
   use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
   use hex_conservative::hex;
@@ -281,8 +281,8 @@ mod tests {
 
   #[test]
   fn signing_verifies_and_rejects_mismatches() {
-    let sk0 = BlsScIetf::generate(&SEED_0).unwrap();
-    let sk1 = BlsScIetf::generate(&SEED_1).unwrap();
+    let sk0 = BlsScIetf::generate(&RSEED[0]).unwrap();
+    let sk1 = BlsScIetf::generate(&RSEED[1]).unwrap();
     let pk0 = BlsScIetf::derive_pk(&sk0);
     let pk1 = BlsScIetf::derive_pk(&sk1);
     let sig = BlsScIetf::sign(&sk0, &MSG_DEADBEEF);

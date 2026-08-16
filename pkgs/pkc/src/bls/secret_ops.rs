@@ -144,7 +144,7 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsSkBytes<S>> for BlsSecretKey<S>, BlsErro
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{RSEED, SEED_0};
+  use crate::bls::tests::RSEED;
   use crate::bls::{BlsScChia, BlsScIetf};
 
   use dash_dev::{arr_from_hex, Corpus};
@@ -165,7 +165,7 @@ mod tests {
   }
 
   fn assert_roundtrip<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let bytes = sk.to_bytes();
     let decoded = BlsSecretKey::<S>::from_bytes(&bytes).unwrap();
     assert_eq!(decoded.to_bytes(), bytes);
@@ -226,7 +226,7 @@ mod tests {
   /// scheme mix-up cannot go unnoticed.
   #[rstest]
   fn public_key_formats_differ() {
-    let chia = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
+    let chia = BlsSecretKey::<BlsScChia>::generate(&RSEED[0]).unwrap();
     let ietf = BlsSecretKey::<BlsScIetf>::from_bytes(&chia.to_bytes()).unwrap();
     assert_ne!(chia.public_key().to_bytes(), ietf.public_key().to_bytes());
   }
@@ -234,7 +234,7 @@ mod tests {
   fn assert_codec_roundtrip<S: BlsScheme>() {
     use dash_types::codec::BaseCodec;
 
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let mut buf = Vec::new();
     sk.encode(&mut buf);
     assert_eq!(buf.len(), 32);

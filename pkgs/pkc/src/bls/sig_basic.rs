@@ -121,7 +121,9 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsSigBytes<S>> for BlsSignature<S>, BlsErr
 mod tests {
   use super::*;
   use crate::bls::secret_ops::BlsSecretKey;
-  use crate::bls::tests::{G2_OFF_SUBGROUP_CHIA, G2_OFF_SUBGROUP_IETF, MSG_DEADBEEF, SEED_0, SEED_1};
+  use crate::bls::tests::{
+    test_ikm, test_msg, G2_OFF_SUBGROUP_CHIA, G2_OFF_SUBGROUP_IETF, MSG_8BADFOOD, MSG_DEADBEEF, RSEED,
+  };
   use crate::bls::{BlsScChia, BlsScIetf};
   use crate::prelude::*;
 
@@ -145,14 +147,14 @@ mod tests {
   }
 
   fn assert_sign_verify<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let pk = sk.public_key();
     let sig = sk.sign(S::msg_ref(&MSG_DEADBEEF));
 
     assert!(sig.verify(S::msg_ref(&MSG_DEADBEEF), &pk).is_ok());
-    assert!(sig.verify(S::msg_ref(&[0x42; 32]), &pk).is_err());
+    assert!(sig.verify(S::msg_ref(&MSG_8BADFOOD), &pk).is_err());
 
-    let other_pk = BlsSecretKey::<S>::generate(&SEED_1).unwrap().public_key();
+    let other_pk = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap().public_key();
     assert!(sig.verify(S::msg_ref(&MSG_DEADBEEF), &other_pk).is_err());
   }
 
@@ -168,9 +170,9 @@ mod tests {
   /// and another key all fail.
   #[rstest]
   fn ietf_signature_variant_contract() {
-    let sk = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<BlsScIetf>::generate(&RSEED[0]).unwrap();
     let pk = sk.public_key();
-    let other_pk = BlsSecretKey::<BlsScIetf>::generate(&SEED_1).unwrap().public_key();
+    let other_pk = BlsSecretKey::<BlsScIetf>::generate(&RSEED[1]).unwrap().public_key();
     let msg = b"variant-bound message";
     let wrong_msg = b"another message";
 
@@ -198,7 +200,7 @@ mod tests {
   /// BLS signing draws no randomness, so the same key over the same message
   /// yields the same signature every time.
   fn assert_sign_is_deterministic<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let msg = S::msg_ref(&MSG_DEADBEEF);
     assert_eq!(sk.sign(msg), sk.sign(msg));
   }
@@ -211,7 +213,7 @@ mod tests {
   }
 
   fn assert_sig_roundtrip<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let bytes = sk.sign(S::msg_ref(&MSG_DEADBEEF)).to_bytes();
     assert_eq!(BlsSignature::<S>::from_bytes(&bytes).unwrap().to_bytes(), bytes);
   }
@@ -230,10 +232,10 @@ mod tests {
     let mut pk_signs = [false; 2];
     let mut sig_signs = [false; 2];
 
-    for seed_byte in 0..64u8 {
-      let sk = BlsSecretKey::<S>::generate(&[seed_byte; 32]).unwrap();
+    for i in 0..64 {
+      let sk = BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap();
       let pk = sk.public_key();
-      let sig = sk.sign(S::msg_ref(&MSG_DEADBEEF));
+      let sig = sk.sign(S::msg_ref(&test_msg(i)));
 
       let pk_bytes = pk.to_bytes();
       let sig_bytes = sig.to_bytes();
@@ -283,7 +285,7 @@ mod tests {
   #[case::sign_byte(0, 0x20)]
   #[case::swizzled_byte(48, 0x40)]
   fn chia_rejects_stray_signature_bits(#[case] index: usize, #[case] mask: u8) {
-    let clean = BlsSecretKey::<BlsScChia>::generate(&SEED_0)
+    let clean = BlsSecretKey::<BlsScChia>::generate(&RSEED[0])
       .unwrap()
       .sign(&MSG_DEADBEEF)
       .to_bytes();
@@ -375,14 +377,14 @@ mod tests {
   /// scheme mix-up cannot go unnoticed.
   #[rstest]
   fn signatures_differ_across_schemes() {
-    let chia = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
+    let chia = BlsSecretKey::<BlsScChia>::generate(&RSEED[0]).unwrap();
     let ietf = BlsSecretKey::<BlsScIetf>::from_bytes(&chia.to_bytes()).unwrap();
     assert_ne!(chia.sign(&MSG_DEADBEEF).to_bytes(), ietf.sign(&MSG_DEADBEEF).to_bytes());
   }
 
   /// Conversion re-encodes one point, so a round trip returns the original.
   fn assert_sig_scheme_conversion_round_trips<S: BlsScheme, T: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let sig = sk.sign(S::msg_ref(&MSG_DEADBEEF));
     let there = sig.to_scheme::<T>().unwrap();
 
@@ -403,7 +405,7 @@ mod tests {
   /// hash nor the target's key.
   #[rstest]
   fn sig_scheme_conversion_does_not_move_the_augmentation() {
-    let sk = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<BlsScChia>::generate(&RSEED[0]).unwrap();
     let sig = sk.sign(&MSG_DEADBEEF);
 
     let converted = sig.to_scheme::<BlsScIetf>().unwrap();
@@ -429,18 +431,18 @@ mod tests {
       /// pinned per scheme.
       #[rstest]
       fn serde_roundtrip() {
-        let chia = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
+        let chia = BlsSecretKey::<BlsScChia>::generate(&RSEED[0]).unwrap();
         assert_json_rt(&chia.sign(&MSG_DEADBEEF));
-        let ietf = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
+        let ietf = BlsSecretKey::<BlsScIetf>::generate(&RSEED[0]).unwrap();
         assert_json_rt(&ietf.sign(&MSG_DEADBEEF));
       }
 
       #[rstest]
       fn serde_emits_hex_string() {
-        let chia = BlsSecretKey::<BlsScChia>::generate(&SEED_0)
+        let chia = BlsSecretKey::<BlsScChia>::generate(&RSEED[0])
           .unwrap()
           .sign(&MSG_DEADBEEF);
-        let ietf = BlsSecretKey::<BlsScIetf>::generate(&SEED_0)
+        let ietf = BlsSecretKey::<BlsScIetf>::generate(&RSEED[0])
           .unwrap()
           .sign(&MSG_DEADBEEF);
 
