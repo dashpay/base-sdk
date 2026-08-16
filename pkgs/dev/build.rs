@@ -10,7 +10,7 @@
 
 use proc_macro2::{TokenStream, TokenTree};
 use syn::visit::{visit_item_enum, visit_item_macro, visit_item_struct, Visit};
-use syn::{parse_file, Attribute, ItemEnum, ItemMacro, ItemStruct};
+use syn::{parse_file, Attribute, Generics, Ident, ItemEnum, ItemMacro, ItemStruct};
 use xxhash_rust::xxh32::xxh32;
 
 use std::collections::{BTreeSet, HashMap};
@@ -52,25 +52,38 @@ fn main() {
 
   assert!(!scan.names.is_empty(), "scanner produced no TypeId entries");
 
+  check_unique(&scan.names, "TypeId");
+  check_unique(&scan.generics, "generic TypeId base name");
+
+  built::write_built_file().expect("failed to write built.rs metadata");
+}
+
+/// Fails the build on a shared id, which would decode one type into
+/// another's slot.
+///
+/// # Panics
+///
+/// Panics when two distinct names in `names` hash to the same id.
+fn check_unique(names: &[String], kind: &str) {
   let mut seen: HashMap<u32, &str> = HashMap::new();
-  for name in &scan.names {
+  for name in names {
     let id = xxh32(name.as_bytes(), 0);
     if let Some(prev) = seen.insert(id, name) {
       if prev != name {
-        panic!("TypeId collision: {name} and {prev} share id {id:#010x}");
+        panic!("{kind} collision: {name} and {prev} share id {id:#010x}");
       }
     }
   }
-
-  built::write_built_file().expect("failed to write built.rs metadata");
 }
 
 #[derive(Default)]
 struct ScanResult {
   /// `macro_rules!` names whose body contains `TypeId`.
   type_id_macros: BTreeSet<String>,
-  /// Type names with direct `#[derive(TypeId)]`.
+  /// Non-generic derive sites, where id is exactly the XXH32 of the name.
   names: Vec<String>,
+  /// Generic derive sites, where name hash is only the id's seed.
+  generics: Vec<String>,
   /// Unresolved `(macro_name, type_name)` from invocation sites.
   pending: Vec<(String, String)>,
 }
@@ -105,19 +118,28 @@ fn scan_file(path: &Path, scan: &mut ScanResult) {
         (attr.path().is_ident("derive") || attr.path().is_ident("cfg_attr")) && attr_contains_ident(attr, "TypeId")
       })
     }
+
+    fn record(&mut self, ident: &Ident, generics: &Generics) {
+      let bucket = if generics.type_params().next().is_some() {
+        &mut self.scan.generics
+      } else {
+        &mut self.scan.names
+      };
+      bucket.push(ident.to_string());
+    }
   }
 
   impl<'ast> Visit<'ast> for V<'_> {
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
       if Self::has_type_id_derive(&node.attrs) {
-        self.scan.names.push(node.ident.to_string());
+        self.record(&node.ident, &node.generics);
       }
       visit_item_struct(self, node);
     }
 
     fn visit_item_enum(&mut self, node: &'ast ItemEnum) {
       if Self::has_type_id_derive(&node.attrs) {
-        self.scan.names.push(node.ident.to_string());
+        self.record(&node.ident, &node.generics);
       }
       visit_item_enum(self, node);
     }
