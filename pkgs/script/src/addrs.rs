@@ -13,7 +13,8 @@ use base58ck::decode_check;
 use dash_num::Hash160;
 use dash_pkc::ecdsa::EcdsaPkBytes;
 use dash_types::codec::{BaseCodec, EncodeBuf, Hashable, NumCodec};
-use dash_types::{type_cvrt, Unencodable};
+use dash_types::type_cvrt;
+use dash_types::type_id::Unencodable;
 
 /// Network address encoding parameters.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]

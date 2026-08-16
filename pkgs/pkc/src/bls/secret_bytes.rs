@@ -10,7 +10,8 @@ use crate::bls::BlsSchemeId;
 
 use bitcoin_hashes::sha256d::Hash as Sha256d;
 use dash_num::Hash256;
-use dash_types::codec::{Hashable, TypeId};
+use dash_types::codec::Hashable;
+use dash_types::type_id::TypeId;
 use dash_types::{derive_sbytes, impl_sbytes};
 use subtle::ConstantTimeEq;
 use zeroize::{Zeroize, Zeroizing};

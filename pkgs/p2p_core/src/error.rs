@@ -9,7 +9,7 @@
 use crate::prelude::*;
 
 use dash_types::codec::DecodeError;
-use dash_types::Unencodable;
+use dash_types::type_id::Unencodable;
 
 use core::fmt;
 

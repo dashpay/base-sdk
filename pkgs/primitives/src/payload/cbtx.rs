@@ -12,7 +12,8 @@ use crate::{hash_impl, MerkleRoot};
 use bitcoin_units::BlockHeight;
 use dash_pkc::bls::{BlsScIetf, BlsSigBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
-use dash_types::{CompactSize, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::CompactSize;
 
 use core::fmt;
 

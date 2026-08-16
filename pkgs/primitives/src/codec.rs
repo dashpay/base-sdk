@@ -30,7 +30,12 @@ macro_rules! hash_impl {
     }
 
     const _: () = {
-      fn _assert<T: $crate::__private::dash_types::codec::BaseCodec + $crate::__private::dash_types::codec::TypeId>() {}
+      fn _assert<T>()
+      where
+        T: $crate::__private::dash_types::codec::BaseCodec,
+        T: $crate::__private::dash_types::type_id::TypeId,
+      {
+      }
       fn _check() { _assert::<$ty>(); }
     };
   )* };

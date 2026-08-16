@@ -7,7 +7,8 @@
 //! Twelve-byte null-padded command string for P2P message dispatch.
 
 use dash_primitives::hash_impl;
-use dash_types::{impl_bytes, TypeId};
+use dash_types::impl_bytes;
+use dash_types::type_id::TypeId;
 
 use core::fmt;
 

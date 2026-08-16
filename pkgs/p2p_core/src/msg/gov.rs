@@ -10,7 +10,7 @@ use crate::codec::codec_p2p;
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use dash_types::TypeId;
+use dash_types::type_id::TypeId;
 
 /// Requests governance objects and votes from a peer.
 ///

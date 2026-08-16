@@ -12,7 +12,8 @@ use bitcoin_hashes::sha256d;
 use cfg_if::cfg_if;
 use dash_num::Hash256;
 use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::{impl_type, type_cvrt, CompactSize, TypeId};
+use dash_types::type_id::TypeId;
+use dash_types::{impl_type, type_cvrt, CompactSize};
 
 use core::fmt;
 

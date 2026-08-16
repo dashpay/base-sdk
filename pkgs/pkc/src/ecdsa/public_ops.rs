@@ -12,7 +12,8 @@ use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
 use super::{Compression, EcdsaRecSigBytes, PubKeyHash};
 
-use dash_types::{dlgt_codec, type_cvrt, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::{dlgt_codec, type_cvrt};
 use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 
 use core::hash::{Hash, Hasher};

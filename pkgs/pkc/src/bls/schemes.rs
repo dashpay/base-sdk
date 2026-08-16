@@ -6,7 +6,7 @@
 
 //! BLS scheme trait and marker types.
 
-use dash_types::Unencodable;
+use dash_types::type_id::Unencodable;
 
 /// BLS scheme discriminator.
 pub trait BlsSchemeId: 'static {

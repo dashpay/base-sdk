@@ -12,7 +12,7 @@ use super::{BlsPkBytes, BLS_PK_LEN};
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use dash_types::codec::TypeId;
+use dash_types::type_id::TypeId;
 use dash_types::{dlgt_codec, qtypestr, type_cvrt};
 use hex_conservative::DisplayHex;
 

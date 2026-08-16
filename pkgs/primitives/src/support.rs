@@ -10,7 +10,8 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::{enum_map, impl_num, impl_type, CompactSize, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::{enum_map, impl_num, impl_type, CompactSize};
 
 enum_map! {
   /// LLMQ type (quorum size/threshold configuration).

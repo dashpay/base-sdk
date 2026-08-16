@@ -53,7 +53,7 @@ macro_rules! make_hash {
     $name:ident
   ) => {
     $(#[$attr])*
-    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::__private::dash_types::TypeId)]
+    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::__private::dash_types::type_id::TypeId)]
     pub struct $name($base);
 
     $crate::cfg_serde! {

@@ -15,7 +15,7 @@ use super::{BlsScIetf, BlsSigId, BlsSkBytes, BLS_SK_LEN};
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use dash_types::codec::TypeId;
+use dash_types::type_id::TypeId;
 use dash_types::{dlgt_scodec, qtypestr, type_cvrt};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 

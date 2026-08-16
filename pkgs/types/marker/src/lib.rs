@@ -41,7 +41,7 @@ pub fn derive_type_id(input: TokenStream) -> TokenStream {
   let id = xxh32(name_str.as_bytes(), 0);
 
   let expanded = quote! {
-    impl #impl_generics ::dash_types::codec::TypeId for #name #ty_generics #where_clause {
+    impl #impl_generics ::dash_types::type_id::TypeId for #name #ty_generics #where_clause {
       const TYPE_ID: u32 = #id;
     }
   };

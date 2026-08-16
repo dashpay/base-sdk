@@ -14,7 +14,8 @@ use bitcoin_hashes::sha256d;
 use bitcoin_units::Amount;
 use dash_num::Hash256;
 use dash_types::codec::{BaseCodec, Checkable, Hashable};
-use dash_types::{enum_map, impl_num, ArrayBuf, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::{enum_map, impl_num, ArrayBuf};
 use hex_conservative::DisplayHex;
 
 use core::fmt;

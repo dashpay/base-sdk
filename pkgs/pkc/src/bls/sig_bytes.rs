@@ -10,7 +10,8 @@ use crate::bls::BlsSchemeId;
 
 use bitcoin_hashes::sha256d::Hash as Sha256d;
 use dash_num::Hash256;
-use dash_types::codec::{Hashable, TypeId};
+use dash_types::codec::Hashable;
+use dash_types::type_id::TypeId;
 use dash_types::{derive_bytes, impl_bytes};
 
 use core::marker::PhantomData;

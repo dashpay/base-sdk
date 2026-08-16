@@ -12,7 +12,7 @@ use super::scheme_ops::BlsScheme;
 use super::{BlsScIetf, BlsSigBytes, BlsSigId, BLS_SIG_LEN};
 
 use dash_num::Hash256;
-use dash_types::codec::TypeId;
+use dash_types::type_id::TypeId;
 use dash_types::{dlgt_codec, qtypestr, type_cvrt};
 use hex_conservative::DisplayHex;
 

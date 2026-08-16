@@ -14,7 +14,8 @@ use super::sig_basic::BlsSignature;
 use crate::prelude::*;
 
 use dash_num::Hash256;
-use dash_types::{qtypestr, Unencodable};
+use dash_types::qtypestr;
+use dash_types::type_id::Unencodable;
 use rand_core::CryptoRngCore;
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};

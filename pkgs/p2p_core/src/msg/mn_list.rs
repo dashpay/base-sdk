@@ -15,7 +15,7 @@ use dash_primitives::{
 };
 use dash_script::PubKeyHash;
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, NumCodec};
-use dash_types::TypeId;
+use dash_types::type_id::TypeId;
 
 use core::fmt;
 

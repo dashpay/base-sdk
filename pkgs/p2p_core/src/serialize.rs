@@ -10,7 +10,7 @@ use crate::prelude::*;
 
 use bitcoin_primitives::BlockHash;
 use bitcoin_units::BlockHeight;
-use dash_types::Unencodable;
+use dash_types::type_id::Unencodable;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// For [`BlockHash`](bitcoin_primitives::BlockHash) as a hex string.

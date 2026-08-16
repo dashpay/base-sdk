@@ -26,9 +26,9 @@ mod uint;
 pub mod codec;
 #[cfg(feature = "serde")]
 pub mod serialize;
+pub mod type_id;
 
 pub use compact::CompactSize;
-pub use dash_types_marker::{TypeId, Unencodable};
 pub use entity::{VecDecoder, VecEncoder, MAX_SER_SIZE};
 pub use secret::{qtypestr, ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
 
