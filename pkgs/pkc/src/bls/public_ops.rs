@@ -112,8 +112,8 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsPkBytes<S>> for BlsPublicKey<S>, BlsErro
 mod tests {
   use super::*;
   use crate::bls::tests::{
-    ietf_g1_encoding, G1_OFF_SUBGROUP_CHIA, G1_OFF_SUBGROUP_IETF, G1_X_EQ_PRIME_CHIA, G1_X_GE_PRIME_CHIA,
-    G1_X_MAX_CHIA, RSEED,
+    ietf_g1_encoding, ser_pairs, SerType, G1_OFF_SUBGROUP_CHIA, G1_OFF_SUBGROUP_IETF, G1_X_EQ_PRIME_CHIA,
+    G1_X_GE_PRIME_CHIA, G1_X_MAX_CHIA, RSEED,
   };
   use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey};
 
@@ -122,12 +122,6 @@ mod tests {
   use hex_conservative::DisplayHex;
   use rstest::rstest;
   use serde::Deserialize;
-
-  #[derive(Deserialize)]
-  struct PkSerVec {
-    pk_legacy: String,
-    pk_ietf: String,
-  }
 
   #[derive(Deserialize)]
   struct AggPkVec {
@@ -349,11 +343,10 @@ mod tests {
   /// the decoder rejects whether or not the rest of the buffer is zero.
   #[rstest]
   fn chia_masks_stray_bit_six() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
-    let v = corpus.vectors::<PkSerVec>("pk_serialization").swap_remove(0);
+    let (pk_legacy, _) = ser_pairs(SerType::PublicKey).swap_remove(0);
 
     // Clear the sign bit so bit 6 is the only stray bit under test.
-    let mut clean: [u8; 48] = arr_from_hex(&v.pk_legacy);
+    let mut clean: [u8; 48] = arr_from_hex(&pk_legacy);
     clean[0] &= 0x1f;
     assert_eq!(BlsPublicKey::<BlsScChia>::from_bytes(&clean).unwrap().to_bytes(), clean);
 
@@ -377,17 +370,14 @@ mod tests {
   /// encoding must round-trip through the wrapper of its own scheme.
   #[rstest]
   fn serialization_formats_match_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
-    let vecs: Vec<PkSerVec> = corpus.vectors("pk_serialization");
+    for (pk_legacy, pk_ietf) in ser_pairs(SerType::PublicKey) {
+      let legacy = BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&pk_legacy)).unwrap();
+      assert_eq!(legacy.to_bytes().to_lower_hex_string(), pk_legacy);
 
-    for v in &vecs {
-      let legacy = BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&v.pk_legacy)).unwrap();
-      assert_eq!(legacy.to_bytes().to_lower_hex_string(), v.pk_legacy);
+      let ietf = BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&pk_ietf)).unwrap();
+      assert_eq!(ietf.to_bytes().to_lower_hex_string(), pk_ietf);
 
-      let ietf = BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&v.pk_ietf)).unwrap();
-      assert_eq!(ietf.to_bytes().to_lower_hex_string(), v.pk_ietf);
-
-      assert_ne!(v.pk_legacy, v.pk_ietf, "legacy and ietf should differ");
+      assert_ne!(pk_legacy, pk_ietf, "legacy and ietf should differ");
     }
   }
 
@@ -420,22 +410,20 @@ mod tests {
 
       #[rstest]
       fn serde_emits_hex_string() {
-        let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
-        let v = corpus.vectors::<PkSerVec>("pk_serialization").swap_remove(0);
+        let (pk_legacy, pk_ietf) = ser_pairs(SerType::PublicKey).swap_remove(0);
 
-        let chia = BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&v.pk_legacy)).unwrap();
-        let ietf = BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&v.pk_ietf)).unwrap();
-        assert_eq!(to_json(&chia), format!("\"{}\"", v.pk_legacy));
-        assert_eq!(to_json(&ietf), format!("\"{}\"", v.pk_ietf));
+        let chia = BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&pk_legacy)).unwrap();
+        let ietf = BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&pk_ietf)).unwrap();
+        assert_eq!(to_json(&chia), format!("\"{pk_legacy}\""));
+        assert_eq!(to_json(&ietf), format!("\"{pk_ietf}\""));
       }
 
       #[rstest]
       fn serde_roundtrip() {
-        let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
-        let v = corpus.vectors::<PkSerVec>("pk_serialization").swap_remove(0);
+        let (pk_legacy, pk_ietf) = ser_pairs(SerType::PublicKey).swap_remove(0);
 
-        assert_json_rt(&BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&v.pk_legacy)).unwrap());
-        assert_json_rt(&BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&v.pk_ietf)).unwrap());
+        assert_json_rt(&BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&pk_legacy)).unwrap());
+        assert_json_rt(&BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&pk_ietf)).unwrap());
       }
     }
   }

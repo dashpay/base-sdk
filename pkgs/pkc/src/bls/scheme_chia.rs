@@ -286,7 +286,7 @@ impl BlsScheme for BlsScChia {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{MSG_8BADFOOD, MSG_DEADBEEF, RSEED};
+  use crate::bls::tests::{ser_pairs, SerType, MSG_8BADFOOD, MSG_DEADBEEF, RSEED};
 
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
@@ -297,12 +297,6 @@ mod tests {
     sk: String,
     peer_pk: String,
     shared: String,
-  }
-
-  #[derive(Deserialize)]
-  struct SerVector {
-    sig_legacy: String,
-    sig_ietf: String,
   }
 
   #[derive(Deserialize)]
@@ -327,14 +321,11 @@ mod tests {
 
   #[test]
   fn signature_serialization_matches_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
-    let vecs: Vec<SerVector> = corpus.vectors("sig_serialization");
-
-    for v in &vecs {
-      let sig = BlsScChia::sig_from_bytes(&arr_from_hex(&v.sig_legacy)).unwrap();
-      assert_eq!(BlsScChia::sig_to_bytes(&sig).to_lower_hex_string(), v.sig_legacy);
-      assert_eq!(sig.compress().to_lower_hex_string(), v.sig_ietf);
-      assert_ne!(v.sig_legacy, v.sig_ietf, "legacy and ietf should differ");
+    for (sig_legacy, sig_ietf) in ser_pairs(SerType::Signature) {
+      let sig = BlsScChia::sig_from_bytes(&arr_from_hex(&sig_legacy)).unwrap();
+      assert_eq!(BlsScChia::sig_to_bytes(&sig).to_lower_hex_string(), sig_legacy);
+      assert_eq!(sig.compress().to_lower_hex_string(), sig_ietf);
+      assert_ne!(sig_legacy, sig_ietf, "legacy and ietf should differ");
     }
   }
 
