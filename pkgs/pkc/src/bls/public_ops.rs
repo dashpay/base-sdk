@@ -391,9 +391,9 @@ mod tests {
     }
   }
 
-  fn assert_aggregate_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<AggPkVec> = corpus.vectors("aggregate_pk");
+  fn assert_aggregate_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").scope(scheme);
+    let vecs: Vec<AggPkVec> = corpus.vectors("pk");
 
     for v in &vecs {
       let pks: Vec<BlsPublicKey<S>> = v
@@ -408,10 +408,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_aggregate_vectors::<BlsScChia>, "bls_chia_aggregate")]
-  #[case::ietf(assert_aggregate_vectors::<BlsScIetf>, "bls_ietf_aggregate")]
-  fn aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_aggregate_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_aggregate_vectors::<BlsScIetf>, "ietf")]
+  fn aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   cfg_if! {

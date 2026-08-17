@@ -233,9 +233,9 @@ mod tests {
     assertion(accepted);
   }
 
-  fn assert_aggregate_verify_matches_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<AggVerifyVec> = corpus.vectors("aggregate_verify");
+  fn assert_aggregate_verify_matches_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").scope(scheme);
+    let vecs: Vec<AggVerifyVec> = corpus.vectors("verify");
     assert!(!vecs.is_empty(), "corpus section is empty");
 
     for v in &vecs {
@@ -260,10 +260,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_aggregate_verify_matches_vectors::<BlsScChia>, "bls_chia_aggregate")]
-  #[case::ietf(assert_aggregate_verify_matches_vectors::<BlsScIetf>, "bls_ietf_aggregate")]
-  fn aggregate_verify_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_aggregate_verify_matches_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_aggregate_verify_matches_vectors::<BlsScIetf>, "ietf")]
+  fn aggregate_verify_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// The weighted aggregate is what the weighted verify accepts, and the
@@ -412,9 +412,9 @@ mod tests {
     assertion();
   }
 
-  fn assert_aggregate_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<AggSigVec> = corpus.vectors("aggregate_sig");
+  fn assert_aggregate_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").scope(scheme);
+    let vecs: Vec<AggSigVec> = corpus.vectors("sig");
 
     for v in &vecs {
       let sigs: Vec<BlsSignature<S>> = v
@@ -429,10 +429,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_aggregate_vectors::<BlsScChia>, "bls_chia_aggregate")]
-  #[case::ietf(assert_aggregate_vectors::<BlsScIetf>, "bls_ietf_aggregate")]
-  fn aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_aggregate_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_aggregate_vectors::<BlsScIetf>, "ietf")]
+  fn aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// Aggregating a point with its own negation cancels to the identity, which

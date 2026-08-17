@@ -254,8 +254,8 @@ mod tests {
 
   /// Summing scalars is scheme-independent, so one corpus serves both.
   fn assert_aggregate_vectors<S: BlsScheme>() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate");
-    let vecs: Vec<AggSkVec> = corpus.vectors("aggregate_sk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").scope("base");
+    let vecs: Vec<AggSkVec> = corpus.vectors("sk");
 
     for v in &vecs {
       let sks: Vec<BlsSecretKey<S>> = v
