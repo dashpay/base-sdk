@@ -240,8 +240,8 @@ mod tests {
 
   #[test]
   fn dh_exchange_matches_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_dh");
-    let vecs: Vec<DhVector> = corpus.vectors("dh_exchange");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_dh").scope("ietf");
+    let vecs: Vec<DhVector> = corpus.vectors("dh");
 
     for v in &vecs {
       let sk = BlsScIetf::sk_from_bytes(&arr_from_hex(&v.sk)).unwrap();
@@ -269,7 +269,7 @@ mod tests {
 
   #[test]
   fn signing_matches_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_sign");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_sign").scope("ietf");
     let vecs: Vec<SignVector> = corpus.vectors("sign");
 
     for v in &vecs {

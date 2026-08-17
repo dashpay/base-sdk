@@ -146,9 +146,9 @@ mod tests {
     assertion();
   }
 
-  fn assert_secure_verify<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<SecureVec> = corpus.vectors("secure_verify_aggregates");
+  fn assert_secure_verify<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_secure_aggregate").scope(scheme);
+    let vecs: Vec<SecureVec> = corpus.vectors("verify");
     for v in &vecs {
       let pks: Vec<BlsPublicKey<S>> = v
         .pks
@@ -163,10 +163,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_secure_verify::<BlsScChia>, "bls_chia_secure_aggregate")]
-  #[case::ietf(assert_secure_verify::<BlsScIetf>, "bls_ietf_secure_aggregate")]
-  fn secure_verify_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_secure_verify::<BlsScChia>, "chia")]
+  #[case::ietf(assert_secure_verify::<BlsScIetf>, "ietf")]
+  fn secure_verify_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// Per-signer messages verify, and each binds to its own signer, swapping
@@ -233,9 +233,9 @@ mod tests {
     assertion(accepted);
   }
 
-  fn assert_aggregate_verify_matches_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<AggVerifyVec> = corpus.vectors("aggregate_verify");
+  fn assert_aggregate_verify_matches_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").scope(scheme);
+    let vecs: Vec<AggVerifyVec> = corpus.vectors("verify");
     assert!(!vecs.is_empty(), "corpus section is empty");
 
     for v in &vecs {
@@ -260,10 +260,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_aggregate_verify_matches_vectors::<BlsScChia>, "bls_chia_aggregate")]
-  #[case::ietf(assert_aggregate_verify_matches_vectors::<BlsScIetf>, "bls_ietf_aggregate")]
-  fn aggregate_verify_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_aggregate_verify_matches_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_aggregate_verify_matches_vectors::<BlsScIetf>, "ietf")]
+  fn aggregate_verify_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// The weighted aggregate is what the weighted verify accepts, and the
@@ -302,9 +302,9 @@ mod tests {
   /// A wrong sort order or weight formula would still round-trip against our
   /// own verifier above, so only the recorded aggregate can catch a convention
   /// that is self-consistent and still not canonical.
-  fn assert_secure_aggregate_matches_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<SecureVec> = corpus.vectors("secure_verify_aggregates");
+  fn assert_secure_aggregate_matches_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_secure_aggregate").scope(scheme);
+    let vecs: Vec<SecureVec> = corpus.vectors("verify");
     for v in &vecs {
       let pks: Vec<BlsPublicKey<S>> = v
         .pks
@@ -325,10 +325,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_secure_aggregate_matches_vectors::<BlsScChia>, "bls_chia_secure_aggregate")]
-  #[case::ietf(assert_secure_aggregate_matches_vectors::<BlsScIetf>, "bls_ietf_secure_aggregate")]
-  fn secure_aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_secure_aggregate_matches_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_secure_aggregate_matches_vectors::<BlsScIetf>, "ietf")]
+  fn secure_aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   #[rstest]
@@ -412,9 +412,9 @@ mod tests {
     assertion();
   }
 
-  fn assert_aggregate_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<AggSigVec> = corpus.vectors("aggregate_sig");
+  fn assert_aggregate_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").scope(scheme);
+    let vecs: Vec<AggSigVec> = corpus.vectors("sig");
 
     for v in &vecs {
       let sigs: Vec<BlsSignature<S>> = v
@@ -429,10 +429,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_aggregate_vectors::<BlsScChia>, "bls_chia_aggregate")]
-  #[case::ietf(assert_aggregate_vectors::<BlsScIetf>, "bls_ietf_aggregate")]
-  fn aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_aggregate_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_aggregate_vectors::<BlsScIetf>, "ietf")]
+  fn aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// Aggregating a point with its own negation cancels to the identity, which

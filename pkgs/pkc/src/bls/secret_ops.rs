@@ -178,8 +178,8 @@ mod tests {
     assertion();
   }
 
-  fn assert_derive_pk<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
+  fn assert_derive_pk<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_keygen").scope(scheme);
     let vecs: Vec<KeygenVec> = corpus.vectors("derive_pk");
     for v in &vecs {
       let sk = BlsSecretKey::<S>::from_bytes(&arr_from_hex(&v.sk)).unwrap();
@@ -188,10 +188,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_derive_pk::<BlsScChia>, "bls_chia_keygen")]
-  #[case::ietf(assert_derive_pk::<BlsScIetf>, "bls_ietf_keygen")]
-  fn derive_public_key_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_derive_pk::<BlsScChia>, "chia")]
+  #[case::ietf(assert_derive_pk::<BlsScIetf>, "ietf")]
+  fn derive_public_key_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// Key generation follows the KeyGen of draft-irtf-cfrg-bls-signature-03
@@ -254,8 +254,8 @@ mod tests {
 
   /// Summing scalars is scheme-independent, so one corpus serves both.
   fn assert_aggregate_vectors<S: BlsScheme>() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate");
-    let vecs: Vec<AggSkVec> = corpus.vectors("aggregate_sk");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_aggregate").scope("base");
+    let vecs: Vec<AggSkVec> = corpus.vectors("sk");
 
     for v in &vecs {
       let sks: Vec<BlsSecretKey<S>> = v

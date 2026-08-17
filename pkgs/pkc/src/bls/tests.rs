@@ -8,6 +8,7 @@
 
 use crate::prelude::*;
 
+use cfg_if::cfg_if;
 use hex_conservative::hex;
 
 /// BLS12-381 scalar field order r, big-endian.
@@ -105,20 +106,56 @@ pub fn test_msg(i: usize) -> [u8; 32] {
   m
 }
 
-#[cfg(test)]
-mod builders {
-  use super::*;
+cfg_if! {
+  if #[cfg(test)] {
+    use dash_dev::Corpus;
 
-  use rstest::rstest;
+    use core::fmt;
 
-  #[rstest]
-  #[case::ikm(test_ikm)]
-  #[case::msg(test_msg)]
-  fn injective_past_256(#[case] build: fn(usize) -> [u8; 32]) {
-    let mut built: Vec<[u8; 32]> = (0..1000).map(build).collect();
-    built.sort_unstable();
-    let total = built.len();
-    built.dedup();
-    assert_eq!(built.len(), total, "index does not survive into the output");
+    #[derive(Debug)]
+    pub enum SerType {
+      Signature,
+      PublicKey,
+    }
+
+    impl fmt::Display for SerType {
+      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+          Self::Signature => "sig",
+          Self::PublicKey => "pk",
+        })
+      }
+    }
+
+    /// Pairs each Chia encoding with the same point's IETF encoding.
+    ///
+    /// The two arms correspond by position, so their lengths must agree before the
+    /// zip. A one-sided edit would otherwise drop the tail silently instead of
+    /// failing.
+    pub fn ser_pairs(kind: SerType) -> Vec<(String, String)> {
+      let section = kind.to_string();
+      let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_serialize");
+      let legacy: Vec<String> = corpus.scope("chia").vectors(&section);
+      let ietf: Vec<String> = corpus.scope("ietf").vectors(&section);
+      assert_eq!(legacy.len(), ietf.len(), "bls_serialize: {section} arms must pair by index");
+      legacy.into_iter().zip(ietf).collect()
+    }
+
+    mod builders {
+      use super::*;
+
+      use rstest::rstest;
+
+      #[rstest]
+      #[case::ikm(test_ikm)]
+      #[case::msg(test_msg)]
+      fn injective_past_256(#[case] build: fn(usize) -> [u8; 32]) {
+        let mut built: Vec<[u8; 32]> = (0..1000).map(build).collect();
+        built.sort_unstable();
+        let total = built.len();
+        built.dedup();
+        assert_eq!(built.len(), total, "index does not survive into the output");
+      }
+    }
   }
 }

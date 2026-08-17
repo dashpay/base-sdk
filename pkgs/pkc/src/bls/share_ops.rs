@@ -315,8 +315,10 @@ mod tests {
 
   /// End-to-end quorum DKG validation against reference vectors, exercising the
   /// full flow: contribute -> verify -> commit -> finalize.
-  fn assert_llmq_contribute_vvec<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_contribute_vvec<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
     let t = f["inputs"]["t"].as_u64().unwrap() as usize;
 
     for c in f["contribute"].as_array().unwrap() {
@@ -335,14 +337,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia("bls_chia_llmq_100", assert_llmq_contribute_vvec::<BlsScChia>)]
-  #[case::ietf("bls_ietf_llmq_100", assert_llmq_contribute_vvec::<BlsScIetf>)]
-  fn llmq_contribute_vvec(#[case] corpus: &str, #[case] assertion: fn(&str)) {
-    assertion(corpus);
+  #[case::chia("chia", assert_llmq_contribute_vvec::<BlsScChia>)]
+  #[case::ietf("ietf", assert_llmq_contribute_vvec::<BlsScIetf>)]
+  fn llmq_contribute_vvec(#[case] scheme: &str, #[case] assertion: fn(&str)) {
+    assertion(scheme);
   }
 
-  fn assert_llmq_contribute_sk_shares<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_contribute_sk_shares<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
     let n = f["inputs"]["n"].as_u64().unwrap() as usize;
 
     for c in f["contribute"].as_array().unwrap() {
@@ -355,14 +359,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia("bls_chia_llmq_100", assert_llmq_contribute_sk_shares::<BlsScChia>)]
-  #[case::ietf("bls_ietf_llmq_100", assert_llmq_contribute_sk_shares::<BlsScIetf>)]
-  fn llmq_contribute_sk_shares(#[case] corpus: &str, #[case] assertion: fn(&str)) {
-    assertion(corpus);
+  #[case::chia("chia", assert_llmq_contribute_sk_shares::<BlsScChia>)]
+  #[case::ietf("ietf", assert_llmq_contribute_sk_shares::<BlsScIetf>)]
+  fn llmq_contribute_sk_shares(#[case] scheme: &str, #[case] assertion: fn(&str)) {
+    assertion(scheme);
   }
 
-  fn assert_llmq_verify_contributions<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_verify_contributions<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
     let member_ids: Vec<String> = f["inputs"]["member_ids"]
       .as_array()
       .unwrap()
@@ -409,14 +415,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia("bls_chia_llmq_100", assert_llmq_verify_contributions::<BlsScChia>)]
-  #[case::ietf("bls_ietf_llmq_100", assert_llmq_verify_contributions::<BlsScIetf>)]
-  fn llmq_verify_contributions(#[case] corpus: &str, #[case] assertion: fn(&str)) {
-    assertion(corpus);
+  #[case::chia("chia", assert_llmq_verify_contributions::<BlsScChia>)]
+  #[case::ietf("ietf", assert_llmq_verify_contributions::<BlsScIetf>)]
+  fn llmq_verify_contributions(#[case] scheme: &str, #[case] assertion: fn(&str)) {
+    assertion(scheme);
   }
 
-  fn assert_llmq_commit_quorum_key<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_commit_quorum_key<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
 
     let commits = f["commit"].as_array().unwrap();
     let expected_qpk = commits[0]["quorum_public_key"].as_str().unwrap();
@@ -444,14 +452,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia("bls_chia_llmq_100", assert_llmq_commit_quorum_key::<BlsScChia>)]
-  #[case::ietf("bls_ietf_llmq_100", assert_llmq_commit_quorum_key::<BlsScIetf>)]
-  fn llmq_commit_quorum_key(#[case] corpus: &str, #[case] assertion: fn(&str)) {
-    assertion(corpus);
+  #[case::chia("chia", assert_llmq_commit_quorum_key::<BlsScChia>)]
+  #[case::ietf("ietf", assert_llmq_commit_quorum_key::<BlsScIetf>)]
+  fn llmq_commit_quorum_key(#[case] scheme: &str, #[case] assertion: fn(&str)) {
+    assertion(scheme);
   }
 
-  fn assert_llmq_commit_sk_share<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_commit_sk_share<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
 
     // Each member's committed sk_share is the sum of the sk_contributions it
     // received from every contributor.
@@ -476,14 +486,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia("bls_chia_llmq_100", assert_llmq_commit_sk_share::<BlsScChia>)]
-  #[case::ietf("bls_ietf_llmq_100", assert_llmq_commit_sk_share::<BlsScIetf>)]
-  fn llmq_commit_sk_share(#[case] corpus: &str, #[case] assertion: fn(&str)) {
-    assertion(corpus);
+  #[case::chia("chia", assert_llmq_commit_sk_share::<BlsScChia>)]
+  #[case::ietf("ietf", assert_llmq_commit_sk_share::<BlsScIetf>)]
+  fn llmq_commit_sk_share(#[case] scheme: &str, #[case] assertion: fn(&str)) {
+    assertion(scheme);
   }
 
-  fn assert_llmq_commit_sig<S: BlsScheme>(corpus: &str, hash_field: &str, label: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_commit_sig<S: BlsScheme>(scheme: &str, hash_field: &str, label: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
 
     for c in f["commit"].as_array().unwrap() {
       let sk_share = BlsSecretKey::<S>::from_bytes(&arr_from_hex(c["sk_share"].as_str().unwrap())).unwrap();
@@ -501,21 +513,23 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia_member("bls_chia_llmq_100", assert_llmq_commit_sig::<BlsScChia>, "commitment_hash", "member_sig")]
-  #[case::chia_quorum("bls_chia_llmq_100", assert_llmq_commit_sig::<BlsScChia>, "quorum_hash", "quorum_sig_share")]
-  #[case::ietf_member("bls_ietf_llmq_100", assert_llmq_commit_sig::<BlsScIetf>, "commitment_hash", "member_sig")]
-  #[case::ietf_quorum("bls_ietf_llmq_100", assert_llmq_commit_sig::<BlsScIetf>, "quorum_hash", "quorum_sig_share")]
+  #[case::chia_member("chia", assert_llmq_commit_sig::<BlsScChia>, "commitment_hash", "member_sig")]
+  #[case::chia_quorum("chia", assert_llmq_commit_sig::<BlsScChia>, "quorum_hash", "quorum_sig_share")]
+  #[case::ietf_member("ietf", assert_llmq_commit_sig::<BlsScIetf>, "commitment_hash", "member_sig")]
+  #[case::ietf_quorum("ietf", assert_llmq_commit_sig::<BlsScIetf>, "quorum_hash", "quorum_sig_share")]
   fn llmq_commit_sig(
-    #[case] corpus: &str,
+    #[case] scheme: &str,
     #[case] assertion: fn(&str, &str, &str),
     #[case] hash_field: &str,
     #[case] label: &str,
   ) {
-    assertion(corpus, hash_field, label);
+    assertion(scheme, hash_field, label);
   }
 
-  fn assert_llmq_finalize_recover_quorum_sig<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_finalize_recover_quorum_sig<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
     let fin = &f["finalize"];
     let commits = f["commit"].as_array().unwrap();
 
@@ -584,14 +598,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia("bls_chia_llmq_100", assert_llmq_finalize_recover_quorum_sig::<BlsScChia>)]
-  #[case::ietf("bls_ietf_llmq_100", assert_llmq_finalize_recover_quorum_sig::<BlsScIetf>)]
-  fn llmq_finalize_recover_quorum_sig(#[case] corpus: &str, #[case] assertion: fn(&str)) {
-    assertion(corpus);
+  #[case::chia("chia", assert_llmq_finalize_recover_quorum_sig::<BlsScChia>)]
+  #[case::ietf("ietf", assert_llmq_finalize_recover_quorum_sig::<BlsScIetf>)]
+  fn llmq_finalize_recover_quorum_sig(#[case] scheme: &str, #[case] assertion: fn(&str)) {
+    assertion(scheme);
   }
 
-  fn assert_llmq_finalize_aggregated_member_sigs<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_llmq_finalize_aggregated_member_sigs<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_llmq_100")
+      .scope(scheme)
+      .into_value();
     let commits = f["commit"].as_array().unwrap();
 
     // Re-sign the commitment hash with each member's sk_share, then aggregate.
@@ -625,10 +641,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia("bls_chia_llmq_100", assert_llmq_finalize_aggregated_member_sigs::<BlsScChia>)]
-  #[case::ietf("bls_ietf_llmq_100", assert_llmq_finalize_aggregated_member_sigs::<BlsScIetf>)]
-  fn llmq_finalize_aggregated_member_sigs(#[case] corpus: &str, #[case] assertion: fn(&str)) {
-    assertion(corpus);
+  #[case::chia("chia", assert_llmq_finalize_aggregated_member_sigs::<BlsScChia>)]
+  #[case::ietf("ietf", assert_llmq_finalize_aggregated_member_sigs::<BlsScIetf>)]
+  fn llmq_finalize_aggregated_member_sigs(#[case] scheme: &str, #[case] assertion: fn(&str)) {
+    assertion(scheme);
   }
 
   /// `Hash` wants a `core::hash::Hasher`, which is not the interface the

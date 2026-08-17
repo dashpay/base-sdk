@@ -275,8 +275,8 @@ mod tests {
 
   #[test]
   fn hash_to_fp_matches_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_hash_internals");
-    let vecs: Vec<HashVector> = corpus.vectors("hash_internals");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_hash");
+    let vecs: Vec<HashVector> = corpus.vectors("chia");
 
     for v in &vecs {
       let msg: [u8; 32] = arr_from_hex(&v.msg);

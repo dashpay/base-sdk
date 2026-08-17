@@ -125,8 +125,10 @@ mod tests {
   /// Shares come from the corpus rather than a fresh `split`, whose random
   /// polynomial leaves nothing to assert against but a round trip. `full_sig`
   /// cross-checks interpolation against the master's own signature.
-  fn assert_recovery_matches_vectors<S: BlsScheme>(corpus: &str) {
-    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus).into_value();
+  fn assert_recovery_matches_vectors<S: BlsScheme>(scheme: &str) {
+    let f: Value = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_threshold")
+      .scope(scheme)
+      .into_value();
     let case = &f["recover_sig"];
     let inputs = &case["inputs"];
     let threshold = inputs["t"].as_u64().unwrap() as usize;
@@ -180,9 +182,9 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_recovery_matches_vectors::<BlsScChia>, "bls_chia_threshold")]
-  #[case::ietf(assert_recovery_matches_vectors::<BlsScIetf>, "bls_ietf_threshold")]
-  fn recovery_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_recovery_matches_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_recovery_matches_vectors::<BlsScIetf>, "ietf")]
+  fn recovery_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 }

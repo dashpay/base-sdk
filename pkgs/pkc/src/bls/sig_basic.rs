@@ -122,7 +122,8 @@ mod tests {
   use super::*;
   use crate::bls::secret_ops::BlsSecretKey;
   use crate::bls::tests::{
-    test_ikm, test_msg, G2_OFF_SUBGROUP_CHIA, G2_OFF_SUBGROUP_IETF, MSG_8BADFOOD, MSG_DEADBEEF, RSEED,
+    ser_pairs, test_ikm, test_msg, SerType, G2_OFF_SUBGROUP_CHIA, G2_OFF_SUBGROUP_IETF, MSG_8BADFOOD, MSG_DEADBEEF,
+    RSEED,
   };
   use crate::bls::{BlsScChia, BlsScIetf};
   use crate::prelude::*;
@@ -132,12 +133,6 @@ mod tests {
   use hex_conservative::DisplayHex;
   use rstest::rstest;
   use serde::Deserialize;
-
-  #[derive(Deserialize)]
-  struct SigSerVec {
-    sig_legacy: String,
-    sig_ietf: String,
-  }
 
   #[derive(Deserialize)]
   struct SignVec {
@@ -339,24 +334,21 @@ mod tests {
   /// encoding must round-trip through the wrapper of its own scheme.
   #[rstest]
   fn serialization_formats_match_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_ser_internals");
-    let vecs: Vec<SigSerVec> = corpus.vectors("sig_serialization");
+    for (sig_legacy, sig_ietf) in ser_pairs(SerType::Signature) {
+      let legacy = BlsSignature::<BlsScChia>::from_bytes(&arr_from_hex(&sig_legacy)).unwrap();
+      assert_eq!(legacy.to_bytes().to_lower_hex_string(), sig_legacy);
 
-    for v in &vecs {
-      let legacy = BlsSignature::<BlsScChia>::from_bytes(&arr_from_hex(&v.sig_legacy)).unwrap();
-      assert_eq!(legacy.to_bytes().to_lower_hex_string(), v.sig_legacy);
+      let ietf = BlsSignature::<BlsScIetf>::from_bytes(&arr_from_hex(&sig_ietf)).unwrap();
+      assert_eq!(ietf.to_bytes().to_lower_hex_string(), sig_ietf);
 
-      let ietf = BlsSignature::<BlsScIetf>::from_bytes(&arr_from_hex(&v.sig_ietf)).unwrap();
-      assert_eq!(ietf.to_bytes().to_lower_hex_string(), v.sig_ietf);
-
-      assert_ne!(v.sig_legacy, v.sig_ietf, "legacy and ietf should differ");
+      assert_ne!(sig_legacy, sig_ietf, "legacy and ietf should differ");
     }
   }
 
   /// The scheme-level KAT pins `BlsScheme::sign`; this pins that the wrapper's
   /// byte-oriented bridge is still wired to it, message length checks included.
-  fn assert_signing_matches_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
+  fn assert_signing_matches_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_sign").scope(scheme);
     let vecs: Vec<SignVec> = corpus.vectors("sign");
 
     for v in &vecs {
@@ -367,10 +359,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_signing_matches_vectors::<BlsScChia>, "bls_chia_sign")]
-  #[case::ietf(assert_signing_matches_vectors::<BlsScIetf>, "bls_ietf_sign")]
-  fn signing_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_signing_matches_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_signing_matches_vectors::<BlsScIetf>, "ietf")]
+  fn signing_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// One secret scalar over one message yields two different signatures, so a

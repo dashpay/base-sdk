@@ -132,6 +132,23 @@ impl Corpus {
     Self::parse(name, &text)
   }
 
+  /// Returns a sub-corpus rooted at `key`, for files that nest their
+  /// sections under an outer key such as the scheme name.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the key is absent from the current root.
+  pub fn scope(&self, key: &str) -> Self {
+    let val = self
+      .root
+      .get(key)
+      .unwrap_or_else(|| panic!("{}: missing key '{key}'", self.name));
+    Self {
+      name: format!("{}/{key}", self.name),
+      root: val.clone(),
+    }
+  }
+
   /// Returns a named array section as typed vectors: `{ section: [T, ...] }`.
   ///
   /// # Panics
