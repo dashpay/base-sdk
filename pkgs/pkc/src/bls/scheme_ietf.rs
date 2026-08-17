@@ -269,7 +269,7 @@ mod tests {
 
   #[test]
   fn signing_matches_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ietf_sign");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_sign").scope("ietf");
     let vecs: Vec<SignVector> = corpus.vectors("sign");
 
     for v in &vecs {

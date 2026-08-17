@@ -355,8 +355,8 @@ mod tests {
 
   /// The scheme-level KAT pins `BlsScheme::sign`; this pins that the wrapper's
   /// byte-oriented bridge is still wired to it, message length checks included.
-  fn assert_signing_matches_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
+  fn assert_signing_matches_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_sign").scope(scheme);
     let vecs: Vec<SignVec> = corpus.vectors("sign");
 
     for v in &vecs {
@@ -367,10 +367,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_signing_matches_vectors::<BlsScChia>, "bls_chia_sign")]
-  #[case::ietf(assert_signing_matches_vectors::<BlsScIetf>, "bls_ietf_sign")]
-  fn signing_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_signing_matches_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_signing_matches_vectors::<BlsScIetf>, "ietf")]
+  fn signing_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   /// One secret scalar over one message yields two different signatures, so a
