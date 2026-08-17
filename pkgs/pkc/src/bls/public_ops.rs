@@ -142,9 +142,9 @@ mod tests {
     shared: String,
   }
 
-  fn assert_dh_matches_vectors<S: BlsScheme>(corpus: &str) {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), corpus);
-    let vecs: Vec<DhVec> = corpus.vectors("dh_exchange");
+  fn assert_dh_matches_vectors<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_dh").scope(scheme);
+    let vecs: Vec<DhVec> = corpus.vectors("dh");
 
     for v in &vecs {
       let sk = BlsSecretKey::<S>::from_bytes(&arr_from_hex(&v.sk)).unwrap();
@@ -155,10 +155,10 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_dh_matches_vectors::<BlsScChia>, "bls_chia_dh")]
-  #[case::ietf(assert_dh_matches_vectors::<BlsScIetf>, "bls_ietf_dh")]
-  fn dh_exchange_matches_vectors(#[case] assertion: fn(&str), #[case] corpus: &str) {
-    assertion(corpus);
+  #[case::chia(assert_dh_matches_vectors::<BlsScChia>, "chia")]
+  #[case::ietf(assert_dh_matches_vectors::<BlsScIetf>, "ietf")]
+  fn dh_exchange_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
   }
 
   fn assert_dh_roundtrip<S: BlsScheme>() {

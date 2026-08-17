@@ -314,8 +314,8 @@ mod tests {
 
   #[test]
   fn dh_exchange_matches_vectors() {
-    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_chia_dh");
-    let vecs: Vec<DhVector> = corpus.vectors("dh_exchange");
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_dh").scope("chia");
+    let vecs: Vec<DhVector> = corpus.vectors("dh");
 
     for v in &vecs {
       let sk = BlsScChia::sk_from_bytes(&arr_from_hex(&v.sk)).unwrap();
