@@ -62,30 +62,3 @@ fn deser_pk(bencher: divan::Bencher) {
   let bytes = test_key().public_key().to_compressed();
   bencher.bench(|| EcdsaPublicKey::from_bytes(&bytes).unwrap());
 }
-
-#[cfg(feature = "std")]
-mod worker_benches {
-  use dash_pkc::ecdsa::tests::{message_hash, BOB_SK};
-  use dash_pkc::ecdsa::{Compression, EcdsaPublicKey, EcdsaSecretKey, EcdsaSignature};
-  use dash_pkc::worker;
-
-  fn setup_sigs(n: usize) -> Vec<(EcdsaSignature, EcdsaPublicKey, [u8; 32])> {
-    let sk = EcdsaSecretKey::from_bytes(&BOB_SK, Compression::Compressed).unwrap();
-    let pk = sk.public_key();
-    (0..n)
-      .map(|i| {
-        let msg = message_hash(i as u16);
-        let sig = sk.sign(&msg).unwrap();
-        (sig, pk.clone(), msg)
-      })
-      .collect()
-  }
-
-  #[divan::bench(args = [100, 1000])]
-  fn worker_verify_n(bencher: divan::Bencher, n: usize) {
-    let tuples = setup_sigs(n);
-    bencher
-      .counter(divan::counter::ItemsCount::new(n))
-      .bench(|| worker::par_verify(&tuples, |(sig, pk, msg)| pk.verify(msg, sig).is_ok()));
-  }
-}

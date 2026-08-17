@@ -25,7 +25,8 @@ use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::Checkable;
-use dash_types::{enum_map, impl_num, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::{enum_map, impl_num};
 
 use core::fmt;
 

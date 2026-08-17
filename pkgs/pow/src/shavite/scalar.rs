@@ -10,8 +10,6 @@ use super::consts::{BLOCK, IV};
 use crate::util::aes::round_nk;
 use crate::util::memops::{extract, load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 /// Expands 128-byte message block into 448 round keys.
 const fn key_schedule(msg: &[u8], cnt: &[u32; 4]) -> [u32; 448] {
   let mut rk = [0u32; 448];
@@ -153,7 +151,7 @@ const fn inc_counter(cnt: &mut [u32; 4], bits: u32) {
   }
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut h = IV;
   let mut cnt = [0u32; 4];
 
@@ -214,7 +212,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u32_le(&mut out, i, h[i]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -222,5 +220,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

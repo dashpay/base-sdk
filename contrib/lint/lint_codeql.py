@@ -124,11 +124,28 @@ def _print_csv_diagnostics(results_path: Path) -> int:
   return count
 
 
-def _search_suite(parser: argparse.ArgumentParser, name: str) -> str:
-  """Validate CodeQL suite *name* and return its query-suite reference."""
-  if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
-    parser.error(f"invalid --with-suite name: {name!r}")
-  return f"codeql/rust-queries:codeql-suites/{name}.qls"
+def _locked_pack(pack: str) -> str:
+  """Return *pack* pinned to the version the lock file records."""
+  lock_file = root_dir() / "contrib" / "codeql" / "codeql-pack.lock.yml"
+  if not lock_file.is_file():
+    raise ValueError(f"missing lock file {lock_file}")
+  text = lock_file.read_text(encoding="latin-1")
+  match = re.search(
+    rf"^\s+{re.escape(pack)}:\s*$\n\s+version:\s*(\S+)\s*$",
+    text,
+    re.MULTILINE,
+  )
+  if not match:
+    raise ValueError(f"no pinned version for {pack} in {lock_file}")
+  return f"{pack}@{match.group(1)}"
+
+
+def _search_suites(pack: str, names: list[str]) -> list[str]:
+  """Return query-suite references under the pinned *pack*."""
+  for name in names:
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+      raise ValueError(f"invalid --with-suite name: {name!r}")
+  return [f"{pack}:codeql-suites/{name}.qls" for name in names]
 
 
 @contextlib.contextmanager
@@ -181,9 +198,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     metavar="NAME",
     help=("run a 'codeql/rust-queries' suite by name (default: none)"),
   )
-  args = parser.parse_args(argv)
-  args.suites = [_search_suite(parser, name) for name in args.suites]
-  return args
+  return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -244,6 +259,12 @@ def main(argv: list[str] | None = None) -> int:
       )
       return RETCODE_ERR
 
+  try:
+    suites = _search_suites(_locked_pack("codeql/rust-queries"), args.suites)
+  except ValueError as e:
+    print(f"error: {e}", file=sys.stderr)
+    return RETCODE_ERR
+
   # Install CodeQL pack dependencies.
   subprocess.run(  # noqa: S603
     [codeql_bin, "pack", "install", "--no-strict-mode", str(query_dir)],
@@ -294,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
         "analyze",
         str(active_db),
         *[str(q) for q in queries],
-        *args.suites,
+        *suites,
         "--format=csv",
         f"--output={results_path}",
         f"--threads={usable_threads()}",

@@ -19,7 +19,8 @@ use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
 use dash_script::{PubKeyHash, Recipient};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
-use dash_types::{make_bytes, TypeId};
+use dash_types::make_bytes;
+use dash_types::type_id::TypeId;
 
 use core::fmt;
 

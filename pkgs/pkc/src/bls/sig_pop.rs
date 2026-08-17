@@ -40,21 +40,21 @@ impl BlsPublicKey<BlsScIetf> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{SEED_0, SEED_1};
+  use crate::bls::tests::RSEED;
 
   use rstest::rstest;
 
   #[rstest]
   fn ietf_proof_of_possession_roundtrip() {
-    let sk = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<BlsScIetf>::generate(&RSEED[0]).unwrap();
     let proof = sk.prove_possession();
     assert!(sk.public_key().verify_possession(&proof).is_ok());
   }
 
   #[rstest]
   fn ietf_proof_of_possession_rejects_wrong_key() {
-    let sk0 = BlsSecretKey::<BlsScIetf>::generate(&SEED_0).unwrap();
-    let sk1 = BlsSecretKey::<BlsScIetf>::generate(&SEED_1).unwrap();
+    let sk0 = BlsSecretKey::<BlsScIetf>::generate(&RSEED[0]).unwrap();
+    let sk1 = BlsSecretKey::<BlsScIetf>::generate(&RSEED[1]).unwrap();
     let proof = sk0.prove_possession();
     assert!(sk1.public_key().verify_possession(&proof).is_err());
   }

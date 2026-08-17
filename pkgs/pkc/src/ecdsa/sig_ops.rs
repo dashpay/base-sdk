@@ -11,7 +11,8 @@ use super::sig_bytes::ECDSA_SIG_LEN;
 use super::EcdsaSigBytes;
 
 use dash_num::Hash256;
-use dash_types::{dlgt_codec, type_cvrt, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::{dlgt_codec, type_cvrt};
 use k256::ecdsa::{DerSignature, Signature};
 
 use core::hash::{Hash, Hasher};

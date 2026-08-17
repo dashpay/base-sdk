@@ -13,7 +13,7 @@ extern crate alloc;
 use bitcoin_consensus_encoding::encode_to_vec;
 use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use bitcoin_units::Amount;
-use dash_num::{Arith256, CompactTarget};
+use dash_num::{Arith256, CompactTarget, Hash256};
 use dash_primitives::{BlockHash, BlockHeader, MerkleRoot, OutPoint, Transaction, TxHash, TxIn, TxOut, TxType};
 use dash_types::codec::Hashable;
 use hex_conservative::FromHex;
@@ -111,7 +111,7 @@ pub fn scanhash(
   let mut hashes: u32 = 0;
   while hashes < nonce_count {
     header_buf[76..80].copy_from_slice(&nonce.to_le_bytes());
-    let hash = dash_pow::hash(&header_buf);
+    let hash = Hash256::from(dash_pow::hash(&header_buf));
     hashes += 1;
     if Arith256::from(hash) <= target {
       let result = ScanResult {

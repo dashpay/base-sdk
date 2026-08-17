@@ -9,8 +9,6 @@
 use super::consts::{ALPHA_TAB, BLOCK, IV, PP8K, WBP, YOFF_B_F, YOFF_B_N};
 use crate::util::memops::{load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 use core::simd::cmp::SimdPartialOrd;
 use core::simd::{simd_swizzle, Select, Simd};
 
@@ -437,7 +435,7 @@ pub(super) fn hash_to_words(data: &[u8]) -> [u32; 16] {
   out
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let result = hash_to_words(data);
   let mut out = [0u8; 64];
   let mut i = 0;
@@ -445,5 +443,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     store_u32_le(&mut out, i, result[i]);
     i += 1;
   }
-  out.into()
+  out
 }

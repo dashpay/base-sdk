@@ -12,7 +12,8 @@ use crate::prelude::*;
 
 use dash_primitives::{hash_impl, AddrV2, ServiceV1};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::{CompactSize, TypeId};
+use dash_types::type_id::TypeId;
+use dash_types::CompactSize;
 
 use core::fmt;
 

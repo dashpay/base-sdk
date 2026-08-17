@@ -9,8 +9,6 @@
 use super::consts::*;
 use crate::util::memops::{load_u64_le, store_u64_le};
 
-use dash_num::Hash512;
-
 const WORDS: usize = 16;
 const QWORDS: usize = 32;
 
@@ -226,7 +224,7 @@ fn hash_to_words(data: &[u8]) -> [u64; 8] {
   out
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let words = hash_to_words(data);
   let mut out = [0u8; 64];
   let mut index = 0;
@@ -234,5 +232,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     store_u64_le(&mut out, index, words[index]);
     index += 1;
   }
-  out.into()
+  out
 }

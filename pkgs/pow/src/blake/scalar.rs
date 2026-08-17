@@ -9,8 +9,6 @@
 use super::consts::{BLOCK, CB, IV, SIGMA};
 use crate::util::memops::{extract, load_u64_be, store_u64_be};
 
-use dash_num::Hash512;
-
 /// Compresses one 128-byte block into the state.
 ///
 /// `t0`/`t1` is the 128-bit counter AFTER the +1024 advance for this block.
@@ -76,7 +74,7 @@ const fn advance_counter(t0: &mut u64, t1: &mut u64) {
   }
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut h = IV;
   let mut t0: u64 = 0;
   let mut t1: u64 = 0;
@@ -146,7 +144,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u64_be(&mut out, i, h[i]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -154,5 +152,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

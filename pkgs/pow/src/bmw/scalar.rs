@@ -9,8 +9,6 @@
 use super::consts::*;
 use crate::util::memops::{extract, load_u64_le, store_u64_le};
 
-use dash_num::Hash512;
-
 /// S-function: parameterized shift/rotate mixing.
 ///
 /// For n < 4: `(x >> A) ^ (x << B) ^ rotl(x, C) ^ rotl(x, D)`. For n >= 4: `(x
@@ -166,7 +164,7 @@ const fn state_to_bytes(state: &[u64; 16]) -> [u8; BLOCK] {
   buf
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut h1 = IV;
   let mut h2 = [0u64; 16];
   let mut current = &mut h1;
@@ -215,7 +213,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u64_le(&mut out, i, next[i + 8]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -223,5 +221,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

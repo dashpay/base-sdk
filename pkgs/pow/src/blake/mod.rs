@@ -19,10 +19,7 @@ pub mod scalar;
 #[doc(hidden)]
 pub mod simd;
 
-cfg_if::cfg_if! {
-  if #[cfg(feature = "simd")] {
-    pub use simd::hash512;
-  } else {
-    pub use scalar::hash512;
-  }
-}
+#[cfg(not(feature = "simd"))]
+pub use scalar::hash512;
+#[cfg(feature = "simd")]
+pub use simd::hash512;

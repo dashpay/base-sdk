@@ -6,8 +6,6 @@
 
 //! Proof of work total and constituent benchmarks.
 
-#[cfg(feature = "std")]
-use dash_pow::worker::par_hash;
 use dash_pow::{__private as pow_crate, hash as pow_hash};
 use divan::{black_box, Bencher};
 
@@ -43,16 +41,6 @@ mod pow {
   fn hash(bencher: Bencher, n: usize) {
     let input = vec![0u8; n];
     bencher.counter(1u32).bench(|| black_box(pow_hash(black_box(&input))));
-  }
-
-  #[cfg(feature = "std")]
-  #[divan::bench(args = [32, 80, 128, 512, 1024, 2048])]
-  fn par(bencher: Bencher, n: usize) {
-    let buf = vec![0u8; n];
-    let inputs: Vec<&[u8]> = vec![buf.as_slice(); 1000];
-    bencher
-      .counter(inputs.len() as u32)
-      .bench(|| black_box(par_hash(&inputs)));
   }
 }
 

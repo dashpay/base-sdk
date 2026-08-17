@@ -6,7 +6,6 @@
 
 //! Proof of work chained hash tests.
 
-use dash_num::Hash256;
 use dash_pow::hash;
 use hex_literal::hex;
 use rstest::rstest;
@@ -22,5 +21,5 @@ use rstest::rstest;
 )]
 fn known_hash(#[case] input: &[u8], #[case] expected: [u8; 32]) {
   let got = hash(input);
-  assert_eq!(got, Hash256::from(expected));
+  assert_eq!(got, expected);
 }

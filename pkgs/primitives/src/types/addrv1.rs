@@ -11,7 +11,8 @@ use super::netaddr::{NetAddr, NetAddrError, NetworkType};
 use crate::hash_impl;
 
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
-use dash_types::{impl_bytes, impl_type, type_cvrt, TypeId};
+use dash_types::type_id::TypeId;
+use dash_types::{impl_bytes, impl_type, type_cvrt};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};

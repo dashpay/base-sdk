@@ -7,7 +7,8 @@
 //! Bridging routines for unsafe blst FFI operations.
 
 use blst::*;
-use dash_types::{type_cvrt, Unencodable};
+use dash_types::type_cvrt;
+use dash_types::type_id::Unencodable;
 use zeroize::Zeroize;
 
 use core::fmt;

@@ -12,7 +12,8 @@ use crate::version::ProtocolVersion;
 
 use dash_primitives::{hash_impl, BlockHash, BlockHeader, MerkleRoot};
 use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::{CompactSize, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::CompactSize;
 
 /// Maximum headers per message.
 const MAX_HEADERS: usize = 2_000;

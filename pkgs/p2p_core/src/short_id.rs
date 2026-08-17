@@ -8,7 +8,7 @@
 
 use crate::command::CommandString;
 
-use dash_types::Unencodable;
+use dash_types::type_id::Unencodable;
 
 /// A resolved V2 short ID.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]

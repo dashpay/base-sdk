@@ -90,7 +90,7 @@ impl<S: BlsScheme> BlsSignature<S> {
 mod tests {
   use super::*;
   use crate::bls::secret_ops::BlsSecretKey;
-  use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
+  use crate::bls::tests::{MSG_8BADFOOD, MSG_DEADBEEF, RSEED};
   use crate::bls::{BlsScChia, BlsScIetf};
 
   use dash_dev::{arr_from_hex, Corpus};
@@ -121,8 +121,8 @@ mod tests {
   }
 
   fn assert_aggregate_same_message<S: BlsScheme>() {
-    let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
-    let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+    let sk1 = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
     let sig1 = sk1.sign(S::msg_ref(&MSG_DEADBEEF));
     let sig2 = sk2.sign(S::msg_ref(&MSG_DEADBEEF));
 
@@ -133,7 +133,7 @@ mod tests {
     let msg = S::msg_ref(&MSG_DEADBEEF);
     assert!(agg.fast_verify_aggregates(msg, &[&pk1, &pk2]).is_ok());
     // A key not in the set must make verification fail.
-    let pk3 = BlsSecretKey::<S>::generate(&[9u8; 32]).unwrap().public_key();
+    let pk3 = BlsSecretKey::<S>::generate(&RSEED[2]).unwrap().public_key();
     assert!(agg.fast_verify_aggregates(msg, &[&pk1, &pk3]).is_err());
     // Rogue-key resistance: a naive aggregate must not pass weighted verify.
     assert!(agg.secure_verify_aggregates(msg, &[&pk1, &pk2]).is_err());
@@ -173,10 +173,10 @@ mod tests {
   /// the two fails. Both schemes agree here, along with the count and
   /// emptiness contracts.
   fn assert_distinct_messages_verify<S: BlsScheme>() {
-    let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
-    let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+    let sk1 = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
 
-    let msg1 = S::msg_ref(&[0x11u8; 32]);
+    let msg1 = S::msg_ref(&MSG_8BADFOOD);
     let msg2 = S::msg_ref(&MSG_DEADBEEF);
     let sig1 = sk1.sign(msg1);
     let sig2 = sk2.sign(msg2);
@@ -205,8 +205,8 @@ mod tests {
   /// which either could have picked to cancel the other. IETF refuses it; Chia
   /// accepts.
   fn assert_duplicate_message_policy<S: BlsScheme>(accepted: bool) {
-    let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
-    let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+    let sk1 = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
 
     let msg = S::msg_ref(&MSG_DEADBEEF);
     let sig1 = sk1.sign(msg);
@@ -270,8 +270,8 @@ mod tests {
   /// weights follow the sorted keys rather than the caller's order, so the
   /// same set aggregates alike however it is presented.
   fn assert_secure_aggregate_round_trips<S: BlsScheme>() {
-    let sk1 = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
-    let sk2 = BlsSecretKey::<S>::generate(&SEED_1).unwrap();
+    let sk1 = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
     let msg = S::msg_ref(&MSG_DEADBEEF);
 
     let sig1 = sk1.sign(msg);
@@ -348,10 +348,10 @@ mod tests {
   /// [`secure_aggregate_round_trips`] holds the distinct-key case, where the
   /// keys give a total order and the argument order stops mattering.
   fn assert_duplicate_key_pairing_is_order_bound<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let pk = sk.public_key();
 
-    let sig_a = sk.sign(S::msg_ref(&[0x11u8; 32]));
+    let sig_a = sk.sign(S::msg_ref(&MSG_8BADFOOD));
     let sig_b = sk.sign(S::msg_ref(&MSG_DEADBEEF));
 
     let ab = BlsSignature::<S>::secure_aggregate(&[&sig_a, &sig_b], &[&pk, &pk]).unwrap();
@@ -385,7 +385,7 @@ mod tests {
   /// Aggregation is a group sum, so neither the aggregate nor the verification
   /// may depend on the order the caller supplies.
   fn assert_order_independent<S: BlsScheme>() {
-    let sks: Vec<BlsSecretKey<S>> = [SEED_0, SEED_1, [2u8; 32]]
+    let sks: Vec<BlsSecretKey<S>> = [RSEED[0], RSEED[1], RSEED[2]]
       .iter()
       .map(|seed| BlsSecretKey::<S>::generate(seed).unwrap())
       .collect();
@@ -440,8 +440,8 @@ mod tests {
   /// and consensus depends on it continuing to; the IETF scheme rejects it.
   /// The sign bit sits at bit 7 for legacy and bit 5 for IETF.
   fn assert_identity_cancellation<S: BlsScheme>(sign_bit: u8, accepted: bool) {
-    let sk = BlsSecretKey::<S>::generate(&SEED_0).unwrap();
-    let signed = [0x11u8; 32];
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let signed = MSG_8BADFOOD;
     let sig = sk.sign(S::msg_ref(&signed));
     let pk = sk.public_key();
 
@@ -466,8 +466,8 @@ mod tests {
   /// by computation, not off the wire.
   #[rstest]
   fn chia_identity_encodes_canonically() {
-    let sk = BlsSecretKey::<BlsScChia>::generate(&SEED_0).unwrap();
-    let sig = sk.sign(&[0x11u8; 32]);
+    let sk = BlsSecretKey::<BlsScChia>::generate(&RSEED[0]).unwrap();
+    let sig = sk.sign(&MSG_8BADFOOD);
 
     let mut neg_bytes = sig.to_bytes();
     neg_bytes[0] ^= 0x80;

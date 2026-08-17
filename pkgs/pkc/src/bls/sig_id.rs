@@ -6,7 +6,7 @@
 
 //! Signature types.
 
-use dash_types::Unencodable;
+use dash_types::type_id::Unencodable;
 
 /// BLS signature variant.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]

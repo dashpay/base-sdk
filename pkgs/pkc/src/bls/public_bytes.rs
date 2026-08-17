@@ -10,7 +10,8 @@ use crate::bls::BlsSchemeId;
 
 use bitcoin_hashes::sha256d::Hash as Sha256d;
 use dash_num::Hash256;
-use dash_types::codec::{Hashable, TypeId};
+use dash_types::codec::Hashable;
+use dash_types::type_id::TypeId;
 use dash_types::{derive_bytes, impl_bytes};
 
 use core::marker::PhantomData;
@@ -19,6 +20,7 @@ use core::marker::PhantomData;
 pub const BLS_PK_LEN: usize = 48;
 
 /// Scheme-tagged BLS public key bytes (48 bytes, unvalidated).
+#[derive(TypeId)]
 pub struct BlsPkBytes<S: BlsSchemeId> {
   inner: [u8; BLS_PK_LEN],
   _scheme: PhantomData<S>,
@@ -52,10 +54,6 @@ impl<S: BlsSchemeId> BlsPkBytes<S> {
   pub const fn into_bytes(self) -> [u8; BLS_PK_LEN] {
     self.inner
   }
-}
-
-impl<S: BlsSchemeId> TypeId for BlsPkBytes<S> {
-  const TYPE_ID: u32 = S::PK_TYPE_ID;
 }
 
 derive_bytes!(for[S: BlsSchemeId] BlsPkBytes<S>, BLS_PK_LEN);

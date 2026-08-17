@@ -11,7 +11,8 @@ use crate::prelude::*;
 
 use dash_num::Hash256;
 use dash_primitives::hash_impl;
-use dash_types::{enum_map, impl_num, TypeId};
+use dash_types::type_id::TypeId;
+use dash_types::{enum_map, impl_num};
 
 use core::fmt;
 

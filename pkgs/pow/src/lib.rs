@@ -25,15 +25,10 @@ mod groestl;
 mod jh;
 mod keccak;
 mod luffa;
-#[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
-mod prelude;
 mod shavite;
 mod simd_hash;
 mod skein;
 mod util;
-
-#[cfg(feature = "std")]
-pub mod worker;
 
 #[doc(hidden)]
 pub mod __private {
@@ -73,19 +68,22 @@ pub mod __private {
 }
 
 /// Computes the Dash proof-of-work hash.
-pub fn hash(data: &[u8]) -> dash_num::Hash256 {
+///
+/// The digest is little-endian, matching the consensus byte order of a
+/// block hash.
+pub fn hash(data: &[u8]) -> [u8; 32] {
   let h = blake::hash512(data);
-  let h = bmw::hash512(h.as_ref());
-  let h = groestl::hash512(h.as_ref());
-  let h = skein::hash512(h.as_ref());
-  let h = jh::hash512(h.as_ref());
-  let h = keccak::hash512(h.as_ref());
-  let h = luffa::hash512(h.as_ref());
-  let h = cubehash::hash512(h.as_ref());
-  let h = shavite::hash512(h.as_ref());
-  let h = simd_hash::hash512(h.as_ref());
-  let h = echo::hash512(h.as_ref());
+  let h = bmw::hash512(&h);
+  let h = groestl::hash512(&h);
+  let h = skein::hash512(&h);
+  let h = jh::hash512(&h);
+  let h = keccak::hash512(&h);
+  let h = luffa::hash512(&h);
+  let h = cubehash::hash512(&h);
+  let h = shavite::hash512(&h);
+  let h = simd_hash::hash512(&h);
+  let h = echo::hash512(&h);
   let mut out = [0u8; 32];
-  out.copy_from_slice(&h.as_bytes()[..32]);
-  dash_num::Hash256::from(out)
+  out.copy_from_slice(&h[..32]);
+  out
 }

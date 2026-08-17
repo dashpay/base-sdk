@@ -8,9 +8,11 @@
 
 #![expect(clippy::expect_used, clippy::unwrap_used, clippy::panic, reason = "build script")]
 
+use dash_types::type_id::mix;
 use proc_macro2::{TokenStream, TokenTree};
-use syn::visit::{visit_item_enum, visit_item_macro, visit_item_struct, Visit};
-use syn::{parse_file, Attribute, ItemEnum, ItemMacro, ItemStruct};
+use syn::visit::{visit_item_enum, visit_item_impl, visit_item_macro, visit_item_struct, Visit};
+use syn::{parse_file, Attribute, Generics, Ident, ItemEnum, ItemImpl, ItemMacro, ItemStruct};
+use syn::{Type, TypeParam, TypeParamBound, WherePredicate};
 use xxhash_rust::xxh32::xxh32;
 
 use std::collections::{BTreeSet, HashMap};
@@ -50,27 +52,124 @@ fn main() {
     }
   }
 
-  assert!(!scan.names.is_empty(), "scanner produced no TypeId entries");
+  let ids = emitted_ids(&scan);
+  assert!(!ids.is_empty(), "scanner produced no TypeId entries");
 
+  check_unique(&ids);
+
+  built::write_built_file().expect("failed to write built.rs metadata");
+}
+
+/// Expands every derive site into the ids its instantiations carry.
+///
+/// A generic's base name only seeds the fold, so it is not an id any value
+/// holds. Parameters resolve through their bounds and the cross product
+/// folds through [`mix`], the same function the derive expands to.
+fn emitted_ids(scan: &ScanResult) -> Vec<(String, u32)> {
+  let mut out: Vec<(String, u32)> = scan
+    .names
+    .iter()
+    .map(|name| (name.clone(), xxh32(name.as_bytes(), 0)))
+    .collect();
+
+  let mut plain: Vec<&str> = scan.names.iter().map(String::as_str).collect();
+  plain.sort_unstable();
+  plain.dedup();
+
+  for site in &scan.generics {
+    let seed = xxh32(site.name.as_bytes(), 0);
+    let per_param: Vec<Vec<String>> = site
+      .bounds
+      .iter()
+      .map(|bounds| implementors(scan, &plain, bounds))
+      .collect();
+    for (idx, args) in per_param.iter().enumerate() {
+      assert!(
+        !args.is_empty(),
+        "{}: parameter {idx} bound has no id-bearing implementors",
+        site.name
+      );
+    }
+
+    let mut combos = vec![(String::new(), seed)];
+    for args in &per_param {
+      combos = combos
+        .iter()
+        .flat_map(|(label, acc)| {
+          args.iter().map(move |arg| {
+            let sep = if label.is_empty() { "" } else { ", " };
+            (format!("{label}{sep}{arg}"), mix(*acc, xxh32(arg.as_bytes(), 0)))
+          })
+        })
+        .collect();
+    }
+    out.extend(
+      combos
+        .into_iter()
+        .map(|(args, id)| (format!("{}<{args}>", site.name), id)),
+    );
+  }
+
+  out
+}
+
+/// Returns the `TypeId`-bearing types implementing every trait in `bounds`.
+///
+/// The `TypeId` bound is skipped. The derive supplies it, so no impl records
+/// to match. If that leaves no bounds, the result is empty, which the caller
+/// turns into a build failure naming the site.
+fn implementors(scan: &ScanResult, plain: &[&str], bounds: &[String]) -> Vec<String> {
+  let required: Vec<&str> = bounds.iter().map(String::as_str).filter(|b| *b != "TypeId").collect();
+  if required.is_empty() {
+    return Vec::new();
+  }
+
+  let implements = |ty: &str, tr: &str| scan.impls.iter().any(|(t, y)| t == tr && y == ty);
+  let mut found: Vec<String> = plain
+    .iter()
+    .filter(|ty| required.iter().all(|tr| implements(ty, tr)))
+    .map(|ty| (*ty).to_string())
+    .collect();
+  found.sort_unstable();
+  found.dedup();
+  found
+}
+
+/// Fails the build on a shared id, as it'd decode one type into another's slot.
+///
+/// # Panics
+///
+/// Panics when two distinct entries carry the same id.
+fn check_unique(entries: &[(String, u32)]) {
+  // One type arrives from several macros, so equal labels are one entry.
   let mut seen: HashMap<u32, &str> = HashMap::new();
-  for name in &scan.names {
-    let id = xxh32(name.as_bytes(), 0);
-    if let Some(prev) = seen.insert(id, name) {
-      if prev != name {
-        panic!("TypeId collision: {name} and {prev} share id {id:#010x}");
+  for (label, id) in entries {
+    if let Some(prev) = seen.insert(*id, label) {
+      if prev != label {
+        panic!("TypeId collision: {label} and {prev} share id {id:#010x}");
       }
     }
   }
+}
 
-  built::write_built_file().expect("failed to write built.rs metadata");
+/// A generic derive site and the bounds that gate each type parameter.
+struct GenericSite {
+  /// Bare type name, seeding the fold.
+  name: String,
+  /// Bound trait names per type parameter, in declaration order.
+  bounds: Vec<Vec<String>>,
 }
 
 #[derive(Default)]
 struct ScanResult {
   /// `macro_rules!` names whose body contains `TypeId`.
   type_id_macros: BTreeSet<String>,
-  /// Type names with direct `#[derive(TypeId)]`.
+  /// Non-generic derive sites, where id is exactly the XXH32 of the name.
   names: Vec<String>,
+  /// Generic derive sites, where the name hash is only the fold's seed.
+  generics: Vec<GenericSite>,
+  /// `(trait_name, type_name)` for every non-generic trait impl seen.
+  impls: Vec<(String, String)>,
   /// Unresolved `(macro_name, type_name)` from invocation sites.
   pending: Vec<(String, String)>,
 }
@@ -101,25 +200,44 @@ fn scan_file(path: &Path, scan: &mut ScanResult) {
 
   impl V<'_> {
     fn has_type_id_derive(attrs: &[Attribute]) -> bool {
-      attrs.iter().any(|attr| {
-        (attr.path().is_ident("derive") || attr.path().is_ident("cfg_attr")) && attr_contains_ident(attr, "TypeId")
-      })
+      attrs.iter().any(|attr| attr_derives_ident(attr, "TypeId"))
+    }
+
+    fn record(&mut self, ident: &Ident, generics: &Generics) {
+      let params: Vec<&TypeParam> = generics.type_params().collect();
+      if params.is_empty() {
+        self.scan.names.push(ident.to_string());
+        return;
+      }
+      self.scan.generics.push(GenericSite {
+        name: ident.to_string(),
+        bounds: params.iter().map(|p| param_bounds(p, generics)).collect(),
+      });
     }
   }
 
   impl<'ast> Visit<'ast> for V<'_> {
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
       if Self::has_type_id_derive(&node.attrs) {
-        self.scan.names.push(node.ident.to_string());
+        self.record(&node.ident, &node.generics);
       }
       visit_item_struct(self, node);
     }
 
     fn visit_item_enum(&mut self, node: &'ast ItemEnum) {
       if Self::has_type_id_derive(&node.attrs) {
-        self.scan.names.push(node.ident.to_string());
+        self.record(&node.ident, &node.generics);
       }
       visit_item_enum(self, node);
+    }
+
+    fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
+      if let Some((_, path, _)) = &node.trait_ {
+        if let (Some(seg), Some(ty)) = (path.segments.last(), bare_type_ident(&node.self_ty)) {
+          self.scan.impls.push((seg.ident.to_string(), ty));
+        }
+      }
+      visit_item_impl(self, node);
     }
 
     fn visit_item_macro(&mut self, node: &'ast ItemMacro) {
@@ -138,6 +256,43 @@ fn scan_file(path: &Path, scan: &mut ScanResult) {
   V { scan }.visit_file(&file);
 }
 
+/// Collects the trait names bounding `param`, inline and in `where`.
+fn param_bounds(param: &TypeParam, generics: &Generics) -> Vec<String> {
+  let mut bounds: Vec<String> = param.bounds.iter().filter_map(trait_bound_name).collect();
+
+  let predicates = generics.where_clause.iter().flat_map(|w| w.predicates.iter());
+  for pred in predicates {
+    let WherePredicate::Type(pred) = pred else {
+      continue;
+    };
+    if bare_type_ident(&pred.bounded_ty).as_deref() == Some(&param.ident.to_string()) {
+      bounds.extend(pred.bounds.iter().filter_map(trait_bound_name));
+    }
+  }
+
+  bounds
+}
+
+/// Returns the final path segment of a trait bound, skipping lifetimes.
+fn trait_bound_name(bound: &TypeParamBound) -> Option<String> {
+  match bound {
+    TypeParamBound::Trait(bound) => Some(bound.path.segments.last()?.ident.to_string()),
+    _ => None,
+  }
+}
+
+/// Returns the name of a plain path type, or `None` if it carries arguments.
+fn bare_type_ident(ty: &Type) -> Option<String> {
+  let Type::Path(ty) = ty else {
+    return None;
+  };
+  if ty.qself.is_some() {
+    return None;
+  }
+  let seg = ty.path.segments.last()?;
+  seg.arguments.is_none().then(|| seg.ident.to_string())
+}
+
 /// Checks whether a token stream contains `target`, recursing into groups.
 fn tokens_contain_ident(tokens: &TokenStream, target: &str) -> bool {
   tokens.clone().into_iter().any(|tt| match tt {
@@ -147,15 +302,46 @@ fn tokens_contain_ident(tokens: &TokenStream, target: &str) -> bool {
   })
 }
 
-/// Checks whether an attribute contains `target` as a top-level ident.
-fn attr_contains_ident(attr: &Attribute, target: &str) -> bool {
-  attr
-    .meta
-    .require_list()
-    .ok()
-    .into_iter()
-    .flat_map(|list| list.tokens.clone())
-    .any(|tt| matches!(tt, TokenTree::Ident(ref id) if id == target))
+/// Checks whether an attribute derives `target`.
+///
+/// A `derive` lists it directly, while a `cfg_attr` nests it inside a
+/// `derive(..)` group its predicate guards.
+fn attr_derives_ident(attr: &Attribute, target: &str) -> bool {
+  let Ok(list) = attr.meta.require_list() else {
+    return false;
+  };
+  if attr.path().is_ident("derive") {
+    return list
+      .tokens
+      .clone()
+      .into_iter()
+      .any(|tt| matches!(tt, TokenTree::Ident(ref id) if id == target));
+  }
+  attr.path().is_ident("cfg_attr") && derive_group_contains(&list.tokens, target)
+}
+
+/// Checks whether a `derive(..)` group in `tokens` carries `target`.
+///
+/// Only the groups a `derive` introduces count, so a predicate naming the
+/// same ident elsewhere is not mistaken for one.
+fn derive_group_contains(tokens: &TokenStream, target: &str) -> bool {
+  let mut after_derive = false;
+  for tt in tokens.clone() {
+    match tt {
+      TokenTree::Ident(ref id) => after_derive = id == "derive",
+      TokenTree::Group(ref group) => {
+        if after_derive && tokens_contain_ident(&group.stream(), target) {
+          return true;
+        }
+        if derive_group_contains(&group.stream(), target) {
+          return true;
+        }
+        after_derive = false;
+      }
+      _ => after_derive = false,
+    }
+  }
+  false
 }
 
 /// Returns `(macro_name, last_UpperCamelCase_ident)` from an invocation.

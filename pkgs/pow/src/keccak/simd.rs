@@ -8,8 +8,6 @@
 
 use super::consts::RC;
 
-use dash_num::Hash512;
-
 /// Applies one round of the permutation, reading from `src` and writing to
 /// `dst`.
 ///
@@ -112,6 +110,6 @@ pub fn keccak_f1600(state: &mut [u64; 25]) {
   }
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   super::sponge(data, keccak_f1600)
 }

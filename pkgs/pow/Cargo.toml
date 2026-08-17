@@ -6,15 +6,10 @@ license = "MIT"
 
 [features]
 default = []
-std = ["dep:rayon"]
+std = []
 full = ["std", "aes_hw", "simd"]
 aes_hw = []
 simd = []
-
-[dependencies]
-cfg-if = "1"
-dash-num = { version = "0.0.0", path = "../num" }
-rayon = { version = "1", optional = true }
 
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
@@ -48,7 +43,7 @@ name = "skein"
 name = "pow"
 path = "bench/main.rs"
 harness = false
-required-features = ["std", "simd"]
+required-features = ["simd"]
 
 [lints]
 workspace = true

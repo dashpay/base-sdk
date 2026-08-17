@@ -9,8 +9,6 @@
 use super::consts::{round_pair, BLOCK, IV};
 use crate::util::memops::{extract, load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 /// Applies 16 rounds (8 round-pairs) of the CubeHash permutation.
 #[inline]
 pub const fn sixteen_rounds(s: &mut [u32; 32]) {
@@ -31,7 +29,7 @@ pub const fn absorb_block(state: &mut [u32; 32], block: &[u8]) {
   sixteen_rounds(state);
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut state = IV;
 
   // Absorb full blocks
@@ -67,5 +65,5 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u32_le(&mut out, i, state[i]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }

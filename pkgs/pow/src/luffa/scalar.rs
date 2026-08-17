@@ -9,8 +9,6 @@
 use super::consts::{BLOCK, IV, RC};
 use crate::util::memops::extract;
 
-use dash_num::Hash512;
-
 /// SubCrumb: 4-input bitslice S-box at word indices.
 const fn sub_crumb(w: &mut [u32; 8], i0: usize, i1: usize, i2: usize, i3: usize) {
   let (mut a0, mut a1, mut a2, mut a3) = (w[i0], w[i1], w[i2], w[i3]);
@@ -194,7 +192,7 @@ const fn load_msg(buf: &[u8]) -> [u32; 8] {
   out
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut v: [[u32; 8]; 5] = IV;
 
   let mut pos = 0;
@@ -226,7 +224,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     }
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -234,5 +232,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

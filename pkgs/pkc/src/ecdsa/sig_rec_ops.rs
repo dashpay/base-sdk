@@ -13,7 +13,8 @@ use super::sig_rec_bytes::{CompactFlags, EcdsaRecSigBytes};
 use super::Compression;
 
 use dash_num::Hash256;
-use dash_types::{dlgt_codec, type_cvrt, TypeId};
+use dash_types::type_id::TypeId;
+use dash_types::{dlgt_codec, type_cvrt};
 use k256::ecdsa::{RecoveryId, Signature};
 
 /// An ECDSA signature with recovery id and compression metadata.

@@ -14,7 +14,8 @@ use bitcoin_hashes::sha256d;
 use dash_num::{make_hash, Arith256, CompactTarget, Hash256};
 use dash_pow::hash as pow_hash;
 use dash_types::codec::{BaseCodec, Checkable, Hashable};
-use dash_types::{ArrayBuf, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::ArrayBuf;
 
 use core::fmt;
 

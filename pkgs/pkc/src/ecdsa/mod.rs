@@ -13,7 +13,7 @@ mod secret_bytes;
 mod sig_bytes;
 mod sig_rec_bytes;
 
-use dash_types::Unencodable;
+use dash_types::type_id::Unencodable;
 
 pub use error::EcdsaError;
 pub use public_bytes::{EcdsaPkBytes, ECDSA_PK_LEN};

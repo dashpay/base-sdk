@@ -12,8 +12,6 @@ use super::consts::{SUBSH_P, SUBSH_Q};
 #[cfg(not(all(feature = "aes_hw", target_arch = "aarch64")))]
 use crate::util::aes::consts::SBOX;
 
-use dash_num::Hash512;
-
 use core::simd::num::{SimdInt, SimdUint};
 #[cfg(not(all(feature = "aes_hw", target_arch = "aarch64")))]
 use core::simd::simd_swizzle;
@@ -352,7 +350,7 @@ pub fn output_transform(chaining_value: &mut [Row; 8]) {
   *chaining_value = xor_rows(chaining_value, &state);
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let mut chaining_value = [Row::splat(0); 8];
   let mut row = 0;
   while row < 8 {
@@ -397,5 +395,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
 
   let mut out = [0u8; 64];
   extract_right_half(&chaining_value, &mut out);
-  out.into()
+  out
 }

@@ -24,7 +24,7 @@ use bitcoin_p2p_messages::message_bloom::{FilterAdd, FilterLoad};
 use bitcoin_p2p_messages::message_compact_blocks::SendCmpct;
 use bitcoin_p2p_messages::message_filter::{CFCheckpt, CFHeaders, CFilter, GetCFCheckpt, GetCFHeaders, GetCFilters};
 use dash_primitives::{GovObject, GovVote};
-use dash_types::Unencodable;
+use dash_types::type_id::Unencodable;
 
 pub use addr::{Addr, AddrV2Entry, AddrV2Msg, TimestampedAddr};
 pub use gov::GovSync;

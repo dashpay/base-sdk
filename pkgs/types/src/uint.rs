@@ -73,7 +73,7 @@ macro_rules! make_num {
     $name:ident, $uint:tt, $n:literal
   ) => {
     $(#[$attr])*
-    #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::TypeId)]
+    #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::type_id::TypeId)]
     pub struct $name(pub $uint);
 
     impl $crate::codec::NumCodec<$uint> for $name {

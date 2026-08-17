@@ -8,8 +8,6 @@
 
 use super::consts::{BLOCK, IV, ROUND_CONSTS};
 
-use dash_num::Hash512;
-
 /// E8 permutation on 16 u64 words: 42 rounds cycling W0-W6.
 pub const fn e8(h: &mut [u64; 16]) {
   // Extract to locals to avoid array borrow issues.
@@ -200,7 +198,7 @@ const fn flatten_iv() -> [u64; 16] {
   h
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut h = flatten_iv();
   let mut block_count: u64 = 0;
   let mut buf = [0u8; BLOCK];
@@ -272,7 +270,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     }
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -280,5 +278,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

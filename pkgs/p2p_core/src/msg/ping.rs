@@ -8,7 +8,7 @@
 
 use crate::codec::codec_p2p;
 
-use dash_types::TypeId;
+use dash_types::type_id::TypeId;
 
 /// Keepalive request carrying a random nonce.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, TypeId)]

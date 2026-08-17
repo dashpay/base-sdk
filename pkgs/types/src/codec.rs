@@ -7,6 +7,7 @@
 //! Codec traits and helpers.
 
 use crate::prelude::*;
+use crate::type_id::TypeId;
 use crate::CompactSize;
 
 use core::convert::Infallible;
@@ -183,11 +184,6 @@ pub trait NumCodec<N>: Sized {
 
   /// Returns the base integer.
   fn to_base(&self) -> N;
-}
-
-/// Stable per-type identifier derived from the type name.
-pub trait TypeId {
-  const TYPE_ID: u32;
 }
 
 /// Cursor-based encode/decode for consensus wire types.

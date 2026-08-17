@@ -9,8 +9,6 @@
 use super::consts::{ALPHA_TAB, BLOCK, IV, PP8K, YOFF_B_F, YOFF_B_N};
 use crate::util::memops::{extract, load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 // Modular reductions for Z/257Z arithmetic.
 const fn reds1(x: i32) -> i32 {
   (x & 0xFF) - (x >> 8)
@@ -284,7 +282,7 @@ const fn encode_count(dst: &mut [u8], low: u32, high: u32, ptr: usize) {
   dst[7] = hi_b[3];
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut h = IV;
   let mut count_low = 0u32;
   let mut count_high = 0u32;
@@ -322,7 +320,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u32_le(&mut out, i, h[i]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -330,5 +328,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

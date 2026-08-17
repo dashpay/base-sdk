@@ -217,6 +217,18 @@ rules:
       include: [/pkgs/**/*.rs, /contrib/samples/**/*.rs]
     pattern-regex: '[^\x00-\xFF]'
 
+  - id: typeid-no-manual-impl
+    message: "use #[derive(TypeId)]; hand-written impls bypass the collision scanner"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include:
+        - /pkgs/**/*.rs
+        - /contrib/samples/**/*.rs
+      exclude:
+        - /pkgs/types/marker/**
+    pattern-regex: '\bconst[ \t]+TYPE_ID[ \t]*:[^;]*='
+
   - id: use-pub-roots-only
     message: "pub use re-exports belong in lib.rs or mod.rs, not in leaf modules"
     severity: ERROR

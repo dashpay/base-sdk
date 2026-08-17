@@ -9,8 +9,6 @@
 use super::consts::{BLOCK, IV, ROUNDS, T0, T4};
 use crate::util::memops::{extract, load_u64_le, store_u64_le};
 
-use dash_num::Hash512;
-
 // Byte extraction from u64 (LE convention).
 #[inline]
 const fn b0(x: u64) -> usize {
@@ -168,7 +166,7 @@ pub const fn output_transform(h: &mut [u64; 16]) {
   }
 }
 
-pub const fn hash512(data: &[u8]) -> Hash512 {
+pub const fn hash512(data: &[u8]) -> [u8; 64] {
   let mut h = IV;
   let mut count = 0u64;
 
@@ -222,7 +220,7 @@ pub const fn hash512(data: &[u8]) -> Hash512 {
     store_u64_le(&mut out, i, h[i + 8]);
     i += 1;
   }
-  Hash512::from_bytes(out)
+  out
 }
 
 #[cfg(test)]
@@ -230,5 +228,5 @@ mod tests {
   use super::*;
 
   /// Proves hash512 evaluates at compile time.
-  const _: Hash512 = hash512(b"");
+  const _: [u8; 64] = hash512(b"");
 }

@@ -13,7 +13,8 @@ use crate::version::ProtocolVersion;
 use dash_num::Hash256;
 use dash_primitives::{hash_impl, ServiceV1};
 use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
-use dash_types::{make_num, CompactSize, TypeId, Unencodable};
+use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::{make_num, CompactSize};
 
 use core::fmt;
 use core::ops::{BitAnd, BitOr, BitOrAssign};

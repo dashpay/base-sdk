@@ -12,7 +12,7 @@ use crate::prelude::*;
 use bitcoin_hashes::{ripemd160, sha256};
 use cfg_if::cfg_if;
 use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::TypeId;
+use dash_types::type_id::TypeId;
 use dash_types::{enum_map, impl_type, CompactSize};
 
 use core::cmp::Ordering;

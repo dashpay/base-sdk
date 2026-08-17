@@ -286,7 +286,7 @@ impl BlsScheme for BlsScChia {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{MSG_DEADBEEF, SEED_0, SEED_1};
+  use crate::bls::tests::{MSG_8BADFOOD, MSG_DEADBEEF, RSEED};
 
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
@@ -353,21 +353,21 @@ mod tests {
 
   #[test]
   fn signing_verifies_and_rejects_mismatches() {
-    let sk0 = BlsScChia::generate(&SEED_0).unwrap();
-    let sk1 = BlsScChia::generate(&SEED_1).unwrap();
+    let sk0 = BlsScChia::generate(&RSEED[0]).unwrap();
+    let sk1 = BlsScChia::generate(&RSEED[1]).unwrap();
     let pk0 = BlsScChia::derive_pk(&sk0);
     let pk1 = BlsScChia::derive_pk(&sk1);
     let sig = BlsScChia::sign(&sk0, &MSG_DEADBEEF);
 
     assert!(BlsScChia::verify(&sig, &MSG_DEADBEEF, &pk0).is_ok());
-    assert!(BlsScChia::verify(&sig, &[0x42; 32], &pk0).is_err());
+    assert!(BlsScChia::verify(&sig, &MSG_8BADFOOD, &pk0).is_err());
     assert!(BlsScChia::verify(&sig, &MSG_DEADBEEF, &pk1).is_err());
     assert_eq!(BlsScChia::sign(&sk0, &MSG_DEADBEEF), sig);
   }
 
   #[test]
   fn secure_verify_rejects_infinity_input_key() {
-    let sk = BlsScChia::generate(&SEED_0).unwrap();
+    let sk = BlsScChia::generate(&RSEED[0]).unwrap();
     let real_pk = BlsScChia::derive_pk(&sk);
     let inf_pk = G1::identity().to_affine();
     // The identity key serializes to the infinity marker (bits 6-7 set).

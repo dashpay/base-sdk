@@ -38,6 +38,7 @@ bin = [
 
 [build-dependencies]
 built = { version = "0.7", features = ["dependency-tree", "git2"] }
+dash-types = { version = "0.0.0", path = "../types", default-features = false }
 proc-macro2 = "1"
 syn = { version = "2", features = ["full", "visit"] }
 xxhash-rust = { version = "0.8", features = ["xxh32"] }

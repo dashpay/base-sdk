@@ -10,8 +10,6 @@ use super::consts::{BLOCK, IV};
 use crate::util::arx::rotl_u32x4;
 use crate::util::memops::{load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 use core::simd::Simd;
 
 /// Four neighbouring state words packed into one group.
@@ -131,7 +129,7 @@ fn absorb_block(state: &mut [U32x4; 8], block: &[u8]) {
   absorb_words(state, lo, hi);
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let mut words = IV;
   let mut state = [
     load_vec(&words, 0),
@@ -179,5 +177,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     store_u32_le(&mut out, i, words[i]);
     i += 1;
   }
-  out.into()
+  out
 }

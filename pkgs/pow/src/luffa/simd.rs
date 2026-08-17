@@ -10,8 +10,6 @@ use super::consts::{BLOCK, IV, RC, RC_FIRST4_HIGH, RC_FIRST4_LOW};
 use crate::util::arx::rotl_u32x4;
 use crate::util::memops::{load_u32_le, store_u32_le};
 
-use dash_num::Hash512;
-
 use core::simd::Simd;
 
 type WordVec = Simd<u32, 4>;
@@ -275,7 +273,7 @@ fn permute_first_four_branches(state: &mut [[u32; 8]; 5]) {
   }
 }
 
-pub fn hash512(data: &[u8]) -> Hash512 {
+pub fn hash512(data: &[u8]) -> [u8; 64] {
   let mut state: [[u32; 8]; 5] = IV;
 
   let mut pos = 0;
@@ -305,5 +303,5 @@ pub fn hash512(data: &[u8]) -> Hash512 {
     final_round += 1;
   }
 
-  out.into()
+  out
 }
