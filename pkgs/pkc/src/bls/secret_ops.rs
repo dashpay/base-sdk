@@ -9,6 +9,7 @@
 use super::dh_bytes::BlsDhBytes;
 use super::error::BlsError;
 use super::public_ops::BlsPublicKey;
+use super::scalar::Fr;
 use super::scheme_ops::BlsScheme;
 use super::sig_basic::BlsSignature;
 use super::{BlsScIetf, BlsSigId, BlsSkBytes, BLS_SK_LEN};
@@ -151,6 +152,14 @@ type_cvrt!(for[S: BlsScheme] From<BlsSecretKey<S>> for BlsSkBytes<S>, |sk| {
 
 type_cvrt!(for[S: BlsScheme] TryFrom<BlsSkBytes<S>> for BlsSecretKey<S>, BlsError, |bytes| {
   Self::from_bytes(bytes.as_bytes())
+});
+
+type_cvrt!(for[S: BlsScheme] From<BlsSecretKey<S>> for Zeroizing<Fr>, |sk| {
+  Zeroizing::new(Fr::from_bendian_reduce(&sk.to_bytes()))
+});
+
+type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar| {
+  Self::from_bytes(&scalar.to_bendian())
 });
 
 #[cfg(test)]

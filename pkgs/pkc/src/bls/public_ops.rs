@@ -7,6 +7,7 @@
 //! Scheme-generic BLS public key.
 
 use super::error::BlsError;
+use super::group::G1;
 use super::scheme_ops::BlsScheme;
 use super::{BlsPkBytes, BLS_PK_LEN};
 use crate::prelude::*;
@@ -105,6 +106,14 @@ type_cvrt!(for[S: BlsScheme] From<BlsPublicKey<S>> for BlsPkBytes<S>, |pk| {
 
 type_cvrt!(for[S: BlsScheme] TryFrom<BlsPkBytes<S>> for BlsPublicKey<S>, BlsError, |bytes| {
   Self::from_bytes(bytes.as_bytes())
+});
+
+type_cvrt!(for[S: BlsScheme] TryFrom<BlsPublicKey<S>> for G1, BlsError, |pk| {
+  S::pk_to_g1(&pk.0)
+});
+
+type_cvrt!(for[S: BlsScheme] TryFrom<G1> for BlsPublicKey<S>, BlsError, |point| {
+  S::g1_to_pk(*point).map(Self::from_inner)
 });
 
 #[cfg(test)]

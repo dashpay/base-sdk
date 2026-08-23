@@ -17,7 +17,7 @@ use ff::helpers::{sqrt_ratio_generic, sqrt_tonelli_shanks};
 use ff::{Field, PrimeField};
 use rand_core::TryRng;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 use core::fmt;
 use core::iter::{Product, Sum};
@@ -61,6 +61,13 @@ impl Fr {
     let reduced = Self::from(&scalar);
     scalar.b.zeroize();
     reduced
+  }
+
+  /// Emits the canonical big-endian encoding.
+  pub(crate) fn to_bendian(self) -> Zeroizing<[u8; 32]> {
+    let mut bytes = self.to_lendian();
+    bytes.reverse();
+    bytes
   }
 
   /// Wraps Montgomery-form limbs.

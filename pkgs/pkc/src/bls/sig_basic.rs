@@ -7,6 +7,7 @@
 //! Scheme-generic BLS signature.
 
 use super::error::BlsError;
+use super::group::G2;
 use super::public_ops::BlsPublicKey;
 use super::scheme_ops::BlsScheme;
 use super::{BlsScIetf, BlsSigBytes, BlsSigId, BLS_SIG_LEN};
@@ -114,6 +115,14 @@ type_cvrt!(for[S: BlsScheme] From<BlsSignature<S>> for BlsSigBytes<S>, |sig| {
 
 type_cvrt!(for[S: BlsScheme] TryFrom<BlsSigBytes<S>> for BlsSignature<S>, BlsError, |bytes| {
   Self::from_bytes(bytes.as_bytes())
+});
+
+type_cvrt!(for[S: BlsScheme] TryFrom<BlsSignature<S>> for G2, BlsError, |sig| {
+  S::sig_to_g2(&sig.0)
+});
+
+type_cvrt!(for[S: BlsScheme] TryFrom<G2> for BlsSignature<S>, BlsError, |point| {
+  S::g2_to_sig(*point).map(Self::from_inner)
 });
 
 #[cfg(test)]
