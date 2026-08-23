@@ -7,6 +7,8 @@
 //! The BLS12-381 scalar and base fields.
 
 use super::curve_consts;
+use super::error::BlsError;
+use super::share_id::BlsShareId;
 
 use blst::{blst_fp, blst_fp2, blst_fr};
 use dash_types::type_cvrt;
@@ -36,6 +38,31 @@ const WIDE_LEN: usize = 64;
 pub struct Fr(pub(super) blst_fr);
 
 impl Fr {
+  /// Reduces a threshold participant id into the field (big-integer).
+  ///
+  /// [`PrimeField::from_repr`] takes a canonical little-endian encoding and
+  /// rejects anything above `r` while this function will reduce.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidShareId` when the id reduces to zero; the polynomial
+  /// evaluated there yields its constant term, the master secret itself.
+  pub fn from_share_id(id: &BlsShareId) -> Result<Self, BlsError> {
+    let reduced = Self::from_bendian_reduce(id.as_bytes());
+    if bool::from(reduced.is_zero()) {
+      return Err(BlsError::InvalidShareId);
+    }
+    Ok(reduced)
+  }
+
+  /// Reduces a big-endian integer into the field.
+  pub(crate) fn from_bendian_reduce(bytes: &[u8; 32]) -> Self {
+    let mut scalar = super::blst_ffi::scalar_from_bendian(bytes);
+    let reduced = Self::from(&scalar);
+    scalar.b.zeroize();
+    reduced
+  }
+
   /// Wraps Montgomery-form limbs.
   pub(crate) const fn from_limbs(limbs: [u64; 4]) -> Self {
     Self(blst_fr { l: limbs })
@@ -309,8 +336,12 @@ type_cvrt!(From<Fp2> for blst_fp2, |fp2| fp2.0);
 type_cvrt!(From<blst_fp2> for Fp2, |raw| Self(*raw));
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
+  use crate::bls::tests::{make_id, GROUP_ORDER, RSEED};
+  use crate::bls::{BlsScChia, BlsScIetf, BlsScheme, BlsSecretKey};
+  use crate::prelude::*;
 
   use getrandom::SysRng;
   use rand_core::UnwrapErr;
@@ -369,5 +400,85 @@ mod tests {
   fn is_odd_reads_the_low_bit() {
     assert!(bool::from(Fr::from(3).is_odd()));
     assert!(bool::from(Fr::from(4).is_even()));
+  }
+  /// An id is read most significant byte first, so a one in the last byte is
+  /// the field's one and the same byte at the front is `2^248` instead.
+  #[rstest]
+  fn share_id_reads_big_endian() {
+    assert_eq!(Fr::from_share_id(&make_id(1)).unwrap(), Fr::ONE);
+    assert_eq!(Fr::from_share_id(&make_id(258)).unwrap(), Fr::from(258));
+
+    let mut leading = [0u8; 32];
+    leading[0] = 1;
+    let mut expected = Fr::ONE;
+    for _ in 0..248 {
+      expected = expected.double();
+    }
+    assert_eq!(Fr::from_share_id(&BlsShareId::from_bytes(leading)).unwrap(), expected);
+  }
+
+  /// An id is an integer rather than an encoding of one, so a value at or
+  /// above the order is reduced where [`PrimeField::from_repr`] would refuse
+  /// it outright.
+  #[rstest]
+  fn share_id_reduces_past_the_order() {
+    let mut order_plus_one = GROUP_ORDER;
+    order_plus_one[31] += 1;
+    assert_eq!(
+      Fr::from_share_id(&BlsShareId::from_bytes(order_plus_one)).unwrap(),
+      Fr::ONE
+    );
+
+    let mut order_le = GROUP_ORDER;
+    order_le.reverse();
+    assert!(bool::from(Fr::from_repr(order_le).is_none()));
+  }
+
+  /// The polynomial evaluated at a zero-reducing id is its constant term, so
+  /// the id is refused rather than handed the master secret.
+  #[rstest]
+  #[case::zero([0u8; 32])]
+  #[case::order(GROUP_ORDER)]
+  fn share_id_rejects_the_zero_residue(#[case] bytes: [u8; 32]) {
+    assert_eq!(
+      Fr::from_share_id(&BlsShareId::from_bytes(bytes)),
+      Err(BlsError::InvalidShareId)
+    );
+  }
+
+  /// Read a secret key back as the field element it is: the wire form is
+  /// big-endian and `from_repr` wants the canonical little-endian one.
+  fn scalar_of<S: BlsScheme>(sk: &BlsSecretKey<S>) -> Fr {
+    let mut le = *sk.to_bytes();
+    le.reverse();
+    Fr::from_repr(le).unwrap()
+  }
+
+  /// The share engine reads an id through this same reduction, so a derived
+  /// share is the master polynomial evaluated at the scalar it yields. A
+  /// reversed byte order or a refusing parse would part the two.
+  fn assert_share_id_matches_the_engine<S: BlsScheme>() {
+    let master: Vec<BlsSecretKey<S>> = RSEED[..3]
+      .iter()
+      .map(|ikm| BlsSecretKey::<S>::generate(ikm).unwrap())
+      .collect();
+    let refs: Vec<&BlsSecretKey<S>> = master.iter().collect();
+    let coeffs: Vec<Fr> = master.iter().map(scalar_of).collect();
+
+    for i in 1..=4u32 {
+      let id = make_id(i);
+      let x = Fr::from_share_id(&id).unwrap();
+      let evaluated = coeffs[0] + coeffs[1] * x + coeffs[2] * x * x;
+
+      let share = BlsSecretKey::<S>::derive_share(&refs, &id).unwrap();
+      assert_eq!(scalar_of(&share), evaluated);
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_share_id_matches_the_engine::<BlsScChia>)]
+  #[case::ietf(assert_share_id_matches_the_engine::<BlsScIetf>)]
+  fn share_id_matches_the_engine(#[case] assertion: fn()) {
+    assertion();
   }
 }

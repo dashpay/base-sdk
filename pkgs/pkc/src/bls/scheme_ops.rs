@@ -306,10 +306,10 @@ pub trait BlsScheme: BlsSchemeId {
     // An id congruent to zero mod r would make the share equal the master
     // key, and ids congruent mod r collide during interpolation.
     let id_refs: Vec<&BlsShareId> = ids.iter().collect();
-    reduce_share_ids(&id_refs)?;
+    let xs = reduce_share_ids(&id_refs)?;
 
     let sk_bytes = Zeroizing::new(Self::sk_to_bytes(sk));
-    let raw = generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
+    let raw = generate_shares(&sk_bytes, threshold, ids, &xs, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
     raw
       .into_iter()
@@ -364,7 +364,7 @@ pub trait BlsScheme: BlsSchemeId {
       .map(|pk| Self::pk_to_g1(pk))
       .collect::<Result<Vec<_>, BlsError>>()?;
 
-    let x = reduce_id(id)?;
+    let x = Fr::from_share_id(id)?;
     let result = eval_poly_g1(&coeffs_g1, &x);
 
     Self::g1_to_pk(result)
@@ -395,7 +395,7 @@ pub trait BlsScheme: BlsSchemeId {
       scalar.b.zeroize();
     }
 
-    let x = reduce_id(id)?;
+    let x = Fr::from_share_id(id)?;
     let mut y = poly_eval(&coeffs, &x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
@@ -472,6 +472,7 @@ fn generate_shares(
   sk_bytes: &[u8; 32],
   threshold: usize,
   ids: &[BlsShareId],
+  xs: &[Fr],
   rng: &mut impl rand_core::CryptoRng,
 ) -> Result<Vec<RawShare>, ()> {
   let mut coeffs = Zeroizing::new(Vec::with_capacity(threshold));
@@ -493,9 +494,8 @@ fn generate_shares(
   }
 
   let mut shares = Vec::with_capacity(ids.len());
-  for id in ids {
-    let x = fr_from_id(id);
-    let mut y = poly_eval(&coeffs, &x);
+  for (id, x) in ids.iter().zip(xs) {
+    let mut y = poly_eval(&coeffs, x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
     let y_bytes = blst_ffi::bendian_from_scalar(&y_scalar);
@@ -592,23 +592,6 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
   result
 }
 
-/// Convert a participant ID to a scalar.
-fn fr_from_id(id: &BlsShareId) -> Fr {
-  Fr::from(&blst_ffi::scalar_from_bendian(id.as_bytes()))
-}
-
-/// Reduce a participant id into the scalar field, rejecting zero.
-///
-/// An id congruent to zero mod `r` evaluates the polynomial at its
-/// constant term, which leaks the master secret in share generation.
-fn reduce_id(id: &BlsShareId) -> Result<Fr, BlsError> {
-  let fr = fr_from_id(id);
-  if blst::blst_scalar::from(&fr).b == [0u8; 32] {
-    return Err(BlsError::InvalidShareId);
-  }
-  Ok(fr)
-}
-
 /// Reduce participant ids into the scalar field, rejecting ids that
 /// reduce to zero and duplicates after reduction.
 ///
@@ -616,15 +599,11 @@ fn reduce_id(id: &BlsShareId) -> Result<Fr, BlsError> {
 /// zero Lagrange denominator that blst inverts to zero silently; a
 /// raw-byte duplicate check would not catch them.
 fn reduce_share_ids(ids: &[&BlsShareId]) -> Result<Vec<Fr>, BlsError> {
-  let fr_ids: Vec<Fr> = ids.iter().map(|id| fr_from_id(id)).collect();
-  let mut reduced: Vec<[u8; 32]> = Vec::with_capacity(fr_ids.len());
-  for fr in &fr_ids {
-    let bytes = blst::blst_scalar::from(fr).b;
-    if bytes == [0u8; 32] {
-      return Err(BlsError::InvalidShareId);
-    }
-    reduced.push(bytes);
-  }
+  let fr_ids = ids
+    .iter()
+    .map(|id| Fr::from_share_id(id))
+    .collect::<Result<Vec<Fr>, BlsError>>()?;
+  let mut reduced: Vec<[u8; 32]> = fr_ids.iter().map(|fr| *fr.to_lendian()).collect();
   reduced.sort_unstable();
   for pair in reduced.windows(2) {
     if pair[0] == pair[1] {
