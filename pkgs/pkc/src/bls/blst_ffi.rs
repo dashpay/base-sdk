@@ -11,6 +11,7 @@ use super::scalar::{Fp, Fp2, Fr};
 
 use blst::*;
 use dash_types::type_cvrt;
+use zeroize::{Zeroize, Zeroizing};
 
 use core::ops::{Add, Mul, Neg, Sub};
 use core::ptr::null_mut;
@@ -84,6 +85,46 @@ pub(crate) fn sk_to_pk2_in_g1(sk: &blst_scalar) -> G1Affine {
 }
 
 impl Fr {
+  /// Doubles the element.
+  pub(crate) fn double(&self) -> Self {
+    let mut out = blst_fr::default();
+    unsafe { blst_fr_lshift(&mut out, &self.0, 1) };
+    Self(out)
+  }
+
+  /// Reduces a small integer into the field.
+  pub(crate) fn from_u64(value: u64) -> Self {
+    let mut out = blst_fr::default();
+    let limbs = [value, 0, 0, 0];
+    unsafe { blst_fr_from_uint64(&mut out, limbs.as_ptr()) };
+    Self(out)
+  }
+
+  /// Parses a canonical little-endian encoding, rejecting anything at or above
+  /// the group order.
+  pub(crate) fn from_lendian(bytes: &[u8; 32]) -> Option<Self> {
+    let mut scalar = blst_scalar::default();
+    unsafe { blst_scalar_from_lendian(&mut scalar, bytes.as_ptr()) };
+    if unsafe { blst_scalar_fr_check(&scalar) } {
+      Some(Self::from(&scalar))
+    } else {
+      None
+    }
+  }
+
+  /// Reduces a wide little-endian integer into the field.
+  ///
+  /// Wider input than the modulus is the point; reducing 64 bytes into a
+  /// 255-bit field leaves a bias below `2^-250`, where rejection sampling would
+  /// need a loop and a branch on secret data.
+  pub(crate) fn from_lendian_reduce(bytes: &[u8]) -> Self {
+    let mut scalar = blst_scalar::default();
+    unsafe { blst_scalar_from_le_bytes(&mut scalar, bytes.as_ptr(), bytes.len()) };
+    let reduced = Self::from(&scalar);
+    scalar.b.zeroize();
+    reduced
+  }
+
   /// Multiplicative inverse; the inverse of zero is left unspecified.
   pub(crate) fn inverse(&self) -> Self {
     let mut out = blst_fr::default();
@@ -91,12 +132,19 @@ impl Fr {
     Self(out)
   }
 
-  /// The multiplicative identity, one.
-  pub(crate) fn one() -> Self {
+  /// Squares the element.
+  pub(crate) fn square(&self) -> Self {
     let mut out = blst_fr::default();
-    let one = [1u64, 0, 0, 0];
-    unsafe { blst_fr_from_uint64(&mut out, one.as_ptr()) };
+    unsafe { blst_fr_sqr(&mut out, &self.0) };
     Self(out)
+  }
+
+  /// Emits the canonical little-endian encoding.
+  pub(crate) fn to_lendian(self) -> Zeroizing<[u8; 32]> {
+    let mut scalar = blst_scalar::from(&self);
+    let bytes = Zeroizing::new(scalar.b);
+    scalar.b.zeroize();
+    bytes
   }
 }
 

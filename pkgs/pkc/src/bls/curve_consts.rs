@@ -6,7 +6,74 @@
 
 //! BLS12-381 constants.
 
+use super::scalar::Fr;
+
 use hex_conservative::hex;
+
+/// Two-adicity of `r - 1`, the number of times two divides it.
+pub(super) const S: u32 = 32;
+
+/// The field order, as `ff` asks it to be spelled.
+pub(super) const MODULUS: &str = "0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001";
+
+/// `(t - 1) / 2`, where `t` is the odd part of `r - 1`, little-endian.
+pub(super) const T_MINUS_1_DIV_2: [u64; 4] = [
+  0x7fff_2dff_7fff_ffff,
+  0x04d0_ec02_a9de_d201,
+  0x94ce_bea4_199c_ec04,
+  0x0000_0000_39f6_d3a9,
+];
+
+/// Zero.
+pub(super) const ZERO: Fr = Fr::from_limbs([0, 0, 0, 0]);
+
+/// One.
+pub(super) const ONE: Fr = Fr::from_limbs([
+  0x0000_0001_ffff_fffe,
+  0x5884_b7fa_0003_4802,
+  0x998c_4fef_ecbc_4ff5,
+  0x1824_b159_acc5_056f,
+]);
+
+/// The inverse of two.
+pub(super) const TWO_INV: Fr = Fr::from_limbs([
+  0x0000_0000_ffff_ffff,
+  0xac42_5bfd_0001_a401,
+  0xccc6_27f7_f65e_27fa,
+  0x0c12_58ac_d662_82b7,
+]);
+
+/// A generator of the multiplicative group, seven for this field.
+pub(super) const MULTIPLICATIVE_GENERATOR: Fr = Fr::from_limbs([
+  0x0000_000e_ffff_fff1,
+  0x17e3_63d3_0018_9c0f,
+  0xff9c_5787_6f84_57b0,
+  0x3513_3220_8fc5_a8c4,
+]);
+
+/// A primitive root of unity of order `2^S`, the generator raised to `t`.
+pub(super) const ROOT_OF_UNITY: Fr = Fr::from_limbs([
+  0xb9b5_8d8c_5f0e_466a,
+  0x5b1b_4c80_1819_d7ec,
+  0x0af5_3ae3_52a3_1e64,
+  0x5bf3_adda_19e9_b27b,
+]);
+
+/// The inverse of [`ROOT_OF_UNITY`].
+pub(super) const ROOT_OF_UNITY_INV: Fr = Fr::from_limbs([
+  0x4256_481a_dcf3_219a,
+  0x45f3_7b7f_96b6_cad3,
+  0xf9c3_f1d7_5f7a_3b27,
+  0x2d2f_c049_658a_fd43,
+]);
+
+/// The generator raised to `2^S`, a non-square by construction.
+pub(super) const DELTA: Fr = Fr::from_limbs([
+  0x70e3_10d3_d146_f96a,
+  0x4b64_c089_19e2_99e6,
+  0x51e1_1418_6a8b_970d,
+  0x6185_d066_27c0_67cb,
+]);
 
 /// BLS12-381 curve parameter `|x|`, little-endian.
 ///
@@ -52,7 +119,10 @@ pub(super) const PSI_COEFF_Y_C1: [u8; 48] =
 mod tests {
   use super::*;
   use crate::bls::scalar::{Fp, Fp2};
+  use crate::prelude::*;
 
+  use ff::{Field, PrimeField};
+  use hex_conservative::DisplayHex;
   use rstest::rstest;
 
   /// The curve parameter is read little-endian, so the bytes as written are the
@@ -111,5 +181,112 @@ mod tests {
     assert_eq!(psi_x.c0(), Fp::default(), "the x coefficient is purely imaginary");
     assert_eq!(psi_x * psi_x * psi_x * minus, plus);
     assert_eq!(psi_y * psi_y * minus, plus);
+  }
+  /// `t`, the odd part of `r - 1`, little-endian.
+  ///
+  /// Doubling [`T_MINUS_1_DIV_2`] and restoring the low bit, in plain integer
+  /// arithmetic so the field plays no part in the exponent it is tested with.
+  fn odd_part() -> [u64; 4] {
+    let mut t = [0u64; 4];
+    let mut carry = 1u64;
+    for (out, limb) in t.iter_mut().zip(T_MINUS_1_DIV_2) {
+      *out = (limb << 1) | carry;
+      carry = limb >> 63;
+    }
+    t
+  }
+
+  /// Exponentiation by squaring over a little-endian limb exponent.
+  fn pow(base: Fr, exp: &[u64; 4]) -> Fr {
+    let mut acc = ONE;
+    for limb in exp.iter().rev() {
+      for bit in (0..64).rev() {
+        acc = acc.square();
+        if (limb >> bit) & 1 == 1 {
+          acc *= base;
+        }
+      }
+    }
+    acc
+  }
+
+  /// The two constants blst can hand back directly.
+  #[rstest]
+  #[case::zero(ZERO, 0)]
+  #[case::one(ONE, 1)]
+  #[case::generator(MULTIPLICATIVE_GENERATOR, 7)]
+  fn small_constants_match_blst(#[case] literal: Fr, #[case] value: u64) {
+    assert_eq!(literal, Fr::from(value));
+  }
+
+  /// The inverses come from blst's own inversion rather than from a product
+  /// with the value they invert, so a matched pair of wrong literals cannot
+  /// satisfy the check between them.
+  #[rstest]
+  #[case::two_inv(TWO_INV, Fr::from(2))]
+  #[case::root_of_unity_inv(ROOT_OF_UNITY_INV, ROOT_OF_UNITY)]
+  fn inverses_match_blst(#[case] literal: Fr, #[case] of: Fr) {
+    assert_eq!(literal, of.invert().unwrap());
+  }
+
+  /// `ff` specifies the root as the generator raised to the odd part of
+  /// `r - 1`, which is one value; having order `2^S` admits every primitive
+  /// root and so would not pin it.
+  #[rstest]
+  fn root_of_unity_is_the_generator_raised_to_the_odd_part() {
+    assert_eq!(ROOT_OF_UNITY, pow(MULTIPLICATIVE_GENERATOR, &odd_part()));
+  }
+
+  /// Squaring the root `S` times reaches one and `S - 1` times does not, so
+  /// its order is exactly `2^S` and `S` is the two-adicity it claims.
+  #[rstest]
+  fn root_of_unity_has_the_stated_order() {
+    let mut acc = ROOT_OF_UNITY;
+    for _ in 0..S - 1 {
+      acc = acc.square();
+    }
+    assert_ne!(acc, ONE);
+    assert_eq!(acc.square(), ONE);
+  }
+
+  #[rstest]
+  fn delta_is_the_generator_raised_to_two_to_the_s() {
+    let mut delta = MULTIPLICATIVE_GENERATOR;
+    for _ in 0..S {
+      delta = delta.square();
+    }
+    assert_eq!(DELTA, delta);
+  }
+
+  /// The odd part is odd and restores `r - 1` once the power of two is put
+  /// back, which is the whole of what makes `S` and `t` a valid split.
+  #[rstest]
+  fn odd_part_rebuilds_the_order() {
+    let t = odd_part();
+    assert_eq!(t[0] & 1, 1, "the odd part must be odd");
+
+    let mut rebuilt = pow(MULTIPLICATIVE_GENERATOR, &t);
+    for _ in 0..S {
+      rebuilt = rebuilt.square();
+    }
+    assert_eq!(rebuilt, ONE, "g^(t * 2^S) is g^(r - 1), which is one");
+  }
+
+  /// The string is the field order, one past the largest element.
+  #[rstest]
+  fn modulus_string_matches_the_order() {
+    let mut order = (-ONE).to_repr();
+    order.reverse();
+    let last = order.len() - 1;
+    order[last] += 1;
+
+    assert_eq!(format!("0x{}", order.as_hex()), MODULUS);
+  }
+
+  #[rstest]
+  fn montgomery_form_is_what_the_literals_assume() {
+    let mut expected = [0u8; 32];
+    expected[0] = 1;
+    assert_eq!(ONE.to_repr(), expected);
   }
 }

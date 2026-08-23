@@ -49,6 +49,7 @@ cfg_if::cfg_if! {
     pub mod tests;
 
     pub use public_ops::BlsPublicKey;
+    pub use scalar::Fr;
     pub use scheme_ops::BlsScheme;
     pub use secret_ops::BlsSecretKey;
     pub use share_ops::{BlsSigShare, BlsSkShare};

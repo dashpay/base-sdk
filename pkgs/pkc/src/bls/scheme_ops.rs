@@ -15,6 +15,7 @@ use super::BlsShareId;
 use crate::prelude::*;
 
 use blst::BLST_ERROR;
+use ff::Field;
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
@@ -419,7 +420,7 @@ fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
   for bytes in key_bytes {
     let mut scalar = blst_ffi::scalar_from_bendian(bytes);
     let mut term = Fr::from(&scalar);
-    acc = acc + term;
+    acc += term;
     term.zeroize();
     scalar.b.zeroize();
   }
@@ -538,19 +539,19 @@ fn compute_lagrange_coeffs(ids: &[Fr]) -> Vec<Fr> {
 
   for i in 0..n {
     // L_i = prod_{j!=i} ids[j] / (ids[j] - ids[i])
-    let mut num = Fr::one();
-    let mut den = Fr::one();
+    let mut num = Fr::ONE;
+    let mut den = Fr::ONE;
 
     for j in 0..n {
       if i == j {
         continue;
       }
       // num *= ids[j]
-      num = num * ids[j];
+      num *= ids[j];
 
       // den *= (ids[j] - ids[i])
       let diff = ids[j] - ids[i];
-      den = den * diff;
+      den *= diff;
     }
 
     coeffs.push(num * den.inverse());

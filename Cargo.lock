@@ -600,6 +600,7 @@ dependencies = [
  "dash-num",
  "dash-types",
  "divan",
+ "ff",
  "getrandom 0.4.3",
  "hex-conservative 0.3.2",
  "k256",
