@@ -52,6 +52,19 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     Zeroizing::new(S::sk_to_bytes(&self.0))
   }
 
+  /// Retag this key under another scheme.
+  ///
+  /// A secret key is a scalar, so a retag re-encodes nothing; only the public
+  /// key it derives changes encoding rather than value. The secret-side
+  /// companion to [`BlsPublicKey::to_scheme`], for a holder typed to one arm.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when the target scheme refuses the scalar.
+  pub fn to_scheme<T: BlsScheme>(&self) -> Result<BlsSecretKey<T>, BlsError> {
+    BlsSecretKey::<T>::from_bytes(&self.to_bytes())
+  }
+
   /// Derive the corresponding public key.
   pub fn public_key(&self) -> BlsPublicKey<S> {
     BlsPublicKey(S::derive_pk(&self.0))
@@ -162,6 +175,24 @@ mod tests {
   struct AggSkVec {
     sks: Vec<String>,
     agg_sk: String,
+  }
+
+  /// A retag moves no scalar, so the bytes survive and the derived public key
+  /// is the converted one rather than a different key.
+  fn assert_scheme_retag_keeps_the_scalar<S: BlsScheme, T: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let there = sk.to_scheme::<T>().unwrap();
+
+    assert_eq!(*there.to_bytes(), *sk.to_bytes());
+    assert_eq!(there.public_key(), sk.public_key().to_scheme::<T>().unwrap());
+  }
+
+  #[rstest]
+  #[case::chia_to_ietf(assert_scheme_retag_keeps_the_scalar::<BlsScChia, BlsScIetf>)]
+  #[case::ietf_to_chia(assert_scheme_retag_keeps_the_scalar::<BlsScIetf, BlsScChia>)]
+  #[case::ietf_to_ietf(assert_scheme_retag_keeps_the_scalar::<BlsScIetf, BlsScIetf>)]
+  fn scheme_retag_keeps_the_scalar(#[case] assertion: fn()) {
+    assertion();
   }
 
   fn assert_roundtrip<S: BlsScheme>() {
