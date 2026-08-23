@@ -205,16 +205,16 @@ pub trait BlsScheme: BlsSchemeId {
   /// Returns `InvalidPublicKey` when the bytes do not decode to a point.
   fn secure_agg_point(pk_bytes: &[u8; 48]) -> Result<G1, BlsError>;
 
-  /// Verify an aggregate with public-key weighting to resist rogue keys.
+  /// Aggregate public keys with the weighting that resists rogue keys.
   ///
   /// Each key is weighted by `SHA256(index || SHA256(sorted pk bytes))` so a
   /// signer cannot cancel an honest key with a crafted rogue one.
   ///
   /// # Errors
   ///
-  /// Returns `EmptyAggregation` when no keys are given, `InvalidPublicKey`
-  /// when a key fails to decode, or `VerifyFailed` on mismatch.
-  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+  /// Returns `EmptyAggregation` when no keys are given, or `InvalidPublicKey`
+  /// when a key or the weighted sum fails to decode.
+  fn secure_aggregate_pk(pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError> {
     if pks.is_empty() {
       return Err(BlsError::EmptyAggregation);
     }
@@ -229,8 +229,19 @@ pub trait BlsScheme: BlsSchemeId {
       acc += Self::secure_agg_point(pk_bytes)?.mul_scalar(&weight.b, WEIGHT_BITS);
     }
 
-    let agg_pk = Self::g1_to_pk(acc)?;
-    Self::verify(sig, msg, &agg_pk)
+    Self::g1_to_pk(acc)
+  }
+
+  /// Verify an aggregate against the weighted key
+  /// [`Self::secure_aggregate_pk`] builds, in the scheme's own single
+  /// pairing.
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no keys are given, `InvalidPublicKey`
+  /// when a key fails to decode, or `VerifyFailed` on mismatch.
+  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+    Self::verify(sig, msg, &Self::secure_aggregate_pk(pks)?)
   }
 
   /// Aggregate signatures under the same public-key weighting that

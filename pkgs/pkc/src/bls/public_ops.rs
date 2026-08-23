@@ -68,6 +68,22 @@ impl<S: BlsScheme> BlsPublicKey<S> {
     S::aggregate_pk(&inner_refs).map(Self::from_inner)
   }
 
+  /// Aggregate public keys under secure-verification weighting.
+  ///
+  /// The weights are those applied by
+  /// [`secure_verify_aggregates`](super::BlsSignature::secure_verify_aggregates)
+  /// to keys sorted by encoding, so the result is order-independent and a
+  /// signature passing that check verifies plainly against this key.
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no keys are given, or `InvalidPublicKey`
+  /// when a key or the weighted sum fails to decode.
+  pub fn secure_aggregate(keys: &[&Self]) -> Result<Self, BlsError> {
+    let inner_refs: Vec<&S::InnerPk> = keys.iter().map(|k| &k.0).collect();
+    S::secure_aggregate_pk(&inner_refs).map(Self::from_inner)
+  }
+
   pub(crate) fn from_inner(inner: S::InnerPk) -> Self {
     Self(inner)
   }
@@ -122,9 +138,9 @@ mod tests {
   use super::*;
   use crate::bls::tests::{
     ietf_g1_encoding, ser_pairs, SerType, G1_OFF_SUBGROUP_CHIA, G1_OFF_SUBGROUP_IETF, G1_X_EQ_PRIME_CHIA,
-    G1_X_GE_PRIME_CHIA, G1_X_MAX_CHIA, RSEED,
+    G1_X_GE_PRIME_CHIA, G1_X_MAX_CHIA, MSG_8BADFOOD, RSEED,
   };
-  use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey};
+  use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey, BlsSignature};
 
   use cfg_if::cfg_if;
   use dash_dev::{arr_from_hex, Corpus};
@@ -143,6 +159,13 @@ mod tests {
     sk: String,
     peer_pk: String,
     shared: String,
+  }
+
+  #[derive(Deserialize)]
+  struct SecureVec {
+    msg: String,
+    pks: Vec<String>,
+    agg_sig_secure: String,
   }
 
   fn assert_dh_matches_vectors<S: BlsScheme>(scheme: &str) {
@@ -411,6 +434,86 @@ mod tests {
   #[case::ietf(assert_aggregate_vectors::<BlsScIetf>, "ietf")]
   fn aggregate_matches_vectors(#[case] assertion: fn(&str), #[case] scheme: &str) {
     assertion(scheme);
+  }
+
+  fn assert_secure_aggregate_is_what_verify_checks<S: BlsScheme>(scheme: &str) {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_secure_aggregate").scope(scheme);
+    let vecs: Vec<SecureVec> = corpus.vectors("verify");
+    assert!(!vecs.is_empty(), "corpus section is empty");
+
+    for v in &vecs {
+      let pks: Vec<BlsPublicKey<S>> = v
+        .pks
+        .iter()
+        .map(|pk| BlsPublicKey::<S>::from_bytes(&arr_from_hex(pk)).unwrap())
+        .collect();
+      let refs: Vec<&BlsPublicKey<S>> = pks.iter().collect();
+      let agg_pk = BlsPublicKey::<S>::secure_aggregate(&refs).unwrap();
+
+      let sig = BlsSignature::<S>::from_bytes(&arr_from_hex(&v.agg_sig_secure)).unwrap();
+      let msg: [u8; 32] = arr_from_hex(&v.msg);
+      assert!(sig.verify(S::msg_ref(&msg), &agg_pk).is_ok());
+      assert!(sig.secure_verify_aggregates(S::msg_ref(&msg), &refs).is_ok());
+    }
+  }
+
+  #[rstest]
+  #[case::chia(assert_secure_aggregate_is_what_verify_checks::<BlsScChia>, "chia")]
+  #[case::ietf(assert_secure_aggregate_is_what_verify_checks::<BlsScIetf>, "ietf")]
+  fn secure_aggregate_is_what_verify_checks(#[case] assertion: fn(&str), #[case] scheme: &str) {
+    assertion(scheme);
+  }
+
+  /// The weights go by the sorted keys, so the set decides the aggregate and
+  /// the order it arrives in does not. A plain sum would ignore the weights
+  /// and land somewhere else entirely.
+  fn assert_secure_aggregate_follows_the_set<S: BlsScheme>() {
+    let pks: Vec<BlsPublicKey<S>> = [&RSEED[0], &RSEED[1], &RSEED[2]]
+      .iter()
+      .map(|ikm| BlsSecretKey::<S>::generate(*ikm).unwrap().public_key())
+      .collect();
+
+    let straight = BlsPublicKey::<S>::secure_aggregate(&[&pks[0], &pks[1], &pks[2]]).unwrap();
+    let rotated = BlsPublicKey::<S>::secure_aggregate(&[&pks[2], &pks[0], &pks[1]]).unwrap();
+    assert_eq!(straight, rotated);
+
+    let plain = BlsPublicKey::<S>::aggregate(&[&pks[0], &pks[1], &pks[2]]).unwrap();
+    assert_ne!(straight, plain, "the weights left no mark on the sum");
+  }
+
+  #[rstest]
+  #[case::chia(assert_secure_aggregate_follows_the_set::<BlsScChia>)]
+  #[case::ietf(assert_secure_aggregate_follows_the_set::<BlsScIetf>)]
+  fn secure_aggregate_follows_the_set(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// A lone signer is still weighted, so the aggregate is not that signer's
+  /// key; nothing is left to weight for an empty set, which is refused as it
+  /// is elsewhere.
+  fn assert_secure_aggregate_edges<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let pk = sk.public_key();
+
+    let alone = BlsPublicKey::<S>::secure_aggregate(&[&pk]).unwrap();
+    assert_ne!(alone, pk, "a single key went through unweighted");
+
+    let sig = sk.sign(S::msg_ref(&MSG_8BADFOOD));
+    let weighted = BlsSignature::<S>::secure_aggregate(&[&sig], &[&pk]).unwrap();
+    assert!(weighted.verify(S::msg_ref(&MSG_8BADFOOD), &alone).is_ok());
+
+    let none: [&BlsPublicKey<S>; 0] = [];
+    assert_eq!(
+      BlsPublicKey::<S>::secure_aggregate(&none),
+      Err(BlsError::EmptyAggregation)
+    );
+  }
+
+  #[rstest]
+  #[case::chia(assert_secure_aggregate_edges::<BlsScChia>)]
+  #[case::ietf(assert_secure_aggregate_edges::<BlsScIetf>)]
+  fn secure_aggregate_edges(#[case] assertion: fn()) {
+    assertion();
   }
 
   cfg_if! {
