@@ -7,42 +7,11 @@
 //! Shallue-van de Woestijne hash-to-G2 for legacy BLS.
 
 use super::blst_ffi::{Fp, Fp2, G2Affine, Point, G2};
+use super::curve_consts::{
+  BLS_X_BITS, BLS_X_LE, MONT_R_MOD_P, PSI_COEFF_X_C1, PSI_COEFF_Y_C0, PSI_COEFF_Y_C1, S3, S32,
+};
 
-use hex_conservative::hex;
 use sha2::{Digest, Sha256};
-
-// sqrt(-3) mod p (big-endian, left-padded from 40-byte B12_P381_S3).
-const S3: [u8; 48] =
-  hex!("0000000000000000be32ce5fbeed9ca374d38c0ed41eefd5bb675277cdf12d11bc2fb026c41400045c03fffffffdfffd");
-
-// (sqrt(-3) - 1) / 2 mod p (big-endian, left-padded from 40-byte B12_P381_S32).
-const S32: [u8; 48] =
-  hex!("00000000000000005f19672fdf76ce51ba69c6076a0f77eaddb3a93be6f89688de17d813620a00022e01fffffffefffe");
-
-// BLS12-381 curve parameter |x| in little-endian byte order.
-//  x  = -(2^63 + 2^62 + 2^60 + 2^57 + 2^48 + 2^16)
-// |x| = 0xD201000000010000
-const BLS_X_LE: [u8; 8] = hex!("00000100000001d2");
-const BLS_X_BITS: usize = 64;
-
-// Frobenius endomorphism constants for the BLS12-381 M-type twist.
-// psi(x,y) = (conj(x)*PSI_COEFF_X, conj(y)*PSI_COEFF_Y)
-
-// PSI_COEFF_X.c0 is zero, so only c1 is carried.
-const PSI_COEFF_X_C1: [u8; 48] =
-  hex!("1a0111ea397fe699ec02408663d4de85aa0d857d89759ad4897d29650fb85f9b409427eb4f49fffd8bfd00000000aaad");
-
-// PSI_COEFF_Y.c0
-const PSI_COEFF_Y_C0: [u8; 48] =
-  hex!("135203e60180a68ee2e9c448d77a2cd91c3dedd930b1cf60ef396489f61eb45e304466cf3e67fa0af1ee7b04121bdea2");
-
-// PSI_COEFF_Y.c1
-const PSI_COEFF_Y_C1: [u8; 48] =
-  hex!("06af0e0437ff400b6831e36d6bd17ffe48395dabc2d3435e77f76e17009241c5ee67992f72ec05f4c81084fbede3cc09");
-
-// 2^384 mod p for BLS12-381 (big-endian). Used in wide reduction.
-const R_MOD_P: [u8; 48] =
-  hex!("15f65ec3fa80e4935c071a97a256ec6d77ce5853705257455f48985753c758baebf4000bc40c0002760900000002fffd");
 
 // The 'b' coefficient for BLS12-381 twist curve: y^2 = x^3 + 4(1+i).
 fn curve_b() -> Fp2 {
@@ -158,7 +127,7 @@ fn reduce_mod_p(wide: &[u8; 64]) -> Fp {
   let mut hi_bytes = [0u8; 48];
   hi_bytes[32..48].copy_from_slice(&wide[..16]);
   let hi_fp = Fp::from(&hi_bytes);
-  let r_fp = Fp::from(&R_MOD_P);
+  let r_fp = Fp::from(&MONT_R_MOD_P);
 
   // result = hi * R + lo
   hi_fp * r_fp + lo_fp

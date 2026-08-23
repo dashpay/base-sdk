@@ -26,6 +26,7 @@ pub use sig_id::BlsSigId;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
+    mod curve_consts;
     mod public_ops;
     mod scheme_chia;
     mod scheme_ietf;
