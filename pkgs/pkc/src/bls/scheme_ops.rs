@@ -164,6 +164,22 @@ pub trait BlsScheme: BlsSchemeId {
   /// `InvalidSignature` when a signature fails to aggregate.
   fn aggregate_sig(sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError>;
 
+  /// Remove one signature from another.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSignature` when either signature or the difference
+  /// fails to decode, or when the difference is the identity.
+  fn sub_sig(sig: &Self::InnerSig, other: &Self::InnerSig) -> Result<Self::InnerSig, BlsError> {
+    let difference = Self::sig_to_g2(sig)? - Self::sig_to_g2(other)?;
+    // The identity signs nothing and verifies against everything paired with an
+    // identity key.
+    if difference.is_inf() {
+      return Err(BlsError::InvalidSignature);
+    }
+    Self::g2_to_sig(difference)
+  }
+
   /// Verify an aggregate signature where every signer signed `msg`.
   ///
   /// # Errors

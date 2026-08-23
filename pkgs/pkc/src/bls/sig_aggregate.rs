@@ -24,6 +24,17 @@ impl<S: BlsScheme> BlsSignature<S> {
     S::aggregate_sig(&inner_refs).map(Self::from_inner)
   }
 
+  /// Remove `other` from this signature, leaving behind the aggregate of the
+  /// rest.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSignature` when either signature or the difference fails
+  /// to decode, or when the difference is the identity.
+  pub fn sub_insecure(&self, other: &Self) -> Result<Self, BlsError> {
+    S::sub_sig(&self.0, &other.0).map(Self::from_inner)
+  }
+
   /// Verify an aggregated signature where every signer signed
   /// the same message.
   ///
@@ -143,6 +154,46 @@ mod tests {
   #[case::chia(assert_aggregate_same_message::<BlsScChia>)]
   #[case::ietf(assert_aggregate_same_message::<BlsScIetf>)]
   fn aggregate_and_verify_same_message(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// Subtraction is the inverse of aggregation, so taking one signature back
+  /// out of the pair leaves the other exactly as it was signed.
+  fn assert_sub_insecure_undoes_aggregation<S: BlsScheme>() {
+    let sk1 = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk2 = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
+    let msg = S::msg_ref(&MSG_DEADBEEF);
+
+    let sig1 = sk1.sign(msg);
+    let sig2 = sk2.sign(msg);
+    let agg = BlsSignature::<S>::aggregate(&[&sig1, &sig2]).unwrap();
+
+    assert_eq!(agg.sub_insecure(&sig1).unwrap(), sig2);
+    assert_eq!(agg.sub_insecure(&sig2).unwrap(), sig1);
+    assert!(agg.sub_insecure(&sig1).unwrap().verify(msg, &sk2.public_key()).is_ok());
+  }
+
+  #[rstest]
+  #[case::chia(assert_sub_insecure_undoes_aggregation::<BlsScChia>)]
+  #[case::ietf(assert_sub_insecure_undoes_aggregation::<BlsScIetf>)]
+  fn sub_insecure_undoes_aggregation(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// A signature taken from itself leaves the identity, which signs nothing.
+  /// Only the IETF decoder refuses identities, so a check is added to ensure
+  /// rejection under both schemes.
+  fn assert_sub_insecure_rejects_the_identity<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sig = sk.sign(S::msg_ref(&MSG_DEADBEEF));
+
+    assert_eq!(sig.sub_insecure(&sig), Err(BlsError::InvalidSignature));
+  }
+
+  #[rstest]
+  #[case::chia(assert_sub_insecure_rejects_the_identity::<BlsScChia>)]
+  #[case::ietf(assert_sub_insecure_rejects_the_identity::<BlsScIetf>)]
+  fn sub_insecure_rejects_the_identity(#[case] assertion: fn()) {
     assertion();
   }
 
