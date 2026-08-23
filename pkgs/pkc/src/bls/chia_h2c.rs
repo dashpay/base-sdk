@@ -6,10 +6,10 @@
 
 //! Shallue-van de Woestijne hash-to-G2 for legacy BLS.
 
-use super::blst_ffi::{G2Affine, Point, G2};
 use super::curve_consts::{
   BLS_X_BITS, BLS_X_LE, MONT_R_MOD_P, PSI_COEFF_X_C1, PSI_COEFF_Y_C0, PSI_COEFF_Y_C1, S3, S32,
 };
+use super::group::{G2Affine, Point, G2};
 use super::scalar::{Fp, Fp2};
 
 use sha2::{Digest, Sha256};

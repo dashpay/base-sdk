@@ -6,10 +6,11 @@
 
 //! Legacy BLS scheme implementation.
 
-use super::blst_ffi::{self, G1Affine, G2Affine, Point, G1, G2};
+use super::blst_ffi;
 use super::chia_h2c;
 use super::curve_consts::HALF_P;
 use super::error::BlsError;
+use super::group::{G1Affine, G2Affine, Point, G1, G2};
 use super::scalar::FR_BITS;
 use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScChia;

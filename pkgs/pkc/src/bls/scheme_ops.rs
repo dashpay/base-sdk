@@ -6,8 +6,9 @@
 
 //! Scalar-field arithmetic and threshold helpers.
 
-use super::blst_ffi::{self, Point, G1, G2};
+use super::blst_ffi;
 use super::error::BlsError;
+use super::group::{Point, G1, G2};
 use super::scalar::{Fr, FR_BITS};
 use super::schemes::BlsSchemeId;
 use super::BlsShareId;

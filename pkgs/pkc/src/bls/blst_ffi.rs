@@ -6,11 +6,11 @@
 
 //! Bridging routines for unsafe blst FFI operations.
 
+use super::group::{G1Affine, G2Affine, Point, G1, G2};
 use super::scalar::{Fp, Fp2, Fr};
 
 use blst::*;
 use dash_types::type_cvrt;
-use dash_types::type_id::Unencodable;
 
 use core::ops::{Add, Mul, Neg, Sub};
 use core::ptr::null_mut;
@@ -266,23 +266,6 @@ impl Sub for Fp2 {
   }
 }
 
-/// A projective group element supporting curve addition and scalar
-/// multiplication.
-pub(crate) trait Point: Copy + Default + Add<Output = Self> {
-  /// The group identity (point at infinity).
-  fn identity() -> Self {
-    Self::default()
-  }
-
-  /// Scalar multiplication by a little-endian scalar of `nbits` bits.
-  fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self;
-}
-
-/// A point of the G1 group (over `Fp`) in projective coordinates,
-/// suitable for accumulation before a single conversion to affine.
-#[derive(Clone, Copy, Debug, Default, Unencodable)]
-pub struct G1(blst_p1);
-
 impl G1 {
   /// Whether the point lies in the prime-order subgroup.
   #[cfg(test)]
@@ -319,15 +302,6 @@ impl Point for G1 {
   }
 }
 
-type_cvrt!(From<G1> for blst_p1, |g| g.0);
-
-type_cvrt!(From<blst_p1> for G1, |raw| Self(*raw));
-
-/// A point of the G1 group in affine coordinates, the canonical form
-/// used for serialization and pairing inputs.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub struct G1Affine(blst_p1_affine);
-
 impl G1Affine {
   /// The conventional G1 generator.
   pub(crate) fn generator() -> Self {
@@ -363,15 +337,6 @@ impl G1Affine {
     Ok(Self(aff))
   }
 }
-
-type_cvrt!(From<G1Affine> for blst_p1_affine, |a| a.0);
-
-type_cvrt!(From<blst_p1_affine> for G1Affine, |raw| Self(*raw));
-
-/// A point of the G2 group (over `Fp2`) in projective coordinates,
-/// suitable for accumulation before a single conversion to affine.
-#[derive(Clone, Copy, Debug, Default, Unencodable)]
-pub struct G2(blst_p2);
 
 impl G2 {
   /// The conventional G2 generator.
@@ -431,34 +396,7 @@ impl Point for G2 {
   }
 }
 
-type_cvrt!(From<blst_p2> for G2, |raw| Self(*raw));
-
-type_cvrt!(From<G2> for blst_p2, |g| g.0);
-
-/// A point of the G2 group in affine coordinates, the canonical form
-/// used for serialization and pairing inputs.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub struct G2Affine(blst_p2_affine);
-
 impl G2Affine {
-  /// Construct from affine `x` and `y` coordinates in `Fp2`.
-  pub(crate) fn from_coords(x: Fp2, y: Fp2) -> Self {
-    Self(blst_p2_affine {
-      x: x.into(),
-      y: y.into(),
-    })
-  }
-
-  /// The affine `x` coordinate.
-  pub(crate) fn x(&self) -> Fp2 {
-    Fp2::from(self.0.x)
-  }
-
-  /// The affine `y` coordinate.
-  pub(crate) fn y(&self) -> Fp2 {
-    Fp2::from(self.0.y)
-  }
-
   /// Convert to projective coordinates.
   pub(crate) fn to_projective(self) -> G2 {
     let mut out = blst_p2::default();
@@ -500,7 +438,3 @@ impl G2Affine {
     Ok(Self(aff))
   }
 }
-
-type_cvrt!(From<G2Affine> for blst_p2_affine, |a| a.0);
-
-type_cvrt!(From<blst_p2_affine> for G2Affine, |raw| Self(*raw));
