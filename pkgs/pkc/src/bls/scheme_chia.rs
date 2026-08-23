@@ -10,6 +10,7 @@ use super::blst_ffi::{self, G1Affine, G2Affine, Point, G1, G2};
 use super::chia_h2c;
 use super::curve_consts::HALF_P;
 use super::error::BlsError;
+use super::scalar::FR_BITS;
 use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScChia;
 use crate::prelude::*;
@@ -210,7 +211,7 @@ impl BlsScheme for BlsScChia {
   fn sign(sk: &Self::InnerSk, msg: &Self::Msg) -> Self::InnerSig {
     let h = chia_h2c::hash_to_g2(msg);
     // blst_sign_pk_in_g1 applies IETF transformations, do manually instead.
-    h.mul_scalar(&sk.b, blst_ffi::FR_BITS).to_affine()
+    h.mul_scalar(&sk.b, FR_BITS).to_affine()
   }
 
   /// Check the pairing e(sig, G1) == e(H(msg), pk).

@@ -6,8 +6,9 @@
 
 //! Scalar-field arithmetic and threshold helpers.
 
-use super::blst_ffi::{self, Fr, Point, G1, G2};
+use super::blst_ffi::{self, Point, G1, G2};
 use super::error::BlsError;
+use super::scalar::{Fr, FR_BITS};
 use super::schemes::BlsSchemeId;
 use super::BlsShareId;
 use crate::prelude::*;
@@ -21,7 +22,7 @@ use core::fmt::Debug;
 /// Multiplier width for the secure-aggregation weights.
 ///
 /// The weight is an unreduced SHA-256 digest, so it needs the full width
-/// rather than [`blst_ffi::FR_BITS`].
+/// rather than [`FR_BITS`].
 const WEIGHT_BITS: usize = 256;
 
 /// Map a blst verification outcome onto a [`BlsError`].
@@ -139,7 +140,7 @@ pub trait BlsScheme: BlsSchemeId {
     let point = Self::pk_to_g1(peer_pk)?;
     let mut sk_bytes = Self::sk_to_bytes(sk);
     let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
-    let product = point.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS);
+    let product = point.mul_scalar(&sk_scalar.b, FR_BITS);
     sk_bytes.zeroize();
     sk_scalar.b.zeroize();
     Self::g1_to_pk(product)
@@ -524,7 +525,7 @@ fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   for i in 0..n {
     // Convert Fr coefficient to scalar for point multiplication.
     let scalar = blst::blst_scalar::from(&coeffs[i]);
-    result = result + points[i].mul_scalar(&scalar.b, blst_ffi::FR_BITS);
+    result = result + points[i].mul_scalar(&scalar.b, FR_BITS);
   }
   result
 }
@@ -568,7 +569,7 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
   let x_scalar = blst::blst_scalar::from(x);
   let mut result = coeffs_g1[n - 1];
   for i in (0..n - 1).rev() {
-    result = result.mul_scalar(&x_scalar.b, blst_ffi::FR_BITS) + coeffs_g1[i];
+    result = result.mul_scalar(&x_scalar.b, FR_BITS) + coeffs_g1[i];
   }
   result
 }

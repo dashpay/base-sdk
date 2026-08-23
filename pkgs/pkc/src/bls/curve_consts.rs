@@ -51,7 +51,7 @@ pub(super) const PSI_COEFF_Y_C1: [u8; 48] =
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::bls::blst_ffi::{Fp, Fp2};
+  use crate::bls::scalar::{Fp, Fp2};
 
   use rstest::rstest;
 

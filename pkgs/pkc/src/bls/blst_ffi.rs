@@ -6,17 +6,14 @@
 
 //! Bridging routines for unsafe blst FFI operations.
 
+use super::scalar::{Fp, Fp2, Fr};
+
 use blst::*;
 use dash_types::type_cvrt;
 use dash_types::type_id::Unencodable;
-use zeroize::Zeroize;
 
-use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use core::ptr::null_mut;
-
-/// Bit-length for scalars known to be reduced mod q (< 2^255).
-pub(crate) const FR_BITS: usize = 255;
 
 /// Serialize a scalar to its 32-byte big-endian encoding.
 pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
@@ -86,11 +83,6 @@ pub(crate) fn sk_to_pk2_in_g1(sk: &blst_scalar) -> G1Affine {
   aff.into()
 }
 
-/// A scalar of the BLS12-381 scalar field, i.e. an integer reduced modulo the
-/// group order `r`.
-#[derive(Clone, Copy, Default)]
-pub(crate) struct Fr(blst_fr);
-
 impl Fr {
   /// Multiplicative inverse; the inverse of zero is left unspecified.
   pub(crate) fn inverse(&self) -> Self {
@@ -105,12 +97,6 @@ impl Fr {
     let one = [1u64, 0, 0, 0];
     unsafe { blst_fr_from_uint64(&mut out, one.as_ptr()) };
     Self(out)
-  }
-}
-
-impl fmt::Debug for Fr {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "Fr(..)")
   }
 }
 
@@ -154,12 +140,6 @@ impl Sub for Fr {
   }
 }
 
-impl Zeroize for Fr {
-  fn zeroize(&mut self) {
-    self.0.l.zeroize();
-  }
-}
-
 type_cvrt!(From<blst_scalar> for Fr, |s| {
   let mut out = blst_fr::default();
   unsafe { blst_fr_from_scalar(&mut out, s) };
@@ -171,20 +151,6 @@ type_cvrt!(From<Fr> for blst_scalar, |fr| {
   unsafe { blst_scalar_from_fr(&mut out, &fr.0) };
   out
 });
-
-/// An element of the BLS12-381 base field, i.e. an integer reduced
-/// modulo the field prime `p`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub(crate) struct Fp(blst_fp);
-
-impl Fp {
-  /// Construct from a `u64`, zero-extended into the low limbs.
-  pub(crate) fn from_u64(v: u64) -> Self {
-    let mut bytes = [0u8; 48];
-    bytes[40..48].copy_from_slice(&v.to_be_bytes());
-    Self::from(&bytes)
-  }
-}
 
 impl Add for Fp {
   type Output = Self;
@@ -238,48 +204,12 @@ type_cvrt!(From<[u8; 48]> for Fp, |bytes| {
   Self(out)
 });
 
-type_cvrt!(From<Fp> for blst_fp, |fp| fp.0);
-
-type_cvrt!(From<blst_fp> for Fp, |raw| Self(*raw));
-
-/// An element of the quadratic extension field `Fp2 = Fp[u]/(u^2 + 1)`,
-/// written `c0 + c1*u`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub(crate) struct Fp2(blst_fp2);
-
 impl Fp2 {
-  /// The `c0` (real) component.
-  pub(crate) fn c0(&self) -> Fp {
-    Fp::from(self.0.fp[0])
-  }
-
-  /// The `c1` (coefficient of `u`) component.
-  pub(crate) fn c1(&self) -> Fp {
-    Fp::from(self.0.fp[1])
-  }
-
-  /// Big-endian byte encoding of the `c1` component.
-  pub(crate) fn c1_bendian(&self) -> [u8; 48] {
-    <[u8; 48]>::from(self.c1())
-  }
-
   /// Multiplicative inverse; the inverse of zero is left unspecified.
   pub(crate) fn inverse(&self) -> Self {
     let mut out = blst_fp2::default();
     unsafe { blst_fp2_inverse(&mut out, &self.0) };
     Self(out)
-  }
-
-  /// Whether both components are zero.
-  pub(crate) fn is_zero(&self) -> bool {
-    self.0.fp[0].l == [0u64; 6] && self.0.fp[1].l == [0u64; 6]
-  }
-
-  /// Construct from the two base-field components `c0` and `c1`.
-  pub(crate) fn new(c0: Fp, c1: Fp) -> Self {
-    Self(blst_fp2 {
-      fp: [c0.into(), c1.into()],
-    })
   }
 
   /// A square root, or `None` when the value is not a quadratic residue.
@@ -293,18 +223,6 @@ impl Fp2 {
     let mut out = blst_fp2::default();
     unsafe { blst_fp2_sqr(&mut out, &self.0) };
     Self(out)
-  }
-
-  /// Return a copy with the `c0` component replaced.
-  pub(crate) fn with_c0(mut self, c0: Fp) -> Self {
-    self.0.fp[0] = c0.into();
-    self
-  }
-
-  /// Return a copy with the `c1` component replaced.
-  pub(crate) fn with_c1(mut self, c1: Fp) -> Self {
-    self.0.fp[1] = c1.into();
-    self
   }
 }
 
@@ -347,12 +265,6 @@ impl Sub for Fp2 {
     Self(out)
   }
 }
-
-type_cvrt!(From<Fp> for Fp2, |fp| Self::new(*fp, Fp::default()));
-
-type_cvrt!(From<Fp2> for blst_fp2, |fp2| fp2.0);
-
-type_cvrt!(From<blst_fp2> for Fp2, |raw| Self(*raw));
 
 /// A projective group element supporting curve addition and scalar
 /// multiplication.
