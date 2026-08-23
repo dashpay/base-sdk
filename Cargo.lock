@@ -602,6 +602,7 @@ dependencies = [
  "divan",
  "ff",
  "getrandom 0.4.3",
+ "group",
  "hex-conservative 0.3.2",
  "k256",
  "rand_core 0.10.1",

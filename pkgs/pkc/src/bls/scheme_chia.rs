@@ -237,7 +237,7 @@ impl BlsScheme for BlsScChia {
     }
     let mut acc = pks[0].to_projective();
     for pk in &pks[1..] {
-      acc = acc + pk.to_projective();
+      acc += pk.to_projective();
     }
     Ok(acc.to_affine())
   }
@@ -249,7 +249,7 @@ impl BlsScheme for BlsScChia {
     }
     let mut acc = sigs[0].to_projective();
     for sig in &sigs[1..] {
-      acc = acc + sig.to_projective();
+      acc += sig.to_projective();
     }
     Ok(acc.to_affine())
   }

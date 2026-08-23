@@ -210,7 +210,7 @@ pub trait BlsScheme: BlsSchemeId {
 
     let mut acc = G1::identity();
     for (pk_bytes, weight) in sorted.iter().zip(secure_weights(&sorted)) {
-      acc = acc + Self::secure_agg_point(pk_bytes)?.mul_scalar(&weight.b, WEIGHT_BITS);
+      acc += Self::secure_agg_point(pk_bytes)?.mul_scalar(&weight.b, WEIGHT_BITS);
     }
 
     let agg_pk = Self::g1_to_pk(acc)?;
@@ -246,7 +246,7 @@ pub trait BlsScheme: BlsSchemeId {
 
     let mut acc = G2::identity();
     for ((_, sig), weight) in paired.iter().zip(secure_weights(&sorted)) {
-      acc = acc + Self::sig_to_g2(sig)?.mul_scalar(&weight.b, WEIGHT_BITS);
+      acc += Self::sig_to_g2(sig)?.mul_scalar(&weight.b, WEIGHT_BITS);
     }
 
     Self::g2_to_sig(acc)
@@ -527,7 +527,7 @@ fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   for i in 0..n {
     // Convert Fr coefficient to scalar for point multiplication.
     let scalar = blst::blst_scalar::from(&coeffs[i]);
-    result = result + points[i].mul_scalar(&scalar.b, FR_BITS);
+    result += points[i].mul_scalar(&scalar.b, FR_BITS);
   }
   result
 }

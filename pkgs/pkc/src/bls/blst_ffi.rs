@@ -315,10 +315,32 @@ impl Sub for Fp2 {
 }
 
 impl G1 {
+  /// Point doubling.
+  pub(crate) fn double(&self) -> Self {
+    let mut out = blst_p1::default();
+    unsafe { blst_p1_double(&mut out, &self.0) };
+    Self(out)
+  }
+
+  /// The conventional G1 generator.
+  pub(crate) fn generator() -> Self {
+    Self(unsafe { *blst_p1_generator() })
+  }
+
   /// Whether the point lies in the prime-order subgroup.
-  #[cfg(test)]
   pub(crate) fn in_subgroup(&self) -> bool {
     unsafe { blst_p1_in_g1(&self.0) }
+  }
+
+  /// Whether two points are equal as group elements, projective coordinates
+  /// notwithstanding.
+  pub(crate) fn is_equal(&self, other: &Self) -> bool {
+    unsafe { blst_p1_is_equal(&self.0, &other.0) }
+  }
+
+  /// Whether the point is at infinity, the group identity.
+  pub(crate) fn is_inf(&self) -> bool {
+    unsafe { blst_p1_is_inf(&self.0) }
   }
 
   /// Convert to affine coordinates.
@@ -335,6 +357,16 @@ impl Add for G1 {
   fn add(self, rhs: Self) -> Self::Output {
     let mut out = blst_p1::default();
     unsafe { blst_p1_add_or_double(&mut out, &self.0, &rhs.0) };
+    Self(out)
+  }
+}
+
+impl Neg for G1 {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    let mut out = self.0;
+    unsafe { blst_p1_cneg(&mut out, true) };
     Self(out)
   }
 }
@@ -393,9 +425,19 @@ impl G2 {
   }
 
   /// Whether the point lies in the prime-order subgroup.
-  #[cfg(test)]
   pub(crate) fn in_subgroup(&self) -> bool {
     unsafe { blst_p2_in_g2(&self.0) }
+  }
+
+  /// Whether two points are equal as group elements, notwithstanding projective
+  /// coordinates.
+  pub(crate) fn is_equal(&self, other: &Self) -> bool {
+    unsafe { blst_p2_is_equal(&self.0, &other.0) }
+  }
+
+  /// Whether the point is at infinity, the group identity.
+  pub(crate) fn is_inf(&self) -> bool {
+    unsafe { blst_p2_is_inf(&self.0) }
   }
 
   /// Point doubling.
