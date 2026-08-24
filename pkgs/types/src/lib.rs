@@ -30,7 +30,8 @@ pub mod type_id;
 
 pub use compact::CompactSize;
 pub use entity::{VecDecoder, VecEncoder, MAX_SER_SIZE};
-pub use secret::{qtypestr, ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
+pub use macros::qtypestr;
+pub use secret::{ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
 
 #[doc(hidden)]
 pub mod __private {
