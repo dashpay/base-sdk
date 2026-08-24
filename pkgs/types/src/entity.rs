@@ -219,11 +219,14 @@ macro_rules! impl_bytes {
 /// `Hash`, `is_null`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for
 /// [u8; N]`, a hex `Debug`/`Display`, and the hex `serde` pair.
 ///
+/// A trailing `rev` renders the hex in reverse storage order, the default `fwd`
+/// renders storage order.
+///
 /// For a newtype holding secrets use [`derive_sbytes!`](crate::derive_sbytes),
 /// which withholds everything that would read or copy out the plaintext.
 #[macro_export]
 macro_rules! derive_bytes {
-  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+  (@parse [$($g:tt)*] $ty:ty, $n:expr, $rev:expr) => {
     impl<$($g)*> ::core::clone::Clone for $ty {
       fn clone(&self) -> Self { *self }
     }
@@ -284,9 +287,20 @@ macro_rules! derive_bytes {
       }
     }
 
+    $crate::derive_bytes!(@hex [$($g)*] $ty, $n, $rev);
+  };
+  (@order [$($g:tt)*] $ty:ty, $n:expr, fwd) => {
+    $crate::derive_bytes!(@parse [$($g)*] $ty, $n, false);
+  };
+  (@order [$($g:tt)*] $ty:ty, $n:expr, rev) => {
+    $crate::derive_bytes!(@parse [$($g)*] $ty, $n, true);
+  };
+  (@hex [$($g:tt)*] $ty:ty, $n:expr, $rev:expr) => {
     impl<$($g)*> ::core::fmt::Display for $ty {
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        for byte in self.as_bytes() {
+        let bytes = self.as_bytes();
+        for i in 0..$n {
+          let byte = if $rev { bytes[$n - 1 - i] } else { bytes[i] };
           ::core::write!(f, "{byte:02x}")?;
         }
         ::core::result::Result::Ok(())
@@ -299,8 +313,7 @@ macro_rules! derive_bytes {
         where
           Z: $crate::__private::serde::Serializer,
         {
-          use $crate::__private::hex_conservative::DisplayHex as _;
-          serializer.serialize_str(&self.as_bytes().to_lower_hex_string())
+          serializer.serialize_str(&::alloc::format!("{self}"))
         }
       }
 
@@ -311,18 +324,27 @@ macro_rules! derive_bytes {
         {
           use $crate::__private::serde::de::Error as _;
           let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
-          <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
-            .map(Self::from_bytes)
-            .map_err(D::Error::custom)
+          let mut bytes = <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
+            .map_err(D::Error::custom)?;
+          if $rev {
+            bytes.reverse();
+          }
+          ::core::result::Result::Ok(Self::from_bytes(bytes))
         }
       }
     }
   };
-  (for[$($generic:tt)*] $($args:tt)*) => {
-    $crate::derive_bytes!(@parse [$($generic)*] $($args)*);
+  (for[$($generic:tt)*] $ty:ty, $n:expr, $order:tt) => {
+    $crate::derive_bytes!(@order [$($generic)*] $ty, $n, $order);
   };
-  ($($args:tt)*) => {
-    $crate::derive_bytes!(@parse [] $($args)*);
+  (for[$($generic:tt)*] $ty:ty, $n:expr) => {
+    $crate::derive_bytes!(@order [$($generic)*] $ty, $n, fwd);
+  };
+  ($ty:ty, $n:expr, $order:tt) => {
+    $crate::derive_bytes!(@order [] $ty, $n, $order);
+  };
+  ($ty:ty, $n:expr) => {
+    $crate::derive_bytes!(@order [] $ty, $n, fwd);
   };
 }
 

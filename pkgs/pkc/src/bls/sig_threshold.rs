@@ -10,9 +10,8 @@ use super::error::BlsError;
 use super::scheme_ops::BlsScheme;
 use super::share_ops::BlsSigShare;
 use super::sig_basic::BlsSignature;
+use super::BlsShareId;
 use crate::prelude::*;
-
-use dash_num::Hash256;
 
 impl<S: BlsScheme> BlsSignature<S> {
   /// Recover a full signature from threshold signature shares via Lagrange
@@ -24,7 +23,7 @@ impl<S: BlsScheme> BlsSignature<S> {
   /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
   /// when a share fails to decode.
   pub fn recover(shares: &[&BlsSigShare<S>]) -> Result<Self, BlsError> {
-    let ids: Vec<&Hash256> = shares.iter().map(|s| s.id()).collect();
+    let ids: Vec<&BlsShareId> = shares.iter().map(|s| s.id()).collect();
     let sigs: Vec<&S::InnerSig> = shares.iter().map(|s| &s.signature().0).collect();
 
     S::recover_sig_shares(&ids, &sigs).map(BlsSignature::from_inner)
