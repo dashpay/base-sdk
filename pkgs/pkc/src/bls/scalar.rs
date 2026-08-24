@@ -12,6 +12,7 @@ use super::share_id::BlsShareId;
 
 use blst::{blst_fp, blst_fp2, blst_fr};
 use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
 use dash_types::type_id::Unencodable;
 use ff::helpers::{sqrt_ratio_generic, sqrt_tonelli_shanks};
 use ff::{Field, PrimeField};
@@ -274,7 +275,8 @@ impl Zeroize for Fr {
 
 /// An element of the BLS12-381 base field, i.e. an integer reduced modulo the
 /// field prime `p`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub(crate) struct Fp(pub(super) blst_fp);
 
 impl Fp {
@@ -292,7 +294,8 @@ type_cvrt!(From<blst_fp> for Fp, |raw| Self(*raw));
 
 /// An element of the quadratic extension field `Fp2 = Fp[u]/(u^2 + 1)`, written
 /// `c0 + c1*u`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub(crate) struct Fp2(pub(super) blst_fp2);
 
 impl Fp2 {

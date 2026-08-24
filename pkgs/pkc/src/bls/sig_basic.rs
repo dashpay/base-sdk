@@ -10,23 +10,30 @@ use super::error::BlsError;
 use super::group::G2;
 use super::public_ops::BlsPublicKey;
 use super::scheme_ops::BlsScheme;
-use super::{BlsScIetf, BlsSigBytes, BlsSigId, BLS_SIG_LEN};
+#[cfg(feature = "codec")]
+use super::BLS_SIG_LEN;
+use super::{BlsScIetf, BlsSigBytes, BlsSigId};
 
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
+#[cfg(feature = "codec")]
+use dash_types::dlgt_codec;
+#[cfg(feature = "codec")]
 use dash_types::type_id::TypeId;
-use dash_types::{dlgt_codec, qtypestr, type_cvrt};
+use dash_types::{qtypestr, type_cvrt};
 use hex_conservative::DisplayHex;
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};
 use core::hash::{Hash, Hasher};
 
 /// A BLS signature (96-byte compressed G2 point)
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "BlsSigBytes<S>", try_from = "BlsSigBytes<S>"))]
 #[cfg_attr(feature = "serde", serde(bound(serialize = "", deserialize = "")))]
-#[derive(TypeId)]
 pub struct BlsSignature<S: BlsScheme>(pub(crate) S::InnerSig);
 
+#[cfg(feature = "codec")]
 dlgt_codec!(for[S: BlsScheme] BlsSignature<S> => BlsSigBytes<S>, Hash256, BlsError, BLS_SIG_LEN);
 
 impl<S: BlsScheme> BlsSignature<S> {

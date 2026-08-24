@@ -9,12 +9,18 @@
 use super::error::BlsError;
 use super::group::G1;
 use super::scheme_ops::BlsScheme;
-use super::{BlsPkBytes, BLS_PK_LEN};
+use super::BlsPkBytes;
+#[cfg(feature = "codec")]
+use super::BLS_PK_LEN;
 use crate::prelude::*;
 
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
+#[cfg(feature = "codec")]
+use dash_types::dlgt_codec;
+#[cfg(feature = "codec")]
 use dash_types::type_id::TypeId;
-use dash_types::{dlgt_codec, qtypestr, type_cvrt};
+use dash_types::{qtypestr, type_cvrt};
 use hex_conservative::DisplayHex;
 
 use core::any::type_name;
@@ -22,12 +28,13 @@ use core::fmt::{Debug, Formatter, Result as FmtResult};
 use core::hash::{Hash, Hasher};
 
 /// A BLS public key (48-byte compressed G1 point)
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "BlsPkBytes<S>", try_from = "BlsPkBytes<S>",))]
 #[cfg_attr(feature = "serde", serde(bound(serialize = "", deserialize = "")))]
-#[derive(TypeId)]
 pub struct BlsPublicKey<S: BlsScheme>(pub(crate) S::InnerPk);
 
+#[cfg(feature = "codec")]
 dlgt_codec!(for[S: BlsScheme] BlsPublicKey<S> => BlsPkBytes<S>, Hash256, BlsError, BLS_PK_LEN);
 
 impl<S: BlsScheme> BlsPublicKey<S> {

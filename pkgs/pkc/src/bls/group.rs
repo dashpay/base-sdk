@@ -11,6 +11,7 @@ use super::scalar::{Fp2, Fr, FR_BITS};
 
 use blst::{blst_p1, blst_p1_affine, blst_p2, blst_p2_affine};
 use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
 use dash_types::type_id::Unencodable;
 use ff::{Field, PrimeField};
 use group::{Group, GroupEncoding};
@@ -34,7 +35,8 @@ pub(crate) trait Point: Copy + Default + Add<Output = Self> {
 }
 
 /// The compressed encoding of a group element, `N` bytes wide.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct BlsPointRepr<const N: usize>([u8; N]);
 
 impl<const N: usize> BlsPointRepr<N> {
@@ -69,7 +71,8 @@ impl<const N: usize> From<[u8; N]> for BlsPointRepr<N> {
 }
 
 /// A point of the G1 group (over `Fp`) in projective coordinates.
-#[derive(Clone, Copy, Default, Unencodable)]
+#[derive(Clone, Copy, Default)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct G1(pub(super) blst_p1);
 
 type_cvrt!(From<G1> for blst_p1, |g| g.0);
@@ -77,7 +80,8 @@ type_cvrt!(From<G1> for blst_p1, |g| g.0);
 type_cvrt!(From<blst_p1> for G1, |raw| Self(*raw));
 
 /// A point of the G1 group in affine coordinates.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct G1Affine(pub(super) blst_p1_affine);
 
 impl_group!(G1, G1Affine, 48);
@@ -87,7 +91,8 @@ type_cvrt!(From<G1Affine> for blst_p1_affine, |a| a.0);
 type_cvrt!(From<blst_p1_affine> for G1Affine, |raw| Self(*raw));
 
 /// A point of the G2 group (over `Fp2`) in projective coordinates.
-#[derive(Clone, Copy, Default, Unencodable)]
+#[derive(Clone, Copy, Default)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct G2(pub(super) blst_p2);
 
 type_cvrt!(From<blst_p2> for G2, |raw| Self(*raw));
@@ -95,7 +100,8 @@ type_cvrt!(From<blst_p2> for G2, |raw| Self(*raw));
 type_cvrt!(From<G2> for blst_p2, |g| g.0);
 
 /// A point of the G2 group in affine coordinates.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct G2Affine(pub(super) blst_p2_affine);
 
 impl G2Affine {

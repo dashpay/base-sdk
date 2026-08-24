@@ -6,19 +6,27 @@
 
 //! BLS scheme trait and marker types.
 
+#[cfg(feature = "codec")]
 use dash_types::type_id::{TypeId, Unencodable};
 
 /// BLS scheme discriminator.
+#[cfg(feature = "codec")]
 pub trait BlsSchemeId: TypeId + 'static {}
 
+/// BLS scheme discriminator.
+#[cfg(not(feature = "codec"))]
+pub trait BlsSchemeId: 'static {}
+
 /// Legacy (Chia) BLS scheme marker.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId, Unencodable)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId, Unencodable))]
 pub enum BlsScChia {}
 
 impl BlsSchemeId for BlsScChia {}
 
 /// IETF-standard BLS scheme marker.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId, Unencodable)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId, Unencodable))]
 pub enum BlsScIetf {}
 
 impl BlsSchemeId for BlsScIetf {}

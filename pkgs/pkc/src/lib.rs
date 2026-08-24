@@ -16,9 +16,14 @@ extern crate std;
 mod prelude;
 
 pub mod bls;
-pub mod ecdsa;
 
-#[doc(hidden)]
-pub mod __private {
-  pub use crate::ecdsa::PubKeyHash as __PubKeyHash;
+cfg_if::cfg_if! {
+  if #[cfg(feature = "codec")] {
+    pub mod ecdsa;
+
+    #[doc(hidden)]
+    pub mod __private {
+      pub use crate::ecdsa::PubKeyHash as __PubKeyHash;
+    }
+  }
 }
