@@ -9,6 +9,7 @@
 use super::dh_bytes::BlsDhBytes;
 use super::error::BlsError;
 use super::public_ops::BlsPublicKey;
+use super::scalar::Fr;
 use super::scheme_ops::BlsScheme;
 use super::sig_basic::BlsSignature;
 use super::{BlsScIetf, BlsSigId, BlsSkBytes, BLS_SK_LEN};
@@ -50,6 +51,19 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// Serialize to 32 bytes, wiped when the returned value drops.
   pub fn to_bytes(&self) -> Zeroizing<[u8; 32]> {
     Zeroizing::new(S::sk_to_bytes(&self.0))
+  }
+
+  /// Retag this key under another scheme.
+  ///
+  /// A secret key is a scalar, so a retag re-encodes nothing; only the public
+  /// key it derives changes encoding rather than value. The secret-side
+  /// companion to [`BlsPublicKey::to_scheme`], for a holder typed to one arm.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when the target scheme refuses the scalar.
+  pub fn to_scheme<T: BlsScheme>(&self) -> Result<BlsSecretKey<T>, BlsError> {
+    BlsSecretKey::<T>::from_bytes(&self.to_bytes())
   }
 
   /// Derive the corresponding public key.
@@ -140,6 +154,14 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsSkBytes<S>> for BlsSecretKey<S>, BlsErro
   Self::from_bytes(bytes.as_bytes())
 });
 
+type_cvrt!(for[S: BlsScheme] From<BlsSecretKey<S>> for Zeroizing<Fr>, |sk| {
+  Zeroizing::new(Fr::from_bendian_reduce(&sk.to_bytes()))
+});
+
+type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar| {
+  Self::from_bytes(&scalar.to_bendian())
+});
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
@@ -162,6 +184,24 @@ mod tests {
   struct AggSkVec {
     sks: Vec<String>,
     agg_sk: String,
+  }
+
+  /// A retag moves no scalar, so the bytes survive and the derived public key
+  /// is the converted one rather than a different key.
+  fn assert_scheme_retag_keeps_the_scalar<S: BlsScheme, T: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let there = sk.to_scheme::<T>().unwrap();
+
+    assert_eq!(*there.to_bytes(), *sk.to_bytes());
+    assert_eq!(there.public_key(), sk.public_key().to_scheme::<T>().unwrap());
+  }
+
+  #[rstest]
+  #[case::chia_to_ietf(assert_scheme_retag_keeps_the_scalar::<BlsScChia, BlsScIetf>)]
+  #[case::ietf_to_chia(assert_scheme_retag_keeps_the_scalar::<BlsScIetf, BlsScChia>)]
+  #[case::ietf_to_ietf(assert_scheme_retag_keeps_the_scalar::<BlsScIetf, BlsScIetf>)]
+  fn scheme_retag_keeps_the_scalar(#[case] assertion: fn()) {
+    assertion();
   }
 
   fn assert_roundtrip<S: BlsScheme>() {

@@ -6,22 +6,21 @@
 
 //! Legacy BLS scheme implementation.
 
-use super::blst_ffi::{self, G1Affine, G2Affine, Point, G1, G2};
+use super::blst_ffi;
 use super::chia_h2c;
+use super::curve_consts::HALF_P;
 use super::error::BlsError;
+use super::group::{G1Affine, G2Affine, Point, G1, G2};
+use super::scalar::FR_BITS;
 use super::scheme_ops::BlsScheme;
 use super::schemes::BlsScChia;
 use crate::prelude::*;
 
 use blst::min_pk;
-use hex_conservative::hex;
 use zeroize::Zeroize;
 
 /// y.c1 > (p-1)/2, matching the legacy sign convention.
 fn y_c1_is_larger(y_c1: &[u8]) -> bool {
-  const HALF_P: [u8; 48] =
-    hex!("0d0088f51cbff34d258dd3db21a5d66bb23ba5c279c2895fb39869507b587b120f55ffff58a9ffffdcff7fffffffd555");
-
   y_c1.len() >= 48 && y_c1[..48] > HALF_P[..]
 }
 
@@ -213,7 +212,7 @@ impl BlsScheme for BlsScChia {
   fn sign(sk: &Self::InnerSk, msg: &Self::Msg) -> Self::InnerSig {
     let h = chia_h2c::hash_to_g2(msg);
     // blst_sign_pk_in_g1 applies IETF transformations, do manually instead.
-    h.mul_scalar(&sk.b, blst_ffi::FR_BITS).to_affine()
+    h.mul_scalar(&sk.b, FR_BITS).to_affine()
   }
 
   /// Check the pairing e(sig, G1) == e(H(msg), pk).
@@ -238,7 +237,7 @@ impl BlsScheme for BlsScChia {
     }
     let mut acc = pks[0].to_projective();
     for pk in &pks[1..] {
-      acc = acc + pk.to_projective();
+      acc += pk.to_projective();
     }
     Ok(acc.to_affine())
   }
@@ -250,7 +249,7 @@ impl BlsScheme for BlsScChia {
     }
     let mut acc = sigs[0].to_projective();
     for sig in &sigs[1..] {
-      acc = acc + sig.to_projective();
+      acc += sig.to_projective();
     }
     Ok(acc.to_affine())
   }

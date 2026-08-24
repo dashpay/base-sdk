@@ -11,12 +11,12 @@ use super::public_ops::BlsPublicKey;
 use super::scheme_ops::BlsScheme;
 use super::secret_ops::BlsSecretKey;
 use super::sig_basic::BlsSignature;
+use super::BlsShareId;
 use crate::prelude::*;
 
-use dash_num::Hash256;
 use dash_types::qtypestr;
 use dash_types::type_id::Unencodable;
-use rand_core::CryptoRngCore;
+use rand_core::CryptoRng;
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};
 use core::hash::{Hash, Hasher};
@@ -24,18 +24,18 @@ use core::hash::{Hash, Hasher};
 /// Secret key share for threshold signing.
 #[derive(Unencodable)]
 pub struct BlsSkShare<S: BlsScheme> {
-  id: Hash256,
+  id: BlsShareId,
   sk: BlsSecretKey<S>,
 }
 
 impl<S: BlsScheme> BlsSkShare<S> {
   /// Construct a secret key share from an ID and a secret key.
-  pub fn new(id: Hash256, sk: BlsSecretKey<S>) -> Self {
+  pub fn new(id: BlsShareId, sk: BlsSecretKey<S>) -> Self {
     Self { id, sk }
   }
 
-  /// Participant identifier (32-byte hash).
-  pub fn id(&self) -> &Hash256 {
+  /// Participant identifier.
+  pub fn id(&self) -> &BlsShareId {
     &self.id
   }
 
@@ -74,18 +74,18 @@ impl<S: BlsScheme> Debug for BlsSkShare<S> {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound(serialize = "", deserialize = "")))]
 pub struct BlsSigShare<S: BlsScheme> {
-  id: Hash256,
+  id: BlsShareId,
   sig: BlsSignature<S>,
 }
 
 impl<S: BlsScheme> BlsSigShare<S> {
   /// Construct a signature share from an ID and a signature.
-  pub fn new(id: Hash256, sig: BlsSignature<S>) -> Self {
+  pub fn new(id: BlsShareId, sig: BlsSignature<S>) -> Self {
     Self { id, sig }
   }
 
-  /// Participant identifier (32-byte hash).
-  pub fn id(&self) -> &Hash256 {
+  /// Participant identifier.
+  pub fn id(&self) -> &BlsShareId {
     &self.id
   }
 
@@ -139,8 +139,8 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   pub fn split(
     &self,
     threshold: usize,
-    ids: &[Hash256],
-    rng: &mut impl CryptoRngCore,
+    ids: &[BlsShareId],
+    rng: &mut impl CryptoRng,
   ) -> Result<Vec<BlsSkShare<S>>, BlsError> {
     S::split_sk(&self.0, threshold, ids, rng, |id, inner| {
       BlsSkShare::new(id, BlsSecretKey::from_inner(inner))
@@ -155,7 +155,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// Returns `InvalidVerificationVector` when fewer than two master keys are
   /// given, `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey`
   /// when the result is not a valid scalar.
-  pub fn derive_share(master_sks: &[&Self], id: &Hash256) -> Result<Self, BlsError> {
+  pub fn derive_share(master_sks: &[&Self], id: &BlsShareId) -> Result<Self, BlsError> {
     let inner_refs: Vec<&S::InnerSk> = master_sks.iter().map(|sk| &sk.0).collect();
     S::derive_sk_share(&inner_refs, id).map(Self::from_inner)
   }
@@ -170,7 +170,7 @@ impl<S: BlsScheme> BlsPublicKey<S> {
   /// Returns `InvalidVerificationVector` when fewer than two master keys are
   /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
-  pub fn derive_share(master_pks: &[&Self], id: &Hash256) -> Result<Self, BlsError> {
+  pub fn derive_share(master_pks: &[&Self], id: &BlsShareId) -> Result<Self, BlsError> {
     let inner_refs: Vec<&S::InnerPk> = master_pks.iter().map(|pk| &pk.0).collect();
     S::derive_pk_share(&inner_refs, id).map(Self::from_inner)
   }
@@ -180,17 +180,18 @@ impl<S: BlsScheme> BlsPublicKey<S> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{hash_from_hex, make_id, sequential_ids, GROUP_ORDER, MSG_DEADBEEF, RSEED};
+  use crate::bls::tests::{id_from_hex, make_id, sequential_ids, GROUP_ORDER, MSG_DEADBEEF, RSEED};
   use crate::bls::{BlsScChia, BlsScIetf};
 
   use cfg_if::cfg_if;
   use dash_dev::{arr_from_hex, Corpus, Value};
+  use getrandom::SysRng;
   use hex_conservative::DisplayHex;
-  use rand_core::OsRng;
+  use rand_core::UnwrapErr;
   use rstest::rstest;
 
   /// The scalar-field order `r + 1`, congruent to `1` mod `r`.
-  fn group_order_plus_one() -> Hash256 {
+  fn group_order_plus_one() -> BlsShareId {
     let mut bytes = GROUP_ORDER;
     for b in bytes.iter_mut().rev() {
       let (v, carry) = b.overflowing_add(1);
@@ -199,7 +200,7 @@ mod tests {
         break;
       }
     }
-    Hash256::from_bytes(bytes)
+    BlsShareId::from_bytes(bytes)
   }
 
   /// A 1-of-n split hands the master key to every participant, so a `threshold`
@@ -210,11 +211,14 @@ mod tests {
     let ids = sequential_ids(5);
     for threshold in [0, 1, ids.len() + 1] {
       assert!(matches!(
-        sk.split(threshold, &ids, &mut OsRng),
+        sk.split(threshold, &ids, &mut UnwrapErr(SysRng)),
         Err(BlsError::ThresholdTooLarge)
       ));
     }
-    assert!(matches!(sk.split(2, &[], &mut OsRng), Err(BlsError::ThresholdTooLarge)));
+    assert!(matches!(
+      sk.split(2, &[], &mut UnwrapErr(SysRng)),
+      Err(BlsError::ThresholdTooLarge)
+    ));
   }
 
   #[rstest]
@@ -229,13 +233,19 @@ mod tests {
   fn assert_zero_reducing_id_rejected<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
 
-    let zero = Hash256::from_bytes([0u8; 32]);
+    let zero = BlsShareId::from_bytes([0u8; 32]);
     let ids = [make_id(1), zero];
-    assert!(matches!(sk.split(2, &ids, &mut OsRng), Err(BlsError::InvalidShareId)));
+    assert!(matches!(
+      sk.split(2, &ids, &mut UnwrapErr(SysRng)),
+      Err(BlsError::InvalidShareId)
+    ));
 
-    let order = Hash256::from_bytes(GROUP_ORDER);
+    let order = BlsShareId::from_bytes(GROUP_ORDER);
     let ids = [make_id(1), order];
-    assert!(matches!(sk.split(2, &ids, &mut OsRng), Err(BlsError::InvalidShareId)));
+    assert!(matches!(
+      sk.split(2, &ids, &mut UnwrapErr(SysRng)),
+      Err(BlsError::InvalidShareId)
+    ));
   }
 
   #[rstest]
@@ -250,7 +260,10 @@ mod tests {
   fn assert_congruent_ids_rejected<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
     let ids = [make_id(1), group_order_plus_one()];
-    assert!(matches!(sk.split(2, &ids, &mut OsRng), Err(BlsError::DuplicateShareId)));
+    assert!(matches!(
+      sk.split(2, &ids, &mut UnwrapErr(SysRng)),
+      Err(BlsError::DuplicateShareId)
+    ));
   }
 
   #[rstest]
@@ -284,7 +297,7 @@ mod tests {
       Err(BlsError::InvalidVerificationVector)
     ));
     assert!(matches!(
-      BlsSecretKey::<S>::derive_share(&master_refs, &Hash256::from_bytes([0u8; 32])),
+      BlsSecretKey::<S>::derive_share(&master_refs, &BlsShareId::from_bytes([0u8; 32])),
       Err(BlsError::InvalidShareId)
     ));
   }
@@ -399,7 +412,7 @@ mod tests {
         let sk_share = BlsSecretKey::<S>::from_bytes(&arr_from_hex(sk_hex.as_str().unwrap())).unwrap();
         let pk_from_share = sk_share.public_key();
 
-        let member_id = hash_from_hex(&member_ids[member_idx]);
+        let member_id = id_from_hex(&member_ids[member_idx]);
         let pk_from_vvec = BlsPublicKey::derive_share(&vvec_refs, &member_id).unwrap();
 
         let matches = pk_from_share.to_bytes() == pk_from_vvec.to_bytes();
@@ -548,22 +561,13 @@ mod tests {
       .collect();
 
     let quorum_hash: [u8; 32] = arr_from_hex(fin["quorum_hash"].as_str().unwrap());
-
-    // signer_ids are in internal byte order; byte-reverse to match the
-    // display-order member_ids.
     let sig_shares: Vec<BlsSigShare<S>> = signer_ids
       .iter()
       .map(|sid| {
-        let sid_bytes = arr_from_hex::<32>(sid);
-        let sid_display = sid_bytes
-          .iter()
-          .copied()
-          .rev()
-          .collect::<Vec<u8>>()
-          .to_lower_hex_string();
+        let member_id = BlsShareId::from_bytes(arr_from_hex::<32>(sid));
+        let sid_display = member_id.to_string();
         let idx = member_ids.iter().position(|m| *m == sid_display).unwrap();
         let sk = BlsSecretKey::<S>::from_bytes(&arr_from_hex(commits[idx]["sk_share"].as_str().unwrap())).unwrap();
-        let member_id = hash_from_hex(&sid_display);
         BlsSkShare::new(member_id, sk).sign(S::msg_ref(&quorum_hash))
       })
       .collect();
@@ -579,7 +583,7 @@ mod tests {
     );
 
     // Cross-check: recovery from all members should match the subset recovery.
-    let all_ids: Vec<Hash256> = member_ids.iter().map(|mid| hash_from_hex(mid)).collect();
+    let all_ids: Vec<BlsShareId> = member_ids.iter().map(|mid| id_from_hex(mid)).collect();
     let all_shares: Vec<BlsSigShare<S>> = commits
       .iter()
       .zip(all_ids.iter())

@@ -6,13 +6,16 @@
 
 //! Scalar-field arithmetic and threshold helpers.
 
-use super::blst_ffi::{self, Fr, Point, G1, G2};
+use super::blst_ffi;
 use super::error::BlsError;
+use super::group::{Point, G1, G2};
+use super::scalar::{Fr, FR_BITS};
 use super::schemes::BlsSchemeId;
+use super::BlsShareId;
 use crate::prelude::*;
 
 use blst::BLST_ERROR;
-use dash_num::Hash256;
+use ff::Field;
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
@@ -21,7 +24,7 @@ use core::fmt::Debug;
 /// Multiplier width for the secure-aggregation weights.
 ///
 /// The weight is an unreduced SHA-256 digest, so it needs the full width
-/// rather than [`blst_ffi::FR_BITS`].
+/// rather than [`FR_BITS`].
 const WEIGHT_BITS: usize = 256;
 
 /// Map a blst verification outcome onto a [`BlsError`].
@@ -139,7 +142,7 @@ pub trait BlsScheme: BlsSchemeId {
     let point = Self::pk_to_g1(peer_pk)?;
     let mut sk_bytes = Self::sk_to_bytes(sk);
     let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
-    let product = point.mul_scalar(&sk_scalar.b, blst_ffi::FR_BITS);
+    let product = point.mul_scalar(&sk_scalar.b, FR_BITS);
     sk_bytes.zeroize();
     sk_scalar.b.zeroize();
     Self::g1_to_pk(product)
@@ -160,6 +163,22 @@ pub trait BlsScheme: BlsSchemeId {
   /// Returns `EmptyAggregation` when no signatures are given, or
   /// `InvalidSignature` when a signature fails to aggregate.
   fn aggregate_sig(sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError>;
+
+  /// Remove one signature from another.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSignature` when either signature or the difference
+  /// fails to decode, or when the difference is the identity.
+  fn sub_sig(sig: &Self::InnerSig, other: &Self::InnerSig) -> Result<Self::InnerSig, BlsError> {
+    let difference = Self::sig_to_g2(sig)? - Self::sig_to_g2(other)?;
+    // The identity signs nothing and verifies against everything paired with an
+    // identity key.
+    if difference.is_inf() {
+      return Err(BlsError::InvalidSignature);
+    }
+    Self::g2_to_sig(difference)
+  }
 
   /// Verify an aggregate signature where every signer signed `msg`.
   ///
@@ -186,16 +205,16 @@ pub trait BlsScheme: BlsSchemeId {
   /// Returns `InvalidPublicKey` when the bytes do not decode to a point.
   fn secure_agg_point(pk_bytes: &[u8; 48]) -> Result<G1, BlsError>;
 
-  /// Verify an aggregate with public-key weighting to resist rogue keys.
+  /// Aggregate public keys with the weighting that resists rogue keys.
   ///
   /// Each key is weighted by `SHA256(index || SHA256(sorted pk bytes))` so a
   /// signer cannot cancel an honest key with a crafted rogue one.
   ///
   /// # Errors
   ///
-  /// Returns `EmptyAggregation` when no keys are given, `InvalidPublicKey`
-  /// when a key fails to decode, or `VerifyFailed` on mismatch.
-  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+  /// Returns `EmptyAggregation` when no keys are given, or `InvalidPublicKey`
+  /// when a key or the weighted sum fails to decode.
+  fn secure_aggregate_pk(pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError> {
     if pks.is_empty() {
       return Err(BlsError::EmptyAggregation);
     }
@@ -207,11 +226,22 @@ pub trait BlsScheme: BlsSchemeId {
 
     let mut acc = G1::identity();
     for (pk_bytes, weight) in sorted.iter().zip(secure_weights(&sorted)) {
-      acc = acc + Self::secure_agg_point(pk_bytes)?.mul_scalar(&weight.b, WEIGHT_BITS);
+      acc += Self::secure_agg_point(pk_bytes)?.mul_scalar(&weight.b, WEIGHT_BITS);
     }
 
-    let agg_pk = Self::g1_to_pk(acc)?;
-    Self::verify(sig, msg, &agg_pk)
+    Self::g1_to_pk(acc)
+  }
+
+  /// Verify an aggregate against the weighted key
+  /// [`Self::secure_aggregate_pk`] builds, in the scheme's own single
+  /// pairing.
+  ///
+  /// # Errors
+  ///
+  /// Returns `EmptyAggregation` when no keys are given, `InvalidPublicKey`
+  /// when a key fails to decode, or `VerifyFailed` on mismatch.
+  fn secure_verify_aggregates(sig: &Self::InnerSig, msg: &Self::Msg, pks: &[&Self::InnerPk]) -> Result<(), BlsError> {
+    Self::verify(sig, msg, &Self::secure_aggregate_pk(pks)?)
   }
 
   /// Aggregate signatures under the same public-key weighting that
@@ -243,7 +273,7 @@ pub trait BlsScheme: BlsSchemeId {
 
     let mut acc = G2::identity();
     for ((_, sig), weight) in paired.iter().zip(secure_weights(&sorted)) {
-      acc = acc + Self::sig_to_g2(sig)?.mul_scalar(&weight.b, WEIGHT_BITS);
+      acc += Self::sig_to_g2(sig)?.mul_scalar(&weight.b, WEIGHT_BITS);
     }
 
     Self::g2_to_sig(acc)
@@ -276,9 +306,9 @@ pub trait BlsScheme: BlsSchemeId {
   fn split_sk<S>(
     sk: &Self::InnerSk,
     threshold: usize,
-    ids: &[Hash256],
-    rng: &mut impl rand_core::CryptoRngCore,
-    mut into_share: impl FnMut(Hash256, Self::InnerSk) -> S,
+    ids: &[BlsShareId],
+    rng: &mut impl rand_core::CryptoRng,
+    mut into_share: impl FnMut(BlsShareId, Self::InnerSk) -> S,
   ) -> Result<Vec<S>, BlsError> {
     if threshold < 2 || ids.is_empty() || threshold > ids.len() {
       return Err(BlsError::ThresholdTooLarge);
@@ -286,11 +316,11 @@ pub trait BlsScheme: BlsSchemeId {
 
     // An id congruent to zero mod r would make the share equal the master
     // key, and ids congruent mod r collide during interpolation.
-    let id_refs: Vec<&Hash256> = ids.iter().collect();
-    reduce_share_ids(&id_refs)?;
+    let id_refs: Vec<&BlsShareId> = ids.iter().collect();
+    let xs = reduce_share_ids(&id_refs)?;
 
     let sk_bytes = Zeroizing::new(Self::sk_to_bytes(sk));
-    let raw = generate_shares(&sk_bytes, threshold, ids, rng).map_err(|()| BlsError::InvalidSecretKey)?;
+    let raw = generate_shares(&sk_bytes, threshold, ids, &xs, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
     raw
       .into_iter()
@@ -309,7 +339,7 @@ pub trait BlsScheme: BlsSchemeId {
   /// `ids` and `sigs` differ in length, `InvalidShareId`/`DuplicateShareId` on
   /// bad ids, or `InvalidSignature` when a share or the recovered point fails
   /// to decode.
-  fn recover_sig_shares(ids: &[&Hash256], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
+  fn recover_sig_shares(ids: &[&BlsShareId], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
     // ids and sigs are paired; a length mismatch would desync interpolation
     // and could index out of bounds in interpolate_g2.
     if sigs.len() < 2 || ids.len() != sigs.len() {
@@ -335,7 +365,7 @@ pub trait BlsScheme: BlsSchemeId {
   /// Returns `InvalidVerificationVector` when fewer than two keys are
   /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
-  fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &Hash256) -> Result<Self::InnerPk, BlsError> {
+  fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &BlsShareId) -> Result<Self::InnerPk, BlsError> {
     // Evaluating the verification-vector polynomial needs >= 2 coefficients.
     if master_pks.len() < 2 {
       return Err(BlsError::InvalidVerificationVector);
@@ -345,7 +375,7 @@ pub trait BlsScheme: BlsSchemeId {
       .map(|pk| Self::pk_to_g1(pk))
       .collect::<Result<Vec<_>, BlsError>>()?;
 
-    let x = reduce_id(id)?;
+    let x = Fr::from_share_id(id)?;
     let result = eval_poly_g1(&coeffs_g1, &x);
 
     Self::g1_to_pk(result)
@@ -363,7 +393,7 @@ pub trait BlsScheme: BlsSchemeId {
   /// Returns `InvalidVerificationVector` when fewer than two keys are given,
   /// `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey` when the
   /// result is not a valid scalar.
-  fn derive_sk_share(master_sks: &[&Self::InnerSk], id: &Hash256) -> Result<Self::InnerSk, BlsError> {
+  fn derive_sk_share(master_sks: &[&Self::InnerSk], id: &BlsShareId) -> Result<Self::InnerSk, BlsError> {
     if master_sks.len() < 2 {
       return Err(BlsError::InvalidVerificationVector);
     }
@@ -376,7 +406,7 @@ pub trait BlsScheme: BlsSchemeId {
       scalar.b.zeroize();
     }
 
-    let x = reduce_id(id)?;
+    let x = Fr::from_share_id(id)?;
     let mut y = poly_eval(&coeffs, &x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
@@ -417,7 +447,7 @@ fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
   for bytes in key_bytes {
     let mut scalar = blst_ffi::scalar_from_bendian(bytes);
     let mut term = Fr::from(&scalar);
-    acc = acc + term;
+    acc += term;
     term.zeroize();
     scalar.b.zeroize();
   }
@@ -432,7 +462,7 @@ fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
 /// zeroized on drop. A custom `Debug` redacts the secret scalar.
 struct RawShare {
   /// Participant identifier.
-  id: Hash256,
+  id: BlsShareId,
   /// Secret scalar bytes, zeroized on drop.
   secret: Zeroizing<[u8; 32]>,
 }
@@ -452,8 +482,9 @@ impl core::fmt::Debug for RawShare {
 fn generate_shares(
   sk_bytes: &[u8; 32],
   threshold: usize,
-  ids: &[Hash256],
-  rng: &mut impl rand_core::CryptoRngCore,
+  ids: &[BlsShareId],
+  xs: &[Fr],
+  rng: &mut impl rand_core::CryptoRng,
 ) -> Result<Vec<RawShare>, ()> {
   let mut coeffs = Zeroizing::new(Vec::with_capacity(threshold));
 
@@ -474,9 +505,8 @@ fn generate_shares(
   }
 
   let mut shares = Vec::with_capacity(ids.len());
-  for id in ids {
-    let x = fr_from_hash(id);
-    let mut y = poly_eval(&coeffs, &x);
+  for (id, x) in ids.iter().zip(xs) {
+    let mut y = poly_eval(&coeffs, x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
     let y_bytes = blst_ffi::bendian_from_scalar(&y_scalar);
@@ -524,7 +554,7 @@ fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   for i in 0..n {
     // Convert Fr coefficient to scalar for point multiplication.
     let scalar = blst::blst_scalar::from(&coeffs[i]);
-    result = result + points[i].mul_scalar(&scalar.b, blst_ffi::FR_BITS);
+    result += points[i].mul_scalar(&scalar.b, FR_BITS);
   }
   result
 }
@@ -536,19 +566,19 @@ fn compute_lagrange_coeffs(ids: &[Fr]) -> Vec<Fr> {
 
   for i in 0..n {
     // L_i = prod_{j!=i} ids[j] / (ids[j] - ids[i])
-    let mut num = Fr::one();
-    let mut den = Fr::one();
+    let mut num = Fr::ONE;
+    let mut den = Fr::ONE;
 
     for j in 0..n {
       if i == j {
         continue;
       }
       // num *= ids[j]
-      num = num * ids[j];
+      num *= ids[j];
 
       // den *= (ids[j] - ids[i])
       let diff = ids[j] - ids[i];
-      den = den * diff;
+      den *= diff;
     }
 
     coeffs.push(num * den.inverse());
@@ -568,26 +598,9 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
   let x_scalar = blst::blst_scalar::from(x);
   let mut result = coeffs_g1[n - 1];
   for i in (0..n - 1).rev() {
-    result = result.mul_scalar(&x_scalar.b, blst_ffi::FR_BITS) + coeffs_g1[i];
+    result = result.mul_scalar(&x_scalar.b, FR_BITS) + coeffs_g1[i];
   }
   result
-}
-
-/// Convert a 32-byte participant ID to a scalar.
-fn fr_from_hash(id: &Hash256) -> Fr {
-  Fr::from(&blst_ffi::scalar_from_bendian(id.as_bytes()))
-}
-
-/// Reduce a participant id into the scalar field, rejecting zero.
-///
-/// An id congruent to zero mod `r` evaluates the polynomial at its
-/// constant term, which leaks the master secret in share generation.
-fn reduce_id(id: &Hash256) -> Result<Fr, BlsError> {
-  let fr = fr_from_hash(id);
-  if blst::blst_scalar::from(&fr).b == [0u8; 32] {
-    return Err(BlsError::InvalidShareId);
-  }
-  Ok(fr)
 }
 
 /// Reduce participant ids into the scalar field, rejecting ids that
@@ -596,16 +609,12 @@ fn reduce_id(id: &Hash256) -> Result<Fr, BlsError> {
 /// Two distinct hashes congruent mod `r` share a scalar, producing a
 /// zero Lagrange denominator that blst inverts to zero silently; a
 /// raw-byte duplicate check would not catch them.
-fn reduce_share_ids(ids: &[&Hash256]) -> Result<Vec<Fr>, BlsError> {
-  let fr_ids: Vec<Fr> = ids.iter().map(|id| fr_from_hash(id)).collect();
-  let mut reduced: Vec<[u8; 32]> = Vec::with_capacity(fr_ids.len());
-  for fr in &fr_ids {
-    let bytes = blst::blst_scalar::from(fr).b;
-    if bytes == [0u8; 32] {
-      return Err(BlsError::InvalidShareId);
-    }
-    reduced.push(bytes);
-  }
+fn reduce_share_ids(ids: &[&BlsShareId]) -> Result<Vec<Fr>, BlsError> {
+  let fr_ids = ids
+    .iter()
+    .map(|id| Fr::from_share_id(id))
+    .collect::<Result<Vec<Fr>, BlsError>>()?;
+  let mut reduced: Vec<[u8; 32]> = fr_ids.iter().map(|fr| *fr.to_lendian()).collect();
   reduced.sort_unstable();
   for pair in reduced.windows(2) {
     if pair[0] == pair[1] {

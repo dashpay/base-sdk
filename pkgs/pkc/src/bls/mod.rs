@@ -11,6 +11,7 @@ mod error;
 mod public_bytes;
 mod schemes;
 mod secret_bytes;
+mod share_id;
 mod sig_bytes;
 mod sig_id;
 
@@ -19,11 +20,14 @@ pub use error::BlsError;
 pub use public_bytes::{BlsPkBytes, BLS_PK_LEN};
 pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};
 pub use secret_bytes::{BlsSkBytes, BLS_SK_LEN};
+pub use share_id::{BlsShareId, BLS_ID_LEN};
 pub use sig_bytes::{BlsSigBytes, BLS_SIG_LEN};
 pub use sig_id::BlsSigId;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
+    mod curve_consts;
+    mod macros;
     mod public_ops;
     mod scheme_chia;
     mod scheme_ietf;
@@ -36,6 +40,8 @@ cfg_if::cfg_if! {
     #[expect(unsafe_code, reason = "blst C FFI")]
     pub(crate) mod blst_ffi;
     pub(crate) mod chia_h2c;
+    pub(crate) mod group;
+    pub(crate) mod scalar;
     pub(crate) mod scheme_ops;
 
     #[cfg(any(test, feature = "tests"))]
@@ -44,6 +50,8 @@ cfg_if::cfg_if! {
     pub mod tests;
 
     pub use public_ops::BlsPublicKey;
+    pub use group::{BlsPointRepr, G1Affine, G2Affine, G1, G2};
+    pub use scalar::Fr;
     pub use scheme_ops::BlsScheme;
     pub use secret_ops::BlsSecretKey;
     pub use share_ops::{BlsSigShare, BlsSkShare};

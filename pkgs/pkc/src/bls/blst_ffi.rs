@@ -6,17 +6,15 @@
 
 //! Bridging routines for unsafe blst FFI operations.
 
+use super::group::{G1Affine, G2Affine, Point, G1, G2};
+use super::scalar::{Fp, Fp2, Fr};
+
 use blst::*;
 use dash_types::type_cvrt;
-use dash_types::type_id::Unencodable;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
-use core::fmt;
 use core::ops::{Add, Mul, Neg, Sub};
 use core::ptr::null_mut;
-
-/// Bit-length for scalars known to be reduced mod q (< 2^255).
-pub(crate) const FR_BITS: usize = 255;
 
 /// Serialize a scalar to its 32-byte big-endian encoding.
 pub(crate) fn bendian_from_scalar(scalar: &blst_scalar) -> [u8; 32] {
@@ -86,12 +84,47 @@ pub(crate) fn sk_to_pk2_in_g1(sk: &blst_scalar) -> G1Affine {
   aff.into()
 }
 
-/// A scalar of the BLS12-381 scalar field, i.e. an integer reduced modulo the
-/// group order `r`.
-#[derive(Clone, Copy, Default)]
-pub(crate) struct Fr(blst_fr);
-
 impl Fr {
+  /// Doubles the element.
+  pub(crate) fn double(&self) -> Self {
+    let mut out = blst_fr::default();
+    unsafe { blst_fr_lshift(&mut out, &self.0, 1) };
+    Self(out)
+  }
+
+  /// Reduces a small integer into the field.
+  pub(crate) fn from_u64(value: u64) -> Self {
+    let mut out = blst_fr::default();
+    let limbs = [value, 0, 0, 0];
+    unsafe { blst_fr_from_uint64(&mut out, limbs.as_ptr()) };
+    Self(out)
+  }
+
+  /// Parses a canonical little-endian encoding, rejecting anything at or above
+  /// the group order.
+  pub(crate) fn from_lendian(bytes: &[u8; 32]) -> Option<Self> {
+    let mut scalar = blst_scalar::default();
+    unsafe { blst_scalar_from_lendian(&mut scalar, bytes.as_ptr()) };
+    if unsafe { blst_scalar_fr_check(&scalar) } {
+      Some(Self::from(&scalar))
+    } else {
+      None
+    }
+  }
+
+  /// Reduces a wide little-endian integer into the field.
+  ///
+  /// Wider input than the modulus is the point; reducing 64 bytes into a
+  /// 255-bit field leaves a bias below `2^-250`, where rejection sampling would
+  /// need a loop and a branch on secret data.
+  pub(crate) fn from_lendian_reduce(bytes: &[u8]) -> Self {
+    let mut scalar = blst_scalar::default();
+    unsafe { blst_scalar_from_le_bytes(&mut scalar, bytes.as_ptr(), bytes.len()) };
+    let reduced = Self::from(&scalar);
+    scalar.b.zeroize();
+    reduced
+  }
+
   /// Multiplicative inverse; the inverse of zero is left unspecified.
   pub(crate) fn inverse(&self) -> Self {
     let mut out = blst_fr::default();
@@ -99,18 +132,19 @@ impl Fr {
     Self(out)
   }
 
-  /// The multiplicative identity, one.
-  pub(crate) fn one() -> Self {
+  /// Squares the element.
+  pub(crate) fn square(&self) -> Self {
     let mut out = blst_fr::default();
-    let one = [1u64, 0, 0, 0];
-    unsafe { blst_fr_from_uint64(&mut out, one.as_ptr()) };
+    unsafe { blst_fr_sqr(&mut out, &self.0) };
     Self(out)
   }
-}
 
-impl fmt::Debug for Fr {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "Fr(..)")
+  /// Emits the canonical little-endian encoding.
+  pub(crate) fn to_lendian(self) -> Zeroizing<[u8; 32]> {
+    let mut scalar = blst_scalar::from(&self);
+    let bytes = Zeroizing::new(scalar.b);
+    scalar.b.zeroize();
+    bytes
   }
 }
 
@@ -154,12 +188,6 @@ impl Sub for Fr {
   }
 }
 
-impl Zeroize for Fr {
-  fn zeroize(&mut self) {
-    self.0.l.zeroize();
-  }
-}
-
 type_cvrt!(From<blst_scalar> for Fr, |s| {
   let mut out = blst_fr::default();
   unsafe { blst_fr_from_scalar(&mut out, s) };
@@ -171,20 +199,6 @@ type_cvrt!(From<Fr> for blst_scalar, |fr| {
   unsafe { blst_scalar_from_fr(&mut out, &fr.0) };
   out
 });
-
-/// An element of the BLS12-381 base field, i.e. an integer reduced
-/// modulo the field prime `p`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub(crate) struct Fp(blst_fp);
-
-impl Fp {
-  /// Construct from a `u64`, zero-extended into the low limbs.
-  pub(crate) fn from_u64(v: u64) -> Self {
-    let mut bytes = [0u8; 48];
-    bytes[40..48].copy_from_slice(&v.to_be_bytes());
-    Self::from(&bytes)
-  }
-}
 
 impl Add for Fp {
   type Output = Self;
@@ -238,48 +252,12 @@ type_cvrt!(From<[u8; 48]> for Fp, |bytes| {
   Self(out)
 });
 
-type_cvrt!(From<Fp> for blst_fp, |fp| fp.0);
-
-type_cvrt!(From<blst_fp> for Fp, |raw| Self(*raw));
-
-/// An element of the quadratic extension field `Fp2 = Fp[u]/(u^2 + 1)`,
-/// written `c0 + c1*u`.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub(crate) struct Fp2(blst_fp2);
-
 impl Fp2 {
-  /// The `c0` (real) component.
-  pub(crate) fn c0(&self) -> Fp {
-    Fp::from(self.0.fp[0])
-  }
-
-  /// The `c1` (coefficient of `u`) component.
-  pub(crate) fn c1(&self) -> Fp {
-    Fp::from(self.0.fp[1])
-  }
-
-  /// Big-endian byte encoding of the `c1` component.
-  pub(crate) fn c1_bendian(&self) -> [u8; 48] {
-    <[u8; 48]>::from(self.c1())
-  }
-
   /// Multiplicative inverse; the inverse of zero is left unspecified.
   pub(crate) fn inverse(&self) -> Self {
     let mut out = blst_fp2::default();
     unsafe { blst_fp2_inverse(&mut out, &self.0) };
     Self(out)
-  }
-
-  /// Whether both components are zero.
-  pub(crate) fn is_zero(&self) -> bool {
-    self.0.fp[0].l == [0u64; 6] && self.0.fp[1].l == [0u64; 6]
-  }
-
-  /// Construct from the two base-field components `c0` and `c1`.
-  pub(crate) fn new(c0: Fp, c1: Fp) -> Self {
-    Self(blst_fp2 {
-      fp: [c0.into(), c1.into()],
-    })
   }
 
   /// A square root, or `None` when the value is not a quadratic residue.
@@ -293,18 +271,6 @@ impl Fp2 {
     let mut out = blst_fp2::default();
     unsafe { blst_fp2_sqr(&mut out, &self.0) };
     Self(out)
-  }
-
-  /// Return a copy with the `c0` component replaced.
-  pub(crate) fn with_c0(mut self, c0: Fp) -> Self {
-    self.0.fp[0] = c0.into();
-    self
-  }
-
-  /// Return a copy with the `c1` component replaced.
-  pub(crate) fn with_c1(mut self, c1: Fp) -> Self {
-    self.0.fp[1] = c1.into();
-    self
   }
 }
 
@@ -348,34 +314,33 @@ impl Sub for Fp2 {
   }
 }
 
-type_cvrt!(From<Fp> for Fp2, |fp| Self::new(*fp, Fp::default()));
-
-type_cvrt!(From<Fp2> for blst_fp2, |fp2| fp2.0);
-
-type_cvrt!(From<blst_fp2> for Fp2, |raw| Self(*raw));
-
-/// A projective group element supporting curve addition and scalar
-/// multiplication.
-pub(crate) trait Point: Copy + Default + Add<Output = Self> {
-  /// The group identity (point at infinity).
-  fn identity() -> Self {
-    Self::default()
+impl G1 {
+  /// Point doubling.
+  pub(crate) fn double(&self) -> Self {
+    let mut out = blst_p1::default();
+    unsafe { blst_p1_double(&mut out, &self.0) };
+    Self(out)
   }
 
-  /// Scalar multiplication by a little-endian scalar of `nbits` bits.
-  fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self;
-}
+  /// The conventional G1 generator.
+  pub(crate) fn generator() -> Self {
+    Self(unsafe { *blst_p1_generator() })
+  }
 
-/// A point of the G1 group (over `Fp`) in projective coordinates,
-/// suitable for accumulation before a single conversion to affine.
-#[derive(Clone, Copy, Debug, Default, Unencodable)]
-pub struct G1(blst_p1);
-
-impl G1 {
   /// Whether the point lies in the prime-order subgroup.
-  #[cfg(test)]
   pub(crate) fn in_subgroup(&self) -> bool {
     unsafe { blst_p1_in_g1(&self.0) }
+  }
+
+  /// Whether two points are equal as group elements, projective coordinates
+  /// notwithstanding.
+  pub(crate) fn is_equal(&self, other: &Self) -> bool {
+    unsafe { blst_p1_is_equal(&self.0, &other.0) }
+  }
+
+  /// Whether the point is at infinity, the group identity.
+  pub(crate) fn is_inf(&self) -> bool {
+    unsafe { blst_p1_is_inf(&self.0) }
   }
 
   /// Convert to affine coordinates.
@@ -396,6 +361,16 @@ impl Add for G1 {
   }
 }
 
+impl Neg for G1 {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    let mut out = self.0;
+    unsafe { blst_p1_cneg(&mut out, true) };
+    Self(out)
+  }
+}
+
 impl Point for G1 {
   fn mul_scalar(&self, scalar: &[u8], nbits: usize) -> Self {
     // Clamp to the bits actually backed by the slice: blst reads
@@ -406,15 +381,6 @@ impl Point for G1 {
     Self(out)
   }
 }
-
-type_cvrt!(From<G1> for blst_p1, |g| g.0);
-
-type_cvrt!(From<blst_p1> for G1, |raw| Self(*raw));
-
-/// A point of the G1 group in affine coordinates, the canonical form
-/// used for serialization and pairing inputs.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub struct G1Affine(blst_p1_affine);
 
 impl G1Affine {
   /// The conventional G1 generator.
@@ -452,15 +418,6 @@ impl G1Affine {
   }
 }
 
-type_cvrt!(From<G1Affine> for blst_p1_affine, |a| a.0);
-
-type_cvrt!(From<blst_p1_affine> for G1Affine, |raw| Self(*raw));
-
-/// A point of the G2 group (over `Fp2`) in projective coordinates,
-/// suitable for accumulation before a single conversion to affine.
-#[derive(Clone, Copy, Debug, Default, Unencodable)]
-pub struct G2(blst_p2);
-
 impl G2 {
   /// The conventional G2 generator.
   pub(crate) fn generator() -> Self {
@@ -468,9 +425,19 @@ impl G2 {
   }
 
   /// Whether the point lies in the prime-order subgroup.
-  #[cfg(test)]
   pub(crate) fn in_subgroup(&self) -> bool {
     unsafe { blst_p2_in_g2(&self.0) }
+  }
+
+  /// Whether two points are equal as group elements, notwithstanding projective
+  /// coordinates.
+  pub(crate) fn is_equal(&self, other: &Self) -> bool {
+    unsafe { blst_p2_is_equal(&self.0, &other.0) }
+  }
+
+  /// Whether the point is at infinity, the group identity.
+  pub(crate) fn is_inf(&self) -> bool {
+    unsafe { blst_p2_is_inf(&self.0) }
   }
 
   /// Point doubling.
@@ -519,34 +486,7 @@ impl Point for G2 {
   }
 }
 
-type_cvrt!(From<blst_p2> for G2, |raw| Self(*raw));
-
-type_cvrt!(From<G2> for blst_p2, |g| g.0);
-
-/// A point of the G2 group in affine coordinates, the canonical form
-/// used for serialization and pairing inputs.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Unencodable)]
-pub struct G2Affine(blst_p2_affine);
-
 impl G2Affine {
-  /// Construct from affine `x` and `y` coordinates in `Fp2`.
-  pub(crate) fn from_coords(x: Fp2, y: Fp2) -> Self {
-    Self(blst_p2_affine {
-      x: x.into(),
-      y: y.into(),
-    })
-  }
-
-  /// The affine `x` coordinate.
-  pub(crate) fn x(&self) -> Fp2 {
-    Fp2::from(self.0.x)
-  }
-
-  /// The affine `y` coordinate.
-  pub(crate) fn y(&self) -> Fp2 {
-    Fp2::from(self.0.y)
-  }
-
   /// Convert to projective coordinates.
   pub(crate) fn to_projective(self) -> G2 {
     let mut out = blst_p2::default();
@@ -588,7 +528,3 @@ impl G2Affine {
     Ok(Self(aff))
   }
 }
-
-type_cvrt!(From<G2Affine> for blst_p2_affine, |a| a.0);
-
-type_cvrt!(From<blst_p2_affine> for G2Affine, |raw| Self(*raw));

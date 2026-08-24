@@ -51,12 +51,17 @@ predicate isSecretType(TypeItem t) {
     // Scalar field wrapper holding secret key material
     t.getName().getText() = "Fr"
   ) and
-  // A share *of a signature* is published, so it holds nothing to protect. Excluded by
-  // exact name because `BlsSkShare` and `RawShare` match the same Share substring
-  // and do carry secret scalars.
-  not t.getName().getText() = "BlsSigShare" and
-  // Serde artifact to deserialize a tagged enum.
-  not t.getName().getText() = "__Seed"
+  not t.getName().getText() =
+    [
+      // A share *of a signature* is published, so it's non-secret. Excluded by exact name because
+      // `BlsSkShare` and `RawShare` match the same Share substring and do carry secret scalars.
+      "BlsSigShare",
+      // The identifier a share is issued against is the participant's, known to every member of the
+      // quorum; only the scalar the share carries is secret.
+      "BlsShareId",
+      // Serde artifact to deserialize a tagged enum.
+      "__Seed"
+    ]
 }
 
 /**

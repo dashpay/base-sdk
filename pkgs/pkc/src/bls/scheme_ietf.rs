@@ -6,8 +6,8 @@
 
 //! Basic BLS scheme implementation.
 
-use super::blst_ffi::{G1Affine, G2Affine, G1, G2};
 use super::error::BlsError;
+use super::group::{G1Affine, G2Affine, G1, G2};
 use super::scheme_ops::{verify_ok, BlsScheme};
 use super::schemes::BlsScIetf;
 use super::sig_id::BlsSigId;

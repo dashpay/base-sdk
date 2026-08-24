@@ -8,18 +8,20 @@ license = "MIT"
 base58ck = { workspace = true, features = ["alloc"] }
 bitcoin_hashes = { workspace = true, features = ["alloc"] }
 blst = { version = "0.3", default-features = false, optional = true }
+ff = { version = "0.14", default-features = false, optional = true }
+group = { version = "0.14", default-features = false, optional = true }
 cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
 hex-conservative = { version = "0.3", default-features = false, features = [
   "alloc",
 ] }
-k256 = { version = "0.13", default-features = false, features = [
+k256 = { version = "0.14", default-features = false, features = [
   "arithmetic",
   "ecdsa",
   "sha256",
 ], optional = true }
-rand_core = { version = "0.6", default-features = false, optional = true }
+rand_core = { version = "0.10", default-features = false, optional = true }
 rstest = { version = "0.25", optional = true }
 serde = { version = "1", default-features = false, features = [
   "alloc",
@@ -36,15 +38,16 @@ zeroize = { version = "1", default-features = false, features = [
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 divan = "0.1"
+getrandom = { version = "0.4", features = ["sys_rng"] }
 hex-conservative = "0.3"
-rand_core = { version = "0.6", features = ["getrandom"] }
+rand_core = { version = "0.10" }
 rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 
 [features]
 default = []
 std = ["base58ck/std", "bitcoin_hashes/std", "dash-types/std"]
-bls = ["dep:blst", "dep:rand_core", "dep:sha2"]
+bls = ["dep:blst", "dep:ff", "dep:group", "dep:rand_core", "dep:sha2"]
 ecdsa = ["dep:k256", "dep:rand_core"]
 serde = ["dep:serde", "dash-num/serde", "dash-types/serde"]
 full = ["ecdsa", "bls", "serde", "std", "tests"]
