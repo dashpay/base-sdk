@@ -149,6 +149,20 @@ impl Corpus {
     }
   }
 
+  /// Returns a named section as one typed value, `{ section: T }`, for
+  /// sections that hold a single object rather than an array.
+  ///
+  /// # Panics
+  ///
+  /// Panics if the section is missing or does not deserialize as `T`.
+  pub fn value<T: DeserializeOwned>(&self, section: &str) -> T {
+    let val = self
+      .root
+      .get(section)
+      .unwrap_or_else(|| panic!("{}: missing section '{section}'", self.name));
+    serde_json::from_value(val.clone()).unwrap_or_else(|e| panic!("{}: section '{section}': {e}", self.name))
+  }
+
   /// Returns a named array section as typed vectors: `{ section: [T, ...] }`.
   ///
   /// # Panics

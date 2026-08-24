@@ -221,6 +221,44 @@ fn derive_share_n<S: BlsScheme>(bencher: Bencher, n: usize) {
     .bench(|| BlsSecretKey::<S>::derive_share(&master_refs, &id));
 }
 
+/// Sealing one blob to one recipient, over a plaintext of `n` blocks.
+#[divan::bench(types = [BlsScChia, BlsScIetf], args = [1, 2, 16])]
+fn ies_encrypt_n<S: BlsScheme>(bencher: Bencher, n: usize) {
+  let pk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap().public_key();
+  let plaintext = vec![0x42u8; n * 16];
+  let mut rng = UnwrapErr(SysRng);
+
+  bencher
+    .counter(ItemsCount::new(n))
+    .bench_local(|| pk.ies_encrypt(&plaintext, &mut rng));
+}
+
+/// Opening one blob, paying for a DH exchange.
+#[divan::bench(types = [BlsScChia, BlsScIetf], args = [1, 2, 16])]
+fn ies_decrypt_n<S: BlsScheme>(bencher: Bencher, n: usize) {
+  let sk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap();
+  let plaintext = vec![0x42u8; n * 16];
+  let blob = sk.public_key().ies_encrypt(&plaintext, &mut UnwrapErr(SysRng)).unwrap();
+
+  bencher.counter(ItemsCount::new(n)).bench(|| sk.ies_decrypt(&blob, 0));
+}
+
+/// Sealing one 32-byte share to each of `n` recipients.
+#[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 10, 100])]
+fn ies_encrypt_multi_n<S: BlsScheme>(bencher: Bencher, n: usize) {
+  let pks: Vec<_> = (0..n)
+    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap().public_key())
+    .collect();
+  let pk_refs: Vec<&BlsPublicKey<S>> = pks.iter().collect();
+  let plaintexts = vec![[0x42u8; 32]; n];
+  let pt_refs: Vec<&[u8]> = plaintexts.iter().map(|p| p.as_slice()).collect();
+  let mut rng = UnwrapErr(SysRng);
+
+  bencher
+    .counter(ItemsCount::new(n))
+    .bench_local(|| BlsPublicKey::<S>::ies_encrypt_multi(&pk_refs, &pt_refs, &mut rng));
+}
+
 /// IETF-only BLS operations.
 mod ietf {
   use super::*;

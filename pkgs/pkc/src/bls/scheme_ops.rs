@@ -174,15 +174,18 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidPlaintextLength` when the plaintext is not a whole
-  /// number of 16-byte blocks, or `InvalidPublicKey` when the shared secret
-  /// cannot be derived.
+  /// Returns `InvalidPlaintextLength` when the plaintext is empty or not a
+  /// whole number of 16-byte blocks, or `InvalidPublicKey` when the shared
+  /// secret cannot be derived.
   fn ies_seal(
     eph_sk: &Self::InnerSk,
     recipient: &Self::InnerPk,
     iv: &[u8; AES_BLOCK_LEN],
     plaintext: &[u8],
   ) -> Result<Vec<u8>, BlsError> {
+    if plaintext.is_empty() {
+      return Err(BlsError::InvalidPlaintextLength);
+    }
     let key = Self::ies_key(&Self::dh_bytes(eph_sk, recipient)?);
     aes_cbc::encrypt(&key, iv, plaintext).ok_or(BlsError::InvalidPlaintextLength)
   }
@@ -191,15 +194,18 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidCiphertextLength` when the ciphertext is not a whole
-  /// number of 16-byte blocks, or `InvalidPublicKey` when the shared secret
-  /// cannot be derived.
+  /// Returns `InvalidCiphertextLength` when the ciphertext is empty or not a
+  /// whole number of 16-byte blocks, or `InvalidPublicKey` when the shared
+  /// secret cannot be derived.
   fn ies_open(
     sk: &Self::InnerSk,
     eph_pk: &Self::InnerPk,
     iv: &[u8; AES_BLOCK_LEN],
     ciphertext: &[u8],
   ) -> Result<Zeroizing<Vec<u8>>, BlsError> {
+    if ciphertext.is_empty() {
+      return Err(BlsError::InvalidCiphertextLength);
+    }
     let key = Self::ies_key(&Self::dh_bytes(sk, eph_pk)?);
     aes_cbc::decrypt(&key, iv, ciphertext).ok_or(BlsError::InvalidCiphertextLength)
   }

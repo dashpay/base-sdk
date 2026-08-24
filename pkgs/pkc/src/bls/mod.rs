@@ -29,6 +29,7 @@ pub use sig_id::BlsSigId;
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod curve_consts;
+    mod ies_ops;
     mod macros;
     mod public_ops;
     mod scheme_chia;
@@ -51,6 +52,7 @@ cfg_if::cfg_if! {
     #[expect(clippy::unwrap_used, reason = "test support code")]
     pub mod tests;
 
+    pub use ies_ops::{BlsIesBlob, BlsIesMulti};
     pub use public_ops::BlsPublicKey;
     pub use group::{BlsPointRepr, G1Affine, G2Affine, G1, G2};
     pub use scalar::Fr;
