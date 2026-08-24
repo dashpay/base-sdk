@@ -90,8 +90,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// Returns `InvalidPublicKey` when the peer key or the product point
   /// is invalid.
   pub fn dh_exchange(&self, peer_pk: &BlsPublicKey<S>) -> Result<BlsDhBytes<S>, BlsError> {
-    let shared = S::dh_exchange(&self.0, &peer_pk.0)?;
-    Ok(BlsDhBytes::from_bytes(S::pk_to_bytes(&shared)))
+    S::dh_bytes(&self.0, &peer_pk.0)
   }
 
   /// Sum multiple secret keys (mod group order).

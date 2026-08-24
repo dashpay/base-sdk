@@ -21,8 +21,12 @@ pub enum BlsError {
   EmptyAggregation,
   /// not enough shares to recover
   InsufficientShares,
+  /// ciphertext is not a whole number of cipher blocks
+  InvalidCiphertextLength,
   /// input keying material is too short (need >= 32 bytes)
   InvalidKeyMaterial,
+  /// plaintext is not a whole number of cipher blocks
+  InvalidPlaintextLength,
   /// public key bytes are not a valid G1 point
   InvalidPublicKey,
   /// secret key bytes are not a valid scalar
@@ -47,7 +51,9 @@ impl fmt::Display for BlsError {
       Self::DuplicateShareId => write!(f, "duplicate share id in recovery set"),
       Self::EmptyAggregation => write!(f, "no items provided for aggregation"),
       Self::InsufficientShares => write!(f, "not enough shares to recover"),
+      Self::InvalidCiphertextLength => write!(f, "ciphertext is not a whole number of cipher blocks"),
       Self::InvalidKeyMaterial => write!(f, "input keying material too short"),
+      Self::InvalidPlaintextLength => write!(f, "plaintext is not a whole number of cipher blocks"),
       Self::InvalidPublicKey => write!(f, "invalid public key bytes"),
       Self::InvalidSecretKey => write!(f, "invalid secret key bytes"),
       Self::InvalidShareId => write!(f, "share id reduces to zero in the scalar field"),

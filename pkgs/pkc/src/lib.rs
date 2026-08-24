@@ -12,6 +12,8 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+#[cfg(feature = "bls")]
+mod aes_cbc;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
