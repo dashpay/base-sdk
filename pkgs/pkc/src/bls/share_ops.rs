@@ -15,6 +15,7 @@ use super::BlsShareId;
 use crate::prelude::*;
 
 use dash_types::qtypestr;
+#[cfg(feature = "codec")]
 use dash_types::type_id::Unencodable;
 use rand_core::CryptoRng;
 
@@ -22,7 +23,7 @@ use core::fmt::{Debug, Formatter, Result as FmtResult};
 use core::hash::{Hash, Hasher};
 
 /// Secret key share for threshold signing.
-#[derive(Unencodable)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct BlsSkShare<S: BlsScheme> {
   id: BlsShareId,
   sk: BlsSecretKey<S>,
@@ -70,7 +71,7 @@ impl<S: BlsScheme> Debug for BlsSkShare<S> {
 }
 
 /// Signature share from a threshold participant.
-#[derive(Unencodable)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(bound(serialize = "", deserialize = "")))]
 pub struct BlsSigShare<S: BlsScheme> {

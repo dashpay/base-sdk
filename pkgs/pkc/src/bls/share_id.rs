@@ -7,13 +7,14 @@
 //! Threshold participant identifier.
 
 use dash_types::derive_bytes;
+#[cfg(feature = "codec")]
 use dash_types::type_id::Unencodable;
 
 /// Threshold participant identifier length.
 pub const BLS_ID_LEN: usize = 32;
 
 /// Threshold participant identifier.
-#[derive(Unencodable)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct BlsShareId {
   inner: [u8; BLS_ID_LEN],
 }

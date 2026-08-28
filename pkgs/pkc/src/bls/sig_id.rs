@@ -6,10 +6,12 @@
 
 //! Signature types.
 
+#[cfg(feature = "codec")]
 use dash_types::type_id::Unencodable;
 
 /// BLS signature variant.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub enum BlsSigId {
   /// Basic scheme (NUL augmentation).

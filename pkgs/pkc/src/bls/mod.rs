@@ -8,6 +8,7 @@
 
 mod dh_bytes;
 mod error;
+mod ies_bytes;
 mod public_bytes;
 mod schemes;
 mod secret_bytes;
@@ -17,6 +18,7 @@ mod sig_id;
 
 pub use dh_bytes::{BlsDhBytes, BLS_DH_LEN};
 pub use error::BlsError;
+pub use ies_bytes::{BlsIesBlobBytes, BlsIesMultiBytes, IV_SEED_LEN, MAX_IES_RECIPIENTS};
 pub use public_bytes::{BlsPkBytes, BLS_PK_LEN};
 pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};
 pub use secret_bytes::{BlsSkBytes, BLS_SK_LEN};
@@ -27,6 +29,7 @@ pub use sig_id::BlsSigId;
 cfg_if::cfg_if! {
   if #[cfg(feature = "bls")] {
     mod curve_consts;
+    mod ies_ops;
     mod macros;
     mod public_ops;
     mod scheme_chia;
@@ -49,6 +52,7 @@ cfg_if::cfg_if! {
     #[expect(clippy::unwrap_used, reason = "test support code")]
     pub mod tests;
 
+    pub use ies_ops::{BlsIesBlob, BlsIesMulti};
     pub use public_ops::BlsPublicKey;
     pub use group::{BlsPointRepr, G1Affine, G2Affine, G1, G2};
     pub use scalar::Fr;

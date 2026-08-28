@@ -8,11 +8,17 @@
 
 use crate::bls::BlsSchemeId;
 
+#[cfg(feature = "codec")]
 use bitcoin_hashes::sha256d::Hash as Sha256d;
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
+#[cfg(feature = "codec")]
 use dash_types::codec::Hashable;
+use dash_types::derive_bytes;
+#[cfg(feature = "codec")]
+use dash_types::impl_bytes;
+#[cfg(feature = "codec")]
 use dash_types::type_id::TypeId;
-use dash_types::{derive_bytes, impl_bytes};
 
 use core::marker::PhantomData;
 
@@ -20,14 +26,16 @@ use core::marker::PhantomData;
 pub const BLS_SIG_LEN: usize = 96;
 
 /// Scheme-tagged BLS signature bytes (96 bytes, unvalidated).
-#[derive(TypeId)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 pub struct BlsSigBytes<S: BlsSchemeId> {
   inner: [u8; BLS_SIG_LEN],
   _scheme: PhantomData<S>,
 }
 
+#[cfg(feature = "codec")]
 impl_bytes!(for[S: BlsSchemeId] BlsSigBytes<S>, BLS_SIG_LEN);
 
+#[cfg(feature = "codec")]
 impl<S: BlsSchemeId> Hashable for BlsSigBytes<S> {
   type Hash = Hash256;
 

@@ -12,20 +12,27 @@ use super::public_ops::BlsPublicKey;
 use super::scalar::Fr;
 use super::scheme_ops::BlsScheme;
 use super::sig_basic::BlsSignature;
-use super::{BlsScIetf, BlsSigId, BlsSkBytes, BLS_SK_LEN};
+#[cfg(feature = "codec")]
+use super::BLS_SK_LEN;
+use super::{BlsScIetf, BlsSigId, BlsSkBytes};
 use crate::prelude::*;
 
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
+#[cfg(feature = "codec")]
+use dash_types::dlgt_scodec;
+#[cfg(feature = "codec")]
 use dash_types::type_id::TypeId;
-use dash_types::{dlgt_scodec, qtypestr, type_cvrt};
+use dash_types::{qtypestr, type_cvrt};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};
 
 /// A BLS secret key (32-byte scalar).
-#[derive(TypeId)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 pub struct BlsSecretKey<S: BlsScheme>(pub(crate) S::InnerSk);
 
+#[cfg(feature = "codec")]
 dlgt_scodec!(for[S: BlsScheme] BlsSecretKey<S> => BlsSkBytes<S>, Hash256, BlsError, BLS_SK_LEN);
 
 impl<S: BlsScheme> BlsSecretKey<S> {
@@ -83,8 +90,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// Returns `InvalidPublicKey` when the peer key or the product point
   /// is invalid.
   pub fn dh_exchange(&self, peer_pk: &BlsPublicKey<S>) -> Result<BlsDhBytes<S>, BlsError> {
-    let shared = S::dh_exchange(&self.0, &peer_pk.0)?;
-    Ok(BlsDhBytes::from_bytes(S::pk_to_bytes(&shared)))
+    S::dh_bytes(&self.0, &peer_pk.0)
   }
 
   /// Sum multiple secret keys (mod group order).
@@ -271,6 +277,7 @@ mod tests {
     assert_ne!(chia.public_key().to_bytes(), ietf.public_key().to_bytes());
   }
 
+  #[cfg(feature = "codec")]
   fn assert_codec_roundtrip<S: BlsScheme>() {
     use dash_types::codec::BaseCodec;
 
@@ -285,6 +292,7 @@ mod tests {
     assert!(slice.is_empty());
   }
 
+  #[cfg(feature = "codec")]
   #[rstest]
   #[case::chia(assert_codec_roundtrip::<BlsScChia>)]
   #[case::ietf(assert_codec_roundtrip::<BlsScIetf>)]

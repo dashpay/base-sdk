@@ -12,13 +12,20 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+#[cfg(feature = "bls")]
+mod aes_cbc;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 
 pub mod bls;
-pub mod ecdsa;
 
-#[doc(hidden)]
-pub mod __private {
-  pub use crate::ecdsa::PubKeyHash as __PubKeyHash;
+cfg_if::cfg_if! {
+  if #[cfg(feature = "codec")] {
+    pub mod ecdsa;
+
+    #[doc(hidden)]
+    pub mod __private {
+      pub use crate::ecdsa::PubKeyHash as __PubKeyHash;
+    }
+  }
 }

@@ -36,11 +36,14 @@ bitcoin-primitives = { workspace = true, features = ["alloc"] }
 bitcoin_hashes = { workspace = true, features = ["alloc"] }
 bitcoin-units = { workspace = true, features = ["alloc"] }
 dash-num = { version = "0.0.0", path = "../num" }
-dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false }
+dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false, features = [
+  "codec",
+] }
 dash-pow = { version = "0.0.0", path = "../pow" }
 dash-script = { version = "0.0.0", path = "../script" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
   "bitcoin-primitives",
+  "codec",
 ] }
 cfg-if = "1"
 hex-conservative = { version = "0.3", default-features = false, features = ["alloc"] }

@@ -19,10 +19,20 @@ pub enum BlsError {
   DuplicateShareId,
   /// no items provided for aggregation
   EmptyAggregation,
+  /// recipient index past the end of the message
+  IndexOutOfRange,
+  /// recipient index above the supported maximum
+  IndexTooLarge,
   /// not enough shares to recover
   InsufficientShares,
+  /// ciphertext is empty or not a whole number of cipher blocks
+  InvalidCiphertextLength,
+  /// initialisation vector seed is all zeroes
+  InvalidIvSeed,
   /// input keying material is too short (need >= 32 bytes)
   InvalidKeyMaterial,
+  /// plaintext is empty or not a whole number of cipher blocks
+  InvalidPlaintextLength,
   /// public key bytes are not a valid G1 point
   InvalidPublicKey,
   /// secret key bytes are not a valid scalar
@@ -46,8 +56,13 @@ impl fmt::Display for BlsError {
       Self::DuplicateMessage => write!(f, "repeated message in a distinct-message aggregate"),
       Self::DuplicateShareId => write!(f, "duplicate share id in recovery set"),
       Self::EmptyAggregation => write!(f, "no items provided for aggregation"),
+      Self::IndexOutOfRange => write!(f, "recipient index past the end of the message"),
+      Self::IndexTooLarge => write!(f, "recipient index above the supported maximum"),
       Self::InsufficientShares => write!(f, "not enough shares to recover"),
+      Self::InvalidCiphertextLength => write!(f, "ciphertext is empty or not a whole number of cipher blocks"),
+      Self::InvalidIvSeed => write!(f, "initialisation vector seed is all zeroes"),
       Self::InvalidKeyMaterial => write!(f, "input keying material too short"),
+      Self::InvalidPlaintextLength => write!(f, "plaintext is empty or not a whole number of cipher blocks"),
       Self::InvalidPublicKey => write!(f, "invalid public key bytes"),
       Self::InvalidSecretKey => write!(f, "invalid secret key bytes"),
       Self::InvalidShareId => write!(f, "share id reduces to zero in the scalar field"),

@@ -81,9 +81,10 @@ Specific crates define additional features:
 
 | Feature | Description | Crates |
 |---------|-------------|--------|
-| `ecdsa` | Enable secp256k1 support | [pkc](./pkgs/pkc) |
-| `bls` | Enable standard and legacy BLS support | [pkc](./pkgs/pkc) |
 | `aes_hw` | Enable hardware-accelerated AES on supported platforms | [pow](./pkgs/pow) |
+| `bls` | Enable standard and legacy BLS support | [pkc](./pkgs/pkc) |
+| `codec` | Enable Bitcoin-compatible wire support | [types](./pkgs/types), [pkc](./pkgs/pkc) |
+| `ecdsa` | Enable secp256k1 support | [pkc](./pkgs/pkc) |
 | `simd` | Use SIMD backends (requires nightly) | [pow](./pkgs/pow) |
 
 ## License

@@ -14,7 +14,7 @@ use dash_primitives::{
   hash_impl, BlockHash, Commitment, LlmqType, MnType, PlatformNodeId, ServiceV1, Transaction, TxHash,
 };
 use dash_script::PubKeyHash;
-use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf, NumCodec};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
 use dash_types::type_id::TypeId;
 
 use core::fmt;

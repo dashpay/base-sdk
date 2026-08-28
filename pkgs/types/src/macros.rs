@@ -6,15 +6,34 @@
 
 //! Shared macro definitions.
 
-/// Emits its body only when *this* crate has the `serde` feature.
+use core::fmt;
+
+/// Emits its body only when *this* crate has the `codec` feature.
 ///
-/// `#[cfg(feature = "serde")]` written inside an exported macro resolves
-/// against the invoking crate, which doesn't need have a `serde` feature at
+/// `#[cfg(feature = "codec")]` written inside an exported macro resolves
+/// against the invoking crate, which doesn't need have a `codec` feature at
 /// all. This marker is compiled here, so it tracks `dash-types` instead.
 ///
 /// The two arms must stay plain `#[cfg]` items. Wrapping them in `cfg_if!`
 /// makes the definition macro-expanded, and a macro-expanded `#[macro_export]`
 /// macro cannot be reached by `$crate::` from its own crate (rust#52234).
+#[cfg(feature = "codec")]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_codec {
+  ($($item:tt)*) => { $($item)* };
+}
+
+#[cfg(not(feature = "codec"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_codec {
+  ($($item:tt)*) => {};
+}
+
+/// Emits its body only when *this* crate has the `serde` feature.
+///
+/// Identical rationale to [`cfg_codec!`](crate::cfg_codec).
 #[cfg(feature = "serde")]
 #[doc(hidden)]
 #[macro_export]
@@ -29,10 +48,59 @@ macro_rules! cfg_serde {
   ($($item:tt)*) => {};
 }
 
+/// Writes [`type_name`](core::any::type_name) output to `f` with its module
+/// qualifiers dropped.
+pub fn qtypestr(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
+  let bytes = path.as_bytes();
+  let (mut seg, mut i) = (0, 0);
+  while i < bytes.len() {
+    match bytes[i] {
+      // A qualifier: discard everything emitted since the last segment.
+      b':' if bytes.get(i + 1) == Some(&b':') => {
+        i += 2;
+        seg = i;
+      }
+      delim @ (b'<' | b'>' | b',') => {
+        f.write_str(&path[seg..i])?;
+        f.write_str(match delim {
+          b'<' => "<",
+          b'>' => ">",
+          _ => ", ",
+        })?;
+        i += 1;
+        while bytes.get(i) == Some(&b' ') {
+          i += 1;
+        }
+        seg = i;
+      }
+      _ => i += 1,
+    }
+  }
+  f.write_str(&path[seg..])
+}
+
+/// Generates `NumCodec<$base>` for an enum that already carries the inherent
+/// `fn {from,to}_base` pair.
+#[cfg(feature = "codec")]
+#[macro_export]
+macro_rules! impl_enum {
+  ($enum:ident, $base:ty) => {
+    impl $crate::codec::NumCodec<$base> for $enum {
+      fn from_base(val: $base) -> Self {
+        $enum::from_base(val)
+      }
+
+      fn to_base(&self) -> $base {
+        $enum::to_base(*self)
+      }
+    }
+  };
+}
+
 /// Maps enum variants to integer constants and display strings.
 ///
-/// Generates the enum definition, integer mapping (via `NumCodec` or inherent
-/// `const fn`), and `impl Display` from a single table.
+/// Generates the enum definition, inherent `const fn` integer mapping, and
+/// `impl Display` from a single table.
 ///
 /// # Syntax
 ///
@@ -45,10 +113,12 @@ macro_rules! cfg_serde {
 ///
 /// ## Infallible
 ///
-/// Generates the enum with a catch-all variant, `impl NumCodec<T>`, `new`,
-/// `is_canonical`, `variants`, and `impl Display`. The catch-all displays as
-/// `unknown({v})`; build values with `new` so it never shadows a named
-/// variant.
+/// Generates the enum with a catch-all variant, inherent `fn {to,from}_base`
+/// methods and the [`impl_enum!`](crate::impl_enum) impl over them, `new`,
+/// `is_canonical`, `variants`, and `impl Display`.
+///
+/// The catch-all displays as `unknown({v})`; build values with `new` so it
+/// never shadows a named variant.
 ///
 /// ```ignore
 /// enum_map! {
@@ -177,30 +247,30 @@ macro_rules! enum_map {
   (@infallible $enum:ident, $base:ty, $catch_all:ident {
     $($variant:ident = $value:literal),+
   }) => {
-    impl $crate::codec::NumCodec<$base> for $enum {
-      fn from_base(val: $base) -> Self {
+    impl $enum {
+      /// Constructs from the base integer value.
+      pub const fn from_base(val: $base) -> Self {
         match val {
           $($value => Self::$variant,)+
           other => Self::$catch_all(other),
         }
       }
 
-      fn to_base(&self) -> $base {
+      /// Returns the base integer value.
+      pub const fn to_base(self) -> $base {
         match self {
           $(Self::$variant => $value,)+
-          Self::$catch_all(v) => *v,
+          Self::$catch_all(v) => v,
         }
       }
-    }
 
-    impl $enum {
       /// Canonical constructor.
       ///
       /// Routes through `from_base`, so a value a named variant covers yields
       /// that variant instead of a catch-all holding the same number. Decoded
       /// values already take this path.
-      pub fn new(val: $base) -> Self {
-        <Self as $crate::codec::NumCodec<$base>>::from_base(val)
+      pub const fn new(val: $base) -> Self {
+        Self::from_base(val)
       }
 
       /// Whether this value is in canonical form.
@@ -209,7 +279,7 @@ macro_rules! enum_map {
       /// already covers.
       pub fn is_canonical(&self) -> bool {
         !matches!(self, Self::$catch_all(v) if matches!(
-          <Self as $crate::codec::NumCodec<$base>>::from_base(*v),
+          Self::from_base(*v),
           $(Self::$variant)|+
         ))
       }
@@ -218,6 +288,10 @@ macro_rules! enum_map {
       pub const fn variants() -> &'static [Self] {
         &[$(Self::$variant),+]
       }
+    }
+
+    $crate::cfg_codec! {
+      $crate::impl_enum!($enum, $base);
     }
   };
 
@@ -277,6 +351,202 @@ macro_rules! enum_map {
   };
 }
 
+/// The standard trait set for a fixed-size byte newtype, expressed only
+/// through `from_bytes` / `as_bytes`.
+///
+/// Emits `Clone`, `Copy`, `Default`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`,
+/// `Hash`, `is_null`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for
+/// [u8; N]`, a hex `Debug`/`Display`, and the hex `serde` pair.
+///
+/// A trailing `rev` renders the hex in reverse storage order, the default `fwd`
+/// renders storage order.
+///
+/// For a newtype holding secrets use [`derive_sbytes!`](crate::derive_sbytes),
+/// which withholds everything that would read or copy out the plaintext.
+#[macro_export]
+macro_rules! derive_bytes {
+  (@parse [$($g:tt)*] $ty:ty, $n:expr, $rev:expr) => {
+    impl<$($g)*> ::core::clone::Clone for $ty {
+      fn clone(&self) -> Self { *self }
+    }
+
+    impl<$($g)*> ::core::marker::Copy for $ty {}
+
+    impl<$($g)*> ::core::default::Default for $ty {
+      fn default() -> Self { Self::from_bytes([0u8; $n]) }
+    }
+
+    impl<$($g)*> ::core::cmp::Eq for $ty {}
+
+    impl<$($g)*> ::core::cmp::PartialEq for $ty {
+      fn eq(&self, other: &Self) -> bool { self.as_bytes() == other.as_bytes() }
+    }
+
+    impl<$($g)*> ::core::cmp::Ord for $ty {
+      fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
+        self.as_bytes().cmp(other.as_bytes())
+      }
+    }
+
+    impl<$($g)*> ::core::cmp::PartialOrd for $ty {
+      fn partial_cmp(&self, other: &Self) -> ::core::option::Option<::core::cmp::Ordering> {
+        ::core::option::Option::Some(::core::cmp::Ord::cmp(self, other))
+      }
+    }
+
+    impl<$($g)*> ::core::hash::Hash for $ty {
+      fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+        ::core::hash::Hash::hash(self.as_bytes(), state);
+      }
+    }
+
+    impl<$($g)*> ::core::convert::AsRef<[u8]> for $ty {
+      fn as_ref(&self) -> &[u8] { self.as_bytes() }
+    }
+
+    impl<$($g)*> ::core::convert::AsRef<[u8; $n]> for $ty {
+      fn as_ref(&self) -> &[u8; $n] { self.as_bytes() }
+    }
+
+    impl<$($g)*> ::core::convert::From<$ty> for [u8; $n] {
+      fn from(val: $ty) -> Self { *val.as_bytes() }
+    }
+
+    impl<$($g)*> $ty {
+      /// Returns `true` when every byte is zero.
+      pub fn is_null(&self) -> bool { self.as_bytes().iter().all(|&b| b == 0) }
+    }
+
+    impl<$($g)*> ::core::fmt::Debug for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
+        f.write_str("(")?;
+        ::core::fmt::Display::fmt(self, f)?;
+        f.write_str(")")
+      }
+    }
+
+    $crate::derive_bytes!(@hex [$($g)*] $ty, $n, $rev);
+  };
+  (@order [$($g:tt)*] $ty:ty, $n:expr, fwd) => {
+    $crate::derive_bytes!(@parse [$($g)*] $ty, $n, false);
+  };
+  (@order [$($g:tt)*] $ty:ty, $n:expr, rev) => {
+    $crate::derive_bytes!(@parse [$($g)*] $ty, $n, true);
+  };
+  (@hex [$($g:tt)*] $ty:ty, $n:expr, $rev:expr) => {
+    impl<$($g)*> ::core::fmt::Display for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        let bytes = self.as_bytes();
+        for i in 0..$n {
+          let byte = if $rev { bytes[$n - 1 - i] } else { bytes[i] };
+          ::core::write!(f, "{byte:02x}")?;
+        }
+        ::core::result::Result::Ok(())
+      }
+    }
+
+    $crate::cfg_serde! {
+      impl<$($g)*> $crate::__private::serde::Serialize for $ty {
+        fn serialize<Z>(&self, serializer: Z) -> Result<Z::Ok, Z::Error>
+        where
+          Z: $crate::__private::serde::Serializer,
+        {
+          serializer.serialize_str(&::alloc::format!("{self}"))
+        }
+      }
+
+      impl<'de, $($g)*> $crate::__private::serde::Deserialize<'de> for $ty {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+          D: $crate::__private::serde::Deserializer<'de>,
+        {
+          use $crate::__private::serde::de::Error as _;
+          let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
+          let mut bytes = <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
+            .map_err(D::Error::custom)?;
+          if $rev {
+            bytes.reverse();
+          }
+          ::core::result::Result::Ok(Self::from_bytes(bytes))
+        }
+      }
+    }
+  };
+  (for[$($generic:tt)*] $ty:ty, $n:expr, $order:tt) => {
+    $crate::derive_bytes!(@order [$($generic)*] $ty, $n, $order);
+  };
+  (for[$($generic:tt)*] $ty:ty, $n:expr) => {
+    $crate::derive_bytes!(@order [$($generic)*] $ty, $n, fwd);
+  };
+  ($ty:ty, $n:expr, $order:tt) => {
+    $crate::derive_bytes!(@order [] $ty, $n, $order);
+  };
+  ($ty:ty, $n:expr) => {
+    $crate::derive_bytes!(@order [] $ty, $n, fwd);
+  };
+}
+
+/// The secret counterpart to [`derive_bytes!`](crate::derive_bytes), for a
+/// fixed-size byte newtype holding key material.
+///
+/// Emits `Drop`, `ZeroizeOnDrop`, `is_null`, the `AsRef` pair, and a redacting
+/// `Debug`/`Display`. `Zeroize`, `Clone` and `Eq`/`PartialEq` are left to the
+/// type: only it knows which fields are secret, and equality must be
+/// constant-time.
+///
+/// Withholds `Copy`, `Default`, `Ord`/`PartialOrd`/`Hash`, `From<Self> for
+/// [u8; N]` and the hex `serde` pair, each because it either escapes the wipe
+/// or reads the plaintext. Do *not* implement them.
+#[macro_export]
+macro_rules! derive_sbytes {
+  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+    impl<$($g)*> ::core::ops::Drop for $ty {
+      fn drop(&mut self) {
+        <Self as $crate::__private::zeroize::Zeroize>::zeroize(self);
+      }
+    }
+
+    impl<$($g)*> $crate::__private::zeroize::ZeroizeOnDrop for $ty {}
+
+    impl<$($g)*> $ty {
+      /// Returns `true` when every byte is zero.
+      pub fn is_null(&self) -> bool {
+        use $crate::__private::subtle::ConstantTimeEq as _;
+        self.as_bytes().ct_eq(&[0u8; $n]).into()
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::Debug for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        // `type_name` rather than `stringify!`, which cannot see the generics
+        $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
+        f.write_str("(..)")
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::Display for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        ::core::fmt::Debug::fmt(self, f)
+      }
+    }
+
+    impl<$($g)*> ::core::convert::AsRef<[u8]> for $ty {
+      fn as_ref(&self) -> &[u8] { self.as_bytes() }
+    }
+
+    impl<$($g)*> ::core::convert::AsRef<[u8; $n]> for $ty {
+      fn as_ref(&self) -> &[u8; $n] { self.as_bytes() }
+    }
+  };
+  (for[$($generic:tt)*] $($args:tt)*) => {
+    $crate::derive_sbytes!(@parse [$($generic)*] $($args)*);
+  };
+  ($($args:tt)*) => {
+    $crate::derive_sbytes!(@parse [] $($args)*);
+  };
+}
+
 /// Generates `From<T>` + `From<&T>` (or `TryFrom` equivalents). The closure
 /// body receives `&$src`; the owned impl delegates.
 #[macro_export]
@@ -333,10 +603,12 @@ macro_rules! type_cvrt {
 
 #[cfg(test)]
 mod tests {
-  use crate::codec::NumCodec;
+  use super::qtypestr;
   use crate::prelude::*;
 
   use rstest::*;
+
+  use core::fmt;
 
   enum_map! {
     /// Open enum: unrecognized codes survive a round trip.
@@ -400,6 +672,7 @@ mod tests {
   #[rstest]
   fn auto_stringize_uses_the_variant_name() {
     assert_eq!(Auto::Alpha.to_string(), "Alpha");
+    assert_eq!(Auto::Alpha.to_base(), 7);
     assert_eq!(Auto::Other(3).to_string(), "unknown(3)");
     assert_eq!(Auto::variants(), &[Auto::Alpha]);
     assert_eq!(Auto::new(7), Auto::Alpha);
@@ -425,5 +698,33 @@ mod tests {
   #[rstest]
   fn closed_display() {
     assert_eq!(Closed::Lo.to_string(), "Lo");
+  }
+
+  #[cfg(feature = "codec")]
+  #[rstest]
+  fn open_maps_through_the_codec_trait() {
+    use crate::codec::NumCodec;
+
+    assert_eq!(<Open as NumCodec<u8>>::from_base(1), Open::One);
+    assert_eq!(NumCodec::<u8>::to_base(&Open::Two), 2);
+  }
+
+  struct Qtype<'a>(&'a str);
+
+  impl fmt::Display for Qtype<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      qtypestr(f, self.0)
+    }
+  }
+
+  #[rstest]
+  #[case::plain("a::b::Foo", "Foo")]
+  #[case::unqualified("Foo", "Foo")]
+  #[case::one_arg("a::Foo<b::Bar>", "Foo<Bar>")]
+  #[case::two_args("a::Foo<b::Bar, c::Baz>", "Foo<Bar, Baz>")]
+  #[case::nested("a::Foo<b::Bar<c::Baz>>", "Foo<Bar<Baz>>")]
+  #[case::nested_pair("a::Foo<b::Bar<c::Baz>, d::Qux>", "Foo<Bar<Baz>, Qux>")]
+  fn qtypestr_drops_module_paths(#[case] path: &str, #[case] expect: &str) {
+    assert_eq!(Qtype(path).to_string(), expect);
   }
 }

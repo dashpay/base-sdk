@@ -6,7 +6,7 @@
 
 //! Script opcodes as defined by the consensus rules.
 
-use dash_types::{codec::NumCodec, enum_map};
+use dash_types::enum_map;
 
 use core::fmt;
 
@@ -299,7 +299,7 @@ impl fmt::Debug for Opcode {
 
 #[cfg(test)]
 mod tests {
-  use super::{NumCodec, Opcode};
+  use super::Opcode;
   use crate::prelude::*;
 
   use rstest::*;
