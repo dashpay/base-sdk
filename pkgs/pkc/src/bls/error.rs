@@ -23,6 +23,8 @@ pub enum BlsError {
   InsufficientShares,
   /// ciphertext is not a whole number of cipher blocks
   InvalidCiphertextLength,
+  /// initialisation vector seed is all zeroes
+  InvalidIvSeed,
   /// input keying material is too short (need >= 32 bytes)
   InvalidKeyMaterial,
   /// plaintext is not a whole number of cipher blocks
@@ -52,6 +54,7 @@ impl fmt::Display for BlsError {
       Self::EmptyAggregation => write!(f, "no items provided for aggregation"),
       Self::InsufficientShares => write!(f, "not enough shares to recover"),
       Self::InvalidCiphertextLength => write!(f, "ciphertext is not a whole number of cipher blocks"),
+      Self::InvalidIvSeed => write!(f, "initialisation vector seed is all zeroes"),
       Self::InvalidKeyMaterial => write!(f, "input keying material too short"),
       Self::InvalidPlaintextLength => write!(f, "plaintext is not a whole number of cipher blocks"),
       Self::InvalidPublicKey => write!(f, "invalid public key bytes"),

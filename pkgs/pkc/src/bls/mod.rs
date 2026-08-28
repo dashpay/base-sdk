@@ -8,6 +8,7 @@
 
 mod dh_bytes;
 mod error;
+mod ies_bytes;
 mod public_bytes;
 mod schemes;
 mod secret_bytes;
@@ -17,6 +18,7 @@ mod sig_id;
 
 pub use dh_bytes::{BlsDhBytes, BLS_DH_LEN};
 pub use error::BlsError;
+pub use ies_bytes::{BlsIesBlobBytes, BlsIesMultiBytes, IV_SEED_LEN, MAX_IES_RECIPIENTS};
 pub use public_bytes::{BlsPkBytes, BLS_PK_LEN};
 pub use schemes::{BlsScChia, BlsScIetf, BlsSchemeId};
 pub use secret_bytes::{BlsSkBytes, BLS_SK_LEN};
