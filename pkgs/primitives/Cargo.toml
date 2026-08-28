@@ -41,6 +41,7 @@ dash-pow = { version = "0.0.0", path = "../pow" }
 dash-script = { version = "0.0.0", path = "../script" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
   "bitcoin-primitives",
+  "codec",
 ] }
 cfg-if = "1"
 hex-conservative = { version = "0.3", default-features = false, features = ["alloc"] }

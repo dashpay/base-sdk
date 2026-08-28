@@ -19,7 +19,9 @@ hex-literal = "0.4"
 
 [dev-dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
+dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+  "codec",
+] }
 hex-literal = "0.4"
 rstest = "0.25"
 

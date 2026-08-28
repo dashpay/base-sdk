@@ -12,7 +12,7 @@ use crate::{opcode::Opcode, PubKeyHash, ScriptHash};
 use base58ck::decode_check;
 use dash_num::Hash160;
 use dash_pkc::ecdsa::EcdsaPkBytes;
-use dash_types::codec::{BaseCodec, EncodeBuf, Hashable, NumCodec};
+use dash_types::codec::{BaseCodec, EncodeBuf, Hashable};
 use dash_types::type_cvrt;
 use dash_types::type_id::Unencodable;
 

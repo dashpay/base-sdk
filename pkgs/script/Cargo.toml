@@ -22,6 +22,7 @@ dash-num = { version = "0.0.0", path = "../num", default-features = false }
 dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false }
 dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
   "bitcoin-primitives",
+  "codec",
 ] }
 serde = { version = "1", default-features = false, features = [
   "derive",

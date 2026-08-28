@@ -38,7 +38,9 @@ bin = [
 
 [build-dependencies]
 built = { version = "0.7", features = ["dependency-tree", "git2"] }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
+dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+  "codec",
+] }
 proc-macro2 = "1"
 syn = { version = "2", features = ["full", "visit"] }
 xxhash-rust = { version = "0.8", features = ["xxh32"] }
@@ -50,7 +52,9 @@ dash-num = { version = "0.0.0", path = "../num", optional = true }
 dash-params = { version = "0.0.0", path = "../params", optional = true }
 dash-pow = { version = "0.0.0", path = "../pow", optional = true }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
+dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+  "codec",
+] }
 hex-conservative = { version = "0.3", default-features = false, features = [
   "alloc",
 ] }

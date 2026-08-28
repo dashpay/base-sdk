@@ -14,7 +14,7 @@ use crate::{hash_impl, TxHash};
 
 use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsScIetf, BlsSigBytes};
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::type_id::TypeId;
 
 use core::fmt;

@@ -12,7 +12,9 @@ ff = { version = "0.14", default-features = false, optional = true }
 group = { version = "0.14", default-features = false, optional = true }
 cfg-if = "1"
 dash-num = { version = "0.0.0", path = "../num" }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
+dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+  "codec",
+] }
 hex-conservative = { version = "0.3", default-features = false, features = [
   "alloc",
 ] }

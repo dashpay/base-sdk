@@ -8,15 +8,32 @@
 
 use core::fmt;
 
-/// Emits its body only when *this* crate has the `serde` feature.
+/// Emits its body only when *this* crate has the `codec` feature.
 ///
-/// `#[cfg(feature = "serde")]` written inside an exported macro resolves
-/// against the invoking crate, which doesn't need have a `serde` feature at
+/// `#[cfg(feature = "codec")]` written inside an exported macro resolves
+/// against the invoking crate, which doesn't need have a `codec` feature at
 /// all. This marker is compiled here, so it tracks `dash-types` instead.
 ///
 /// The two arms must stay plain `#[cfg]` items. Wrapping them in `cfg_if!`
 /// makes the definition macro-expanded, and a macro-expanded `#[macro_export]`
 /// macro cannot be reached by `$crate::` from its own crate (rust#52234).
+#[cfg(feature = "codec")]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_codec {
+  ($($item:tt)*) => { $($item)* };
+}
+
+#[cfg(not(feature = "codec"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_codec {
+  ($($item:tt)*) => {};
+}
+
+/// Emits its body only when *this* crate has the `serde` feature.
+///
+/// Identical rationale to [`cfg_codec!`](crate::cfg_codec).
 #[cfg(feature = "serde")]
 #[doc(hidden)]
 #[macro_export]
@@ -62,10 +79,28 @@ pub fn qtypestr(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
   f.write_str(&path[seg..])
 }
 
+/// Generates `NumCodec<$base>` for an enum that already carries the inherent
+/// `fn {from,to}_base` pair.
+#[cfg(feature = "codec")]
+#[macro_export]
+macro_rules! impl_enum {
+  ($enum:ident, $base:ty) => {
+    impl $crate::codec::NumCodec<$base> for $enum {
+      fn from_base(val: $base) -> Self {
+        $enum::from_base(val)
+      }
+
+      fn to_base(&self) -> $base {
+        $enum::to_base(*self)
+      }
+    }
+  };
+}
+
 /// Maps enum variants to integer constants and display strings.
 ///
-/// Generates the enum definition, integer mapping (via `NumCodec` or inherent
-/// `const fn`), and `impl Display` from a single table.
+/// Generates the enum definition, inherent `const fn` integer mapping, and
+/// `impl Display` from a single table.
 ///
 /// # Syntax
 ///
@@ -78,10 +113,12 @@ pub fn qtypestr(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
 ///
 /// ## Infallible
 ///
-/// Generates the enum with a catch-all variant, `impl NumCodec<T>`, `new`,
-/// `is_canonical`, `variants`, and `impl Display`. The catch-all displays as
-/// `unknown({v})`; build values with `new` so it never shadows a named
-/// variant.
+/// Generates the enum with a catch-all variant, inherent `fn {to,from}_base`
+/// methods and the [`impl_enum!`](crate::impl_enum) impl over them, `new`,
+/// `is_canonical`, `variants`, and `impl Display`.
+///
+/// The catch-all displays as `unknown({v})`; build values with `new` so it
+/// never shadows a named variant.
 ///
 /// ```ignore
 /// enum_map! {
@@ -210,30 +247,30 @@ macro_rules! enum_map {
   (@infallible $enum:ident, $base:ty, $catch_all:ident {
     $($variant:ident = $value:literal),+
   }) => {
-    impl $crate::codec::NumCodec<$base> for $enum {
-      fn from_base(val: $base) -> Self {
+    impl $enum {
+      /// Constructs from the base integer value.
+      pub const fn from_base(val: $base) -> Self {
         match val {
           $($value => Self::$variant,)+
           other => Self::$catch_all(other),
         }
       }
 
-      fn to_base(&self) -> $base {
+      /// Returns the base integer value.
+      pub const fn to_base(self) -> $base {
         match self {
           $(Self::$variant => $value,)+
-          Self::$catch_all(v) => *v,
+          Self::$catch_all(v) => v,
         }
       }
-    }
 
-    impl $enum {
       /// Canonical constructor.
       ///
       /// Routes through `from_base`, so a value a named variant covers yields
       /// that variant instead of a catch-all holding the same number. Decoded
       /// values already take this path.
-      pub fn new(val: $base) -> Self {
-        <Self as $crate::codec::NumCodec<$base>>::from_base(val)
+      pub const fn new(val: $base) -> Self {
+        Self::from_base(val)
       }
 
       /// Whether this value is in canonical form.
@@ -242,7 +279,7 @@ macro_rules! enum_map {
       /// already covers.
       pub fn is_canonical(&self) -> bool {
         !matches!(self, Self::$catch_all(v) if matches!(
-          <Self as $crate::codec::NumCodec<$base>>::from_base(*v),
+          Self::from_base(*v),
           $(Self::$variant)|+
         ))
       }
@@ -251,6 +288,10 @@ macro_rules! enum_map {
       pub const fn variants() -> &'static [Self] {
         &[$(Self::$variant),+]
       }
+    }
+
+    $crate::cfg_codec! {
+      $crate::impl_enum!($enum, $base);
     }
   };
 
@@ -563,7 +604,6 @@ macro_rules! type_cvrt {
 #[cfg(test)]
 mod tests {
   use super::qtypestr;
-  use crate::codec::NumCodec;
   use crate::prelude::*;
 
   use rstest::*;
@@ -632,6 +672,7 @@ mod tests {
   #[rstest]
   fn auto_stringize_uses_the_variant_name() {
     assert_eq!(Auto::Alpha.to_string(), "Alpha");
+    assert_eq!(Auto::Alpha.to_base(), 7);
     assert_eq!(Auto::Other(3).to_string(), "unknown(3)");
     assert_eq!(Auto::variants(), &[Auto::Alpha]);
     assert_eq!(Auto::new(7), Auto::Alpha);
@@ -657,6 +698,15 @@ mod tests {
   #[rstest]
   fn closed_display() {
     assert_eq!(Closed::Lo.to_string(), "Lo");
+  }
+
+  #[cfg(feature = "codec")]
+  #[rstest]
+  fn open_maps_through_the_codec_trait() {
+    use crate::codec::NumCodec;
+
+    assert_eq!(<Open as NumCodec<u8>>::from_base(1), Open::One);
+    assert_eq!(NumCodec::<u8>::to_base(&Open::Two), 2);
   }
 
   struct Qtype<'a>(&'a str);

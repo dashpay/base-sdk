@@ -39,6 +39,7 @@ dash-params = { version = "0.0.0", path = "../params" }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
 dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
   "bitcoin-p2p-messages",
+  "codec",
 ] }
 serde = { version = "1", default-features = false, features = [
   "alloc",

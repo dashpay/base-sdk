@@ -13,7 +13,7 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::type_id::TypeId;
 use dash_types::{impl_type, type_cvrt, CompactSize};
 
