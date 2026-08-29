@@ -19,9 +19,19 @@ import subprocess
 import sys
 from functools import partial
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import rjsmin
-from common import RETCODE_ERR, RETCODE_PASS, require_bin, root_dir
+from common import (
+  RETCODE_ERR,
+  RETCODE_PASS,
+  declare_verbs,
+  require_bin,
+  root_dir,
+)
+
+if TYPE_CHECKING:
+  from collections.abc import Callable
 
 SITE_DIR = Path("public")
 PREVIEW_PORT = 8000
@@ -198,22 +208,19 @@ def _preview(root: Path) -> None:
     srv.server_close()
 
 
-VERBS = {"build": _build, "preview": _preview}
+VERBS: dict[str, tuple[Callable[[Path], None], str]] = {
+  "build": (_build, f"render the site into {SITE_DIR}/"),
+  "preview": (_preview, "render the site, then serve it over localhost"),
+}
 
 
 def main() -> int:
   """Entry point."""
-  verb = sys.argv[1] if len(sys.argv) > 1 else "build"
-  action = VERBS.get(verb)
-  if action is None:
-    print(
-      f"unknown verb: {verb} (expected: {', '.join(VERBS)})",
-      file=sys.stderr,
-    )
-    return RETCODE_ERR
-
-  root = root_dir()
-  action(root)
+  args = declare_verbs(
+    "Build the documentation site.",
+    {verb: what for verb, (_, what) in VERBS.items()},
+  ).parse_args(sys.argv[1:])
+  VERBS[args.verb][0](root_dir())
   return RETCODE_PASS
 
 

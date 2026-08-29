@@ -11,7 +11,6 @@
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import csv
 import datetime
@@ -24,12 +23,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+  import argparse
   from collections.abc import Iterator
 
 from common import (
   RETCODE_ERR,
   RETCODE_PASS,
   RETCODE_SKIP,
+  declare_verbs,
   require_bin,
   root_dir,
   usable_mem,
@@ -181,8 +182,9 @@ def _workspace_dirs(
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
-  parser = argparse.ArgumentParser(
-    description="Run CodeQL queries against the workspace.",
+  parser = declare_verbs(
+    "Run CodeQL queries against the workspace.",
+    {"run": "build a database and evaluate every query"},
   )
   parser.add_argument(
     "-c",

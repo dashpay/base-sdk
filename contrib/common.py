@@ -11,15 +11,16 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NoReturn
 
 if TYPE_CHECKING:
-  from collections.abc import Callable
+  from collections.abc import Callable, Mapping
 
 # ANSI escape codes for terminal output.
 ANSI_BOLD = "\033[1m"
@@ -35,6 +36,44 @@ DEFAULT_BASE = "develop"
 RETCODE_ERR = 1
 RETCODE_PASS = 0
 RETCODE_SKIP = 77
+
+
+class _VerbParser(argparse.ArgumentParser):
+  """Parser spelling a usage fault in the harness' return codes."""
+
+  def exit(self, status: int = 0, message: str | None = None) -> NoReturn:
+    if message:
+      self._print_message(message, sys.stderr)
+    sys.exit(RETCODE_ERR if status else RETCODE_PASS)
+
+
+def declare_verbs(
+  description: str,
+  verbs: Mapping[str, str],
+) -> argparse.ArgumentParser:
+  """Return a parser taking one of *verbs*.
+
+  *verbs* maps each verb to what it does, and insertion order picks the
+  default, so the first entry must avoid mutating effects.
+  """
+  if not verbs:
+    raise ValueError("no verbs declared")
+  default = next(iter(verbs))
+  parser = _VerbParser(
+    description=description,
+    formatter_class=argparse.RawTextHelpFormatter,
+  )
+  parser.add_argument(
+    "verb",
+    choices=tuple(verbs),
+    default=default,
+    nargs="?",
+    help="\n".join(
+      f"{name}: {what}" + (" (default)" if name == default else "")
+      for name, what in verbs.items()
+    ),
+  )
+  return parser
 
 
 def format_table(
