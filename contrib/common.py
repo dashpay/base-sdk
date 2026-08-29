@@ -29,6 +29,9 @@ ANSI_GREEN = "\033[32m"
 ANSI_RED = "\033[31m"
 ANSI_RESET = "\033[0m"
 
+# Cargo workspace roots, relative to the repository root.
+CARGO_WORKSPACES: tuple[str, ...] = (".", "contrib/samples")
+
 # Assumed base branch for codebase.
 DEFAULT_BASE = "develop"
 
@@ -76,6 +79,23 @@ def declare_verbs(
   return parser
 
 
+def is_plain_file(root: Path, name: str) -> bool:
+  """Whether *name* is a regular file inside *root*, reached without links."""
+  path = root / name
+  if not path.is_file():
+    return False
+  try:
+    relative = path.relative_to(root)
+  except ValueError:
+    return False
+  probe = root
+  for part in relative.parts:
+    probe = probe / part
+    if probe.is_symlink():
+      return False
+  return path.resolve().is_relative_to(root.resolve())
+
+
 def touched(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
   """Return the files matching *suffixes* that this branch has changed."""
   git = require_bin("git")
@@ -97,7 +117,7 @@ def touched(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
   base = run(["merge-base", DEFAULT_BASE, "HEAD"]).strip()
   return [
     name for name in run(["diff", "--name-only", base]).splitlines()
-    if name.endswith(suffixes) and (repo_root / name).is_file()
+    if name.endswith(suffixes) and is_plain_file(repo_root, name)
   ]
 
 
