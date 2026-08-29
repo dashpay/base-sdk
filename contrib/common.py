@@ -76,6 +76,31 @@ def declare_verbs(
   return parser
 
 
+def touched(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
+  """Return the files matching *suffixes* that this branch has changed."""
+  git = require_bin("git")
+
+  def run(args: list[str]) -> str:
+    result = subprocess.run(  # noqa: S603
+      [git, *args],
+      capture_output=True,
+      check=False,
+      cwd=str(repo_root),
+      text=True,
+    )
+    if result.returncode != 0:
+      raise RuntimeError(
+        f"git {args[0]}: {result.stderr.strip() or result.returncode}",
+      )
+    return result.stdout
+
+  base = run(["merge-base", DEFAULT_BASE, "HEAD"]).strip()
+  return [
+    name for name in run(["diff", "--name-only", base]).splitlines()
+    if name.endswith(suffixes) and (repo_root / name).is_file()
+  ]
+
+
 def format_table(
   headers: tuple[str, ...],
   rows: list[tuple[str, ...]],

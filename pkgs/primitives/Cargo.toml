@@ -46,7 +46,9 @@ dash-types = { version = "0.0.0", path = "../types", default-features = false, f
   "codec",
 ] }
 cfg-if = "1"
-hex-conservative = { version = "0.3", default-features = false, features = ["alloc"] }
+hex-conservative = { version = "0.3", default-features = false, features = [
+  "alloc",
+] }
 libm = { version = "0.2", default-features = false }
 serde = { version = "1", default-features = false, features = [
   "alloc",

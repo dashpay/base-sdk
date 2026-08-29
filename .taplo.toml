@@ -1,0 +1,9 @@
+exclude = [
+  "**/.venv/**",
+  "**/node_modules/**",
+  "**/target/**",
+]
+
+[formatting]
+array_auto_collapse = false
+column_width = 80
