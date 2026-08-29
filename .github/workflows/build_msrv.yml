@@ -143,6 +143,10 @@ jobs:
 
       - name: Build workspace
         run: cargo build --workspace --features full
+        env:
+          RUSTUP_TOOLCHAIN: 1.85.0
 
       - name: Test workspace
         run: cargo test --workspace --features full
+        env:
+          RUSTUP_TOOLCHAIN: 1.85.0
