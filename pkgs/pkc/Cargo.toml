@@ -50,8 +50,20 @@ serde = { version = "1", features = ["derive"] }
 [features]
 default = []
 std = ["base58ck?/std", "bitcoin_hashes?/std", "dash-types/std"]
-bls = ["dep:aes", "dep:blst", "dep:ff", "dep:group", "dep:rand_core", "dep:sha2"]
-codec = ["dep:base58ck", "dep:bitcoin_hashes", "dep:dash-num", "dash-types/codec"]
+bls = [
+  "dep:aes",
+  "dep:blst",
+  "dep:ff",
+  "dep:group",
+  "dep:rand_core",
+  "dep:sha2",
+]
+codec = [
+  "dep:base58ck",
+  "dep:bitcoin_hashes",
+  "dep:dash-num",
+  "dash-types/codec",
+]
 ecdsa = ["codec", "dep:k256", "dep:rand_core"]
 serde = ["codec", "dep:serde", "dash-num/serde", "dash-types/serde"]
 full = ["bls", "codec", "ecdsa", "serde", "std", "tests"]

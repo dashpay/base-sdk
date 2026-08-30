@@ -9,13 +9,15 @@
 
 from __future__ import annotations
 
-import argparse
 import asyncio
 import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+  import argparse
 
 from common import (
   ANSI_BOLD,
@@ -25,6 +27,7 @@ from common import (
   RETCODE_ERR,
   RETCODE_PASS,
   RETCODE_SKIP,
+  declare_verbs,
   format_table,
 )
 
@@ -72,8 +75,9 @@ async def _read_stream(
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
-  parser = argparse.ArgumentParser(
-    description="Run contrib/lint/lint_*.py concurrently.",
+  parser = declare_verbs(
+    "Run contrib/lint/lint_*.py concurrently.",
+    {"run": "run every linter and summarise the results"},
   )
   parser.add_argument(
     "--exclude",

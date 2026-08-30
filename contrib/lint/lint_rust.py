@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 
-from common import RETCODE_ERR, RETCODE_PASS, require_bin, root_dir
-
-CARGO_MANIFESTS: tuple[str, ...] = (
-  "Cargo.toml",
-  "contrib/samples/Cargo.toml",
+from common import (
+  CARGO_WORKSPACES,
+  RETCODE_ERR,
+  RETCODE_PASS,
+  require_bin,
+  root_dir,
 )
 
 
@@ -28,7 +30,8 @@ def main() -> int:
   repo_root = root_dir()
 
   failed = False
-  for manifest in CARGO_MANIFESTS:
+  for workspace in CARGO_WORKSPACES:
+    manifest = Path(workspace) / "Cargo.toml"
     manifest_path = repo_root / manifest
     print(f"checking formatting: {manifest}")
     cmd = [cargo_bin, "fmt", "--check", "--all"]

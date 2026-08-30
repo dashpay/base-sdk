@@ -11,15 +11,16 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NoReturn
 
 if TYPE_CHECKING:
-  from collections.abc import Callable
+  from collections.abc import Callable, Mapping
 
 # ANSI escape codes for terminal output.
 ANSI_BOLD = "\033[1m"
@@ -28,6 +29,9 @@ ANSI_GREEN = "\033[32m"
 ANSI_RED = "\033[31m"
 ANSI_RESET = "\033[0m"
 
+# Cargo workspace roots, relative to the repository root.
+CARGO_WORKSPACES: tuple[str, ...] = (".", "contrib/samples")
+
 # Assumed base branch for codebase.
 DEFAULT_BASE = "develop"
 
@@ -35,6 +39,86 @@ DEFAULT_BASE = "develop"
 RETCODE_ERR = 1
 RETCODE_PASS = 0
 RETCODE_SKIP = 77
+
+
+class _VerbParser(argparse.ArgumentParser):
+  """Parser spelling a usage fault in the harness' return codes."""
+
+  def exit(self, status: int = 0, message: str | None = None) -> NoReturn:
+    if message:
+      self._print_message(message, sys.stderr)
+    sys.exit(RETCODE_ERR if status else RETCODE_PASS)
+
+
+def declare_verbs(
+  description: str,
+  verbs: Mapping[str, str],
+) -> argparse.ArgumentParser:
+  """Return a parser taking one of *verbs*.
+
+  *verbs* maps each verb to what it does, and insertion order picks the
+  default, so the first entry must avoid mutating effects.
+  """
+  if not verbs:
+    raise ValueError("no verbs declared")
+  default = next(iter(verbs))
+  parser = _VerbParser(
+    description=description,
+    formatter_class=argparse.RawTextHelpFormatter,
+  )
+  parser.add_argument(
+    "verb",
+    choices=tuple(verbs),
+    default=default,
+    nargs="?",
+    help="\n".join(
+      f"{name}: {what}" + (" (default)" if name == default else "")
+      for name, what in verbs.items()
+    ),
+  )
+  return parser
+
+
+def is_plain_file(root: Path, name: str) -> bool:
+  """Whether *name* is a regular file inside *root*, reached without links."""
+  path = root / name
+  if not path.is_file():
+    return False
+  try:
+    relative = path.relative_to(root)
+  except ValueError:
+    return False
+  probe = root
+  for part in relative.parts:
+    probe = probe / part
+    if probe.is_symlink():
+      return False
+  return path.resolve().is_relative_to(root.resolve())
+
+
+def touched(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
+  """Return the files matching *suffixes* that this branch has changed."""
+  git = require_bin("git")
+
+  def run(args: list[str]) -> str:
+    result = subprocess.run(  # noqa: S603
+      [git, *args],
+      capture_output=True,
+      check=False,
+      cwd=str(repo_root),
+      text=True,
+    )
+    if result.returncode != 0:
+      raise RuntimeError(
+        f"git {args[0]}: {result.stderr.strip() or result.returncode}",
+      )
+    return result.stdout
+
+  base = run(["merge-base", DEFAULT_BASE, "HEAD"]).strip()
+  return [
+    name for name in run(["diff", "--name-only", base]).splitlines()
+    if name.endswith(suffixes) and is_plain_file(repo_root, name)
+  ]
 
 
 def format_table(

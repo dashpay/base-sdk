@@ -142,7 +142,15 @@ jobs:
             cargo-build-msrv-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Build workspace
-        run: cargo build --workspace --features full
+        run: |
+          cargo build --workspace --exclude dash-pow --features full
+          cargo build -p dash-pow --features std,aes_hw
+        env:
+          RUSTUP_TOOLCHAIN: 1.85.0
 
       - name: Test workspace
-        run: cargo test --workspace --features full
+        run: |
+          cargo test --workspace --exclude dash-pow --features full
+          cargo test -p dash-pow --features std,aes_hw
+        env:
+          RUSTUP_TOOLCHAIN: 1.85.0

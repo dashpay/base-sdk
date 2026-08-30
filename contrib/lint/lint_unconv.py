@@ -9,13 +9,14 @@
 
 from __future__ import annotations
 
-import argparse
 import re
 import subprocess
 import sys
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from common import declare_verbs
 
 CONFIG_FILENAME = "unconv.toml"
 
@@ -173,11 +174,10 @@ def _subjects_from_range(git_range: str) -> list[str]:
 
 
 def main() -> int:
-  parser = argparse.ArgumentParser(
-    description=(
-      "Lint commit messages against the unconventional commits format.\n"
-      "Format: [namespace]%type[(scope)]: description"
-    ),
+  parser = declare_verbs(
+    "Lint commit messages against the unconventional commits format.\n"
+    "Format: [namespace]%type[(scope)]: description",
+    {"run": "lint whichever messages the options below select"},
   )
   source = parser.add_mutually_exclusive_group(required=False)
   source.add_argument(
