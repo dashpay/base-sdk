@@ -47,7 +47,7 @@ const sharedRules = {
 
 export default [
   {
-    ignores: ["docs/**", "contrib/samples/**", "**/pkg/**"],
+    ignores: ["docs/**", "**/pkg/**"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
@@ -62,7 +62,7 @@ export default [
     rules: sharedRules,
   },
   {
-    files: ["docs/**/*.js", "contrib/samples/**/*.js"],
+    files: ["docs/**/*.js"],
     ignores: ["**/pkg/**"],
     languageOptions: {
       ecmaVersion: 2022,

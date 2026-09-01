@@ -46,19 +46,19 @@ IGNORE_FILE = DOCS_DIR / ".zenignore"
 # Starting port the preview server binds to.
 PREVIEW_PORT = 8000
 
+# Source directory of sample crates.
+SAMPLES_DIR = DOCS_DIR / "samples"
+
 # Target directory for build output.
 SITE_DIR = DOCS_DIR / ".site"
-
-# Source directory of sample crates.
-WASM_SAMPLES_DIR = Path("contrib/samples")
 
 # Matches additional assets bundled with samples.
 WEB_ASSET_GLOBS = ("*.js", "*.css")
 
 
 def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
-  """Compile every WASM sample crate under *WASM_SAMPLES_DIR*."""
-  samples = sorted((root / WASM_SAMPLES_DIR).glob("*/Cargo.toml"))
+  """Compile every WASM sample crate under *SAMPLES_DIR*."""
+  samples = sorted(SAMPLES_DIR.glob("*/Cargo.toml"))
   if not samples:
     print("no WASM samples found", file=sys.stderr)
     return
@@ -70,9 +70,10 @@ def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
     channel = tomllib.load(f)["toolchain"]["channel"]
   env = {
     **os.environ,
-    "RUSTUP_TOOLCHAIN": channel,
+    "CARGO_TARGET_DIR": str(root / "target" / "samples"),
     "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS":
       "-C target-feature=+simd128",
+    "RUSTUP_TOOLCHAIN": channel,
   }
 
   for cargo_toml in samples:
@@ -108,10 +109,10 @@ def _build_site(root: Path, zensical: str) -> None:
 
 def _copy_artifacts(root: Path) -> None:
   """Copy WASM packages and web assets into the built site."""
-  samples = sorted((root / WASM_SAMPLES_DIR).glob("*/Cargo.toml"))
+  samples = sorted(SAMPLES_DIR.glob("*/Cargo.toml"))
   site = SITE_DIR
 
-  common_css = root / WASM_SAMPLES_DIR / "common.css"
+  common_css = SAMPLES_DIR / "common.css"
   if common_css.is_file():
     dest = site / "samples" / "common.css"
     dest.parent.mkdir(parents=True, exist_ok=True)
