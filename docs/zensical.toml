@@ -17,6 +17,7 @@ extra_css = ["style.css"]
 nav = [
   { "Home" = "README.md" },
   { "Contributing" = [
+    { "Getting Started" = "dev/getting_started.md" },
     { "Documentation" = "dev/about_docs.md" },
     { "Style Guide (Rust)" = "dev/guide_rust.md" },
   ] },
