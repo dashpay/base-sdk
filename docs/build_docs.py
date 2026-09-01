@@ -52,10 +52,6 @@ SAMPLES_DIR = DOCS_DIR / "samples"
 # Target directory for build output.
 SITE_DIR = DOCS_DIR / ".site"
 
-# Matches additional assets bundled with samples.
-WEB_ASSET_GLOBS = ("*.js", "*.css")
-
-
 def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
   """Compile every WASM sample crate under *SAMPLES_DIR*."""
   samples = sorted(SAMPLES_DIR.glob("*/Cargo.toml"))
@@ -89,6 +85,7 @@ def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
         "web",
         "--out-dir",
         "pkg",
+        "--no-pack",
         "--no-default-features",
       ],
       check=True,
@@ -105,39 +102,6 @@ def _build_site(root: Path, zensical: str) -> None:
     cwd=str(root),
     env=env,
   )
-
-
-def _copy_artifacts(root: Path) -> None:
-  """Copy WASM packages and web assets into the built site."""
-  samples = sorted(SAMPLES_DIR.glob("*/Cargo.toml"))
-  site = SITE_DIR
-
-  common_css = SAMPLES_DIR / "common.css"
-  if common_css.is_file():
-    dest = site / "samples" / "common.css"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    print(f"copying {common_css} -> {dest}")
-    shutil.copy2(common_css, dest)
-
-  for cargo_toml in samples:
-    crate_dir = cargo_toml.parent
-    name = crate_dir.name
-    dest_base = site / "samples" / name
-
-    pkg_src = crate_dir / "pkg"
-    if pkg_src.is_dir():
-      pkg_dest = dest_base / "pkg"
-      print(f"copying {pkg_src} -> {pkg_dest}")
-      if pkg_dest.exists():
-        shutil.rmtree(pkg_dest)
-      shutil.copytree(pkg_src, pkg_dest)
-
-    for pattern in WEB_ASSET_GLOBS:
-      for asset in crate_dir.glob(pattern):
-        dest = dest_base / asset.name
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        print(f"copying {asset} -> {dest}")
-        shutil.copy2(asset, dest)
 
 
 def _parse_ignorelist() -> list[str]:
@@ -219,7 +183,6 @@ def _build(root: Path) -> None:
 
   _build_wasm_samples(root, wasm_pack)
   _build_site(root, zensical)
-  _copy_artifacts(root)
   _trim_site(SITE_DIR)
   _generate_pygments_css(SITE_DIR)
   _minify_js(SITE_DIR)
