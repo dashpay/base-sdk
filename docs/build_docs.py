@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import http.server
+import os
 import re
 import shutil
 import socket
@@ -33,12 +34,17 @@ from common import (
 if TYPE_CHECKING:
   from collections.abc import Callable
 
+# Parent directory sourced by walking back from current file.
+DOCS_DIR = Path(__file__).resolve().parent
+
+# Path to Zensical's configuration file.
+CONFIG_FILE = DOCS_DIR / "zensical.toml"
 
 # Starting port the preview server binds to.
 PREVIEW_PORT = 8000
 
 # Target directory for build output.
-SITE_DIR = Path("public")
+SITE_DIR = DOCS_DIR / ".site"
 
 # Source directory of sample crates.
 WASM_SAMPLES_DIR = Path("contrib/samples")
@@ -54,7 +60,6 @@ def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
     print("no WASM samples found", file=sys.stderr)
     return
 
-  import os
   import tomllib
 
   toolchain_file = root / "rust-toolchain.toml"
@@ -89,16 +94,19 @@ def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
 
 def _build_site(root: Path, zensical: str) -> None:
   """Run zensical to build the documentation site."""
+  env = {**os.environ, "PYTHONPATH": str(DOCS_DIR)}
   subprocess.run(  # noqa: S603
-    [zensical, "build", "-f", str(root / "zensical.toml")],
+    [zensical, "build", "-f", str(CONFIG_FILE)],
     check=True,
+    cwd=str(root),
+    env=env,
   )
 
 
 def _copy_artifacts(root: Path) -> None:
   """Copy WASM packages and web assets into the built site."""
   samples = sorted((root / WASM_SAMPLES_DIR).glob("*/Cargo.toml"))
-  site = root / SITE_DIR
+  site = SITE_DIR
 
   common_css = root / WASM_SAMPLES_DIR / "common.css"
   if common_css.is_file():
@@ -177,8 +185,8 @@ def _build(root: Path) -> None:
   _build_wasm_samples(root, wasm_pack)
   _build_site(root, zensical)
   _copy_artifacts(root)
-  _generate_pygments_css(root / SITE_DIR)
-  _minify_js(root / SITE_DIR)
+  _generate_pygments_css(SITE_DIR)
+  _minify_js(SITE_DIR)
 
 
 def _find_free_port(host: str, start: int) -> int:
@@ -196,7 +204,7 @@ def _find_free_port(host: str, start: int) -> int:
 def _preview(root: Path) -> None:
   """Build then serve the site on localhost for testing."""
   _build(root)
-  site = root / SITE_DIR
+  site = SITE_DIR
 
   handler = partial(
     http.server.SimpleHTTPRequestHandler,
@@ -217,7 +225,7 @@ def _preview(root: Path) -> None:
 
 
 VERBS: dict[str, tuple[Callable[[Path], None], str]] = {
-  "build": (_build, f"render the site into {SITE_DIR}/"),
+  "build": (_build, f"render the site into {SITE_DIR.name}/"),
   "preview": (_preview, "render the site, then serve it over localhost"),
 }
 

@@ -20,7 +20,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["contrib", "contrib.zen"]
+packages = []
 
 [tool.ruff]
 indent-width = 2

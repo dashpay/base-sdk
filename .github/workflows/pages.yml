@@ -7,9 +7,7 @@ on:
     paths:
       - pkgs/**
       - contrib/samples/**
-      - contrib/zen/**
-      - contrib/build_docs.py
-      - docs/zen/**
+      - docs/**
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -59,12 +57,12 @@ jobs:
           restore-keys: cargo-deps-
 
       - name: Build documentation
-        run: python contrib/build_docs.py build
+        run: python docs/build_docs.py build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: public
+          path: docs/.site
 
   deploy:
     name: Deploy to GitHub Pages

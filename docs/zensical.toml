@@ -3,8 +3,8 @@ site_name = "Base SDK for Dash"
 site_description = "Documentation for the Base SDK for Dash."
 site_author = "The Dash Core developers"
 copyright = "Copyright &copy; 2026-present, The Dash Core developers"
-docs_dir = "docs/zen"
-site_dir = "public"
+docs_dir = "zen"
+site_dir = ".site"
 use_directory_urls = true
 repo_url = "https://github.com/dashpay/base-sdk"
 repo_name = "dashpay/base-sdk"
@@ -55,10 +55,10 @@ toggle.name = "Switch to light mode"
 [project.markdown_extensions.abbr]
 [project.markdown_extensions.admonition]
 [project.markdown_extensions.attr_list]
-[project.markdown_extensions."contrib.zen"]
 [project.markdown_extensions.def_list]
 [project.markdown_extensions.footnotes]
 [project.markdown_extensions.md_in_html]
+[project.markdown_extensions.preprocess]
 [project.markdown_extensions.toc]
 permalink = true
 [project.markdown_extensions.pymdownx.betterem]

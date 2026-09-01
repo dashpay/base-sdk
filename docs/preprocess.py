@@ -87,7 +87,7 @@ class GfmAlertsExtension(Extension):
   """Markdown extension entrypoint for alert rewriting."""
 
   def extendMarkdown(self, md: Markdown) -> None:
-    md.preprocessors.register(GfmAlertsPreprocessor(md), "zen", 110)
+    md.preprocessors.register(GfmAlertsPreprocessor(md), "gfm_alerts", 110)
 
 
 def makeExtension(**kwargs: object) -> GfmAlertsExtension:
