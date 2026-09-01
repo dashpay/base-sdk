@@ -22,7 +22,6 @@ nav = [
     { "Style Guide (Rust)" = "dev/guide_rust.md" },
   ] },
   { "Samples" = [
-    { "Samples" = "samples/README.md" },
     { "Genesis Solver" = "samples/solver/README.md" },
     { "Object Parser" = "samples/parser/README.md" },
   ] },
@@ -39,7 +38,6 @@ features = [
   "content.tabs.link",
   "navigation.expand",
   "navigation.footer",
-  "navigation.indexes",
   "navigation.instant.prefetch",
   "navigation.instant",
   "navigation.sections",
