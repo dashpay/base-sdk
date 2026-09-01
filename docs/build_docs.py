@@ -18,6 +18,8 @@ import shutil
 import socket
 import subprocess
 import sys
+import tomllib
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -40,26 +42,43 @@ DOCS_DIR = Path(__file__).resolve().parent
 # Path to Zensical's configuration file.
 CONFIG_FILE = DOCS_DIR / "zensical.toml"
 
-# Contents to drop from the site once Zensical has copied it in.
-IGNORE_FILE = DOCS_DIR / ".zenignore"
-
 # Starting port the preview server binds to.
 PREVIEW_PORT = 8000
 
-# Source directory of sample crates.
-SAMPLES_DIR = DOCS_DIR / "samples"
 
-# Target directory for build output.
-SITE_DIR = DOCS_DIR / ".site"
+@dataclass(frozen=True)
+class Config:
+  """Settings the build is driven by, as read from *CONFIG_FILE*."""
 
-def _build_wasm_samples(root: Path, wasm_pack: str) -> None:
-  """Compile every WASM sample crate under *SAMPLES_DIR*."""
-  samples = sorted(SAMPLES_DIR.glob("*/Cargo.toml"))
+  # Contents to drop from the site once Zensical has copied it in.
+  ignore_file: Path
+
+  # Source directory of sample crates.
+  samples_dir: Path
+
+  # Target directory for build output.
+  site_dir: Path
+
+  @classmethod
+  def load(cls, path: Path) -> Config:
+    """Return the settings held by the file at *path*."""
+    with path.open("rb") as f:
+      settings = tomllib.load(f)
+    project = settings["project"]
+    build = settings["build_docs"]
+    return cls(
+      ignore_file=DOCS_DIR / build["ignore_file"],
+      samples_dir=DOCS_DIR / build["samples_dir"],
+      site_dir=DOCS_DIR / project["site_dir"],
+    )
+
+
+def _build_wasm_samples(root: Path, wasm_pack: str, cfg: Config) -> None:
+  """Compile every WASM sample crate under the samples directory."""
+  samples = sorted(cfg.samples_dir.glob("*/Cargo.toml"))
   if not samples:
     print("no WASM samples found", file=sys.stderr)
     return
-
-  import tomllib
 
   toolchain_file = root / "rust-toolchain.toml"
   with toolchain_file.open("rb") as f:
@@ -104,16 +123,16 @@ def _build_site(root: Path, zensical: str) -> None:
   )
 
 
-def _parse_ignorelist() -> list[str]:
-  """Translate *IGNORE_FILE* into globs rooted at the built site."""
+def _parse_ignorelist(ignore_file: Path) -> list[str]:
+  """Translate *ignore_file* into globs rooted at the built site."""
   globs = []
-  lines = IGNORE_FILE.read_text(encoding="utf-8").splitlines()
+  lines = ignore_file.read_text(encoding="utf-8").splitlines()
   for number, line in enumerate(lines, start=1):
     entry = line.strip()
     if not entry or entry.startswith("#"):
       continue
     if entry.startswith("!"):
-      where = f"{IGNORE_FILE.name}:{number}"
+      where = f"{ignore_file.name}:{number}"
       raise ValueError(f"{where}: negation is not supported")
     if entry.startswith("/"):
       globs.append(entry.removeprefix("/"))
@@ -124,9 +143,9 @@ def _parse_ignorelist() -> list[str]:
   return globs
 
 
-def _trim_site(site: Path) -> None:
+def _trim_site(site: Path, ignore_file: Path) -> None:
   """Trim files that are supposed to be excluded from site bundle."""
-  for pattern in _parse_ignorelist():
+  for pattern in _parse_ignorelist(ignore_file):
     for stale in sorted(site.glob(pattern)):
       print(f"pruning {stale}")
       if stale.is_dir():
@@ -176,16 +195,16 @@ def _minify_js(site: Path) -> None:
     js.write_text(minified, encoding="utf-8")
 
 
-def _build(root: Path) -> None:
+def _build(root: Path, cfg: Config) -> None:
   """Run the full build pipeline."""
   wasm_pack = require_bin("wasm-pack")
   zensical = require_bin("zensical")
 
-  _build_wasm_samples(root, wasm_pack)
+  _build_wasm_samples(root, wasm_pack, cfg)
   _build_site(root, zensical)
-  _trim_site(SITE_DIR)
-  _generate_pygments_css(SITE_DIR)
-  _minify_js(SITE_DIR)
+  _trim_site(cfg.site_dir, cfg.ignore_file)
+  _generate_pygments_css(cfg.site_dir)
+  _minify_js(cfg.site_dir)
 
 
 def _find_free_port(host: str, start: int) -> int:
@@ -200,10 +219,10 @@ def _find_free_port(host: str, start: int) -> int:
   raise RuntimeError("no free port found")
 
 
-def _preview(root: Path) -> None:
+def _preview(root: Path, cfg: Config) -> None:
   """Build then serve the site on localhost for testing."""
-  _build(root)
-  site = SITE_DIR
+  _build(root, cfg)
+  site = cfg.site_dir
 
   handler = partial(
     http.server.SimpleHTTPRequestHandler,
@@ -223,8 +242,8 @@ def _preview(root: Path) -> None:
     srv.server_close()
 
 
-VERBS: dict[str, tuple[Callable[[Path], None], str]] = {
-  "build": (_build, f"render the site into {SITE_DIR.name}/"),
+VERBS: dict[str, tuple[Callable[[Path, Config], None], str]] = {
+  "build": (_build, "render the site into the directory it is configured for"),
   "preview": (_preview, "render the site, then serve it over localhost"),
 }
 
@@ -235,7 +254,7 @@ def main() -> int:
     "Build the documentation site.",
     {verb: what for verb, (_, what) in VERBS.items()},
   ).parse_args(sys.argv[1:])
-  VERBS[args.verb][0](root_dir())
+  VERBS[args.verb][0](root_dir(), Config.load(CONFIG_FILE))
   return RETCODE_PASS
 
 

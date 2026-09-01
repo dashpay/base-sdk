@@ -1,3 +1,7 @@
+[build_docs]
+ignore_file = ".zenignore"
+samples_dir = "samples"
+
 [project]
 site_name = "Base SDK for Dash"
 site_description = "Documentation for the Base SDK for Dash."
