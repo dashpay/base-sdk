@@ -40,6 +40,9 @@ DOCS_DIR = Path(__file__).resolve().parent
 # Path to Zensical's configuration file.
 CONFIG_FILE = DOCS_DIR / "zensical.toml"
 
+# Contents to drop from the site once Zensical has copied it in.
+IGNORE_FILE = DOCS_DIR / ".zenignore"
+
 # Starting port the preview server binds to.
 PREVIEW_PORT = 8000
 
@@ -136,6 +139,37 @@ def _copy_artifacts(root: Path) -> None:
         shutil.copy2(asset, dest)
 
 
+def _parse_ignorelist() -> list[str]:
+  """Translate *IGNORE_FILE* into globs rooted at the built site."""
+  globs = []
+  lines = IGNORE_FILE.read_text(encoding="utf-8").splitlines()
+  for number, line in enumerate(lines, start=1):
+    entry = line.strip()
+    if not entry or entry.startswith("#"):
+      continue
+    if entry.startswith("!"):
+      where = f"{IGNORE_FILE.name}:{number}"
+      raise ValueError(f"{where}: negation is not supported")
+    if entry.startswith("/"):
+      globs.append(entry.removeprefix("/"))
+    elif "/" in entry.rstrip("/"):
+      globs.append(entry)
+    else:
+      globs.append(f"**/{entry}")
+  return globs
+
+
+def _trim_site(site: Path) -> None:
+  """Trim files that are supposed to be excluded from site bundle."""
+  for pattern in _parse_ignorelist():
+    for stale in sorted(site.glob(pattern)):
+      print(f"pruning {stale}")
+      if stale.is_dir():
+        shutil.rmtree(stale)
+      else:
+        stale.unlink()
+
+
 def _generate_pygments_css(site: Path) -> None:
   """Append Pygments syntax-highlight CSS to the built style.css."""
   from pygments.formatters import HtmlFormatter
@@ -185,6 +219,7 @@ def _build(root: Path) -> None:
   _build_wasm_samples(root, wasm_pack)
   _build_site(root, zensical)
   _copy_artifacts(root)
+  _trim_site(SITE_DIR)
   _generate_pygments_css(SITE_DIR)
   _minify_js(SITE_DIR)
 

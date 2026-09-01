@@ -1,0 +1,5 @@
+/*.py
+/.zenignore
+/zensical.toml
+.DS_Store
+__pycache__/
