@@ -3,19 +3,19 @@ site_name = "Base SDK for Dash"
 site_description = "Documentation for the Base SDK for Dash."
 site_author = "The Dash Core developers"
 copyright = "Copyright &copy; 2026-present, The Dash Core developers"
-docs_dir = "zen"
+docs_dir = "."
 site_dir = ".site"
 use_directory_urls = true
 repo_url = "https://github.com/dashpay/base-sdk"
 repo_name = "dashpay/base-sdk"
-edit_uri = "edit/develop/docs/zen"
+edit_uri = "edit/develop/docs"
 extra_css = ["style.css"]
 nav = [
-  { "Home" = "index.md" },
+  { "Home" = "README.md" },
   { "Samples" = [
-    { "Samples" = "samples/index.md" },
-    { "Genesis Solver" = "samples/solver/index.md" },
-    { "Object Parser" = "samples/parser/index.md" },
+    { "Samples" = "samples/README.md" },
+    { "Genesis Solver" = "samples/solver/README.md" },
+    { "Object Parser" = "samples/parser/README.md" },
   ] },
 ]
 

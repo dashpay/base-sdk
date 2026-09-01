@@ -8,5 +8,5 @@ targeting the `web` platform.
 
 | Name | Description | Web-based |
 | ---- | ----------- | --------- |
-| [Genesis Solver](solver/index.md) | Verify or mint a genesis block (uses `dash-pow`).                                        | Yes       |
-| [Object Parser](parser/index.md)  | Parse hex-encoded blocks or transactions into a navigable tree (uses `dash-primitives`). | Yes       |
+| [Genesis Solver](solver/README.md) | Verify or mint a genesis block (uses `dash-pow`).                                        | Yes       |
+| [Object Parser](parser/README.md)  | Parse hex-encoded blocks or transactions into a navigable tree (uses `dash-primitives`). | Yes       |
