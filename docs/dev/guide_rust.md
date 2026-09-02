@@ -1,25 +1,6 @@
-# Rust Development Guide
+# Style Guide (Rust)
 
-## Table of Contents
-
-- [Coding Style (Rust)](#coding-style-rust)
-  - [Formatting](#formatting)
-  - [Naming](#naming)
-  - [Type Safety](#type-safety)
-  - [Error Handling](#error-handling)
-  - [Ownership and Borrowing](#ownership-and-borrowing)
-  - [Conversions](#conversions)
-  - [Traits and Implementations](#traits-and-implementations)
-  - [Generics](#generics)
-  - [Iterators](#iterators)
-  - [Code Comments](#code-comments)
-- [Development Guidelines](#development-guidelines)
-  - [Input Validation](#input-validation)
-  - [Security](#security)
-
-## Coding Style (Rust)
-
-### Formatting
+## Formatting
 
 - Use 2-space indentation, LF line endings
 - Files end with a single newline
@@ -30,9 +11,7 @@
 <summary>Example code:</summary>
 
 ```rust
-fn decode_block(
-  raw: &[u8],
-) -> Result<Block, DecodeError> {
+fn decode_block(raw: &[u8]) -> Result<Block, DecodeError> {
   let header = decode_header(raw)?;
   let txs = decode_transactions(&raw[80..])?;
   Ok(Block { header, txs })
@@ -41,7 +20,7 @@ fn decode_block(
 
 </details>
 
-### Naming
+## Naming
 
 | Form                   | Used for                                            |
 | ---------------------- | --------------------------------------------------- |
@@ -61,6 +40,8 @@ fn decode_block(
 <summary>Example code:</summary>
 
 ```rust
+const MAX_BLOCK_SIZE: usize = 2_000_000;
+
 struct ChainTip {
   height: u64,
   hash: BlockHash,
@@ -78,16 +59,18 @@ impl ChainTip {
     &mut self.hash
   }
 }
-
-const MAX_BLOCK_SIZE: usize = 2_000_000;
 ```
 
 </details>
 
-### Type Safety
+## Type Safety
 
 The type system is the first line of defence. A constraint expressed as a type is checked at compile time and
 costs nothing at runtime.
+
+> [!TIP]
+> Prefer `#[derive]` for standard trait implementations. A manual implementation is warranted only when the
+> derived behaviour would be incorrect or when redaction is needed.
 
 - Wrap primitive types in newtypes when two values of the same underlying type carry different semantics; this prevents
   accidental transposition of arguments
@@ -99,10 +82,6 @@ costs nothing at runtime.
   downstream crates from adding them later
 - All public types implement `Debug` because diagnostic output and test assertions depend on it; for types holding
   sensitive data, provide a custom implementation that redacts the secret
-
-> [!TIP]
-> Prefer `#[derive]` for standard trait implementations. A manual implementation is warranted only when the
-> derived behaviour would be incorrect or when redaction is needed.
 
 <details>
 
@@ -140,14 +119,15 @@ impl core::fmt::Debug for SecretKey {
 
 </details>
 
-### Error Handling
+## Error Handling
 
 > [!IMPORTANT]
 > Never call `.unwrap()` or `.expect()` on `Result` or `Option` in library code. A panic converts a
 > recoverable failure into process-level failure; depending on the panic strategy, the code may unwind or
-> abort, but either outcome is unacceptable for routine error handling. Propagate errors with `?` or handle
-> them explicitly with `match`. Both `clippy::unwrap_used` and `clippy::expect_used` are denied at the
-> workspace level.
+> abort, but either outcome is unacceptable for routine error handling.
+>
+> Propagate errors with `?` or handle them explicitly with `match`. Both `clippy::unwrap_used` and
+> `clippy::expect_used` are denied at the workspace level.
 
 - Define domain-specific error enums with a manual `Display` implementation; gate `std::error::Error`
   behind the `std` feature so the error type remains usable in `no_std` contexts
@@ -227,7 +207,7 @@ fn verify_header(raw: &[u8]) -> BlockHeader {
 
 </details>
 
-### Ownership and Borrowing
+## Ownership and Borrowing
 
 Rust's ownership model eliminates data races and use-after-free at compile time. Working with it, rather than
 around it, produces code that is both safe and efficient.
@@ -259,7 +239,7 @@ fn hash_payload(data: &Vec<u8>) -> Hash256 {
 
 </details>
 
-### Conversions
+## Conversions
 
 Consistent conversion names tell the reader the cost and ownership semantics of an operation at a glance.
 
@@ -312,7 +292,7 @@ impl BlockHash {
 
 </details>
 
-### Traits and Implementations
+## Traits and Implementations
 
 - Derive standard traits eagerly; the orphan rule prevents downstream crates from adding them, so we provide
   everything applicable up front
@@ -352,7 +332,7 @@ mod private {
 
 </details>
 
-### Generics
+## Generics
 
 - Use `impl Trait` in argument position for simple, single-use bounds; use named type parameters when the
   same bound appears in multiple arguments or the return type
@@ -375,7 +355,7 @@ fn compute_hash(data: impl AsRef<[u8]>) -> Hash256 {
 
 </details>
 
-### Iterators
+## Iterators
 
 Iterator chains express data transformations declaratively. The compiler often optimises them into tight loops
 with no intermediate allocations.
@@ -409,18 +389,18 @@ fn spendable_outputs(
 
 </details>
 
-### Code Comments
+## Code Comments
 
 Comments explain intent and context that the code alone cannot convey. Restating what the code does adds
 noise and drifts out of sync with the implementation.
 
-#### Inline Comments
+### Inline Comments
 
 - Line comments (`//`) must not exceed 80 characters wide and 3 lines tall
 - An extremely complex algorithm may use two short paragraphs separated by a blank comment line
 - Focus on _why_ a decision was made, not _what_ the code does
 
-#### Rustdoc Comments
+### Rustdoc Comments
 
 - Documentation comments (`///`) must not exceed 80 characters wide
 - The summary is at most 3 lines; do not restate the function name or signature in prose because the reader
@@ -435,21 +415,18 @@ noise and drifts out of sync with the implementation.
 <summary>Example code:</summary>
 
 ```rust
-/// Decode a compact-encoded block header from raw bytes,
-/// verifying the proof-of-work target against the declared
-/// difficulty.
+/// Decode a compact-encoded block header from raw bytes, verifying the
+/// proof-of-work target against the declared difficulty.
 ///
 /// # Errors
 ///
-/// Returns `Eof` when the slice holds fewer than 80 bytes,
-/// or `BadTarget` when the header fails the proof-of-work
-/// threshold.
+/// Returns `Eof` when the slice holds fewer than 80 bytes, or `BadTarget` when
+/// the header fails the proof-of-work threshold.
 fn decode_header(
   raw: &[u8],
 ) -> Result<Header, DecodeError> {
-  // We validate length before field access to prevent
-  // out-of-bounds reads when the slice comes from
-  // malformed or adversarial input.
+  // We validate length before field access to prevent out-of-bounds reads when
+  // the slice comes from malformed or adversarial input.
   if raw.len() < 80 {
     return Err(DecodeError::Eof {
       needed: 80,
@@ -463,12 +440,9 @@ fn decode_header(
 ```rust
 // Bad: restates the signature, wall of text.
 
-/// This function is called decode_header.
-/// It takes a byte slice called raw and
-/// returns a Result containing either a
-/// Header or a DecodeError. The raw
-/// parameter is the bytes to decode. If
-/// decoding succeeds it returns Ok with
+/// This function is called decode_header. It takes a byte slice called raw and
+/// returns a Result containing either a Header or a DecodeError. The raw
+/// parameter is the bytes to decode. If decoding succeeds it returns Ok with
 /// the header inside.
 fn decode_header(
   raw: &[u8],
@@ -503,8 +477,7 @@ fn decode_header(
 ```rust
 use core::fmt;
 
-/// 20-byte key hash that can only be constructed from a
-/// validating constructor.
+/// 20-byte key hash that can only be constructed from a validating constructor.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct KeyId([u8; 20]);
 
@@ -537,6 +510,10 @@ impl KeyId {
 
 ### Security
 
+> [!NOTE]
+> Audit dependencies regularly. A single compromised or unmaintained transitive dependency can undermine all
+> other precautions in the codebase.
+
 - **Never log secrets.** Private keys, key shares, and seed material must never appear in log output, debug
   strings, or error messages
 - **Implement `Debug` to redact sensitive fields.** A custom `Debug` that prints a placeholder prevents
@@ -548,10 +525,6 @@ impl KeyId {
   `ZeroizeOnDrop` derive for this purpose
 - **Prefer explicit failure over silent defaults.** A default value for a missing secret silently degrades to
   an insecure state; failing explicitly is always safer than falling back to a placeholder
-
-> [!NOTE]
-> Audit dependencies regularly. A single compromised or unmaintained transitive dependency can undermine all
-> other precautions in the codebase.
 
 <details>
 
