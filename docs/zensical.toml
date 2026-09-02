@@ -16,6 +16,10 @@ edit_uri = "edit/develop/docs"
 extra_css = ["style.css"]
 nav = [
   { "Home" = "README.md" },
+  { "Contributing" = [
+    { "Documentation" = "dev/about_docs.md" },
+    { "Style Guide (Rust)" = "dev/guide_rust.md" },
+  ] },
   { "Samples" = [
     { "Samples" = "samples/README.md" },
     { "Genesis Solver" = "samples/solver/README.md" },
