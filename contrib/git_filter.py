@@ -43,18 +43,16 @@ from common import (
   RETCODE_PASS,
   RETCODE_SKIP,
   format_table,
-  require_bin,
+  git_out,
+  git_run,
   root_dir,
 )
 
-# Grace period for a child process before its terminated.
+# Grace period for a child process before it is terminated.
 _CHILD_SHUTDOWN_TIMEOUT = 5
 
 # Mapping between verdict and coloring.
 _STATUS_COLORS = {"PASS": ANSI_GREEN, "FAIL": ANSI_RED}
-
-# Path to the git binary.
-_GIT = ""
 
 
 @dataclass
@@ -64,32 +62,9 @@ class CommitResult:
   status: str = "pending"
 
 
-def _git(*args: str, cwd: str) -> subprocess.CompletedProcess[str]:
-  """Run a git command and return the result."""
-  return subprocess.run(  # noqa: S603
-    [_GIT, *args],
-    capture_output=True,
-    check=False,
-    cwd=cwd,
-    encoding="utf-8",
-    errors="replace",
-  )
-
-
-def _git_ok(*args: str, cwd: str) -> str:
-  """Run a git command, raise on failure, return stdout."""
-  r = _git(*args, cwd=cwd)
-  if r.returncode != 0:
-    msg = r.stderr.strip() or r.stdout.strip()
-    raise RuntimeError(f"git {args[0]}: {msg}")
-  return r.stdout.strip()
-
-
 def _enumerate_commits(base: str, tip: str, cwd: str) -> list[CommitResult]:
   """List commits in base..tip order (oldest first)."""
-  out = _git_ok(
-    "log", "--reverse", "--format=%H%x00%s", f"{base}..{tip}", cwd=cwd,
-  )
+  out = git_out(cwd, "log", "--reverse", "--format=%H%x00%s", f"{base}..{tip}")
   return [
     CommitResult(*line.split("\0", 1))
     for line in out.splitlines()
@@ -122,7 +97,7 @@ def _terminate_child(
 
 
 def _remove_worktree(root: str, wt_path: str) -> None:
-  _git("worktree", "remove", "--force", wt_path, cwd=root)
+  git_run(root, "worktree", "remove", "--force", wt_path)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -165,8 +140,6 @@ def _parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-  global _GIT
-  _GIT = require_bin("git")
   args = _parse_args()
   root = str(root_dir())
 
@@ -174,8 +147,8 @@ def main() -> int:
   base = refs[0] if len(refs) >= 2 else DEFAULT_BASE
   tip = refs[-1] if refs else "HEAD"
 
-  base_hash = _git_ok("rev-parse", base, cwd=root)
-  tip_hash = _git_ok("rev-parse", tip, cwd=root)
+  base_hash = git_out(root, "rev-parse", base)
+  tip_hash = git_out(root, "rev-parse", tip)
   if base_hash == tip_hash:
     print(f"{base} and {tip} are identical ({base_hash[:8]})")
     return RETCODE_SKIP
@@ -211,7 +184,7 @@ def main() -> int:
       os.rmdir(wt_dir)
 
   atexit.register(cleanup)
-  _git_ok("worktree", "add", "--detach", "--quiet", wt_dir, cwd=root)
+  git_out(root, "worktree", "add", "--detach", "--quiet", wt_dir)
   wt_ready = True
   child: subprocess.Popen[bytes] | None = None
   prev_handlers = {}
@@ -243,8 +216,8 @@ def main() -> int:
   failed = False
   try:
     for cr in commits:
-      _git_ok("checkout", "--quiet", "--force", cr.hash, cwd=wt_dir)
-      _git_ok("clean", "-fdx", cwd=wt_dir)
+      git_out(wt_dir, "checkout", "--quiet", "--force", cr.hash)
+      git_out(wt_dir, "clean", "-fdx")
       print(f"--- {cr.hash[:8]} {cr.subject} ---")
       child = subprocess.Popen(  # noqa: S603
         args.exec_cmd,

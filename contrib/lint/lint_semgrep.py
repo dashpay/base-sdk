@@ -17,6 +17,7 @@ import sys
 from common import (
   RETCODE_ERR,
   RETCODE_PASS,
+  SOURCE_DIRS,
   require_bin,
   root_dir,
 )
@@ -27,10 +28,7 @@ def main() -> int:
 
   repo_root = root_dir()
   config_dir = repo_root / "contrib" / "semgrep"
-  target_dirs = [
-    repo_root / "pkgs",
-    repo_root / "contrib" / "samples",
-  ]
+  target_dirs = [repo_root / where for where in SOURCE_DIRS]
 
   configs: list[str] = []
   for cfg in sorted(config_dir.glob("*.yml")):

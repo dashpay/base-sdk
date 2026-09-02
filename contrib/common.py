@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, NoReturn
 
 if TYPE_CHECKING:
   from collections.abc import Callable, Mapping
+  from typing import TextIO
 
 # ANSI escape codes for terminal output.
 ANSI_BOLD = "\033[1m"
@@ -31,6 +32,9 @@ ANSI_RESET = "\033[0m"
 
 # Cargo workspace roots, relative to the repository root.
 CARGO_WORKSPACES: tuple[str, ...] = (".", "contrib/samples")
+
+# Rust source roots the analysers scan, relative to the repository root.
+SOURCE_DIRS: tuple[str, ...] = ("pkgs", "contrib/samples")
 
 # Assumed base branch for codebase.
 DEFAULT_BASE = "develop"
@@ -96,27 +100,48 @@ def is_plain_file(root: Path, name: str) -> bool:
   return path.resolve().is_relative_to(root.resolve())
 
 
+def git_run(cwd: Path | str, *args: str) -> subprocess.CompletedProcess[str]:
+  """Run a git command in *cwd* and return the result."""
+  return subprocess.run(  # noqa: S603
+    [require_bin("git"), *args],
+    capture_output=True,
+    check=False,
+    cwd=str(cwd),
+    encoding="utf-8",
+    errors="replace",
+  )
+
+
+def git_out(cwd: Path | str, *args: str) -> str:
+  """Run a git command in *cwd*, raise on failure, return its output."""
+  result = git_run(cwd, *args)
+  if result.returncode != 0:
+    fault = result.stderr.strip() or result.stdout.strip()
+    raise RuntimeError(f"git {args[0]}: {fault or result.returncode}")
+  return result.stdout.strip()
+
+
+def relay(
+  text: str,
+  repo_root: Path,
+  *,
+  stream: TextIO | None = None,
+  drop: Callable[[str], bool] | None = None,
+) -> None:
+  """Print *text* with paths shortened against *repo_root*."""
+  prefix = str(repo_root) + "/"
+  for line in text.splitlines():
+    if drop is not None and drop(line):
+      continue
+    print(line.replace(prefix, ""), file=stream or sys.stdout)
+
+
 def touched(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
   """Return the files matching *suffixes* that this branch has changed."""
-  git = require_bin("git")
-
-  def run(args: list[str]) -> str:
-    result = subprocess.run(  # noqa: S603
-      [git, *args],
-      capture_output=True,
-      check=False,
-      cwd=str(repo_root),
-      text=True,
-    )
-    if result.returncode != 0:
-      raise RuntimeError(
-        f"git {args[0]}: {result.stderr.strip() or result.returncode}",
-      )
-    return result.stdout
-
-  base = run(["merge-base", DEFAULT_BASE, "HEAD"]).strip()
+  base = git_out(repo_root, "merge-base", DEFAULT_BASE, "HEAD")
   return [
-    name for name in run(["diff", "--name-only", base]).splitlines()
+    name
+    for name in git_out(repo_root, "diff", "--name-only", base).splitlines()
     if name.endswith(suffixes) and is_plain_file(repo_root, name)
   ]
 

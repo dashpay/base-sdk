@@ -14,7 +14,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from common import RETCODE_ERR, require_bin, root_dir
+from common import RETCODE_ERR, relay, require_bin, root_dir
 
 DISABLED_RULES = "md025,md033,md041"
 
@@ -38,11 +38,8 @@ def main() -> int:
     text=True,
   )
 
-  prefix = str(repo_root) + "/"
-  for line in result.stdout.splitlines():
-    print(line.replace(prefix, ""))
-  for line in result.stderr.splitlines():
-    print(line.replace(prefix, ""), file=sys.stderr)
+  relay(result.stdout, repo_root)
+  relay(result.stderr, repo_root, stream=sys.stderr)
 
   return result.returncode
 

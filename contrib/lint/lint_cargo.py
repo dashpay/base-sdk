@@ -30,6 +30,7 @@ from common import (
   RETCODE_SKIP,
   declare_verbs,
   format_table,
+  relay,
   require_bin,
   root_dir,
   touched,
@@ -80,15 +81,16 @@ def _check_format(
     cwd=str(repo_root),
     text=True,
   )
-  prefix = str(repo_root) + "/"
-  for line in result.stdout.splitlines():
-    print(line.replace(prefix, ""))
+  relay(result.stdout, repo_root)
 
   # Taplo reports the file count on stderr at INFO, so only the lines that
   # name a fault should be emitted.
-  for line in result.stderr.splitlines():
-    if not line.lstrip().startswith("INFO"):
-      print(line.replace(prefix, ""), file=sys.stderr)
+  relay(
+    result.stderr,
+    repo_root,
+    stream=sys.stderr,
+    drop=lambda line: line.lstrip().startswith("INFO"),
+  )
 
   if result.returncode != 0:
     if not fix:
@@ -144,9 +146,7 @@ def _cargo(cargo_bin: str, repo_root: Path, args: list[str]) -> str:
     cwd=str(repo_root),
     text=True,
   )
-  prefix = str(repo_root) + "/"
-  for line in result.stderr.splitlines():
-    print(line.replace(prefix, ""), file=sys.stderr)
+  relay(result.stderr, repo_root, stream=sys.stderr)
   if result.returncode != 0:
     raise RuntimeError(f"cargo {args[0]} failed with {result.returncode}")
   return result.stdout
