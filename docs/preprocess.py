@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from common import root_dir
 from markdown.extensions import Extension
 from markdown.preprocessors import Preprocessor
 
@@ -83,13 +84,56 @@ class GfmAlertsPreprocessor(Preprocessor):
     return output
 
 
-class GfmAlertsExtension(Extension):
-  """Markdown extension entrypoint for alert rewriting."""
+# Matches a splice from another file, or one named section from it.
+_INCLUDE_RE = re.compile(r'^\s*--8<--\s+"([^"]+)"\s*$')
+
+
+
+class IncludePreprocessor(Preprocessor):
+  """Splice in a file from elsewhere in the repository."""
+
+  def run(self, lines: list[str]) -> list[str]:
+    output: list[str] = []
+    for line in lines:
+      match = _INCLUDE_RE.match(line)
+      if match is None:
+        output.append(line)
+      else:
+        output.extend(self._include(match.group(1)))
+    return output
+
+  def _include(self, spec: str) -> list[str]:
+    name, _, section = spec.partition(":")
+    source = root_dir() / name
+    if not source.is_file():
+      raise ValueError(f"{spec}: no such file in the repository")
+
+    lines = source.read_text(encoding="utf-8").splitlines()
+    if section:
+      lines = _section(lines, section, spec)
+    return lines
+
+
+def _section(lines: list[str], name: str, spec: str) -> list[str]:
+  """Return the lines between the markers naming *name*."""
+  opener = f"[start:{name}]"
+  closer = f"[end:{name}]"
+  begin = next((i for i, text in enumerate(lines) if opener in text), None)
+  finish = next((i for i, text in enumerate(lines) if closer in text), None)
+  if begin is None or finish is None or finish < begin:
+    raise ValueError(f"{spec}: no such section")
+  return lines[begin + 1 : finish]
+
+
+class PreprocessorHost(Extension):
+  """Markdown extension entrypoint."""
 
   def extendMarkdown(self, md: Markdown) -> None:
-    md.preprocessors.register(GfmAlertsPreprocessor(md), "gfm_alerts", 110)
+    include = IncludePreprocessor(md)
+    md.preprocessors.register(include, "include", 32)
+    md.preprocessors.register(GfmAlertsPreprocessor(md), "gfm_alerts", 31)
 
 
-def makeExtension(**kwargs: object) -> GfmAlertsExtension:
+def makeExtension(**kwargs: object) -> PreprocessorHost:
   """Construct the extension."""
-  return GfmAlertsExtension(**kwargs)
+  return PreprocessorHost(**kwargs)
