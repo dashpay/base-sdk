@@ -96,7 +96,7 @@ def _build_site(root: Path, zensical: str) -> None:
   """Run zensical to build the documentation site."""
   env = {**os.environ, "PYTHONPATH": str(DOCS_DIR)}
   subprocess.run(  # noqa: S603
-    [zensical, "build", "-f", str(CONFIG_FILE)],
+    [zensical, "build", "--strict", "-f", str(CONFIG_FILE)],
     check=True,
     cwd=str(root),
     env=env,
