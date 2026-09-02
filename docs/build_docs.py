@@ -29,14 +29,18 @@ from common import (
   RETCODE_ERR,
   RETCODE_PASS,
   declare_verbs,
+  off_disk,
   require_bin,
   root_dir,
+  spelt_as_stored,
 )
+from preprocess import forge_url
+from pygments.formatters import HtmlFormatter
 
 if TYPE_CHECKING:
   from collections.abc import Callable
 
-# Parent directory sourced by walking back from current file.
+# Directory this script lives in, which is the documentation root.
 DOCS_DIR = Path(__file__).resolve().parent
 
 # Path to Zensical's configuration file.
@@ -44,6 +48,9 @@ CONFIG_FILE = DOCS_DIR / "zensical.toml"
 
 # Starting port the preview server binds to.
 PREVIEW_PORT = 8000
+
+# Matches anything the browser has to fetch from the site itself.
+_LINK_ATTR_RE = re.compile(r'(?:href|src)="([^"]+)"')
 
 
 @dataclass(frozen=True)
@@ -59,6 +66,15 @@ class Config:
   # Target directory for build output.
   site_dir: Path
 
+  # Documentation root the site is rendered from.
+  docs_dir: str
+
+  # Repository serving whatever the site cannot.
+  repo_url: str
+
+  # Branch of that repository the links resolve against.
+  branch: str
+
   @classmethod
   def load(cls, path: Path) -> Config:
     """Return the settings held by the file at *path*."""
@@ -66,10 +82,14 @@ class Config:
       settings = tomllib.load(f)
     project = settings["project"]
     build = settings["build_docs"]
+    options = project["markdown_extensions"]["preprocess"]
     return cls(
       ignore_file=DOCS_DIR / build["ignore_file"],
       samples_dir=DOCS_DIR / build["samples_dir"],
       site_dir=DOCS_DIR / project["site_dir"],
+      docs_dir=str(project["docs_dir"]),
+      repo_url=str(project["repo_url"]).rstrip("/"),
+      branch=str(options["branch"]),
     )
 
 
@@ -114,7 +134,9 @@ def _build_wasm_samples(root: Path, wasm_pack: str, cfg: Config) -> None:
 
 def _build_site(root: Path, zensical: str) -> None:
   """Run zensical to build the documentation site."""
-  env = {**os.environ, "PYTHONPATH": str(DOCS_DIR)}
+  inherited = os.environ.get("PYTHONPATH")
+  reach = [str(DOCS_DIR), *([inherited] if inherited else [])]
+  env = {**os.environ, "PYTHONPATH": os.pathsep.join(reach)}
   subprocess.run(  # noqa: S603
     [zensical, "build", "--strict", "-f", str(CONFIG_FILE)],
     check=True,
@@ -146,7 +168,11 @@ def _parse_ignorelist(ignore_file: Path) -> list[str]:
 def _trim_site(site: Path, ignore_file: Path) -> None:
   """Trim files that are supposed to be excluded from site bundle."""
   for pattern in _parse_ignorelist(ignore_file):
-    for stale in sorted(site.glob(pattern)):
+    matched = sorted(site.glob(pattern))
+    if not matched:
+      print(f"warning: {ignore_file.name}: {pattern} matched nothing",
+            file=sys.stderr)
+    for stale in matched:
       print(f"pruning {stale}")
       if stale.is_dir():
         shutil.rmtree(stale)
@@ -156,8 +182,6 @@ def _trim_site(site: Path, ignore_file: Path) -> None:
 
 def _generate_pygments_css(site: Path) -> None:
   """Append Pygments syntax-highlight CSS to the built style.css."""
-  from pygments.formatters import HtmlFormatter
-
   # Lines Pygments prepends for line-numbered blocks (unused by this site).
   skip_re = re.compile(r"^(pre |td\.linenos |span\.linenos )")
 
@@ -195,6 +219,70 @@ def _minify_js(site: Path) -> None:
     js.write_text(minified, encoding="utf-8")
 
 
+def _relative_url(landing: Path, page: Path) -> str:
+  """Return the address of *landing*, as reached from *page*."""
+  if landing.name == "index.html":
+    return os.path.relpath(landing.parent, page.parent) + "/"
+  return os.path.relpath(landing, page.parent)
+
+
+def _repoint_links(site: Path, cfg: Config) -> None:
+  """Point a link that left the site at the repository instead."""
+  # Only holds while the site root and the documentation root are one.
+  if cfg.docs_dir != ".":
+    raise ValueError("docs_dir must be the documentation root itself")
+
+  broken: list[str] = []
+
+  for page in sorted(site.rglob("*.html")):
+    html = page.read_text(encoding="utf-8")
+
+    def swap(match: re.Match[str], page: Path = page) -> str:
+      target = match.group(1)
+      if off_disk(target):
+        return match.group(0)
+
+      path, mark, rest = target.partition("#")
+      # A page carried in from elsewhere is addressed from the site root.
+      home = site if path.startswith("/") else page.parent
+      landing = (home / path.lstrip("/")).resolve()
+      if landing.is_dir():
+        landing = landing / "index.html"
+      # A case-insensitive filesystem resolves a misspelt address, which
+      # a case-sensitive host then serves as a 404.
+      if landing.exists() and not spelt_as_stored(root_dir(), landing):
+        broken.append(f"{page.relative_to(site)} -> {target} (wrong case)")
+        return match.group(0)
+      if landing.exists():
+        if not path.startswith("/"):
+          return match.group(0)
+        # A site-root address only holds where the site is the web root,
+        # so anchor it to the page instead.
+        near = _relative_url(landing, page)
+        return match.group(0).replace(f'"{target}"', f'"{near}{mark}{rest}"')
+
+      source = DOCS_DIR / os.path.relpath(landing, site)
+      if not source.exists():
+        broken.append(f"{page.relative_to(site)} -> {target}")
+        return match.group(0)
+      if not spelt_as_stored(root_dir(), source):
+        broken.append(f"{page.relative_to(site)} -> {target} (wrong case)")
+        return match.group(0)
+
+      url = forge_url(cfg.repo_url, cfg.branch, source.resolve())
+      print(f"repointing {target} -> {url}")
+      return match.group(0).replace(f'"{target}"', f'"{url}{mark}{rest}"')
+
+    patched = _LINK_ATTR_RE.sub(swap, html)
+    if patched != html:
+      page.write_text(patched, encoding="utf-8")
+
+  if broken:
+    for link in broken:
+      print(f"broken link: {link}", file=sys.stderr)
+    raise ValueError(f"{len(broken)} broken links in the built site")
+
+
 def _build(root: Path, cfg: Config) -> None:
   """Run the full build pipeline."""
   wasm_pack = require_bin("wasm-pack")
@@ -205,6 +293,7 @@ def _build(root: Path, cfg: Config) -> None:
   _trim_site(cfg.site_dir, cfg.ignore_file)
   _generate_pygments_css(cfg.site_dir)
   _minify_js(cfg.site_dir)
+  _repoint_links(cfg.site_dir, cfg)
 
 
 def _find_free_port(host: str, start: int) -> int:

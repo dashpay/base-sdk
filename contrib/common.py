@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -44,6 +45,9 @@ DEFAULT_BASE = "develop"
 RETCODE_ERR = 1
 RETCODE_PASS = 0
 RETCODE_SKIP = 77
+
+# Matches an address that names something other than a path on disk.
+_OFF_DISK_RE = re.compile(r"^(?:[A-Za-z][A-Za-z0-9+.\-]*:|//|#)")
 
 
 class _VerbParser(argparse.ArgumentParser):
@@ -82,6 +86,37 @@ def declare_verbs(
     ),
   )
   return parser
+
+
+def off_disk(target: str) -> bool:
+  """Whether *target* addresses something other than a file on disk."""
+  return _OFF_DISK_RE.match(target) is not None
+
+
+@cache
+def _entries(where: Path) -> frozenset[str]:
+  """Return the names *where* holds, as the filesystem spells them."""
+  return frozenset(entry.name for entry in where.iterdir())
+
+
+def spelt_as_stored(root: Path, target: Path) -> bool:
+  """Whether *target* is spelt as the filesystem under *root* holds it.
+
+  A case-insensitive filesystem resolves a misspelt path, so a wrong-case
+  link passes `exists()` on macOS and Windows and then serves a 404 from a
+  case-sensitive host. Each component is matched against its directory.
+  """
+  # Normalising first drops the `..` a caller may have left in the path,
+  # which names no directory entry and so would fail the walk outright.
+  target = target.resolve()
+  if not target.is_relative_to(root):
+    return True
+  probe = root
+  for part in target.relative_to(root).parts:
+    if part not in _entries(probe):
+      return False
+    probe = probe / part
+  return True
 
 
 def is_plain_file(root: Path, name: str) -> bool:
