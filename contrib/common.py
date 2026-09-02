@@ -13,14 +13,17 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn
 
 if TYPE_CHECKING:
   from collections.abc import Callable, Mapping
+  from typing import TextIO
 
 # ANSI escape codes for terminal output.
 ANSI_BOLD = "\033[1m"
@@ -30,7 +33,10 @@ ANSI_RED = "\033[31m"
 ANSI_RESET = "\033[0m"
 
 # Cargo workspace roots, relative to the repository root.
-CARGO_WORKSPACES: tuple[str, ...] = (".", "contrib/samples")
+CARGO_WORKSPACES: tuple[str, ...] = (".", "docs/samples")
+
+# Rust source roots the analysers scan, relative to the repository root.
+SOURCE_DIRS: tuple[str, ...] = ("pkgs", "docs/samples")
 
 # Assumed base branch for codebase.
 DEFAULT_BASE = "develop"
@@ -39,6 +45,9 @@ DEFAULT_BASE = "develop"
 RETCODE_ERR = 1
 RETCODE_PASS = 0
 RETCODE_SKIP = 77
+
+# Matches an address that names something other than a path on disk.
+_OFF_DISK_RE = re.compile(r"^(?:[A-Za-z][A-Za-z0-9+.\-]*:|//|#)")
 
 
 class _VerbParser(argparse.ArgumentParser):
@@ -79,6 +88,37 @@ def declare_verbs(
   return parser
 
 
+def off_disk(target: str) -> bool:
+  """Whether *target* addresses something other than a file on disk."""
+  return _OFF_DISK_RE.match(target) is not None
+
+
+@cache
+def _entries(where: Path) -> frozenset[str]:
+  """Return the names *where* holds, as the filesystem spells them."""
+  return frozenset(entry.name for entry in where.iterdir())
+
+
+def spelt_as_stored(root: Path, target: Path) -> bool:
+  """Whether *target* is spelt as the filesystem under *root* holds it.
+
+  A case-insensitive filesystem resolves a misspelt path, so a wrong-case
+  link passes `exists()` on macOS and Windows and then serves a 404 from a
+  case-sensitive host. Each component is matched against its directory.
+  """
+  # Normalising first drops the `..` a caller may have left in the path,
+  # which names no directory entry and so would fail the walk outright.
+  target = target.resolve()
+  if not target.is_relative_to(root):
+    return True
+  probe = root
+  for part in target.relative_to(root).parts:
+    if part not in _entries(probe):
+      return False
+    probe = probe / part
+  return True
+
+
 def is_plain_file(root: Path, name: str) -> bool:
   """Whether *name* is a regular file inside *root*, reached without links."""
   path = root / name
@@ -96,27 +136,48 @@ def is_plain_file(root: Path, name: str) -> bool:
   return path.resolve().is_relative_to(root.resolve())
 
 
+def git_run(cwd: Path | str, *args: str) -> subprocess.CompletedProcess[str]:
+  """Run a git command in *cwd* and return the result."""
+  return subprocess.run(  # noqa: S603
+    [require_bin("git"), *args],
+    capture_output=True,
+    check=False,
+    cwd=str(cwd),
+    encoding="utf-8",
+    errors="replace",
+  )
+
+
+def git_out(cwd: Path | str, *args: str) -> str:
+  """Run a git command in *cwd*, raise on failure, return its output."""
+  result = git_run(cwd, *args)
+  if result.returncode != 0:
+    fault = result.stderr.strip() or result.stdout.strip()
+    raise RuntimeError(f"git {args[0]}: {fault or result.returncode}")
+  return result.stdout.strip()
+
+
+def relay(
+  text: str,
+  repo_root: Path,
+  *,
+  stream: TextIO | None = None,
+  drop: Callable[[str], bool] | None = None,
+) -> None:
+  """Print *text* with paths shortened against *repo_root*."""
+  prefix = str(repo_root) + "/"
+  for line in text.splitlines():
+    if drop is not None and drop(line):
+      continue
+    print(line.replace(prefix, ""), file=stream or sys.stdout)
+
+
 def touched(repo_root: Path, suffixes: tuple[str, ...]) -> list[str]:
   """Return the files matching *suffixes* that this branch has changed."""
-  git = require_bin("git")
-
-  def run(args: list[str]) -> str:
-    result = subprocess.run(  # noqa: S603
-      [git, *args],
-      capture_output=True,
-      check=False,
-      cwd=str(repo_root),
-      text=True,
-    )
-    if result.returncode != 0:
-      raise RuntimeError(
-        f"git {args[0]}: {result.stderr.strip() or result.returncode}",
-      )
-    return result.stdout
-
-  base = run(["merge-base", DEFAULT_BASE, "HEAD"]).strip()
+  base = git_out(repo_root, "merge-base", DEFAULT_BASE, "HEAD")
   return [
-    name for name in run(["diff", "--name-only", base]).splitlines()
+    name
+    for name in git_out(repo_root, "diff", "--name-only", base).splitlines()
     if name.endswith(suffixes) and is_plain_file(repo_root, name)
   ]
 
@@ -165,6 +226,15 @@ def find_up(
   raise FileNotFoundError(f"{label} not found above {start}")
 
 
+def find_up_file(start: Path, name: str) -> Path | None:
+  """Walk upward from *start*, returning the first *name* found."""
+  for directory in (start, *start.parents):
+    candidate = directory / name
+    if candidate.is_file():
+      return candidate
+  return None
+
+
 def is_workspace_root(d: Path) -> bool:
   """Return True if *d* looks like a Cargo workspace root."""
   cargo = d / "Cargo.toml"
@@ -186,6 +256,7 @@ def require_bin(name: str, path: str | None = None) -> str:
   return result
 
 
+@cache
 def root_dir() -> Path:
   """Return the workspace root (directory containing Cargo.toml)."""
   return find_up(

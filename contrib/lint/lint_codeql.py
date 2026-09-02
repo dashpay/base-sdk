@@ -30,6 +30,7 @@ from common import (
   RETCODE_ERR,
   RETCODE_PASS,
   RETCODE_SKIP,
+  SOURCE_DIRS,
   declare_verbs,
   require_bin,
   root_dir,
@@ -229,10 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     raise FileNotFoundError("no .ql queries found in contrib/codeql/")
 
   # Generate source-line data for queries that need raw text.
-  source_dirs = [
-    repo_root / "pkgs",
-    repo_root / "contrib" / "samples",
-  ]
+  source_dirs = [repo_root / where for where in SOURCE_DIRS]
   generated = _generate_source_lines(repo_root, source_dirs, query_dir)
   subprocess.run(  # noqa: S603
     [codeql_bin, "query", "format", "-i", str(generated)],

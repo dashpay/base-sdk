@@ -6,10 +6,7 @@ on:
   pull_request:
     paths:
       - pkgs/**
-      - contrib/samples/**
-      - contrib/zen/**
-      - contrib/build_docs.py
-      - docs/zen/**
+      - docs/**
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -49,22 +46,25 @@ jobs:
       - name: Install Python dependencies
         run: pip install ".[dev]"
 
+      - name: Test documentation tooling
+        run: pytest
+
       - name: Manage cargo registry
         uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: cargo-deps-${{ hashFiles('Cargo.lock', 'contrib/samples/Cargo.lock') }}
+          key: cargo-deps-${{ hashFiles('Cargo.lock', 'docs/samples/Cargo.lock') }}
           restore-keys: cargo-deps-
 
       - name: Build documentation
-        run: python contrib/build_docs.py build
+        run: python docs/build_docs.py build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: public
+          path: docs/.site
 
   deploy:
     name: Deploy to GitHub Pages

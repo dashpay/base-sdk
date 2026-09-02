@@ -1,0 +1,12 @@
+/*.py
+/.cache/
+/.zenignore
+/404.html
+/zensical.toml
+.DS_Store
+__pycache__/
+samples/**/.cargo/
+samples/**/Cargo.lock
+samples/**/Cargo.toml
+samples/**/target/
+samples/**/*.rs

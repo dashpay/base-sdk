@@ -2,7 +2,7 @@
 
 ## Coding style
 
-The full guide is at [`docs/guide_rust.md`](./docs/guide_rust.md). Key points:
+The full guide is at [`docs/dev/guide_rust.md`](./docs/dev/guide_rust.md). Key points:
 
 - **Formatting**: 2-space indentation, LF line endings, no trailing whitespace, single newline at end of file. Max line
   width 120, comment width 80. Enforced by `rustfmt.toml`.

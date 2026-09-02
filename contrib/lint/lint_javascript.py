@@ -18,7 +18,7 @@ ESLINT_VERSION = "9.39.3"
 
 DEFAULT_TARGETS: tuple[str, ...] = (
   ".github/scripts",
-  "contrib/samples",
+  "docs/samples",
 )
 
 
