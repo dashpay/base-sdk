@@ -12,7 +12,9 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 from common import off_disk, root_dir, spelt_as_stored
@@ -20,6 +22,8 @@ from markdown.extensions import Extension
 from markdown.preprocessors import Preprocessor
 
 if TYPE_CHECKING:
+  from collections.abc import Iterator
+
   from markdown import Markdown
 
 # Admonition each alert kind is rendered as.
@@ -281,3 +285,202 @@ class PreprocessorHost(Extension):
 def makeExtension(**kwargs: object) -> PreprocessorHost:
   """Construct the extension."""
   return PreprocessorHost(**kwargs)
+
+# Stand-in forge the tests resolve their fixtures against.
+_REPO = "https://forge.test/owner/repo"
+_BRANCH = "trunk"
+
+
+class TestPreprocess:
+  """Tests for this module, run with `pytest docs/preprocess.py`."""
+
+  @staticmethod
+  def _render(source: str) -> str:
+    import markdown
+
+    return markdown.Markdown(
+      extensions=[
+        PreprocessorHost(repo_url=_REPO, branch=_BRANCH),
+        "admonition",
+      ],
+    ).convert(source)
+
+  @staticmethod
+  @contextmanager
+  def _scratch(**files: str) -> Iterator[Path]:
+    with TemporaryDirectory(dir=root_dir()) as name:
+      home = Path(name)
+      for stem, text in files.items():
+        (home / f"{stem}.md").write_text(text, encoding="utf-8")
+      yield home.relative_to(root_dir())
+
+  def test_alert_becomes_admonition(self) -> None:
+    out = self._render("> [!CAUTION]\n> Mind the gap.\n")
+    assert 'class="admonition danger"' in out
+    assert "Mind the gap." in out
+
+  def test_alert_inside_a_fence_is_left_alone(self) -> None:
+    out = self._render("```\n> [!NOTE]\n> Shown, not rendered.\n```\n")
+    assert "[!NOTE]" in out
+    assert "admonition" not in out
+
+  def test_include_splices_a_section(self) -> None:
+    with self._scratch(
+      whole="above\n<!-- [start:mid] -->\ninside\n<!-- [end:mid] -->\nbelow\n",
+    ) as home:
+      out = self._render(f'--8<-- "{home}/whole.md:mid"\n')
+    assert "inside" in out
+    assert "above" not in out
+    assert "below" not in out
+
+  def test_include_refuses_an_unknown_section(self) -> None:
+    import pytest
+
+    with self._scratch(whole="nothing marked\n") as home:
+      with pytest.raises(ValueError, match="no such section"):
+        self._render(f'--8<-- "{home}/whole.md:mid"\n')
+
+  def test_include_rejects_an_absolute_path(self) -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="outside the repository"):
+      self._render('--8<-- "/etc/hosts"\n')
+
+  def test_include_rejects_a_traversal(self) -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="outside the repository"):
+      self._render('--8<-- "../../../../etc/hosts"\n')
+
+  def test_include_inside_a_fence_is_left_alone(self) -> None:
+    out = self._render('```\n--8<-- "unconv.toml"\n```\n')
+    assert "8&lt;--" in out
+    assert "[global]" not in out
+
+  def test_include_nests(self) -> None:
+    with self._scratch(
+      outer='--8<-- "unconv.toml"\n',
+    ) as home:
+      out = self._render(f'--8<-- "{home}/outer.md"\n')
+    assert "8&lt;--" not in out
+    assert "global" in out
+
+  def test_include_refuses_a_cycle(self) -> None:
+    import pytest
+
+    with self._scratch(loop="") as home:
+      spec = f'--8<-- "{home}/loop.md"\n'
+      (root_dir() / home / "loop.md").write_text(spec, encoding="utf-8")
+      with pytest.raises(ValueError, match="nested past the limit"):
+        self._render(spec)
+
+  def test_titled_link_is_rebased(self) -> None:
+    with self._scratch(page='[a](../README.md "root")\n') as home:
+      out = self._render(f'--8<-- "{home}/page.md"\n')
+    assert f'href="{_REPO}/blob/{_BRANCH}/README.md"' in out
+    assert 'title="root"' in out
+
+  def test_caged_link_is_rebased(self) -> None:
+    with self._scratch(page="[a](<../README.md>)\n") as home:
+      out = self._render(f'--8<-- "{home}/page.md"\n')
+    assert f'href="{_REPO}/blob/{_BRANCH}/README.md"' in out
+
+  def test_bare_link_is_rebased(self) -> None:
+    with self._scratch(page="[a](../unconv.toml)\n") as home:
+      out = self._render(f'--8<-- "{home}/page.md"\n')
+    assert f'href="{_REPO}/blob/{_BRANCH}/unconv.toml"' in out
+
+  def test_page_under_docs_is_addressed_from_the_site(self) -> None:
+    with self._scratch(page="[a](../docs/dev/guide_rust.md)\n") as home:
+      out = self._render(f'--8<-- "{home}/page.md"\n')
+    assert 'href="/dev/guide_rust/"' in out
+
+  def test_off_disk_link_is_left_alone(self) -> None:
+    with self._scratch(page="[a](tel:+15551212) [b](irc://x/y)\n") as home:
+      out = self._render(f'--8<-- "{home}/page.md"\n')
+    assert 'href="tel:+15551212"' in out
+    assert 'href="irc://x/y"' in out
+
+  def test_missing_link_target_is_refused(self) -> None:
+    import pytest
+
+    with self._scratch(page="[a](./nope.md)\n") as home:
+      with pytest.raises(ValueError, match="no such file"):
+        self._render(f'--8<-- "{home}/page.md"\n')
+
+  @staticmethod
+  def _pointer() -> IncludePreprocessor:
+    import markdown
+
+    return IncludePreprocessor(markdown.Markdown(), _REPO, _BRANCH)
+
+  def test_address_collapses_the_stems_zensical_indexes(self) -> None:
+    at = self._pointer()
+    for stem in ("README", "index"):
+      assert at._address(_DOCS_ROOT / "kit" / f"{stem}.md") == "/kit/"
+
+  def test_address_keeps_the_stems_zensical_serves_as_pages(self) -> None:
+    at = self._pointer()
+    assert at._address(_DOCS_ROOT / "kit" / "readme.md") == "/kit/readme/"
+    assert at._address(_DOCS_ROOT / "kit" / "Index.md") == "/kit/Index/"
+    assert at._address(_DOCS_ROOT / "kit" / "guide.md") == "/kit/guide/"
+
+  def test_spelling_check_matches_the_stored_name(self) -> None:
+    root = root_dir()
+    assert spelt_as_stored(root, root / "README.md")
+    assert not spelt_as_stored(root, root / "README.MD")
+    assert not spelt_as_stored(root, root / "Docs" / "README.md")
+
+  def test_wrong_case_link_is_refused(self) -> None:
+    import pytest
+
+    # Refused either as missing or as misspelt, by the host's case rules.
+    with self._scratch(page="[a](../README.MD)\n") as home:
+      with pytest.raises(ValueError, match=r"no such file|not spelt"):
+        self._render(f'--8<-- "{home}/page.md"\n')
+
+  def test_include_survives_a_fenced_info_string(self) -> None:
+    out = self._render('```\n```text\n--8<-- "unconv.toml"\n```\n')
+    assert "8&lt;--" in out
+    assert "[global]" not in out
+
+  def test_alert_survives_a_fenced_info_string(self) -> None:
+    out = self._render("```\n```text\n> [!NOTE]\n> Shown.\n```\n")
+    assert "[!NOTE]" in out
+    assert "admonition" not in out
+
+  def test_site_root_link_is_left_for_postprocessing(self) -> None:
+    with self._scratch(page="[a](/dev/about_docs/)\n") as home:
+      out = self._render(f'--8<-- "{home}/page.md"\n')
+    assert 'href="/dev/about_docs/"' in out
+
+  def test_a_fence_an_include_opens_holds_over_the_parent(self) -> None:
+    with self._scratch(opener="```\n", body="spliced text\n") as home:
+      out = self._pointer().run([
+        f'--8<-- "{home}/opener.md"',
+        f'--8<-- "{home}/body.md"',
+        "```",
+        f'--8<-- "{home}/body.md"',
+      ])
+    # Held back while the fence the first splice opened is still open,
+    # then spliced once the parent's own marker closes that fence.
+    assert out[0] == "```"
+    assert out[1].startswith("--8<--")
+    assert out[2] == "```"
+    assert out[3] == "spliced text"
+
+  def test_fences_ignore_a_marker_carrying_text(self) -> None:
+    fences = _Fences()
+    assert fences.covers("```")
+    assert fences.covers("```text")
+    assert fences.covers("still inside")
+    assert fences.covers("```")
+    assert not fences.covers("outside")
+
+  def test_fences_close_only_on_a_matching_marker(self) -> None:
+    fences = _Fences()
+    assert fences.covers("````")
+    assert fences.covers("```")
+    assert fences.covers("plain text")
+    assert fences.covers("````")
+    assert not fences.covers("plain text")

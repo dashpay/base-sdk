@@ -8,6 +8,7 @@ dev = [
   "Markdown>=3.7",
   "pymarkdownlnt>=0.9.37",
   "pygments-styles>=0.3.0",
+  "pytest>=8",
   "rjsmin>=1.2",
   "ruff>=0.9",
   "semgrep>=1.118.0",
@@ -18,6 +19,10 @@ dev = [
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "*_test.py", "preprocess.py"]
+testpaths = ["docs"]
 
 [tool.setuptools]
 packages = []
@@ -41,6 +46,10 @@ select = [
   "UP",  # pyupgrade
   "W",   # pycodestyle warnings
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Suppression due to pytest module.
+"docs/preprocess.py" = ["S101"]
 
 [tool.ruff.format]
 indent-style = "space"
