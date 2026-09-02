@@ -16,6 +16,7 @@ import os
 import shutil
 import subprocess
 import sys
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn
 
@@ -190,6 +191,15 @@ def find_up(
   raise FileNotFoundError(f"{label} not found above {start}")
 
 
+def find_up_file(start: Path, name: str) -> Path | None:
+  """Walk upward from *start*, returning the first *name* found."""
+  for directory in (start, *start.parents):
+    candidate = directory / name
+    if candidate.is_file():
+      return candidate
+  return None
+
+
 def is_workspace_root(d: Path) -> bool:
   """Return True if *d* looks like a Cargo workspace root."""
   cargo = d / "Cargo.toml"
@@ -211,6 +221,7 @@ def require_bin(name: str, path: str | None = None) -> str:
   return result
 
 
+@cache
 def root_dir() -> Path:
   """Return the workspace root (directory containing Cargo.toml)."""
   return find_up(

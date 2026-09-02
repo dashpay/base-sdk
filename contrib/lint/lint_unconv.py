@@ -10,13 +10,19 @@
 from __future__ import annotations
 
 import re
-import subprocess
 import sys
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from common import declare_verbs
+from common import (
+  DEFAULT_BASE,
+  declare_verbs,
+  find_up_file,
+  git_out,
+  git_run,
+  root_dir,
+)
 
 # File in the repository root the accepted vocabulary is read from.
 CONFIG_FILENAME = "unconv.toml"
@@ -64,15 +70,6 @@ class Config:
       )
 
     return cls(global_types=global_types, namespaces=namespaces)
-
-
-def _find_config(start: Path) -> Path | None:
-  """Walk upward from *start* looking for CONFIG_FILENAME."""
-  for directory in (start, *start.parents):
-    candidate = directory / CONFIG_FILENAME
-    if candidate.is_file():
-      return candidate
-  return None
 
 
 def _allowed_types(namespace: str, config: Config) -> frozenset[str]:
@@ -125,54 +122,35 @@ def _lint_subject(subject: str, config: Config) -> list[str]:
 
 
 def _current_branch() -> str | None:
-  result = subprocess.run(
-    ["git", "rev-parse", "--abbrev-ref", "HEAD"],  # noqa: S607
-    capture_output=True,
-    check=False,
-    text=True,
-  )
+  result = git_run(root_dir(), "rev-parse", "--abbrev-ref", "HEAD")
   if result.returncode != 0:
     return None
   return result.stdout.strip()
 
 
 def _ref_exists(ref: str) -> bool:
-  result = subprocess.run(  # noqa: S603
-    ["git", "rev-parse", "--verify", "--quiet", ref],  # noqa: S607
-    capture_output=True,
-    check=False,
-  )
+  result = git_run(root_dir(), "rev-parse", "--verify", "--quiet", ref)
   return result.returncode == 0
 
 
 def _default_range() -> str:
   branch = _current_branch()
-  if branch is None or branch == "HEAD" or branch == "develop":
+  if branch is None or branch == "HEAD" or branch == DEFAULT_BASE:
     return "HEAD~1..HEAD"
-  for ref in ("develop", "origin/develop"):
+  for ref in (DEFAULT_BASE, f"origin/{DEFAULT_BASE}"):
     if _ref_exists(ref):
       return f"{ref}..HEAD"
   return "HEAD~1..HEAD"
 
 
 def _subjects_from_commit(ref: str) -> list[str]:
-  result = subprocess.run(  # noqa: S603
-    ["git", "log", "-1", "--format=%s", ref],  # noqa: S607
-    capture_output=True,
-    check=True,
-    text=True,
-  )
-  return [line for line in result.stdout.splitlines() if line.strip()]
+  out = git_out(root_dir(), "log", "-1", "--format=%s", ref)
+  return [line for line in out.splitlines() if line.strip()]
 
 
 def _subjects_from_range(git_range: str) -> list[str]:
-  result = subprocess.run(  # noqa: S603
-    ["git", "log", "--format=%s", git_range],  # noqa: S607
-    capture_output=True,
-    check=True,
-    text=True,
-  )
-  return [line for line in result.stdout.splitlines() if line.strip()]
+  out = git_out(root_dir(), "log", "--format=%s", git_range)
+  return [line for line in out.splitlines() if line.strip()]
 
 
 def main() -> int:
@@ -207,10 +185,10 @@ def main() -> int:
 
   config_path: Path | None = args.f
   if config_path is None:
-    config_path = _find_config(Path.cwd())
+    config_path = find_up_file(root_dir(), CONFIG_FILENAME)
   if config_path is None:
     print(
-      f"error: {CONFIG_FILENAME} not found (searched from {Path.cwd()})",
+      f"error: {CONFIG_FILENAME} not found (searched from {root_dir()})",
       file=sys.stderr,
     )
     return 2
