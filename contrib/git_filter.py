@@ -47,8 +47,14 @@ from common import (
   root_dir,
 )
 
+# Grace period for a child process before its terminated.
+_CHILD_SHUTDOWN_TIMEOUT = 5
+
+# Mapping between verdict and coloring.
 _STATUS_COLORS = {"PASS": ANSI_GREEN, "FAIL": ANSI_RED}
-_GIT = ""  # set in main()
+
+# Path to the git binary.
+_GIT = ""
 
 
 @dataclass
@@ -96,9 +102,6 @@ def _results_table(commits: list[CommitResult]) -> str:
   headers = ("Hash", "Description", "Status")
   rows = [(c.hash[:8], c.subject, c.status) for c in commits]
   return format_table(headers, rows, _STATUS_COLORS)
-
-
-_CHILD_SHUTDOWN_TIMEOUT = 5
 
 
 def _terminate_child(

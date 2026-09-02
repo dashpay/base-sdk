@@ -18,9 +18,10 @@ from pathlib import Path
 
 from common import declare_verbs
 
+# File in the repository root the accepted vocabulary is read from.
 CONFIG_FILENAME = "unconv.toml"
 
-# namespace%type[(scope)][!]: description
+# Matches a commit subject, 'namespace%type[(scope)][!]: description'.
 _PATTERN = re.compile(
   r"^(?P<namespace>[^\s%]+)"
   r"%(?P<type>[A-Za-z0-9_-]+)"
@@ -29,6 +30,7 @@ _PATTERN = re.compile(
   r": (?P<description>.+)$"
 )
 
+# Config keys that name a setting rather than a namespace.
 _RESERVED: frozenset[str] = frozenset({"global"})
 
 

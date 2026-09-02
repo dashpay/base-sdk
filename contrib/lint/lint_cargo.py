@@ -35,8 +35,10 @@ from common import (
   touched,
 )
 
+# Base name of this script (equivalent to argv[0]).
 SCRIPT = Path(__file__).stem
 
+# Platforms the dependency graph is resolved for.
 TARGET_TRIPLES: tuple[str, ...] = (
   "x86_64-unknown-linux-gnu",
   "aarch64-unknown-linux-gnu",
@@ -46,7 +48,10 @@ TARGET_TRIPLES: tuple[str, ...] = (
 # the version (source, ` (*)` dedupe marker, feature list) is ignored.
 TREE_ENTRY = re.compile(r"^(\S+) v(\S+)")
 
+# A package, named by its crate and the version resolved for it.
 Coord = tuple[str, str]
+
+# A semantic version, held as its components.
 Version = tuple[int, ...]
 
 

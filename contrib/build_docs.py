@@ -33,9 +33,17 @@ from common import (
 if TYPE_CHECKING:
   from collections.abc import Callable
 
-SITE_DIR = Path("public")
+
+# Starting port the preview server binds to.
 PREVIEW_PORT = 8000
+
+# Target directory for build output.
+SITE_DIR = Path("public")
+
+# Source directory of sample crates.
 WASM_SAMPLES_DIR = Path("contrib/samples")
+
+# Matches additional assets bundled with samples.
 WEB_ASSET_GLOBS = ("*.js", "*.css")
 
 

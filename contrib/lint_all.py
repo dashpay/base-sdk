@@ -31,6 +31,7 @@ from common import (
   format_table,
 )
 
+# Colour each verdict is reported in.
 _STATUS_COLORS = {"pass": ANSI_GREEN, "fail": ANSI_RED}
 
 

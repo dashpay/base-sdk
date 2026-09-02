@@ -20,11 +20,7 @@ from markdown.preprocessors import Preprocessor
 if TYPE_CHECKING:
   from markdown import Markdown
 
-_ALERT_RE = re.compile(
-  r"^>[ ]?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ ]*(.*)$"
-)
-_QUOTE_LINE_RE = re.compile(r"^>[ ]?(.*)$")
-
+# Admonition each alert kind is rendered as.
 _ALERT_KIND = {
   "NOTE": "note",
   "TIP": "tip",
@@ -32,6 +28,14 @@ _ALERT_KIND = {
   "WARNING": "warning",
   "CAUTION": "danger",
 }
+
+# Matches the marker opening a GitHub-flavoured alert.
+_ALERT_RE = re.compile(
+  r"^>[ ]?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ ]*(.*)$"
+)
+
+# Matches a line carrying the body of a block quote.
+_QUOTE_LINE_RE = re.compile(r"^>[ ]?(.*)$")
 
 
 class GfmAlertsPreprocessor(Preprocessor):
