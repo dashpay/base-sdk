@@ -15,7 +15,7 @@ utilised by your packages.
 * Base packages. These packages implement specific algorithms but without chain-distinguishing consensus logic.
 * Protocol packages. These packages define the Dash protocol as deployed, blocks, transactions, chain parameters.
 
---8<-- "README.md:crate-graph"
+<!-- [include:README.md:crate-graph] -->
 
 *Note: Solid lines are build dependencies, dotted lines are test dependencies.*
 

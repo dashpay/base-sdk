@@ -3,7 +3,7 @@
 Python 3.x and thus, assume a host capable of running Python. For guidance on installing Python on your host, visit
 https://www.python.org/downloads/
 
-<!-- --8<-- [start:setup] -->
+<!-- [start:setup] -->
 
 ## Preparing the virtual environment
 
@@ -121,4 +121,4 @@ cargo test --all-targets --features full &&
 ./contrib/lint_all.py'
 ```
 
-<!-- --8<-- [end:setup] -->
+<!-- [end:setup] -->

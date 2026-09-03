@@ -33,7 +33,7 @@
 > [!NOTE]
 > Solid lines are build dependencies. Dotted lines are test dependencies.
 
-<!-- --8<-- [start:crate-graph] -->
+<!-- [start:crate-graph] -->
 
 ```mermaid
 %%{init: { "flowchart": { "curve": "basis" } } }%%
@@ -64,7 +64,7 @@ graph LR
   params --> p2p_core
 ```
 
-<!-- --8<-- [end:crate-graph] -->
+<!-- [end:crate-graph] -->
 
 ## Features
 
