@@ -34,6 +34,15 @@ from common import (
 # Colour each verdict is reported in.
 _STATUS_COLORS = {"pass": ANSI_GREEN, "fail": ANSI_RED}
 
+# Verb sequence a script is driven through, for the scripts whose single
+# default pass is narrower than what they can check. A script named here
+# runs once per entry; one absent runs once, taking the verb it defaults to.
+LINT_PASSES: dict[str, tuple[tuple[str, ...], ...]] = {
+  # Formatting the QL and analysing with it are separate verbs, so
+  # neither on its own is the whole of what this script checks.
+  "lint_codeql": (("check",), ("run-all",)),
+}
+
 
 @dataclass
 class LintResult:
@@ -105,14 +114,17 @@ def _results_table(results: list[LintResult]) -> str:
   return format_table(headers, rows, _STATUS_COLORS)
 
 
-async def _run_linter(script: Path) -> LintResult:
-  name = script.stem
+async def _run_linter(script: Path, args: tuple[str, ...]) -> LintResult:
+  # The verb is part of the name, so a script driven through more than one
+  # pass reports each separately rather than collapsing into one verdict.
+  name = " ".join((script.stem, *args))
   result = LintResult(name=name)
   start = time.monotonic()
 
   proc = await asyncio.create_subprocess_exec(
     sys.executable,
     str(script),
+    *args,
     stdout=asyncio.subprocess.PIPE,
     stderr=asyncio.subprocess.PIPE,
   )
@@ -141,9 +153,20 @@ async def _main() -> int:
     print("no lint_*.py scripts found", file=sys.stderr)
     return RETCODE_ERR
 
-  print(f"{ANSI_BOLD}running {len(scripts)} linter(s)...{ANSI_RESET}\n")
+  runs = [
+    (script, args)
+    for script in scripts
+    for args in LINT_PASSES.get(script.stem, ((),))
+  ]
 
-  results = await asyncio.gather(*[_run_linter(s) for s in scripts])
+  print(
+    f"{ANSI_BOLD}running {len(runs)} pass(es) "
+    f"over {len(scripts)} linter(s)...{ANSI_RESET}\n",
+  )
+
+  results = await asyncio.gather(
+    *[_run_linter(script, args) for script, args in runs],
+  )
   results = list(results)
 
   print(f"\n{_results_table(results)}\n")
