@@ -27,6 +27,7 @@ if TYPE_CHECKING:
   from collections.abc import Iterator
 
 from common import (
+  DEFAULT_BASE,
   RETCODE_ERR,
   RETCODE_PASS,
   RETCODE_SKIP,
@@ -34,13 +35,19 @@ from common import (
   declare_verbs,
   require_bin,
   root_dir,
+  touched,
   usable_mem,
   usable_threads,
 )
 
+SCRIPT = Path(__file__).stem
+
 _SOURCE_KEYWORDS = (
   "Serialize", "Deserialize", "Unencodable", "TypeId", "Zeroize", "#[cfg",
 )
+
+# QL a run writes into the tree, relative to a language's pack directory.
+_GENERATED_QL = ("lib", "source_lines.qll")
 
 
 def _discover_queries(query_dir: Path) -> list[Path]:
@@ -48,11 +55,54 @@ def _discover_queries(query_dir: Path) -> list[Path]:
   return sorted(query_dir.glob("*.ql"))
 
 
-def _discover_ql_sources(query_dir: Path) -> list[Path]:
-  """Return all .ql and .qll files in *query_dir* recursively."""
-  return sorted(
-    [*query_dir.rglob("*.ql"), *query_dir.rglob("*.qll")],
+def _ql_sources(repo_root: Path, only: list[str] | None) -> list[Path]:
+  """Return the QL to format: every file, or just *only* when given."""
+  if only is not None:
+    return [repo_root / name for name in only]
+  # Formatting is a property of the text, so it is not scoped to what an
+  # analysis would read. A run writes and formats its own generated QL,
+  # so reading it here would only race that write.
+  root = repo_root / "maint" / "codeql"
+  found = sorted([*root.rglob("*.ql"), *root.rglob("*.qll")])
+  return [p for p in found if p.parts[-2:] != _GENERATED_QL]
+
+
+def _format_ql(
+  codeql_bin: str,
+  repo_root: Path,
+  *,
+  fix: bool,
+  only: list[str] | None = None,
+) -> int:
+  """Check or rewrite the formatting of the QL under `maint/codeql`."""
+  sources = _ql_sources(repo_root, only)
+  if not sources:
+    print(f"{SCRIPT}: no QL file was touched")
+    return RETCODE_PASS
+
+  result = subprocess.run(  # noqa: S603
+    [
+      codeql_bin, "query", "format",
+      *(["-i"] if fix else ["--check-only"]),
+      "--",
+      *[str(p) for p in sources],
+    ],
+    check=False,
   )
+  if result.returncode != 0:
+    if not fix:
+      print(
+        f"hint: run 'python3 maint/lint/{SCRIPT}.py apply-all' to rewrite",
+        file=sys.stderr,
+      )
+    return RETCODE_ERR
+
+  scope = (
+    f"{len(sources)} touched QL file(s)" if only is not None
+    else f"every QL file ({len(sources)})"
+  )
+  print(f"{SCRIPT}: rewrote {scope}" if fix else f"{SCRIPT}: {scope} conforms")
+  return RETCODE_PASS
 
 
 def _generate_source_lines(
@@ -68,7 +118,7 @@ def _generate_source_lines(
 
   Remove once the extractor supports token-tree extraction.
   """
-  out = query_dir / "lib" / "source_lines.qll"
+  out = query_dir.joinpath(*_GENERATED_QL)
   rows: list[str] = []
   for source_dir in source_dirs:
     for rs_file in sorted(source_dir.rglob("*.rs")):
@@ -184,8 +234,13 @@ def _workspace_dirs(
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
   parser = declare_verbs(
-    "Run CodeQL queries against the workspace.",
-    {"run": "build a database and evaluate every query"},
+    "Format the QL, and analyse the workspace with it.",
+    {
+      "check": "report every QL file whose formatting differs",
+      "apply": f"rewrite the QL this branch changed vs {DEFAULT_BASE}",
+      "apply-all": "rewrite every QL file in the tree",
+      "run": "build a database and evaluate every query",
+    },
   )
   parser.add_argument(
     "-c",
@@ -204,25 +259,15 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
   return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> int:
-  args = _parse_args(argv if argv is not None else sys.argv[1:])
+FORMAT_VERBS = ("check", "apply", "apply-all")
 
-  try:
-    codeql_bin = require_bin("codeql")
-  except FileNotFoundError as e:
-    print(f"{e}, skipping", file=sys.stderr)
-    return RETCODE_SKIP
 
-  try:
-    require_bin("rustc")
-  except FileNotFoundError:
-    print(
-      "error: rust compiler unavailable, skipping",
-      file=sys.stderr,
-    )
-    return RETCODE_SKIP
-
-  repo_root = root_dir()
+def _analyse(
+  codeql_bin: str,
+  repo_root: Path,
+  args: argparse.Namespace,
+) -> int:
+  """Build a database for the workspace and evaluate the queries."""
   query_dir = repo_root / "maint" / "codeql"
   queries = _discover_queries(query_dir)
 
@@ -236,28 +281,6 @@ def main(argv: list[str] | None = None) -> int:
     [codeql_bin, "query", "format", "-i", str(generated)],
     check=True,
   )
-
-  # Check QL formatting before doing any heavy lifting.
-  ql_sources = _discover_ql_sources(query_dir)
-  if ql_sources:
-    result = subprocess.run(  # noqa: S603
-      [
-        codeql_bin,
-        "query",
-        "format",
-        "--check-only",
-        "--",
-        *[str(p) for p in ql_sources],
-      ],
-      check=False,
-    )
-    if result.returncode != 0:
-      print(
-        "error: QL formatting check failed; run "
-        "'codeql query format -i' to fix",
-        file=sys.stderr,
-      )
-      return RETCODE_ERR
 
   try:
     suites = _search_suites(_locked_pack("codeql/rust-queries"), args.suites)
@@ -327,6 +350,36 @@ def main(argv: list[str] | None = None) -> int:
     total_findings = _print_csv_diagnostics(results_path)
 
   return RETCODE_ERR if total_findings > 0 else RETCODE_PASS
+
+
+def main(argv: list[str] | None = None) -> int:
+  args = _parse_args(argv if argv is not None else sys.argv[1:])
+
+  try:
+    codeql_bin = require_bin("codeql")
+  except FileNotFoundError as e:
+    print(f"{e}, skipping", file=sys.stderr)
+    return RETCODE_SKIP
+
+  repo_root = root_dir()
+
+  if args.verb in FORMAT_VERBS:
+    return _format_ql(
+      codeql_bin,
+      repo_root,
+      fix=args.verb.startswith("apply"),
+      only=(
+        touched(repo_root, (".ql", ".qll")) if args.verb == "apply" else None
+      ),
+    )
+
+  try:
+    require_bin("rustc")
+  except FileNotFoundError:
+    print("error: rust compiler unavailable, skipping", file=sys.stderr)
+    return RETCODE_SKIP
+
+  return _analyse(codeql_bin, repo_root, args)
 
 
 if __name__ == "__main__":

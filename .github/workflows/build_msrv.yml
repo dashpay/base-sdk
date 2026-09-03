@@ -95,12 +95,14 @@ jobs:
           key: codeql-packs-${{ hashFiles('maint/codeql/codeql-pack.lock.yml') }}
 
       - name: Run linters
-        run: python3 maint/lint_all.py --exclude lint_codeql
+        run: |
+          python3 maint/lint_all.py --exclude lint_codeql
+          python3 maint/lint/lint_codeql.py check
         env:
           RUSTUP_TOOLCHAIN: 1.85.0
 
       - name: Run CodeQL
-        run: python3 maint/lint/lint_codeql.py --with-suite=rust-security-and-quality
+        run: python3 maint/lint/lint_codeql.py run --with-suite=rust-security-and-quality
         env:
           RUSTUP_TOOLCHAIN: 1.85.0
 
