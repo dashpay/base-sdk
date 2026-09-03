@@ -218,18 +218,34 @@ def find_up_dir(
   start: Path,
   predicate: Callable[[Path], bool],
   label: str = "matching directory",
+  stop: Path | None = None,
 ) -> Path:
-  """Walk upward from *start*, returning the first matching directory."""
+  """Walk upward from *start*, returning the first matching directory.
+
+  The walk ends after *stop* when given, so a directory above the tree
+  the caller belongs to cannot answer for one inside it.
+  """
   for directory in (start, *start.parents):
     if predicate(directory):
       return directory
+    if directory == stop:
+      break
   raise FileNotFoundError(f"{label} not found above {start}")
 
 
-def find_up_file(start: Path, name: str) -> Path | None:
+def find_up_file(
+  start: Path,
+  name: str,
+  stop: Path | None = None,
+) -> Path | None:
   """Walk upward from *start*, returning the first *name* found."""
   try:
-    holder = find_up_dir(start, lambda d: (d / name).is_file(), name)
+    holder = find_up_dir(
+      start,
+      lambda d: (d / name).is_file(),
+      name,
+      stop=stop,
+    )
   except FileNotFoundError:
     return None
   return holder / name
