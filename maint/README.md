@@ -21,4 +21,17 @@ use [`lint_all.py`](./lint_all.py).
 | [`lint_semgrep.py`](./lint/lint_semgrep.py) | Lint Rust sources against [`maint/semgrep/*.yml`](./semgrep) | *None* | `semgrep` |
 | [`lint_unconv.py`](./lint/lint_unconv.py) | Lint commit names in ranges specified against [`unconv.toml`](./unconv.toml) | *None* | `git` |
 
+## Generating lockfiles
+
+> [!NOTE]
+> Lockfiles should only be generated with `uv`. Using other Python package managers like `poetry` are unsupported.
+
+If [`pyproject.toml`](../pyproject.toml) has been modified, it is recommended to regenerate the lockfile to ensure
+dependencies are pinned.
+
+```bash
+# After modifying pyproject.toml
+uv lock
+```
+
 <!-- [end:lint] -->

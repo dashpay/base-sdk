@@ -45,12 +45,22 @@ jobs:
           node-version: 24
 
       - name: Set up Python
+        id: python
         uses: actions/setup-python@v6
         with:
           python-version-file: pyproject.toml
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: 0.12.9
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
       - name: Install Python dependencies
-        run: pip install ".[dev]"
+        run: |
+          uv sync --locked --extra dev --python '${{ steps.python.outputs.python-path }}'
+          echo "${PWD}/.venv/bin" >> "${GITHUB_PATH}"
 
       - name: Install CodeQL
         id: setup-codeql

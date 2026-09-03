@@ -15,14 +15,11 @@ recommended to create a fresh virtual environment.
 > your program of choice's documentation if using a different manager.
 
 ```bash
-# Create a new venv
-uv venv .venv
+# Create .venv and install the versions uv.lock pins
+uv sync --locked --extra dev
 
 # Enter venv
 source .venv/bin/activate
-
-# Install dependencies
-uv pip install -e ".[dev]"
 ```
 
 > [!WARNING]
