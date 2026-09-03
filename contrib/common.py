@@ -214,7 +214,7 @@ def format_table(
   )
 
 
-def find_up(
+def find_up_dir(
   start: Path,
   predicate: Callable[[Path], bool],
   label: str = "matching directory",
@@ -228,11 +228,11 @@ def find_up(
 
 def find_up_file(start: Path, name: str) -> Path | None:
   """Walk upward from *start*, returning the first *name* found."""
-  for directory in (start, *start.parents):
-    candidate = directory / name
-    if candidate.is_file():
-      return candidate
-  return None
+  try:
+    holder = find_up_dir(start, lambda d: (d / name).is_file(), name)
+  except FileNotFoundError:
+    return None
+  return holder / name
 
 
 def is_workspace_root(d: Path) -> bool:
@@ -259,7 +259,7 @@ def require_bin(name: str, path: str | None = None) -> str:
 @cache
 def root_dir() -> Path:
   """Return the workspace root (directory containing Cargo.toml)."""
-  return find_up(
+  return find_up_dir(
     Path(__file__).resolve().parent,
     is_workspace_root,
     "workspace Cargo.toml",
