@@ -19,6 +19,7 @@ nav = [
   { "Contributing" = [
     { "Getting Started" = "dev/getting_started.md" },
     { "Documentation" = "dev/about_docs.md" },
+    { "Maintenance" = "dev/maintenance.md" },
     { "Style Guide (Rust)" = "dev/guide_rust.md" },
   ] },
   { "Samples" = [

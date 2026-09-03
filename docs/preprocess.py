@@ -369,8 +369,8 @@ class TestPreprocess:
       self._render('<!-- [include:../../../../etc/hosts] -->\n')
 
   def test_include_inside_a_fence_is_left_alone(self) -> None:
-    out = self._render('```\n<!-- [include:unconv.toml] -->\n```\n')
-    assert "[include:unconv.toml]" in out
+    out = self._render('```\n<!-- [include:maint/unconv.toml] -->\n```\n')
+    assert "[include:maint/unconv.toml]" in out
     assert "[global]" not in out
 
   def test_a_misspelt_directive_is_refused(self) -> None:
@@ -389,7 +389,7 @@ class TestPreprocess:
 
   def test_include_nests(self) -> None:
     with self._scratch(
-      outer='<!-- [include:unconv.toml] -->\n',
+      outer='<!-- [include:maint/unconv.toml] -->\n',
     ) as home:
       out = self._render(f'<!-- [include:{home}/outer.md] -->\n')
     assert "[include:" not in out
@@ -416,9 +416,9 @@ class TestPreprocess:
     assert f'href="{_REPO}/blob/{_BRANCH}/README.md"' in out
 
   def test_bare_link_is_rebased(self) -> None:
-    with self._scratch(page="[a](../unconv.toml)\n") as home:
+    with self._scratch(page="[a](../maint/unconv.toml)\n") as home:
       out = self._render(f'<!-- [include:{home}/page.md] -->\n')
-    assert f'href="{_REPO}/blob/{_BRANCH}/unconv.toml"' in out
+    assert f'href="{_REPO}/blob/{_BRANCH}/maint/unconv.toml"' in out
 
   def test_page_under_docs_is_addressed_from_the_site(self) -> None:
     with self._scratch(page="[a](../docs/dev/guide_rust.md)\n") as home:
@@ -470,8 +470,10 @@ class TestPreprocess:
         self._render(f'<!-- [include:{home}/page.md] -->\n')
 
   def test_include_survives_a_fenced_info_string(self) -> None:
-    out = self._render('```\n```text\n<!-- [include:unconv.toml] -->\n```\n')
-    assert "[include:unconv.toml]" in out
+    out = self._render(
+      '```\n```text\n<!-- [include:maint/unconv.toml] -->\n```\n'
+    )
+    assert "[include:maint/unconv.toml]" in out
     assert "[global]" not in out
 
   def test_alert_survives_a_fenced_info_string(self) -> None:
