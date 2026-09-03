@@ -13,7 +13,7 @@ use [`lint_all.py`](./lint_all.py).
 | Name | Purpose | Verbs | Depends on |
 | ---- | ------- | ---------- | ---------- |
 | [`lint_cargo.py`](./lint/lint_cargo.py) | Enforce MSRV across Rust build dependency graph, check/format TOML files against [`.taplo.toml`](../.taplo.toml) | `check` , `apply`, `apply-all` | (MSRV enforcement) `cargo` (TOML formatting) `taplo` |
-| [`lint_codeql.py`](./lint/lint_codeql.py) | Query Rust sources against [`maint/codeql/*.ql`](./codeql) | `check`, `apply`, `apply-all`, `run` | `codeql`, `rustc` |
+| [`lint_codeql.py`](./lint/lint_codeql.py) | Query Rust sources against [`maint/codeql/rust/*.ql`](./codeql/rust) | `check`, `apply`, `apply-all`, `run`, `run-all` | `codeql`, `rustc` |
 | [`lint_javascript.py`](./lint/lint_javascript.py) | Lint Javascript sources against [`eslint.config.mjs`](js/eslint.config.mjs) | *None* | `npx` (part of Node.js), `eslint` (auto-retrieved by script) |
 | [`lint_markdown.py`](./lint/lint_markdown.py) | Lint Markdown [documentation](../docs/dev/about_docs.md) | *None* | `pymarkdownlnt` |
 | [`lint_python.py`](./lint/lint_python.py) | Lint Python sources against `[tool.ruff]` options in [`pyproject.toml`](../pyproject.toml) | *None* | `ruff` |
