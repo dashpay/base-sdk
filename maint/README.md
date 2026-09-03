@@ -1,8 +1,6 @@
 > [!TIP]
 > In order to run these scripts, make sure you've set up a development environment as described in
-[`contrib`](../contrib/README.md)
-
-<!-- [start:lint] -->
+> [`contrib`](../contrib/README.md)
 
 ## Linters
 
@@ -18,8 +16,8 @@ use [`lint_all.py`](./lint_all.py).
 | [`lint_markdown.py`](./lint/lint_markdown.py) | Lint Markdown [documentation](../docs/dev/about_docs.md) | *None* | `pymarkdownlnt` |
 | [`lint_python.py`](./lint/lint_python.py) | Lint Python sources against `[tool.ruff]` options in [`pyproject.toml`](../pyproject.toml) | *None* | `ruff` |
 | [`lint_rust.py`](./lint/lint_rust.py) | Lint Rust sources against [`rustfmt.toml`](../rustfmt.toml) | *None* | `cargo`, `rustfmt` |
-| [`lint_semgrep.py`](./lint/lint_semgrep.py) | Lint Rust sources against [`maint/semgrep/*.yml`](./semgrep) | *None* | `semgrep` |
-| [`lint_unconv.py`](./lint/lint_unconv.py) | Lint commit names in ranges specified against [`unconv.toml`](./unconv.toml) | *None* | `git` |
+| [`lint_semgrep.py`](./lint/lint_semgrep.py) | Lint source code against [`maint/semgrep`](./semgrep/rust) definitions | *None* | `semgrep` |
+| [`lint_unconv.py`](./lint/lint_unconv.py) | Lint commit names in ranges specified against [`unconv.toml`](./unconv.toml) | `run` | `git` |
 
 ## Generating lockfiles
 
@@ -33,5 +31,3 @@ dependencies are pinned.
 # After modifying pyproject.toml
 uv lock
 ```
-
-<!-- [end:lint] -->
