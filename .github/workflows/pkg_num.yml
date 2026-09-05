@@ -3,7 +3,7 @@ name: "dash-num"
 on:
   workflow_dispatch:
   push:
-    paths:
+    paths: &paths
       - pkgs/num/**
       - Cargo.lock
       - Cargo.toml
@@ -11,13 +11,7 @@ on:
       - .github/workflows/build_stable.yml
       - .github/workflows/build_nightly.yml
   pull_request:
-    paths:
-      - pkgs/num/**
-      - Cargo.lock
-      - Cargo.toml
-      - .github/workflows/pkg_num.yml
-      - .github/workflows/build_stable.yml
-      - .github/workflows/build_nightly.yml
+    paths: *paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

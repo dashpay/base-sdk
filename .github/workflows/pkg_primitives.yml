@@ -3,7 +3,7 @@ name: "dash-primitives"
 on:
   workflow_dispatch:
   push:
-    paths:
+    paths: &paths
       - pkgs/primitives/**
       - pkgs/num/**
       - pkgs/script/**
@@ -14,16 +14,7 @@ on:
       - .github/workflows/build_stable.yml
       - .github/workflows/build_nightly.yml
   pull_request:
-    paths:
-      - pkgs/primitives/**
-      - pkgs/num/**
-      - pkgs/script/**
-      - pkgs/types/**
-      - Cargo.lock
-      - Cargo.toml
-      - .github/workflows/pkg_primitives.yml
-      - .github/workflows/build_stable.yml
-      - .github/workflows/build_nightly.yml
+    paths: *paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
