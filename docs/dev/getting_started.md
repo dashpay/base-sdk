@@ -25,4 +25,4 @@ components at the supported versions without further intervention. Should you wa
 version, please consult the vendor documentation for
 `RUSTUP_TOOLCHAIN` ([source](https://rust-lang.github.io/rustup/environment-variables.html)).
 
---8<-- "contrib/README.md:setup"
+<!-- [include:contrib/README.md:setup] -->

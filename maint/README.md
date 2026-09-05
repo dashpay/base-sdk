@@ -1,0 +1,34 @@
+> [!TIP]
+> In order to run these scripts, make sure you've set up a development environment as described in
+> [`contrib`](../contrib/README.md)
+
+## Linters
+
+All linters available are listed below. The first verb is implied if no verb is specified at runtime. Verbs may accept
+arguments of their own, for more information, run an individual lint script with `--help`. To run all scripts,
+use [`lint_all.py`](./lint_all.py).
+
+| Name | Purpose | Verbs | Depends on |
+| ---- | ------- | ---------- | ---------- |
+| [`lint_cargo.py`](./lint/lint_cargo.py) | Enforce MSRV across Rust build dependency graph, check/format TOML files against [`.taplo.toml`](../.taplo.toml) | `check` , `apply`, `apply-all` | (MSRV enforcement) `cargo` (TOML formatting) `taplo` |
+| [`lint_codeql.py`](./lint/lint_codeql.py) | Query Rust sources against [`maint/codeql/rust/*.ql`](./codeql/rust) | `check`, `apply`, `apply-all`, `run`, `run-all` | `codeql`, `rustc` |
+| [`lint_javascript.py`](./lint/lint_javascript.py) | Lint Javascript sources against [`eslint.config.mjs`](js/eslint.config.mjs) | *None* | `npx` (part of Node.js), `eslint` (auto-retrieved by script) |
+| [`lint_markdown.py`](./lint/lint_markdown.py) | Lint Markdown [documentation](../docs/dev/about_docs.md) | *None* | `pymarkdownlnt` |
+| [`lint_python.py`](./lint/lint_python.py) | Lint Python sources against `[tool.ruff]` options in [`pyproject.toml`](../pyproject.toml) | *None* | `ruff` |
+| [`lint_rust.py`](./lint/lint_rust.py) | Lint Rust sources against [`rustfmt.toml`](../rustfmt.toml) | *None* | `cargo`, `rustfmt` |
+| [`lint_semgrep.py`](./lint/lint_semgrep.py) | Lint source code against [`maint/semgrep`](./semgrep/rust) definitions | *None* | `semgrep` |
+| [`lint_symlinks.py`](./lint/lint_symlinks.py) | Lint symbolic links | *None* | `git` |
+| [`lint_unconv.py`](./lint/lint_unconv.py) | Lint commit names in ranges specified against [`unconv.toml`](./unconv.toml) | `run` | `git` |
+
+## Generating lockfiles
+
+> [!NOTE]
+> Lockfiles should only be generated with `uv`. Using other Python package managers like `poetry` are unsupported.
+
+If [`pyproject.toml`](../pyproject.toml) has been modified, it is recommended to regenerate the lockfile to ensure
+dependencies are pinned.
+
+```bash
+# After modifying pyproject.toml
+uv lock
+```

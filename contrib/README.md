@@ -3,7 +3,7 @@
 Python 3.x and thus, assume a host capable of running Python. For guidance on installing Python on your host, visit
 https://www.python.org/downloads/
 
-<!-- --8<-- [start:setup] -->
+<!-- [start:setup] -->
 
 ## Preparing the virtual environment
 
@@ -15,14 +15,11 @@ recommended to create a fresh virtual environment.
 > your program of choice's documentation if using a different manager.
 
 ```bash
-# Create a new venv
-uv venv .venv
+# Create .venv and install the versions uv.lock pins
+uv sync --locked --extra dev
 
 # Enter venv
 source .venv/bin/activate
-
-# Install dependencies
-uv pip install -e ".[dev]"
 ```
 
 > [!WARNING]
@@ -90,24 +87,11 @@ sudo apt install git nodejs -y
 sudo dnf install -y git nodejs24
 ```
 
-## Running linters
+<!-- [end:setup] -->
 
-All linters available in [`contrib/lint/`](../contrib/lint) are listed below. The first verb is implied if no verb is
-specified at runtime. Verbs may accept arguments of their own, for more information, run an individual lint script with
-`--help`. To run all scripts, use [`lint_all.py`](./lint_all.py).
+<!-- [start:bisect] -->
 
-| Name | Purpose | Verbs | Depends on |
-| ---- | ------- | ---------- | ---------- |
-| [`lint_cargo.py`](./lint/lint_cargo.py) | Enforce MSRV across Rust build dependency graph, check/format TOML files against [`.taplo.toml`](../.taplo.toml) | `check` , `apply`, `apply-all` | (MSRV enforcement) `cargo` (TOML formatting) `taplo` |
-| [`lint_codeql.py`](./lint/lint_codeql.py) | Query Rust sources against [`contrib/codeql/*.ql`](./codeql) | `run` | `codeql`, `rustc` |
-| [`lint_javascript.py`](./lint/lint_javascript.py) | Lint Javascript sources against [`eslint.config.mjs`](js/eslint.config.mjs) | *None* | `npx` (part of Node.js), `eslint` (auto-retrieved by script) |
-| [`lint_markdown.py`](./lint/lint_markdown.py) | Lint Markdown [documentation](../docs/dev/about_docs.md) | *None* | `pymarkdownlnt` |
-| [`lint_python.py`](./lint/lint_python.py) | Lint Python sources against `[tool.ruff]` options in [`pyproject.toml`](../pyproject.toml) | *None* | `ruff` |
-| [`lint_rust.py`](./lint/lint_rust.py) | Lint Rust sources against [`rustfmt.toml`](../rustfmt.toml) | *None* | `cargo`, `rustfmt` |
-| [`lint_semgrep.py`](./lint/lint_semgrep.py) | Lint Rust sources against [`contrib/semgrep/*.yml`](./semgrep) | *None* | `semgrep` |
-| [`lint_unconv.py`](./lint/lint_unconv.py) | Lint commit names in ranges specified against [`unconv.toml`](../unconv.toml) | *None* | `git` |
-
-### Verifying bisectability
+## Verifying bisectability
 
 As a general rule of thumb, each commit must individually compile and pass linters. To help with this, we have a helper
 script, [`git_filter.py`](./git_filter.py) that creates a temporary worktree and executes supplied commands for each
@@ -118,7 +102,7 @@ commit in a specified range so the worktree isn't blocked by the validation run.
 ./contrib/git_filter.py --fast-fail develop branch_name -- bash -c 'cargo clippy --all-targets --no-default-features -- -D warnings &&
 cargo clippy --all-targets --features full -- -D warnings &&
 cargo test --all-targets --features full &&
-./contrib/lint_all.py'
+./maint/lint_all.py'
 ```
 
-<!-- --8<-- [end:setup] -->
+<!-- [end:bisect] -->

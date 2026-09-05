@@ -45,12 +45,22 @@ jobs:
           node-version: 24
 
       - name: Set up Python
+        id: python
         uses: actions/setup-python@v6
         with:
           python-version-file: pyproject.toml
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: 0.12.9
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
       - name: Install Python dependencies
-        run: pip install ".[dev]"
+        run: |
+          uv sync --locked --extra dev --python '${{ steps.python.outputs.python-path }}'
+          echo "${PWD}/.venv/bin" >> "${GITHUB_PATH}"
 
       - name: Install CodeQL
         id: setup-codeql
@@ -82,22 +92,24 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.codeql
-          key: codeql-packs-${{ hashFiles('contrib/codeql/codeql-pack.lock.yml') }}
+          key: codeql-packs-${{ hashFiles('maint/codeql/*/codeql-pack.lock.yml') }}
 
       - name: Run linters
-        run: python3 contrib/lint_all.py --exclude lint_codeql
+        run: |
+          python3 maint/lint_all.py --exclude lint_codeql
+          python3 maint/lint/lint_codeql.py check
         env:
           RUSTUP_TOOLCHAIN: 1.85.0
 
       - name: Run CodeQL
-        run: python3 contrib/lint/lint_codeql.py --with-suite=rust-security-and-quality
+        run: python3 maint/lint/lint_codeql.py run --lang=rust --with-suite=rust-security-and-quality
         env:
           RUSTUP_TOOLCHAIN: 1.85.0
 
       - name: Check PR commit messages
         if: github.event_name == 'pull_request'
         run: >
-          python3 contrib/lint/lint_unconv.py
+          python3 maint/lint/lint_unconv.py
           -r "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
 
   build:

@@ -179,18 +179,22 @@ def main() -> int:
     "-f",
     metavar="FILE",
     type=Path,
-    help=f"Path to config file (default: search upward for {CONFIG_FILENAME}).",
+    help=f"Path to config file (default: nearest {CONFIG_FILENAME}).",
   )
   args = parser.parse_args()
 
+  here = Path(__file__).resolve().parent
   config_path: Path | None = args.f
   if config_path is None:
-    config_path = find_up_file(root_dir(), CONFIG_FILENAME)
-  if config_path is None:
-    print(
-      f"error: {CONFIG_FILENAME} not found (searched from {root_dir()})",
-      file=sys.stderr,
-    )
+    config_path = find_up_file(here, CONFIG_FILENAME, stop=root_dir())
+    if config_path is None:
+      print(
+        f"error: no {CONFIG_FILENAME} between {here} and {root_dir()}",
+        file=sys.stderr,
+      )
+      return 2
+  if not config_path.is_file():
+    print(f"error: {config_path} is not a file", file=sys.stderr)
     return 2
 
   config = Config.load(config_path)

@@ -79,6 +79,37 @@ outside `docs/` resolve to the forge instead.
 > Zensical treats on-disk `.md` links as documentation and will fail to build if they are located outside `docs/`.
 > This does not affect non-Markdown files and directories.
 
+### Splicing
+
+To keep material that would otherwise be duplicated from falling out of sync, a document can be split into reusable
+segments that other documents splice in, or to assemble a document outright. This lets the on-disk layout keep
+documentation close to the material it describes, while keeping the prose cohesive when it is read as a webpage.
+
+Splicing happens when the site is built, so a document read on GitHub is the file as stored on-disk, without the
+segments spliced in. We use a custom comment syntax to ensure that splice markers are invisible, so they don't interfere
+with GitHub and WYSIWYG editors.
+
+This makes Zensical the primary authority on the _shape_ of a document and it is recommended to [preview](#preview) your
+edits and the pages that could be affected by your edits to ensure it remains pleasant to read.
+
+To splice in a whole document, or a spliced segment of it (like `setup`), the syntax is as below.
+
+```markdown
+<!-- [include:contrib/README.md] -->
+<!-- [include:contrib/README.md:setup] -->
+```
+
+To create a spliceable segment, wrap the desired text in `start` and `end` markers carrying its label (like `setup`).
+
+```markdown
+<!-- [start:setup] -->
+Carried into the splice.
+<!-- [end:setup] -->
+```
+
+Links in spliced material are resolved against the file that defines them, not the page splicing it in (see
+[link processing](#link-processing)). Splices may nest, and a directive inside a code fence is inert.
+
 ## Postprocessing
 
 > [!WARNING]

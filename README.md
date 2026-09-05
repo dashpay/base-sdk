@@ -1,5 +1,6 @@
 ![GitHub License](https://img.shields.io/github/license/dashpay/base-sdk)
 ![Minimum Supported Rust Version](https://img.shields.io/badge/v1.85.0-msrv?style=flat&logo=rust&label=MSRV&color=orange)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/dashpay/base-sdk)
 
 > [!WARNING]
 >
@@ -33,7 +34,7 @@
 > [!NOTE]
 > Solid lines are build dependencies. Dotted lines are test dependencies.
 
-<!-- --8<-- [start:crate-graph] -->
+<!-- [start:crate-graph] -->
 
 ```mermaid
 %%{init: { "flowchart": { "curve": "basis" } } }%%
@@ -64,7 +65,7 @@ graph LR
   params --> p2p_core
 ```
 
-<!-- --8<-- [end:crate-graph] -->
+<!-- [end:crate-graph] -->
 
 ## Features
 
