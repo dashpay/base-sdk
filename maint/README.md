@@ -17,6 +17,7 @@ use [`lint_all.py`](./lint_all.py).
 | [`lint_python.py`](./lint/lint_python.py) | Lint Python sources against `[tool.ruff]` options in [`pyproject.toml`](../pyproject.toml) | *None* | `ruff` |
 | [`lint_rust.py`](./lint/lint_rust.py) | Lint Rust sources against [`rustfmt.toml`](../rustfmt.toml) | *None* | `cargo`, `rustfmt` |
 | [`lint_semgrep.py`](./lint/lint_semgrep.py) | Lint source code against [`maint/semgrep`](./semgrep/rust) definitions | *None* | `semgrep` |
+| [`lint_symlinks.py`](./lint/lint_symlinks.py) | Lint symbolic links | *None* | `git` |
 | [`lint_unconv.py`](./lint/lint_unconv.py) | Lint commit names in ranges specified against [`unconv.toml`](./unconv.toml) | `run` | `git` |
 
 ## Generating lockfiles
