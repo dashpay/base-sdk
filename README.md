@@ -1,5 +1,6 @@
 ![GitHub License](https://img.shields.io/github/license/dashpay/base-sdk)
 ![Minimum Supported Rust Version](https://img.shields.io/badge/v1.85.0-msrv?style=flat&logo=rust&label=MSRV&color=orange)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/dashpay/base-sdk)
 
 > [!WARNING]
 >
