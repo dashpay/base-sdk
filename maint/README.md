@@ -1,6 +1,10 @@
+<!-- [start:omit] -->
+
 > [!TIP]
 > In order to run these scripts, make sure you've set up a development environment as described in
 > [`contrib`](../contrib/README.md)
+
+<!-- [end:omit] -->
 
 ## Linters
 
