@@ -3,7 +3,7 @@ name: "dash-params"
 on:
   workflow_dispatch:
   push:
-    paths:
+    paths: &paths
       - pkgs/params/**
       - pkgs/num/**
       - pkgs/primitives/**
@@ -14,16 +14,7 @@ on:
       - .github/workflows/build_stable.yml
       - .github/workflows/build_nightly.yml
   pull_request:
-    paths:
-      - pkgs/params/**
-      - pkgs/num/**
-      - pkgs/primitives/**
-      - pkgs/script/**
-      - Cargo.lock
-      - Cargo.toml
-      - .github/workflows/pkg_params.yml
-      - .github/workflows/build_stable.yml
-      - .github/workflows/build_nightly.yml
+    paths: *paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

@@ -97,11 +97,17 @@ _FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 # Matches a splice from another file, or one named section from it.
 _INCLUDE_RE = re.compile(r"^\s*<!--\s*\[include:([^\]]+)\]\s*-->\s*$")
 
-# Matches any directive-shaped comment, whatever it names.
+# Matches any directive-shaped comment, by the verb and label it names.
 _DIRECTIVE_RE = re.compile(r"^\s*<!--\s*\[([A-Za-z]+):[^\]]*\]\s*-->\s*$")
 
 # The directives this module answers for. Anything else is a misspelling.
 _DIRECTIVES = frozenset({"include", "start", "end"})
+
+# Label reserved for a segment the site does not carry.
+_OMIT_LABEL = "omit"
+
+# Matches a bound of such a segment.
+_OMIT_RE = re.compile(rf"^\s*<!--\s*\[(start|end):{_OMIT_LABEL}\]\s*-->\s*$")
 
 # Matches the target of an inline link, and any title trailing it.
 _LINK_RE = re.compile(
@@ -117,6 +123,39 @@ _INDEX_STEMS = frozenset({"README", "index"})
 
 # How many includes may nest before the splice is called a cycle.
 _DEPTH_LIMIT = 8
+
+
+def _strip_omitted(lines: list[str]) -> list[str]:
+  """Return *lines* without any segment labelled for omission."""
+  output: list[str] = []
+  fences = _Fences()
+  begin = None
+
+  for index, line in enumerate(lines):
+    # An omitted line never reaches the renderer, so it cannot open a fence in
+    # the stream *fences* models and is not tracked in it.
+    hidden = begin is not None
+    found = _OMIT_RE.match(line) if hidden or not fences.covers(line) else None
+    if found is None:
+      if not hidden:
+        # A misspelt verb doesn't match, so the line is passed on and
+        # refused in `_named_directive`.
+        output.append(line)
+      continue
+    if found.group(1) == "start":
+      if hidden:
+        raise ValueError(f"{_OMIT_LABEL}: segments do not nest")
+      begin = index
+      continue
+    if not hidden:
+      raise ValueError(f"{_OMIT_LABEL}: no segment is open")
+    if _opens_a_fence(lines[begin + 1 : index]):
+      raise ValueError(f"{_OMIT_LABEL}: segment leaves a fence open")
+    begin = None
+
+  if begin is not None:
+    raise ValueError(f"{_OMIT_LABEL}: segment left open")
+  return output
 
 
 def _named_directive(line: str) -> None:
@@ -151,6 +190,14 @@ class _Fences:
     return True
 
 
+def _opens_a_fence(lines: list[str]) -> bool:
+  """Whether *lines* leave a code fence open at their end."""
+  fences = _Fences()
+  for line in lines:
+    fences.covers(line)
+  return fences.opener is not None
+
+
 def forge_url(repo_url: str, branch: str, source: Path) -> str:
   """Return the URL *source* is served from, by its kind."""
   kind = "tree" if source.is_dir() else "blob"
@@ -172,7 +219,7 @@ class IncludePreprocessor(Preprocessor):
     self.branch = branch
 
   def run(self, lines: list[str]) -> list[str]:
-    return self._expand(lines, _DEPTH_LIMIT, _Fences())
+    return self._expand(_strip_omitted(lines), _DEPTH_LIMIT, _Fences())
 
   def _expand(
     self, lines: list[str], budget: int, fences: _Fences,
@@ -210,7 +257,7 @@ class IncludePreprocessor(Preprocessor):
     if not source.is_file():
       raise ValueError(f"{spec}: no such file in the repository")
 
-    lines = source.read_text(encoding="utf-8").splitlines()
+    lines = _strip_omitted(source.read_text(encoding="utf-8").splitlines())
     if section:
       lines = _section(lines, section, spec)
     # `_rebase` walks these same lines, so it takes a copy of the fence
@@ -275,7 +322,12 @@ def _section(lines: list[str], name: str, spec: str) -> list[str]:
   finish = next((i for i, text in enumerate(lines) if closer in text), None)
   if begin is None or finish is None or finish < begin:
     raise ValueError(f"{spec}: no such section")
-  return lines[begin + 1 : finish]
+  found = lines[begin + 1 : finish]
+  # A fence the segment opens holds over the page it is spliced into,
+  # which reads there as the segment having swallowed what follows.
+  if _opens_a_fence(found):
+    raise ValueError(f"{spec}: segment leaves a fence open")
+  return found
 
 
 class PreprocessorHost(Extension):
@@ -356,6 +408,15 @@ class TestPreprocess:
       with pytest.raises(ValueError, match="no such section"):
         self._render(f'<!-- [include:{home}/whole.md:mid] -->\n')
 
+  def test_section_refuses_an_unclosed_fence(self) -> None:
+    import pytest
+
+    with self._scratch(
+      whole="<!-- [start:mid] -->\n```\nsample\n<!-- [end:mid] -->\n",
+    ) as home:
+      with pytest.raises(ValueError, match="leaves a fence open"):
+        self._render(f'<!-- [include:{home}/whole.md:mid] -->\n')
+
   def test_include_rejects_an_absolute_path(self) -> None:
     import pytest
 
@@ -403,6 +464,47 @@ class TestPreprocess:
       (root_dir() / home / "loop.md").write_text(spec, encoding="utf-8")
       with pytest.raises(ValueError, match="nested past the limit"):
         self._render(spec)
+
+  def test_omit_drops_every_segment_it_labels(self) -> None:
+    # Unlike a spliceable label, `omit` repeats. A fence or an include a
+    # segment holds goes with it, and the file named, were it read, does
+    # not exist and would have been refused.
+    out = self._render(
+      "one\n<!-- [start:omit] -->\n```\nhidden\n```\n<!-- [end:omit] -->\n"
+      "two\n<!-- [start:omit] -->\n"
+      "<!-- [include:no/such/file.md] -->\n<!-- [end:omit] -->\nthree\n"
+    )
+    assert "hidden" not in out
+    assert all(word in out for word in ("one", "two", "three"))
+
+  def test_omit_refuses_a_malformed_segment(self) -> None:
+    import pytest
+
+    cases = (
+      ("<!-- [start:omit] -->\nx\n", "segment left open"),
+      ("x\n<!-- [end:omit] -->\n", "no segment is open"),
+      ("<!-- [start:omit] -->\n<!-- [start:omit] -->\n", "do not nest"),
+      ("<!-- [start:omit] -->\n```\n<!-- [end:omit] -->\n",
+       "leaves a fence open"),
+      # The label must not carry a misspelt verb past the directive check.
+      ("<!-- [statr:omit] -->\n", "no such directive"),
+    )
+    for source, message in cases:
+      with pytest.raises(ValueError, match=message):
+        self._render(source)
+
+  def test_omit_applies_to_spliced_material(self) -> None:
+    import pytest
+
+    with self._scratch(
+      part="carried\n<!-- [start:omit] -->\n"
+           "[x](./nope.md)\n<!-- [end:omit] -->\n",
+    ) as home:
+      out = self._render(f'<!-- [include:{home}/part.md] -->\n')
+      with pytest.raises(ValueError, match="no such section"):
+        self._render(f'<!-- [include:{home}/part.md:omit] -->\n')
+    assert "carried" in out
+    assert "nope.md" not in out
 
   def test_titled_link_is_rebased(self) -> None:
     with self._scratch(page='[a](../README.md "root")\n') as home:

@@ -3,7 +3,7 @@ name: "dash-pow"
 on:
   workflow_dispatch:
   push:
-    paths:
+    paths: &paths
       - pkgs/pow/**
       - pkgs/num/**
       - Cargo.lock
@@ -12,14 +12,7 @@ on:
       - .github/workflows/build_stable.yml
       - .github/workflows/build_nightly.yml
   pull_request:
-    paths:
-      - pkgs/pow/**
-      - pkgs/num/**
-      - Cargo.lock
-      - Cargo.toml
-      - .github/workflows/pkg_pow.yml
-      - .github/workflows/build_stable.yml
-      - .github/workflows/build_nightly.yml
+    paths: *paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

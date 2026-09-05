@@ -8,6 +8,10 @@ on:
       - pkgs/**
       - docs/**
       - .github/workflows/pages.yml
+      - pyproject.toml
+      - uv.lock
+      - README.md
+      - '**/README.md'
   workflow_dispatch:
 
 concurrency:

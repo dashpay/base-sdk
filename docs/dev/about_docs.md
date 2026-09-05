@@ -77,7 +77,7 @@ outside `docs/` resolve to the forge instead.
 
 > [!WARNING]
 > Zensical treats on-disk `.md` links as documentation and will fail to build if they are located outside `docs/`.
-> This does not affect non-Markdown files and directories.
+> This does not affect non-Markdown files and directories. [Omitted](#omitting) segments are not processed at all.
 
 ### Splicing
 
@@ -99,6 +99,10 @@ To splice in a whole document, or a spliced segment of it (like `setup`), the sy
 <!-- [include:contrib/README.md:setup] -->
 ```
 
+> [!WARNING]
+> `omit` is a reserved label for _stripping_ spliceable regions from the final document. See [Omitting](#omitting) for
+> more details.
+
 To create a spliceable segment, wrap the desired text in `start` and `end` markers carrying its label (like `setup`).
 
 ```markdown
@@ -109,6 +113,21 @@ Carried into the splice.
 
 Links in spliced material are resolved against the file that defines them, not the page splicing it in (see
 [link processing](#link-processing)). Splices may nest, and a directive inside a code fence is inert.
+
+### Omitting
+
+Due to the dual-audience nature of our documentation, there may exist segments that are meant for GitHub but not
+Zensical. The usual pattern for the reverse is to create a new file and then splice in what is required but this creates
+situations where most of the file is included _except_ for a small portion. Omissions can take care of that.
+
+To omit a segment, use the following syntax. Unlike other labels, `omit` can be used repeatedly but typos of `omit` will
+be treated as ordinary spliceable segments.
+
+```markdown
+<!-- [start:omit] -->
+Rendered on GitHub, absent from the site.
+<!-- [end:omit] -->
+```
 
 ## Postprocessing
 
