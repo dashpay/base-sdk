@@ -151,6 +151,14 @@ class _Fences:
     return True
 
 
+def _opens_a_fence(lines: list[str]) -> bool:
+  """Whether *lines* leave a code fence open at their end."""
+  fences = _Fences()
+  for line in lines:
+    fences.covers(line)
+  return fences.opener is not None
+
+
 def forge_url(repo_url: str, branch: str, source: Path) -> str:
   """Return the URL *source* is served from, by its kind."""
   kind = "tree" if source.is_dir() else "blob"
@@ -275,7 +283,12 @@ def _section(lines: list[str], name: str, spec: str) -> list[str]:
   finish = next((i for i, text in enumerate(lines) if closer in text), None)
   if begin is None or finish is None or finish < begin:
     raise ValueError(f"{spec}: no such section")
-  return lines[begin + 1 : finish]
+  found = lines[begin + 1 : finish]
+  # A fence the segment opens holds over the page it is spliced into,
+  # which reads there as the segment having swallowed what follows.
+  if _opens_a_fence(found):
+    raise ValueError(f"{spec}: segment leaves a fence open")
+  return found
 
 
 class PreprocessorHost(Extension):
@@ -354,6 +367,15 @@ class TestPreprocess:
 
     with self._scratch(whole="nothing marked\n") as home:
       with pytest.raises(ValueError, match="no such section"):
+        self._render(f'<!-- [include:{home}/whole.md:mid] -->\n')
+
+  def test_section_refuses_an_unclosed_fence(self) -> None:
+    import pytest
+
+    with self._scratch(
+      whole="<!-- [start:mid] -->\n```\nsample\n<!-- [end:mid] -->\n",
+    ) as home:
+      with pytest.raises(ValueError, match="leaves a fence open"):
         self._render(f'<!-- [include:{home}/whole.md:mid] -->\n')
 
   def test_include_rejects_an_absolute_path(self) -> None:
