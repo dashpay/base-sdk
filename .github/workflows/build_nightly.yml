@@ -100,9 +100,9 @@ jobs:
         with:
           files: lcov.info
           flags: ${{ inputs.package }}
+          token: ${{ secrets.CODECOV_TOKEN }}
         env:
           HAS_CODECOV: ${{ secrets.CODECOV_TOKEN != '' }}
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Sanity check benchmarks
         run: cargo bench ${{ matrix.config.args }} --package ${{ inputs.package }} --no-run
