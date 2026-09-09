@@ -1,8 +1,12 @@
 [package]
 name = "dash-primitives"
 version = "0.0.0"
-edition = "2021"
-license = "MIT"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [features]
 default = []
@@ -62,7 +66,4 @@ rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 
 [lints]
-workspace = true
-
-[package.rust-version]
 workspace = true

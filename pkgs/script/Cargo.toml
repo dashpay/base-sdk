@@ -1,8 +1,12 @@
 [package]
 name = "dash-script"
 version = "0.0.0"
-edition = "2021"
-license = "MIT"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [features]
 default = []
@@ -36,7 +40,4 @@ hex-conservative = "0.3"
 rstest = "0.25"
 
 [lints]
-workspace = true
-
-[package.rust-version]
 workspace = true

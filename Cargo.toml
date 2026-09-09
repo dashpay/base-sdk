@@ -40,6 +40,11 @@ unsafe_code = "deny"
 unused_must_use = "deny"
 
 [workspace.package]
+authors = ["Kittywhiskers Van Gogh <kittywhiskers@dash.org>"]
+edition = "2021"
+homepage = "https://dashpay.github.io/base-sdk"
+license = "MIT"
+repository = "https://github.com/dashpay/base-sdk"
 rust-version = "1.85.0"
 
 [profile.release]
