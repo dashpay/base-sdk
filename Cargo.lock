@@ -59,16 +59,18 @@ checksum = "fd307490d624467aa6f74b0eabb77633d1f758a7b25f12bceb0b22e08d9726f6"
 [[package]]
 name = "base58ck"
 version = "0.4.0"
-source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed6a87a8367e7a4248c8dfd783c37ef492bca1307cd4b21b4cfad9cfd15bf060"
 dependencies = [
  "bitcoin-internals 0.5.0",
- "bitcoin_hashes",
+ "bitcoin_hashes 0.20.0",
 ]
 
 [[package]]
 name = "bitcoin-consensus-encoding"
-version = "0.2.0"
-source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8d7ca3dc8ff835693ad73bf1596240c06f974a31eeb3f611aaedf855f1f2725"
 dependencies = [
  "bitcoin-internals 0.5.0",
 ]
@@ -87,10 +89,10 @@ dependencies = [
 [[package]]
 name = "bitcoin-internals"
 version = "0.5.0"
-source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a30a22d1f112dde8e16be7b45c63645dc165cef254f835b3e1e9553e485cfa64"
 dependencies = [
  "hex-conservative 0.3.2",
- "serde",
 ]
 
 [[package]]
@@ -98,27 +100,31 @@ name = "bitcoin-internals"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d573f4cf32996a8dce612e4348cece65a241f1882ed594047c9ba348e8869fa5"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitcoin-primitives"
-version = "0.102.0"
-source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+version = "0.103.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82e12cb1814d037edbd667554c2c0e6b067db72c83ee935b645a6b5829aca908"
 dependencies = [
- "bitcoin-consensus-encoding 0.2.0",
- "bitcoin-internals 0.5.0",
+ "bitcoin-consensus-encoding 1.2.0",
+ "bitcoin-internals 0.6.0",
  "bitcoin-units",
- "bitcoin_hashes",
- "hex-conservative 0.3.2",
+ "bitcoin_hashes 1.2.0",
  "hex-conservative 1.2.0",
  "serde",
 ]
 
 [[package]]
 name = "bitcoin-units"
-version = "0.3.0"
-source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ae6dcb008158c2bdbe698470280439844be5f640310e4f5d6ef0a0209e066c2"
 dependencies = [
- "bitcoin-consensus-encoding 0.2.0",
+ "bitcoin-consensus-encoding 1.2.0",
  "bitcoin-internals 0.5.0",
  "serde",
 ]
@@ -126,11 +132,22 @@ dependencies = [
 [[package]]
 name = "bitcoin_hashes"
 version = "0.20.0"
-source = "git+https://github.com/rust-bitcoin/rust-bitcoin?tag=bitcoin-crypto-0.2.0#11650c6c480088cc30a04e583e187cd7a84a2d8f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a8a45c2b41c457a9a9e4670422fcbdf109afb3b22bc920b4045e8bdfd788a3d"
 dependencies = [
- "bitcoin-consensus-encoding 0.2.0",
+ "bitcoin-consensus-encoding 0.1.0",
  "bitcoin-internals 0.5.0",
  "hex-conservative 0.3.2",
+]
+
+[[package]]
+name = "bitcoin_hashes"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5304e53726dbe5f93141535e102ed97b5bf4714fbecefdda8f9fb98d7fdaff0e"
+dependencies = [
+ "bitcoin-consensus-encoding 1.2.0",
+ "bitcoin-internals 0.6.0",
  "hex-conservative 1.2.0",
  "serde",
 ]
@@ -486,7 +503,7 @@ name = "dash-p2p-core"
 version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding 1.2.0",
- "bitcoin-internals 0.5.0",
+ "bitcoin-internals 0.6.0",
  "cfg-if",
  "dash-dev",
  "dash-num",
@@ -522,7 +539,7 @@ dependencies = [
  "aes",
  "base58ck",
  "bitcoin-consensus-encoding 1.2.0",
- "bitcoin_hashes",
+ "bitcoin_hashes 1.2.0",
  "blst",
  "cfg-if",
  "dash-dev",
@@ -557,10 +574,10 @@ name = "dash-primitives"
 version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding 1.2.0",
- "bitcoin-internals 0.5.0",
+ "bitcoin-internals 0.6.0",
  "bitcoin-primitives",
  "bitcoin-units",
- "bitcoin_hashes",
+ "bitcoin_hashes 1.2.0",
  "cfg-if",
  "dash-dev",
  "dash-num",
@@ -596,7 +613,7 @@ dependencies = [
  "base58ck",
  "bitcoin-consensus-encoding 1.2.0",
  "bitcoin-primitives",
- "bitcoin_hashes",
+ "bitcoin_hashes 1.2.0",
  "cfg-if",
  "dash-types-marker",
  "hex-conservative 0.3.2",
