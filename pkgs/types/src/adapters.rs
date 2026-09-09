@@ -23,29 +23,6 @@ macro_rules! adapt_codec {
       }
     }
   };
-  ($ty:ty, $len:expr) => {
-    impl $crate::codec::BaseCodec for $ty {
-      fn decode(data: &mut &[u8]) -> Result<Self, $crate::codec::DecodeError> {
-        let bytes = $crate::codec::read_bytes(data, $len)?;
-        let mut arr = [0u8; $len];
-        arr.copy_from_slice(bytes);
-        Ok(Self::from_byte_array(arr))
-      }
-
-      fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
-        buf.extend_from_slice(&self.to_byte_array());
-      }
-    }
-  };
-}
-
-#[cfg(feature = "bitcoin-p2p-messages")]
-mod bitcoin_p2p_messages {
-  // nosemgrep: macro-no-bare-foreign-crate
-  use ::bitcoin_p2p_messages::message_filter::{FilterHash, FilterHeader};
-
-  adapt_codec!(FilterHash, 32);
-  adapt_codec!(FilterHeader, 32);
 }
 
 #[cfg(feature = "bitcoin-primitives")]
