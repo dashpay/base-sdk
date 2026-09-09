@@ -2,5 +2,4 @@
 all-features = true
 
 [advisories]
-unmaintained = "none"
 yanked = "deny"
