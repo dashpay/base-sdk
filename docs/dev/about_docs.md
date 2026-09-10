@@ -95,7 +95,7 @@ edits and the pages that could be affected by your edits to ensure it remains pl
 
 To splice in a whole document, or a spliced segment of it (like `setup`), the syntax is as below.
 
-```markdown
+```text
 <!-- [include:contrib/README.md] -->
 <!-- [include:contrib/README.md:setup] -->
 ```
@@ -106,14 +106,59 @@ To splice in a whole document, or a spliced segment of it (like `setup`), the sy
 
 To create a spliceable segment, wrap the desired text in `start` and `end` markers carrying its label (like `setup`).
 
-```markdown
+```text
 <!-- [start:setup] -->
 Carried into the splice.
 <!-- [end:setup] -->
 ```
 
 Links in spliced material are resolved against the file that defines them, not the page splicing it in (see
-[link processing](#link-processing)). Splices may nest, and a directive inside a code fence is inert.
+[link processing](#link-processing)). Splices may nest.
+
+#### Inlining
+
+> [!TIP]
+> To write directives as literal text without parsing it, wrap the text segment in a code block with
+> formatting type text (i.e. &#96;&#96;&#96;text). This will instruct the preprocessor to *not* interpret the
+> captured segment as directives, quoting or otherwise.
+
+Example code has a recurring problem of staleness, where (especially in early incubation), code segments may undergo
+radical changes in shape, scope and location. This can result in examples that at best, don't compile at all and at
+worst, enact behaviors that do not match the text description or mislead the reader.
+
+This is avoided by using segments from the live codebase, as shown below for inlining a complete file.
+
+````text
+```toml
+<!-- [include:maint/unconv.toml] -->
+```
+````
+
+> [!WARNING]
+> Splicing non-Markdown files outside code blocks is prohibited as Markdown files undergo additional processing steps
+> and such files have a high tendency of disturbing the final page render.
+
+And for partial inlining, the syntax is similar to regular splicing.
+
+````text
+# In Markdown
+
+```rust
+<!-- [include:pkgs/types/src/codec.rs:vec-codec] -->
+```
+````
+
+With its counterpart in a source file appearing like so.
+
+```rust
+// In Rust
+
+// [start:vec-codec]
+impl<T: BaseCodec> Encoder for VecEncoder<T> {
+  // ...
+}
+// [end:vec-codec]
+```
 
 ### Omitting
 
@@ -124,7 +169,7 @@ situations where most of the file is included _except_ for a small portion. Omis
 To omit a segment, use the following syntax. Unlike other labels, `omit` can be used repeatedly but typos of `omit` will
 be treated as ordinary spliceable segments.
 
-```markdown
+```text
 <!-- [start:omit] -->
 Rendered on GitHub, absent from the site.
 <!-- [end:omit] -->
