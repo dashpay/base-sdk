@@ -6,6 +6,7 @@
 
 //! secp256k1 secret key.
 
+use super::curve_consts::{DER_SIZES, OID_PRIME_FIELD, ORDER, PRIME};
 use super::error::EcdsaError;
 use super::public_ops::EcdsaPublicKey;
 use super::secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
@@ -18,7 +19,6 @@ use dash_num::Hash256;
 use dash_types::codec::{ensure, BaseCodec, DecodeError, EncodeBuf, Hashable};
 use dash_types::type_id::TypeId;
 use dash_types::{impl_stype, type_cvrt, ArrayBuf, Numeric};
-use hex_conservative::hex;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
 use k256::elliptic_curve::ops::Neg;
 use k256::elliptic_curve::Generate;
@@ -27,16 +27,6 @@ use rand_core::CryptoRng;
 use zeroize::{Zeroize, Zeroizing};
 
 use core::fmt;
-
-/// DER lengths of a private key with a compressed and an uncompressed public
-/// key respectively.
-const DER_SIZES: &[usize] = &[214, 279];
-/// ASN.1 object identifier for a prime-field curve.
-const OID_PRIME_FIELD: &[u8] = &hex!("2a8648ce3d0101");
-/// secp256k1 field prime.
-const PRIME: &[u8; ECDSA_SK_LEN] = &hex!("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f");
-/// secp256k1 group order.
-pub(super) const ORDER: &[u8; ECDSA_SK_LEN] = &hex!("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 
 /// Emit a DER header followed by `bytes`.
 fn der_bytes(buf: &mut impl EncodeBuf, tag: u8, bytes: &[u8]) {
@@ -280,6 +270,7 @@ type_cvrt!(TryFrom<EcdsaSkBytes> for EcdsaSecretKey, EcdsaError, |bytes| {
 #[cfg(test)]
 #[expect(clippy::ptr_arg, clippy::unwrap_used, reason = "test code")]
 mod tests {
+  use super::OID_PRIME_FIELD;
   use crate::ecdsa::tests::*;
   use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaSecretKey};
   use crate::prelude::*;
@@ -345,8 +336,8 @@ mod tests {
 
   fn corrupt_tampered_curve_oid(buf: &mut Vec<u8>, _alice: &EcdsaSecretKey, _bob: &EcdsaSecretKey) {
     let pos = buf
-      .windows(super::OID_PRIME_FIELD.len())
-      .position(|w| w == super::OID_PRIME_FIELD)
+      .windows(OID_PRIME_FIELD.len())
+      .position(|w| w == OID_PRIME_FIELD)
       .unwrap();
     buf[pos] ^= 0xff;
   }

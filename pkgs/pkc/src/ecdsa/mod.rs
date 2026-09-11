@@ -51,6 +51,7 @@ impl From<bool> for Compression {
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "ecdsa")] {
+    mod curve_consts;
     mod public_ops;
     mod secret_ops;
     mod sig_ops;

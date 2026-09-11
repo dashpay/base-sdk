@@ -6,7 +6,7 @@
 
 //! Common test definitions.
 
-use super::secret_ops::ORDER;
+use super::curve_consts::ORDER;
 use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaRecSignature, EcdsaSecretKey, EcdsaSignature};
 
 use hex_conservative::hex;
