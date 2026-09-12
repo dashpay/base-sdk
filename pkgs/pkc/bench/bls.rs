@@ -159,7 +159,7 @@ fn recover_threshold<S: BlsScheme>(bencher: Bencher, threshold: usize) {
   let subset: Vec<&BlsSigShare<S>> = sig_shares.iter().take(threshold).collect();
   bencher
     .counter(ItemsCount::new(threshold))
-    .bench(|| BlsSignature::<S>::recover(&subset));
+    .bench(|| BlsSignature::<S>::recover_shares(&subset));
 }
 
 /// Aggregate signatures over distinct messages, then verify.

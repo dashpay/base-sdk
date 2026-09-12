@@ -575,7 +575,7 @@ mod tests {
       .collect();
 
     let share_refs: Vec<&BlsSigShare<S>> = sig_shares.iter().collect();
-    let recovered = BlsSignature::recover(&share_refs).unwrap();
+    let recovered = BlsSignature::recover_shares(&share_refs).unwrap();
 
     let quorum_pk =
       BlsPublicKey::<S>::from_bytes(&arr_from_hex(commits[0]["quorum_public_key"].as_str().unwrap())).unwrap();
@@ -598,7 +598,7 @@ mod tests {
       })
       .collect();
     let all_refs: Vec<&BlsSigShare<S>> = all_shares.iter().collect();
-    let recovered_all = BlsSignature::recover(&all_refs).unwrap();
+    let recovered_all = BlsSignature::recover_shares(&all_refs).unwrap();
     assert_eq!(
       recovered.to_bytes(),
       recovered_all.to_bytes(),

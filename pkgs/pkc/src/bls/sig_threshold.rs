@@ -22,7 +22,7 @@ impl<S: BlsScheme> BlsSignature<S> {
   /// Returns `InsufficientShares` if fewer than 2 shares are provided,
   /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
   /// when a share fails to decode.
-  pub fn recover(shares: &[&BlsSigShare<S>]) -> Result<Self, BlsError> {
+  pub fn recover_shares(shares: &[&BlsSigShare<S>]) -> Result<Self, BlsError> {
     let ids: Vec<&BlsShareId> = shares.iter().map(|s| s.id()).collect();
     let sigs: Vec<&S::InnerSig> = shares.iter().map(|s| &s.signature().0).collect();
 
@@ -58,14 +58,14 @@ mod tests {
     let msg = S::msg_ref(&MSG_DEADBEEF);
     let sig_shares: Vec<BlsSigShare<S>> = shares[..3].iter().map(|s| s.sign(msg)).collect();
     let refs: Vec<&BlsSigShare<S>> = sig_shares.iter().collect();
-    let recovered = BlsSignature::<S>::recover(&refs).unwrap();
+    let recovered = BlsSignature::<S>::recover_shares(&refs).unwrap();
     assert!(recovered.verify(msg, &pk).is_ok());
     assert_eq!(recovered.to_bytes(), sk.sign(msg).to_bytes());
 
     // A different subset recovers the identical signature.
     let sig_shares2: Vec<BlsSigShare<S>> = shares[2..5].iter().map(|s| s.sign(msg)).collect();
     let refs2: Vec<&BlsSigShare<S>> = sig_shares2.iter().collect();
-    let recovered2 = BlsSignature::<S>::recover(&refs2).unwrap();
+    let recovered2 = BlsSignature::<S>::recover_shares(&refs2).unwrap();
     assert_eq!(recovered.to_bytes(), recovered2.to_bytes());
   }
 
@@ -85,10 +85,10 @@ mod tests {
     let msg = S::msg_ref(&MSG_DEADBEEF);
     let signed: Vec<BlsSigShare<S>> = shares.iter().map(|s| s.sign(msg)).collect();
 
-    let below = BlsSignature::<S>::recover(&[&signed[0], &signed[1]]).unwrap();
+    let below = BlsSignature::<S>::recover_shares(&[&signed[0], &signed[1]]).unwrap();
     assert!(below.verify(msg, &pk).is_err());
 
-    let at = BlsSignature::<S>::recover(&[&signed[0], &signed[2], &signed[4]]).unwrap();
+    let at = BlsSignature::<S>::recover_shares(&[&signed[0], &signed[2], &signed[4]]).unwrap();
     assert!(at.verify(msg, &pk).is_ok());
   }
 
@@ -101,7 +101,7 @@ mod tests {
 
   fn assert_insufficient_shares_rejected<S: BlsScheme>() {
     assert!(matches!(
-      BlsSignature::<S>::recover(&[]),
+      BlsSignature::<S>::recover_shares(&[]),
       Err(BlsError::InsufficientShares)
     ));
 
@@ -110,7 +110,7 @@ mod tests {
     let shares = sk.split(2, &ids, &mut UnwrapErr(SysRng)).unwrap();
     let one = shares[0].sign(S::msg_ref(&MSG_DEADBEEF));
     assert!(matches!(
-      BlsSignature::<S>::recover(&[&one]),
+      BlsSignature::<S>::recover_shares(&[&one]),
       Err(BlsError::InsufficientShares)
     ));
   }
@@ -188,7 +188,7 @@ mod tests {
         })
         .collect();
       let refs: Vec<&BlsSigShare<S>> = picked.iter().collect();
-      let recovered = BlsSignature::<S>::recover(&refs).unwrap();
+      let recovered = BlsSignature::<S>::recover_shares(&refs).unwrap();
 
       let expected = out["recovered_sig"].as_str().unwrap();
       assert_eq!(recovered.to_bytes().to_lower_hex_string(), expected);
