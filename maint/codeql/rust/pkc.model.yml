@@ -23,10 +23,6 @@ extensions:
       - ["Bls", "PublicKey", "ies_encrypt_multi"]         # Encrypt multi
       # Key derivation
       - ["Bls", "SecretKey", "from_ikm"]                  # Run key material through a KDF
-      # Misc
-      - ["Bls", "PublicKey", "to_bytes"]
-      - ["Bls", "Signature", "from_bytes"]
-      - ["Bls", "Signature", "to_bytes"]
       # Scheme transform
       - ["Bls", "SecretKey", "to_scheme"]
       - ["Bls", "PublicKey", "to_scheme"]
@@ -64,8 +60,6 @@ extensions:
       - ["Ecdsa", "PkHash", "to_base58c"]                 # Emit Base58c address
       - ["Ecdsa", "SkBytes", "from_wif"]                  # Read Base58c wallet import format
       - ["Ecdsa", "SkBytes", "to_wif"]                    # Emit Base58c wallet import format
-      - ["Ecdsa", "Signature", "from_compact"]            # Read 64-byte r||s
-      - ["Ecdsa", "Signature", "to_compact"]              # Emit 64-byte r||s
       # Malleability
       - ["Ecdsa", "Signature", "is_low_s"]                # Query whether S is in the lower half
       - ["Ecdsa", "Signature", "normalize_s"]             # Move S into the lower half

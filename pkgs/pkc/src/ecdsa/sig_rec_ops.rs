@@ -89,7 +89,7 @@ impl EcdsaRecSignature {
 
   /// Serialize as 64-byte compact format (r || s).
   pub fn to_compact(&self) -> [u8; ECDSA_SIG_LEN] {
-    self.sig.to_compact()
+    self.sig.to_bytes()
   }
 }
 
@@ -185,7 +185,7 @@ mod tests {
     let mut high_bytes = [0u8; 64];
     high_bytes[..32].copy_from_slice(&compact[..32]);
     high_bytes[32..].copy_from_slice(&negate_scalar(&compact[32..]));
-    let high_sig = EcdsaSignature::from_compact(&high_bytes).unwrap();
+    let high_sig = EcdsaSignature::from_bytes(&high_bytes).unwrap();
 
     // The curve primitive rejects high-S signatures at recovery time (see
     // `EcdsaSignature::verify`), so only the invariant that normalizing

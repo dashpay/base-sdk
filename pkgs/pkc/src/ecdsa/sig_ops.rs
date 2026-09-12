@@ -44,16 +44,17 @@ impl EcdsaSignature {
     &self.0
   }
 
-  /// Parse from 64-byte compact format (r || s).
+  /// Parse from the 64-byte layout (r || s).
   ///
   /// Accepts high-S signatures; see [`is_low_s`](Self::is_low_s) to reject
-  /// otherwise.
+  /// otherwise. For the DER encoding use [`from_der`](Self::from_der); for
+  /// the wire image use the codec.
   ///
   /// # Errors
   ///
   /// Returns [`EcdsaError::InvalidSignature`] when `r` or `s` is zero or not
   /// a scalar below the curve order.
-  pub fn from_compact(bytes: &[u8; ECDSA_SIG_LEN]) -> Result<Self, EcdsaError> {
+  pub fn from_bytes(bytes: &[u8; ECDSA_SIG_LEN]) -> Result<Self, EcdsaError> {
     Signature::from_slice(bytes)
       .map(Self)
       .map_err(|_| EcdsaError::InvalidSignature)
@@ -83,8 +84,8 @@ impl EcdsaSignature {
     (normalized != self.0).then_some(Self(normalized))
   }
 
-  /// Serialize as 64-byte compact format (r || s).
-  pub fn to_compact(&self) -> [u8; ECDSA_SIG_LEN] {
+  /// Emit the 64-byte layout (r || s).
+  pub fn to_bytes(&self) -> [u8; ECDSA_SIG_LEN] {
     self.0.to_bytes().into()
   }
 
@@ -96,7 +97,7 @@ impl EcdsaSignature {
 
 impl Hash for EcdsaSignature {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.to_compact().hash(state);
+    self.to_bytes().hash(state);
   }
 }
 
@@ -143,11 +144,11 @@ impl PartialEq for EcdsaDerSig {
 }
 
 type_cvrt!(From<EcdsaSignature> for EcdsaSigBytes, |sig| {
-  Self::from(sig.to_compact())
+  Self::from(sig.to_bytes())
 });
 
 type_cvrt!(TryFrom<EcdsaSigBytes> for EcdsaSignature, EcdsaError, |bytes| {
-  Self::from_compact(bytes.as_bytes())
+  Self::from_bytes(bytes.as_bytes())
 });
 
 #[cfg(test)]
@@ -162,8 +163,8 @@ mod tests {
 
   #[rstest]
   fn compact_roundtrip(alice_sig: EcdsaSignature) {
-    let bytes = alice_sig.to_compact();
-    let restored = EcdsaSignature::from_compact(&bytes).unwrap();
+    let bytes = alice_sig.to_bytes();
+    let restored = EcdsaSignature::from_bytes(&bytes).unwrap();
     assert_eq!(restored, alice_sig);
   }
 
@@ -201,11 +202,11 @@ mod tests {
 
   #[rstest]
   fn normalize_s_flips_high_s_signature(alice_pk: EcdsaPublicKey, alice_sig: EcdsaSignature) {
-    let compact = alice_sig.to_compact();
+    let compact = alice_sig.to_bytes();
     let mut high_bytes = [0u8; 64];
     high_bytes[..32].copy_from_slice(&compact[..32]);
     high_bytes[32..].copy_from_slice(&negate_scalar(&compact[32..]));
-    let high_sig = EcdsaSignature::from_compact(&high_bytes).unwrap();
+    let high_sig = EcdsaSignature::from_bytes(&high_bytes).unwrap();
     assert!(!high_sig.is_low_s());
 
     let normalized = high_sig.normalize_s().unwrap();

@@ -13,6 +13,7 @@ use super::sig_rec_ops::EcdsaRecSignature;
 use super::Compression;
 #[cfg(feature = "codec")]
 use super::EcdsaPkHash;
+use crate::prelude::*;
 
 #[cfg(feature = "codec")]
 use dash_types::dlgt_codec;
@@ -132,6 +133,19 @@ impl EcdsaPublicKey {
   /// Whether this key serializes in the legacy hybrid form.
   pub fn is_hybrid(&self) -> bool {
     self.form == PkForm::Hybrid
+  }
+
+  /// Emit the key's own SEC1 layout.
+  ///
+  /// The form is whichever the key was parsed in; to name a form outright, use
+  /// [`to_compressed`](Self::to_compressed) or a sibling of it. The wire
+  /// image goes through the codec.
+  pub fn to_bytes(&self) -> Vec<u8> {
+    match self.form {
+      PkForm::Compressed => self.to_compressed().to_vec(),
+      PkForm::Uncompressed => self.to_uncompressed().to_vec(),
+      PkForm::Hybrid => self.to_hybrid().to_vec(),
+    }
   }
 
   /// Serialize as 33-byte compressed SEC1.

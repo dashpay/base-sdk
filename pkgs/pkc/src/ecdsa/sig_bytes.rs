@@ -62,6 +62,11 @@ impl Hashable for EcdsaSigBytes {
 }
 
 impl EcdsaSigBytes {
+  /// Wraps raw bytes without validation.
+  pub const fn from_bytes(bytes: [u8; ECDSA_SIG_LEN]) -> Self {
+    Self(bytes)
+  }
+
   /// Borrow the raw inner bytes.
   pub const fn as_bytes(&self) -> &[u8; ECDSA_SIG_LEN] {
     &self.0

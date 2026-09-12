@@ -138,6 +138,14 @@ impl EcdsaPkBytes {
     Some(Self::from_raw(prefix, bytes))
   }
 
+  /// Copies out the raw SEC1 bytes.
+  ///
+  /// Allocates, unlike the fixed-width bags; how many bytes a key occupies
+  /// depends on the form it was parsed in.
+  pub fn to_bytes(&self) -> Vec<u8> {
+    self.as_bytes().to_vec()
+  }
+
   /// Active byte length.
   pub fn size(&self) -> usize {
     self.prefix.size()
