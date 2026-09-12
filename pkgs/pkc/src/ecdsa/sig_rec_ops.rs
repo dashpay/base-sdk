@@ -12,13 +12,16 @@ use super::sig_ops::EcdsaSignature;
 use super::sig_rec_bytes::{CompactFlags, EcdsaRecSigBytes};
 use super::Compression;
 
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
-use dash_types::type_id::TypeId;
-use dash_types::{dlgt_codec, type_cvrt};
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
+use dash_types::{dlgt_codec, type_id::TypeId};
 use k256::ecdsa::{RecoveryId, Signature};
 
 /// An ECDSA signature with recovery id and compression metadata.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "EcdsaRecSigBytes", try_from = "EcdsaRecSigBytes"))]
 pub struct EcdsaRecSignature {
@@ -26,6 +29,7 @@ pub struct EcdsaRecSignature {
   flags: CompactFlags,
 }
 
+#[cfg(feature = "codec")]
 dlgt_codec!(EcdsaRecSignature => EcdsaRecSigBytes, Hash256, EcdsaError, ECDSA_SIG_LEN + 2);
 
 impl EcdsaRecSignature {

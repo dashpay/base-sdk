@@ -11,9 +11,11 @@ use crate::prelude::*;
 
 use bitcoin_hashes::{ripemd160, sha256};
 use cfg_if::cfg_if;
-use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::type_id::TypeId;
-use dash_types::{enum_map, impl_type, CompactSize};
+#[cfg(feature = "codec")]
+use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{enum_map, Hashable};
+#[cfg(feature = "codec")]
+use dash_types::{impl_type, type_id::TypeId, CompactSize};
 
 use core::cmp::Ordering;
 use core::fmt;
@@ -61,12 +63,14 @@ impl Sec1Byte {
 /// The header byte is held as a parsed SEC1 prefix. The coordinates stay
 /// unvalidated: only [`EcdsaPublicKey`](crate::ecdsa::EcdsaPublicKey) checks
 /// curve membership.
-#[derive(Clone, Copy, Eq, Hash, PartialEq, TypeId)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 pub struct EcdsaPkBytes {
   prefix: Sec1Byte,
   buf: [u8; ECDSA_PK_LEN + 1],
 }
 
+#[cfg(feature = "codec")]
 impl BaseCodec for EcdsaPkBytes {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let n = CompactSize::decode(data)?.into_len(ECDSA_PK_LEN + 1)?;
@@ -94,6 +98,7 @@ impl BaseCodec for EcdsaPkBytes {
   }
 }
 
+#[cfg(feature = "codec")]
 impl_type!(EcdsaPkBytes);
 
 impl Hashable for EcdsaPkBytes {

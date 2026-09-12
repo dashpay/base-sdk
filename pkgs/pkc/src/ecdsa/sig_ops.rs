@@ -10,16 +10,21 @@ use super::error::EcdsaError;
 use super::sig_bytes::ECDSA_SIG_LEN;
 use super::EcdsaSigBytes;
 
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
+#[cfg(feature = "codec")]
+use dash_types::dlgt_codec;
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::{dlgt_codec, type_cvrt};
 use k256::ecdsa::{DerSignature, Signature};
 use k256::elliptic_curve::scalar::IsHigh;
 
 use core::hash::{Hash, Hasher};
 
 /// An ECDSA signature (64-byte compact r||s).
-#[derive(Clone, Debug, Eq, PartialEq, TypeId)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
@@ -27,6 +32,7 @@ use core::hash::{Hash, Hasher};
 )]
 pub struct EcdsaSignature(Signature);
 
+#[cfg(feature = "codec")]
 dlgt_codec!(EcdsaSignature => EcdsaSigBytes, Hash256, EcdsaError, ECDSA_SIG_LEN + 1);
 
 impl EcdsaSignature {
@@ -101,7 +107,8 @@ impl AsRef<EcdsaSignature> for EcdsaSignature {
 }
 
 /// DER-encoded ECDSA signature (variable length, typically 70-72 bytes).
-#[derive(Clone, Debug, Unencodable)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub struct EcdsaDerSig(DerSignature);
 
 impl EcdsaDerSig {

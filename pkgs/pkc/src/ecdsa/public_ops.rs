@@ -10,10 +10,15 @@ use super::error::EcdsaError;
 use super::public_bytes::{EcdsaPkBytes, Sec1Byte, ECDSA_PK_LEN};
 use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
-use super::{Compression, PubKeyHash};
+use super::Compression;
+#[cfg(feature = "codec")]
+use super::PubKeyHash;
 
+#[cfg(feature = "codec")]
+use dash_types::dlgt_codec;
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::{dlgt_codec, type_cvrt};
 use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 
 use core::hash::{Hash, Hasher};
@@ -23,7 +28,8 @@ use core::hash::{Hash, Hasher};
 /// Retained separately from the curve point because the point alone cannot
 /// distinguish the uncompressed and hybrid encodings, and re-emitting one as
 /// the other would change the key's wire image and therefore its hash.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub(super) enum PkForm {
   /// 33-byte `0x02`/`0x03` form.
   Compressed,
@@ -34,7 +40,8 @@ pub(super) enum PkForm {
 }
 
 /// A secp256k1 public key.
-#[derive(Clone, Debug, Eq, PartialEq, TypeId)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "EcdsaPkBytes", try_from = "EcdsaPkBytes"))]
 pub struct EcdsaPublicKey {
@@ -42,6 +49,7 @@ pub struct EcdsaPublicKey {
   form: PkForm,
 }
 
+#[cfg(feature = "codec")]
 dlgt_codec!(EcdsaPublicKey => EcdsaPkBytes, PubKeyHash, EcdsaError, ECDSA_PK_LEN + 2);
 
 impl EcdsaPublicKey {

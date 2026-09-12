@@ -65,7 +65,7 @@ codec = [
   "dash-num/codec",
   "dash-types/codec",
 ]
-ecdsa = ["codec", "dep:k256", "dep:rand_core"]
+ecdsa = ["dep:k256", "dep:rand_core"]
 serde = ["codec", "dep:serde", "dash-num/serde", "dash-types/serde"]
 full = ["bls", "codec", "ecdsa", "serde", "std", "tests"]
 tests = ["std", "dep:rstest"]

@@ -6,6 +6,7 @@
 
 //! secp256k1 secret key.
 
+#[cfg(feature = "codec")]
 use super::curve_consts::{DER_SIZES, OID_PRIME_FIELD, ORDER, PRIME};
 use super::error::EcdsaError;
 use super::public_ops::EcdsaPublicKey;
@@ -14,26 +15,35 @@ use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
 use super::Compression;
 
+#[cfg(feature = "codec")]
 use bitcoin_hashes::sha256d;
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
-use dash_types::codec::{ensure, BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::type_id::TypeId;
-use dash_types::{impl_stype, type_cvrt, ArrayBuf, Numeric};
+#[cfg(feature = "codec")]
+use dash_types::codec::{ensure, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
+use dash_types::{impl_stype, type_id::TypeId, ArrayBuf};
+#[cfg(feature = "codec")]
+use dash_types::{Hashable, Numeric};
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
 use k256::elliptic_curve::ops::Neg;
 use k256::elliptic_curve::Generate;
+#[cfg(feature = "codec")]
 use k256::{elliptic_curve::sec1::ToSec1Point, AffinePoint};
 use rand_core::CryptoRng;
 use zeroize::{Zeroize, Zeroizing};
 
 use core::fmt;
 
+#[cfg(feature = "codec")]
 /// Emit a DER header followed by `bytes`.
 fn der_bytes(buf: &mut impl EncodeBuf, tag: u8, bytes: &[u8]) {
   der_header(buf, tag, bytes.len());
   buf.extend_from_slice(bytes); // nosemgrep: codec-no-raw-extend
 }
 
+#[cfg(feature = "codec")]
 /// Emit a DER tag and its short, one-byte, or two-byte length.
 fn der_header(buf: &mut impl EncodeBuf, tag: u8, len: usize) {
   debug_assert!(len <= u16::MAX as usize, "der_header: length exceeds u16");
@@ -45,6 +55,7 @@ fn der_header(buf: &mut impl EncodeBuf, tag: u8, len: usize) {
   }
 }
 
+#[cfg(feature = "codec")]
 /// Emit a DER INTEGER, prefixing a zero byte when the high bit is set.
 fn der_uint(buf: &mut impl EncodeBuf, bytes: &[u8]) {
   debug_assert!(!bytes.is_empty(), "der_uint: empty input");
@@ -56,12 +67,14 @@ fn der_uint(buf: &mut impl EncodeBuf, bytes: &[u8]) {
 }
 
 /// A secp256k1 secret key.
-#[derive(Clone, TypeId)]
+#[derive(Clone)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 pub struct EcdsaSecretKey {
   inner: SigningKey,
   compressed: bool,
 }
 
+#[cfg(feature = "codec")]
 impl BaseCodec<EcdsaError> for EcdsaSecretKey {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError<EcdsaError>> {
     ensure(data, 4).map_err(|e| e.lift())?;
@@ -144,8 +157,10 @@ impl BaseCodec<EcdsaError> for EcdsaSecretKey {
   }
 }
 
+#[cfg(feature = "codec")]
 impl_stype!(EcdsaSecretKey, DER_SIZES[1], EcdsaError);
 
+#[cfg(feature = "codec")]
 impl Hashable for EcdsaSecretKey {
   type Hash = Hash256;
 
