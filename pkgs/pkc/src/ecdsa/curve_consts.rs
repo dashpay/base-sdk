@@ -32,22 +32,3 @@ pub(super) const GENERATOR: &[u8; 65] = &hex!(
 /// The generator point in SEC1 compressed form.
 pub(super) const GENERATOR_COMPRESSED: [u8; 33] =
   hex!("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
-
-#[cfg(test)]
-mod tests {
-  use super::{GENERATOR, GENERATOR_COMPRESSED, ORDER};
-
-  use hex_conservative::DisplayHex;
-  use k256::elliptic_curve::sec1::ToSec1Point;
-  use k256::elliptic_curve::PrimeField;
-  use rstest::rstest;
-
-  #[rstest]
-  fn constants_match_k256() {
-    let generator = k256::AffinePoint::GENERATOR;
-
-    assert_eq!(generator.to_sec1_point(false).as_bytes(), &GENERATOR[..]);
-    assert_eq!(generator.to_sec1_point(true).as_bytes(), &GENERATOR_COMPRESSED[..]);
-    assert_eq!(ORDER.to_upper_hex_string(), <k256::Scalar as PrimeField>::MODULUS);
-  }
-}

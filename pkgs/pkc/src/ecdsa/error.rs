@@ -25,8 +25,6 @@ pub enum EcdsaError {
   MalformedDer,
   /// recovery failed; no valid public key for this signature and message
   RecoveryFailed,
-  /// signing operation failed
-  SigningFailed,
   /// signature verification failed
   VerifyFailed,
 }
@@ -41,7 +39,6 @@ impl fmt::Display for EcdsaError {
       Self::InvalidTweak => write!(f, "tweak is not below the order, or the result is zero or infinity"),
       Self::MalformedDer => write!(f, "DER-encoded private key has invalid structure"),
       Self::RecoveryFailed => write!(f, "recovery failed; no valid public key"),
-      Self::SigningFailed => write!(f, "signing failed"),
       Self::VerifyFailed => write!(f, "signature verification failed"),
     }
   }

@@ -17,8 +17,7 @@ use dash_types::dlgt_codec;
 use dash_types::type_cvrt;
 #[cfg(feature = "codec")]
 use dash_types::type_id::{TypeId, Unencodable};
-use k256::ecdsa::{DerSignature, Signature};
-use k256::elliptic_curve::scalar::IsHigh;
+use secp256k1::ecdsa::{SerializedSignature, Signature};
 
 use core::hash::{Hash, Hasher};
 
@@ -55,7 +54,7 @@ impl EcdsaSignature {
   /// Returns [`EcdsaError::InvalidSignature`] when `r` or `s` is zero or not
   /// a scalar below the curve order.
   pub fn from_bytes(bytes: &[u8; ECDSA_SIG_LEN]) -> Result<Self, EcdsaError> {
-    Signature::from_slice(bytes)
+    Signature::from_compact(bytes)
       .map(Self)
       .map_err(|_| EcdsaError::InvalidSignature)
   }
@@ -73,25 +72,34 @@ impl EcdsaSignature {
   }
 
   /// Whether the S component is in the lower half of the curve order.
+  ///
+  /// Asked by normalising a copy; the backend offers no query of its own, and
+  /// normalisation is a no-op exactly when S is already low.
   pub fn is_low_s(&self) -> bool {
-    !bool::from(self.0.s().is_high())
+    self.normalized().is_none()
   }
 
   /// Return a signature with the S value normalised to the lower half of the
   /// curve order. Returns `None` if already normalised.
   pub fn normalize_s(&self) -> Option<Self> {
-    let normalized = self.0.normalize_s();
-    (normalized != self.0).then_some(Self(normalized))
+    self.normalized().map(Self)
+  }
+
+  /// The low-S form of this signature, or `None` when it is already low.
+  fn normalized(&self) -> Option<Signature> {
+    let mut sig = self.0;
+    sig.normalize_s();
+    (sig != self.0).then_some(sig)
   }
 
   /// Emit the 64-byte layout (r || s).
   pub fn to_bytes(&self) -> [u8; ECDSA_SIG_LEN] {
-    self.0.to_bytes().into()
+    self.0.serialize_compact()
   }
 
   /// Encode as DER bytes.
   pub fn to_der(&self) -> EcdsaDerSig {
-    EcdsaDerSig(self.0.to_der())
+    EcdsaDerSig(self.0.serialize_der())
   }
 }
 
@@ -110,22 +118,22 @@ impl AsRef<EcdsaSignature> for EcdsaSignature {
 /// DER-encoded ECDSA signature (variable length, typically 70-72 bytes).
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "codec", derive(Unencodable))]
-pub struct EcdsaDerSig(DerSignature);
+pub struct EcdsaDerSig(SerializedSignature);
 
 impl EcdsaDerSig {
   /// Raw DER bytes.
   pub fn as_bytes(&self) -> &[u8] {
-    self.0.as_bytes()
+    self.0.as_ref()
   }
 
   /// Byte length.
   pub fn len(&self) -> usize {
-    self.0.as_bytes().len()
+    self.0.len()
   }
 
   /// Whether the DER encoding is empty (always false for valid signatures).
   pub fn is_empty(&self) -> bool {
-    self.0.as_bytes().is_empty()
+    self.len() == 0
   }
 }
 

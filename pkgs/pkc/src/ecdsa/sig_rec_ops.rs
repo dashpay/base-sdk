@@ -17,7 +17,7 @@ use dash_num::Hash256;
 use dash_types::type_cvrt;
 #[cfg(feature = "codec")]
 use dash_types::{dlgt_codec, type_id::TypeId};
-use k256::ecdsa::{RecoveryId, Signature};
+use secp256k1::ecdsa::{RecoveryId, Signature};
 
 /// An ECDSA signature with recovery id and compression metadata.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -36,7 +36,7 @@ impl EcdsaRecSignature {
   pub(super) fn from_inner(inner: Signature, recovery_id: RecoveryId, compressed: Compression) -> Self {
     Self {
       sig: EcdsaSignature::from_inner(inner),
-      flags: CompactFlags::from_parts(recovery_id.to_byte(), compressed),
+      flags: CompactFlags::from_parts(recovery_id.to_u8(), compressed),
     }
   }
 
@@ -75,11 +75,10 @@ impl EcdsaRecSignature {
 
   /// The recovery id in the form the backend expects.
   ///
-  /// Infallible, unlike [`RecoveryId::from_byte`]: `CompactFlags` encodes only
-  /// ids in `0..=3`, so both bits are in range by construction.
+  /// Infallible, like the masked constructor it uses; `CompactFlags` encodes
+  /// only ids in `0..=3`, so nothing is ever masked away.
   pub(super) const fn backend_recovery_id(&self) -> RecoveryId {
-    let id = self.flags.recovery_id();
-    RecoveryId::new(id & 1 == 1, id & 2 == 2)
+    RecoveryId::from_u8_masked(self.flags.recovery_id())
   }
 
   /// The plain signature without recovery metadata.
@@ -134,7 +133,7 @@ mod tests {
   #[case(3)]
   fn backend_recovery_id_matches_byte(#[case] id: u8, alice_sig: EcdsaSignature) {
     let rec = EcdsaRecSignature::from_parts(alice_sig, id, Compression::Compressed).unwrap();
-    assert_eq!(rec.backend_recovery_id().to_byte(), id);
+    assert_eq!(rec.backend_recovery_id().to_u8(), id);
   }
 
   #[rstest]

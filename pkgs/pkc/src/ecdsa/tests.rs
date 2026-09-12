@@ -55,10 +55,10 @@ pub fn bob_sk() -> EcdsaSecretKey {
 
 #[fixture]
 pub fn alice_rec_sig() -> EcdsaRecSignature {
-  alice_sk().sign_recoverable(&MSG).unwrap()
+  alice_sk().sign_recoverable(&MSG)
 }
 
 #[fixture]
 pub fn alice_sig() -> EcdsaSignature {
-  alice_sk().sign(&MSG).unwrap()
+  alice_sk().sign(&MSG)
 }

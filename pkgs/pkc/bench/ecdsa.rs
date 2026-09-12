@@ -18,7 +18,7 @@ fn sign(bencher: divan::Bencher) {
   let sk = test_key();
   bencher.counter(divan::counter::ItemsCount::new(1u32)).bench(|| {
     let msg = message_hash(42);
-    sk.sign(&msg).unwrap()
+    sk.sign(&msg)
   });
 }
 
@@ -26,7 +26,7 @@ fn sign(bencher: divan::Bencher) {
 fn verify(bencher: divan::Bencher) {
   let sk = test_key();
   let msg = message_hash(99);
-  let sig = sk.sign(&msg).unwrap();
+  let sig = sk.sign(&msg);
   let pk = sk.public_key();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
@@ -38,14 +38,14 @@ fn sign_recoverable(bencher: divan::Bencher) {
   let sk = test_key();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| sk.sign_recoverable(&message_hash(7)).unwrap());
+    .bench(|| sk.sign_recoverable(&message_hash(7)));
 }
 
 #[divan::bench]
 fn recover(bencher: divan::Bencher) {
   let sk = test_key();
   let msg = message_hash(55);
-  let sig = sk.sign_recoverable(&msg).unwrap();
+  let sig = sk.sign_recoverable(&msg);
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
     .bench(|| EcdsaPublicKey::recover(&msg, &sig).unwrap());
