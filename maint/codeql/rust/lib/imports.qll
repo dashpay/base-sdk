@@ -78,7 +78,7 @@ private predicate isAllowlistedReexport(Use u) {
   (
     // Workaround for the orphan rule, not part of public API
     usePrefix(u) = "dash_pkc" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__PubKeyHash"
+    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__EcdsaPkHash"
     or
     // Workaround for the orphan rule, not part of public API
     usePrefix(u) = "dash_types" and

@@ -12,7 +12,7 @@ use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
 use super::Compression;
 #[cfg(feature = "codec")]
-use super::PubKeyHash;
+use super::EcdsaPkHash;
 
 #[cfg(feature = "codec")]
 use dash_types::dlgt_codec;
@@ -50,7 +50,7 @@ pub struct EcdsaPublicKey {
 }
 
 #[cfg(feature = "codec")]
-dlgt_codec!(EcdsaPublicKey => EcdsaPkBytes, PubKeyHash, EcdsaError, ECDSA_PK_LEN + 2);
+dlgt_codec!(EcdsaPublicKey => EcdsaPkBytes, EcdsaPkHash, EcdsaError, ECDSA_PK_LEN + 2);
 
 impl EcdsaPublicKey {
   pub(super) fn from_inner(inner: VerifyingKey, compressed: Compression) -> Self {

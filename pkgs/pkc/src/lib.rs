@@ -23,5 +23,5 @@ pub mod ecdsa;
 #[cfg(feature = "codec")]
 #[doc(hidden)]
 pub mod __private {
-  pub use crate::ecdsa::PubKeyHash as __PubKeyHash;
+  pub use crate::ecdsa::EcdsaPkHash as __EcdsaPkHash;
 }

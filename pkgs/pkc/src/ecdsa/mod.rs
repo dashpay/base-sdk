@@ -18,7 +18,7 @@ use dash_types::type_id::Unencodable;
 
 pub use error::EcdsaError;
 pub use public_bytes::{EcdsaPkBytes, ECDSA_PK_LEN};
-pub use public_hash::PubKeyHash;
+pub use public_hash::EcdsaPkHash;
 pub use secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
 pub use sig_bytes::{EcdsaSigBytes, ECDSA_SIG_LEN};
 pub use sig_rec_bytes::EcdsaRecSigBytes;

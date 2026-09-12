@@ -19,11 +19,11 @@ use dash_types::ArrayBuf;
 
 make_hash! {
   /// 20-byte public key hash.
-  PubKeyHash, 20
+  EcdsaPkHash, 20
 }
 
 #[cfg(feature = "codec")]
-impl PubKeyHash {
+impl EcdsaPkHash {
   /// Encode as a Base58Check address with the given version prefix.
   pub fn to_base58c(&self, prefix: u8) -> String {
     let mut buf = ArrayBuf::<21>::new();
