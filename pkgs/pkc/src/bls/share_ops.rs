@@ -519,7 +519,7 @@ mod tests {
       let sig = sk_share.sign(S::msg_ref(&msg));
       let pk = sk_share.public_key();
       assert!(
-        sig.verify(S::msg_ref(&msg), &pk).is_ok(),
+        pk.verify(S::msg_ref(&msg), &sig).is_ok(),
         "{} failed self-verification at member {}",
         label,
         c["member_idx"],
@@ -580,7 +580,7 @@ mod tests {
     let quorum_pk =
       BlsPublicKey::<S>::from_bytes(&arr_from_hex(commits[0]["quorum_public_key"].as_str().unwrap())).unwrap();
     assert!(
-      recovered.verify(S::msg_ref(&quorum_hash), &quorum_pk).is_ok(),
+      quorum_pk.verify(S::msg_ref(&quorum_hash), &recovered).is_ok(),
       "recovered quorum sig failed verification"
     );
 

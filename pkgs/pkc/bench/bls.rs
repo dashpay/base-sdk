@@ -30,7 +30,7 @@ fn verify<S: BlsScheme>(bencher: Bencher) {
   let pk = sk.public_key();
   bencher
     .counter(ItemsCount::new(1u32))
-    .bench(|| sig.verify(S::msg_ref(&msg), &pk));
+    .bench(|| pk.verify(S::msg_ref(&msg), &sig));
 }
 
 /// Public key aggregation at various quorum sizes.
@@ -78,7 +78,7 @@ fn verify_n_individual<S: BlsScheme>(bencher: Bencher, n: usize) {
 
   bencher.counter(ItemsCount::new(n)).bench(|| {
     for i in 0..n {
-      let _ = sigs[i].verify(S::msg_ref(&msgs[i]), &pks[i]);
+      let _ = pks[i].verify(S::msg_ref(&msgs[i]), &sigs[i]);
     }
   });
 }

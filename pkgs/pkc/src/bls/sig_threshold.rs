@@ -59,7 +59,7 @@ mod tests {
     let sig_shares: Vec<BlsSigShare<S>> = shares[..3].iter().map(|s| s.sign(msg)).collect();
     let refs: Vec<&BlsSigShare<S>> = sig_shares.iter().collect();
     let recovered = BlsSignature::<S>::recover_shares(&refs).unwrap();
-    assert!(recovered.verify(msg, &pk).is_ok());
+    assert!(pk.verify(msg, &recovered).is_ok());
     assert_eq!(recovered.to_bytes(), sk.sign(msg).to_bytes());
 
     // A different subset recovers the identical signature.
@@ -86,10 +86,10 @@ mod tests {
     let signed: Vec<BlsSigShare<S>> = shares.iter().map(|s| s.sign(msg)).collect();
 
     let below = BlsSignature::<S>::recover_shares(&[&signed[0], &signed[1]]).unwrap();
-    assert!(below.verify(msg, &pk).is_err());
+    assert!(pk.verify(msg, &below).is_err());
 
     let at = BlsSignature::<S>::recover_shares(&[&signed[0], &signed[2], &signed[4]]).unwrap();
-    assert!(at.verify(msg, &pk).is_ok());
+    assert!(pk.verify(msg, &at).is_ok());
   }
 
   #[rstest]

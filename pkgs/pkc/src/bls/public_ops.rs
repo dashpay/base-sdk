@@ -9,9 +9,11 @@
 use super::error::BlsError;
 use super::group::G1;
 use super::scheme_ops::BlsScheme;
+use super::sig_basic::BlsSignature;
 use super::BlsPkBytes;
 #[cfg(feature = "codec")]
 use super::BLS_PK_LEN;
+use super::{BlsScIetf, BlsSigId};
 use crate::prelude::*;
 
 #[cfg(feature = "codec")]
@@ -91,8 +93,28 @@ impl<S: BlsScheme> BlsPublicKey<S> {
     S::secure_aggregate_pk(&inner_refs).map(Self::from_inner)
   }
 
+  /// Verify `sig` over a message of the scheme's message type.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the pairing check does not hold.
+  pub fn verify(&self, msg: &S::Msg, sig: &BlsSignature<S>) -> Result<(), BlsError> {
+    S::verify(sig.as_inner(), msg, &self.0)
+  }
+
   pub(crate) fn from_inner(inner: S::InnerPk) -> Self {
     Self(inner)
+  }
+}
+
+impl BlsPublicKey<BlsScIetf> {
+  /// Verify `sig` under the domain separation tag selected by `scheme`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the pairing check does not hold.
+  pub fn verify_with(&self, msg: &[u8], sig: &BlsSignature<BlsScIetf>, scheme: BlsSigId) -> Result<(), BlsError> {
+    BlsScIetf::verify_with(sig.as_inner(), msg, &self.0, scheme)
   }
 }
 
@@ -459,7 +481,7 @@ mod tests {
 
       let sig = BlsSignature::<S>::from_bytes(&arr_from_hex(&v.agg_sig_secure)).unwrap();
       let msg: [u8; 32] = arr_from_hex(&v.msg);
-      assert!(sig.verify(S::msg_ref(&msg), &agg_pk).is_ok());
+      assert!(agg_pk.verify(S::msg_ref(&msg), &sig).is_ok());
       assert!(sig.secure_verify_aggregates(S::msg_ref(&msg), &refs).is_ok());
     }
   }
@@ -507,7 +529,7 @@ mod tests {
 
     let sig = sk.sign(S::msg_ref(&MSG_8BADFOOD));
     let weighted = BlsSignature::<S>::secure_aggregate(&[&sig], &[&pk]).unwrap();
-    assert!(weighted.verify(S::msg_ref(&MSG_8BADFOOD), &alone).is_ok());
+    assert!(alone.verify(S::msg_ref(&MSG_8BADFOOD), &weighted).is_ok());
 
     let none: [&BlsPublicKey<S>; 0] = [];
     assert_eq!(

@@ -170,7 +170,7 @@ mod tests {
 
     assert_eq!(agg.sub_insecure(&sig1).unwrap(), sig2);
     assert_eq!(agg.sub_insecure(&sig2).unwrap(), sig1);
-    assert!(agg.sub_insecure(&sig1).unwrap().verify(msg, &sk2.public_key()).is_ok());
+    assert!(sk2.public_key().verify(msg, &agg.sub_insecure(&sig1).unwrap()).is_ok());
   }
 
   #[rstest]
