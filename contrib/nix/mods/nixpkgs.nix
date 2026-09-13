@@ -24,6 +24,7 @@ let
 in
 {
   packages = [
+    pkgs.cargo-deny
     pkgs.cargo-llvm-cov
     pkgs.git
     pkgs.nixfmt

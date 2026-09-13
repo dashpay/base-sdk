@@ -32,6 +32,7 @@ source .venv/bin/activate
 [`pyproject.toml`](../pyproject.toml) supplies most but not all dependencies needed to run the lint suite, the following
 packages need to be additionally sourced.
 
+* [cargo-deny](https://github.com/EmbarkStudios/cargo-deny)
 * [Git](https://git-scm.com/install/)
 * [CodeQL 2.24 or higher](https://github.com/github/codeql-cli-binaries/releases) (Rust support was added in 2.23.3,
   [source](https://github.blog/changelog/2025-10-23-codeql-2-23-3-adds-a-new-rust-query-rust-support-and-easier-c-c-scanning/))
@@ -46,7 +47,7 @@ packages need to be additionally sourced.
 > ([source](https://docs.brew.sh/FAQ#what-does-keg-only-mean)).
 
 ```bash
-brew install codeql git node@24
+brew install cargo-deny codeql git node@24
 ```
 
 ### Linux/WSL
@@ -79,12 +80,15 @@ cargo install taplo-cli
 # Required because Debian trixie ships Node 20.x, deprecated in April 2026
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install git nodejs -y
+
+# `cargo-deny` is currently unavailable on Debian (https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=951368)
+cargo install --locked cargo-deny
 ```
 
 #### Fedora
 
 ```bash
-sudo dnf install -y git nodejs24
+sudo dnf install -y cargo-deny git nodejs24
 ```
 
 <!-- [end:setup] -->
