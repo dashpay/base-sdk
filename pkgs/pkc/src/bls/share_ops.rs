@@ -153,7 +153,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidVerificationVector` when fewer than two master keys are
+  /// Returns `InsufficientCoefficients` when fewer than two master keys are
   /// given, `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey`
   /// when the result is not a valid scalar.
   pub fn derive_share(master_sks: &[&Self], id: &BlsShareId) -> Result<Self, BlsError> {
@@ -168,7 +168,7 @@ impl<S: BlsScheme> BlsPublicKey<S> {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidVerificationVector` when fewer than two master keys are
+  /// Returns `InsufficientCoefficients` when fewer than two master keys are
   /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
   pub fn derive_share(master_pks: &[&Self], id: &BlsShareId) -> Result<Self, BlsError> {
@@ -296,7 +296,7 @@ mod tests {
 
     assert!(matches!(
       BlsSecretKey::<S>::derive_share(&master_refs[..1], &make_id(1)),
-      Err(BlsError::InvalidVerificationVector)
+      Err(BlsError::InsufficientCoefficients)
     ));
     assert!(matches!(
       BlsSecretKey::<S>::derive_share(&master_refs, &BlsShareId::from_bendian([0u8; 32])),
@@ -317,7 +317,7 @@ mod tests {
     let pk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap().public_key();
     assert!(matches!(
       BlsPublicKey::<S>::derive_share(&[&pk], &make_id(1)),
-      Err(BlsError::InvalidVerificationVector)
+      Err(BlsError::InsufficientCoefficients)
     ));
   }
 

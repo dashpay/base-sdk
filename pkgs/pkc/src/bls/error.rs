@@ -23,6 +23,8 @@ pub enum BlsError {
   IndexOutOfRange,
   /// recipient index above the supported maximum
   IndexTooLarge,
+  /// fewer than two master keys to evaluate a share
+  InsufficientCoefficients,
   /// not enough shares to recover
   InsufficientShares,
   /// ciphertext is empty or not a whole number of cipher blocks
@@ -43,8 +45,6 @@ pub enum BlsError {
   InvalidSignature,
   /// threshold is below 2, exceeds id count or no ids supplied
   InvalidThreshold,
-  /// verification vector needs at least 2 elements
-  InvalidVerificationVector,
   /// signature verification failed
   VerifyFailed,
 }
@@ -58,6 +58,7 @@ impl fmt::Display for BlsError {
       Self::EmptyAggregation => write!(f, "no items provided for aggregation"),
       Self::IndexOutOfRange => write!(f, "recipient index past the end of the message"),
       Self::IndexTooLarge => write!(f, "recipient index above the supported maximum"),
+      Self::InsufficientCoefficients => write!(f, "fewer than two master keys to evaluate a share"),
       Self::InsufficientShares => write!(f, "not enough shares to recover"),
       Self::InvalidCiphertextLength => write!(f, "ciphertext is empty or not a whole number of cipher blocks"),
       Self::InvalidIvSeed => write!(f, "initialisation vector seed is all zeroes"),
@@ -68,7 +69,6 @@ impl fmt::Display for BlsError {
       Self::InvalidShareId => write!(f, "share id reduces to zero in the scalar field"),
       Self::InvalidSignature => write!(f, "invalid signature bytes"),
       Self::InvalidThreshold => write!(f, "threshold is below 2, exceeds id count or no ids supplied"),
-      Self::InvalidVerificationVector => write!(f, "verification vector needs at least 2 elements"),
       Self::VerifyFailed => write!(f, "signature verification failed"),
     }
   }

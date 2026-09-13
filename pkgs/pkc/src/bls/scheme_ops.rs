@@ -427,13 +427,13 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidVerificationVector` when fewer than two keys are
+  /// Returns `InsufficientCoefficients` when fewer than two keys are
   /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
   fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &BlsShareId) -> Result<Self::InnerPk, BlsError> {
     // Evaluating the verification-vector polynomial needs >= 2 coefficients.
     if master_pks.len() < 2 {
-      return Err(BlsError::InvalidVerificationVector);
+      return Err(BlsError::InsufficientCoefficients);
     }
     let coeffs_g1 = master_pks
       .iter()
@@ -455,12 +455,12 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidVerificationVector` when fewer than two keys are given,
+  /// Returns `InsufficientCoefficients` when fewer than two keys are given,
   /// `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey` when the
   /// result is not a valid scalar.
   fn derive_sk_share(master_sks: &[&Self::InnerSk], id: &BlsShareId) -> Result<Self::InnerSk, BlsError> {
     if master_sks.len() < 2 {
-      return Err(BlsError::InvalidVerificationVector);
+      return Err(BlsError::InsufficientCoefficients);
     }
 
     let mut coeffs = Zeroizing::new(Vec::with_capacity(master_sks.len()));
