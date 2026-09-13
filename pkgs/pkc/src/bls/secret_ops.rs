@@ -24,6 +24,7 @@ use dash_types::dlgt_scodec;
 #[cfg(feature = "codec")]
 use dash_types::type_id::TypeId;
 use dash_types::{qtypestr, type_cvrt};
+use rand_core::CryptoRng;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};
@@ -43,6 +44,20 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// Returns `InvalidKeyMaterial` when `ikm` is shorter than 32 bytes.
   pub fn from_ikm(ikm: &[u8]) -> Result<Self, BlsError> {
     S::sk_from_ikm(ikm).map(Self)
+  }
+
+  /// Generate a new random secret key.
+  ///
+  /// Draws the key material and hands it to [`from_ikm`](Self::from_ikm).
+  pub fn generate(rng: &mut impl CryptoRng) -> Self {
+    loop {
+      let mut ikm = Zeroizing::new([0u8; 32]);
+      rng.fill_bytes(&mut *ikm);
+
+      if let Ok(key) = Self::from_ikm(&*ikm) {
+        return key;
+      }
+    }
   }
 
   /// Parse from a 32-byte big-endian scalar.
