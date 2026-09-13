@@ -133,8 +133,8 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   ///
   /// # Errors
   ///
-  /// Returns `ThresholdTooLarge` if `threshold` is below 2 or exceeds the
-  /// number of ids, `InvalidShareId` if any id reduces to zero,
+  /// Returns `InvalidThreshold` if `threshold` is below 2, exceeds id count
+  /// or no ids are supplied, `InvalidShareId` if any id reduces to zero,
   /// `DuplicateShareId` if two ids collide mod the group order, or
   /// `InvalidSecretKey` if share generation fails.
   pub fn split(
@@ -214,12 +214,12 @@ mod tests {
     for threshold in [0, 1, ids.len() + 1] {
       assert!(matches!(
         sk.split(threshold, &ids, &mut UnwrapErr(SysRng)),
-        Err(BlsError::ThresholdTooLarge)
+        Err(BlsError::InvalidThreshold)
       ));
     }
     assert!(matches!(
       sk.split(2, &[], &mut UnwrapErr(SysRng)),
-      Err(BlsError::ThresholdTooLarge)
+      Err(BlsError::InvalidThreshold)
     ));
   }
 

@@ -361,7 +361,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `ThresholdTooLarge` when `threshold < 2` (a 1-of-n split hands
+  /// Returns `InvalidThreshold` when `threshold < 2` (a 1-of-n split hands
   /// the master key to every participant), `ids` is empty, or `threshold >
   /// ids.len()`; `InvalidShareId`/`DuplicateShareId` on bad ids;
   /// `InvalidSecretKey` when share generation or parsing fails.
@@ -373,7 +373,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
     mut into_share: impl FnMut(BlsShareId, Self::InnerSk) -> S,
   ) -> Result<Vec<S>, BlsError> {
     if threshold < 2 || ids.is_empty() || threshold > ids.len() {
-      return Err(BlsError::ThresholdTooLarge);
+      return Err(BlsError::InvalidThreshold);
     }
 
     // An id congruent to zero mod r would make the share equal the master
