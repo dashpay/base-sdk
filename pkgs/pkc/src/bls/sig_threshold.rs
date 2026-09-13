@@ -35,7 +35,7 @@ impl<S: BlsScheme> BlsSignature<S> {
 mod tests {
   use crate::bls::scheme_ops::BlsScheme;
   use crate::bls::tests::{make_id, sequential_ids, MSG_DEADBEEF, RSEED};
-  use crate::bls::{BlsError, BlsScChia, BlsScIetf, BlsSecretKey, BlsSigShare, BlsSignature, BlsSkShare};
+  use crate::bls::{BlsError, BlsScChia, BlsScIetf, BlsSecretKey, BlsShareId, BlsSigShare, BlsSignature, BlsSkShare};
   use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, Corpus, Value};
@@ -119,6 +119,26 @@ mod tests {
   #[case::chia(assert_insufficient_shares_rejected::<BlsScChia>)]
   #[case::ietf(assert_insufficient_shares_rejected::<BlsScIetf>)]
   fn recover_rejects_insufficient_shares(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// The two slices are paired, so a length mismatch is a fault of its own
+  /// rather than a short quorum.
+  fn assert_mismatched_id_count_rejected<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let ids = sequential_ids(3);
+    let shares = sk.split(2, &ids, &mut UnwrapErr(SysRng)).unwrap();
+    let signed: Vec<BlsSigShare<S>> = shares.iter().map(|s| s.sign(S::msg_ref(&MSG_DEADBEEF))).collect();
+
+    let id_refs: Vec<&BlsShareId> = ids.iter().collect();
+    let sig_refs: Vec<&S::InnerSig> = signed[..2].iter().map(|s| &s.signature().0).collect();
+    assert_eq!(S::recover_sig_shares(&id_refs, &sig_refs), Err(BlsError::CountMismatch));
+  }
+
+  #[rstest]
+  #[case::chia(assert_mismatched_id_count_rejected::<BlsScChia>)]
+  #[case::ietf(assert_mismatched_id_count_rejected::<BlsScIetf>)]
+  fn recover_rejects_mismatched_id_count(#[case] assertion: fn()) {
     assertion();
   }
 

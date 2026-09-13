@@ -397,15 +397,18 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `InsufficientShares` when fewer than two shares are given or when
-  /// `ids` and `sigs` differ in length, `InvalidShareId`/`DuplicateShareId` on
-  /// bad ids, or `InvalidSignature` when a share or the recovered point fails
-  /// to decode.
+  /// Returns `InsufficientShares` when fewer than two shares are given,
+  /// `CountMismatch` when `ids` and `sigs` differ in length,
+  /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
+  /// when a share or the recovered point fails to decode.
   fn recover_sig_shares(ids: &[&BlsShareId], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
+    if sigs.len() < 2 {
+      return Err(BlsError::InsufficientShares);
+    }
     // ids and sigs are paired; a length mismatch would desync interpolation
     // and could index out of bounds in interpolate_g2.
-    if sigs.len() < 2 || ids.len() != sigs.len() {
-      return Err(BlsError::InsufficientShares);
+    if ids.len() != sigs.len() {
+      return Err(BlsError::CountMismatch);
     }
 
     // Reduce and validate ids in the scalar field, rejecting zero-reducing
