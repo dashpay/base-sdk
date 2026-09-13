@@ -32,7 +32,7 @@ impl BlsScheme for BlsScChia {
 
   /// Derive via draft-03 keygen, then range-check the scalar.
   fn generate(ikm: &[u8]) -> Result<Self::InnerSk, BlsError> {
-    let sk = min_pk::SecretKey::key_gen_v3(ikm, &[]).map_err(|_| BlsError::InvalidSecretKey)?;
+    let sk = min_pk::SecretKey::key_gen_v3(ikm, &[]).map_err(|_| BlsError::InvalidKeyMaterial)?;
     let mut bytes = sk.to_bytes();
     let res = Self::sk_from_bytes(&bytes);
     bytes.zeroize();

@@ -40,8 +40,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidKeyMaterial` or `InvalidSecretKey` when `ikm`
-  /// is shorter than 32 bytes.
+  /// Returns `InvalidKeyMaterial` when `ikm` is shorter than 32 bytes.
   pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
     S::generate(ikm).map(Self)
   }
@@ -173,7 +172,7 @@ type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar|
 mod tests {
   use super::*;
   use crate::bls::tests::RSEED;
-  use crate::bls::{BlsScChia, BlsScIetf};
+  use crate::bls::{BlsError, BlsScChia, BlsScIetf};
 
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
@@ -258,7 +257,10 @@ mod tests {
 
   /// The keygen variant requires at least 32 bytes of input key material.
   fn assert_short_ikm_rejected<S: BlsScheme>() {
-    assert!(BlsSecretKey::<S>::generate(&[0u8; 31]).is_err());
+    assert_eq!(
+      BlsSecretKey::<S>::generate(&[0u8; 31]).map(|_| ()),
+      Err(BlsError::InvalidKeyMaterial)
+    );
   }
 
   #[rstest]
