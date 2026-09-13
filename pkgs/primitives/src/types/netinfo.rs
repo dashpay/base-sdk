@@ -11,8 +11,9 @@ use super::{AddrV2, NetAddrError, ServiceV1, ServiceV2};
 use crate::hash_impl;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, NumCodec};
+use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::Numeric;
 use dash_types::{enum_map, impl_num, impl_type, CompactSize};
 
 use core::fmt;
@@ -163,7 +164,7 @@ impl BaseCodec for NIEntry {
       NIEntryCode::Unknown(t) => Err(DecodeError::InvalidValue {
         expected: NIEntryCode::variants()
           .iter()
-          .map(|v| u64::from(NumCodec::<u8>::to_base(v)))
+          .map(|v| u64::from(Numeric::<u8>::to_base(v)))
           .collect(),
         actual: u64::from(t),
       }),

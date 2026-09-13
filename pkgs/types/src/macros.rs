@@ -85,13 +85,13 @@ pub fn qtypestr(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
   f.write_str(&path[seg..])
 }
 
-/// Generates `NumCodec<$base>` for an enum that already carries the inherent
+/// Generates `Numeric<$base>` for an enum that already carries the inherent
 /// `fn {from,to}_base` pair.
 #[cfg(feature = "codec")]
 #[macro_export]
 macro_rules! impl_enum {
   ($enum:ident, $base:ty) => {
-    impl $crate::codec::NumCodec<$base> for $enum {
+    impl $crate::Numeric<$base> for $enum {
       fn from_base(val: $base) -> Self {
         $enum::from_base(val)
       }
@@ -513,10 +513,10 @@ mod tests {
   #[cfg(feature = "codec")]
   #[rstest]
   fn open_maps_through_the_codec_trait() {
-    use crate::codec::NumCodec;
+    use crate::Numeric;
 
-    assert_eq!(<Open as NumCodec<u8>>::from_base(1), Open::One);
-    assert_eq!(NumCodec::<u8>::to_base(&Open::Two), 2);
+    assert_eq!(<Open as Numeric<u8>>::from_base(1), Open::One);
+    assert_eq!(Numeric::<u8>::to_base(&Open::Two), 2);
   }
 
   struct Qtype<'a>(&'a str);

@@ -295,7 +295,7 @@ predicate isUnencodableCrate(File f) {
 /** Declaration slots that define the required source ordering. */
 newtype TDeclSlot =
   TDefinition() or
-  TNumCodecImpl() or
+  TNumericImpl() or
   TBaseCodecImpl() or
   TCheckableImpl() or
   THashableImpl() or
@@ -308,7 +308,7 @@ class DeclSlot extends TDeclSlot {
   int getOrder() {
     this = TDefinition() and result = 0
     or
-    this = TNumCodecImpl() and result = 1
+    this = TNumericImpl() and result = 1
     or
     this = TBaseCodecImpl() and result = 2
     or
@@ -325,7 +325,7 @@ class DeclSlot extends TDeclSlot {
   string toString() {
     this = TDefinition() and result = "definition"
     or
-    this = TNumCodecImpl() and result = "NumCodec impl"
+    this = TNumericImpl() and result = "Numeric impl"
     or
     this = TBaseCodecImpl() and
     result = "BaseCodec/Encode/Decode impl"
@@ -342,7 +342,7 @@ class DeclSlot extends TDeclSlot {
 
 /** Maps a trait name to its declaration slot. */
 DeclSlot traitSlot(string traitName) {
-  traitName = "NumCodec" and result = TNumCodecImpl()
+  traitName = "Numeric" and result = TNumericImpl()
   or
   traitName = "BaseCodec" and result = TBaseCodecImpl()
   or

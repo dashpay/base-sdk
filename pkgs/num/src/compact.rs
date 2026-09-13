@@ -9,9 +9,9 @@
 use crate::Arith256;
 
 #[cfg(feature = "codec")]
-use dash_types::codec::NumCodec;
-#[cfg(feature = "codec")]
 use dash_types::impl_num;
+#[cfg(feature = "codec")]
+use dash_types::Numeric;
 
 use core::fmt;
 
@@ -32,7 +32,7 @@ pub struct DecodedTarget {
 }
 
 #[cfg(feature = "codec")]
-impl NumCodec<u32> for CompactTarget {
+impl Numeric<u32> for CompactTarget {
   fn from_base(v: u32) -> Self {
     Self(v)
   }

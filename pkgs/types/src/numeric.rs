@@ -6,8 +6,17 @@
 
 //! Fixed-size integer newtype macros.
 
+/// Links a type to its underlying base integer type.
+pub trait Numeric<N>: Sized {
+  /// Constructs from the base integer.
+  fn from_base(v: N) -> Self;
+
+  /// Returns the base integer.
+  fn to_base(&self) -> N;
+}
+
 /// Generates `BaseCodec` + `Encode` + `Decode` + serde for a type
-/// that already implements `NumCodec<$uint>`.
+/// that already implements `Numeric<$uint>`.
 #[macro_export]
 macro_rules! impl_num {
   ($name:tt, i8)  => { $crate::impl_num!(@codec $name, i8, 1); };
@@ -24,7 +33,7 @@ macro_rules! impl_num {
         data: &mut &[u8],
       ) -> Result<Self, $crate::codec::DecodeError> {
         $crate::codec::take::<$n>(data).map(|b| {
-          <Self as $crate::codec::NumCodec<$uint>>::from_base(
+          <Self as $crate::Numeric<$uint>>::from_base(
             <$uint>::from_le_bytes(b),
           )
         })
@@ -32,7 +41,7 @@ macro_rules! impl_num {
 
       fn encode(&self, buf: &mut impl $crate::codec::EncodeBuf) {
         buf.extend_from_slice(
-          &<Self as $crate::codec::NumCodec<$uint>>::to_base(self)
+          &<Self as $crate::Numeric<$uint>>::to_base(self)
             .to_le_bytes(),
         );
       }
@@ -46,7 +55,7 @@ macro_rules! impl_num {
           &self, serializer: S,
         ) -> Result<S::Ok, S::Error> {
           $crate::__private::serde::Serialize::serialize(
-            &<Self as $crate::codec::NumCodec<$uint>>::to_base(self),
+            &<Self as $crate::Numeric<$uint>>::to_base(self),
             serializer,
           )
         }
@@ -57,7 +66,7 @@ macro_rules! impl_num {
           deserializer: D,
         ) -> Result<Self, D::Error> {
           <$uint as $crate::__private::serde::Deserialize>::deserialize(deserializer)
-            .map(<Self as $crate::codec::NumCodec<$uint>>::from_base)
+            .map(<Self as $crate::Numeric<$uint>>::from_base)
         }
       }
     }
@@ -76,7 +85,7 @@ macro_rules! make_num {
     #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, $crate::type_id::TypeId)]
     pub struct $name(pub $uint);
 
-    impl $crate::codec::NumCodec<$uint> for $name {
+    impl $crate::Numeric<$uint> for $name {
       fn from_base(v: $uint) -> Self {
         Self(v)
       }
