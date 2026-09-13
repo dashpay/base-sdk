@@ -1,9 +1,13 @@
 [package]
 name = "dash-dev"
 version = "0.0.0"
-edition = "2021"
-license = "MIT"
 publish = false
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [[bin]]
 name = "bsdk-util"
@@ -71,7 +75,7 @@ clap = { version = "4", default-features = false, features = [
   "usage",
   "error-context",
 ], optional = true }
-indicatif = { version = "0.17", default-features = false, optional = true }
+indicatif = { version = "0.18", default-features = false, optional = true }
 json5 = { version = "0.4", optional = true }
 rayon = { version = "1", optional = true }
 serde = { version = "1", default-features = false, features = [
@@ -84,7 +88,4 @@ sysinfo = { version = "0.33", default-features = false, features = [
 ], optional = true }
 
 [lints]
-workspace = true
-
-[package.rust-version]
 workspace = true

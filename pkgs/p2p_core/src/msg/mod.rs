@@ -20,9 +20,6 @@ use crate::prelude::*;
 use crate::short_id::ShortId;
 
 use bitcoin_consensus_encoding as encoding;
-use bitcoin_p2p_messages::message_bloom::{FilterAdd, FilterLoad};
-use bitcoin_p2p_messages::message_compact_blocks::SendCmpct;
-use bitcoin_p2p_messages::message_filter::{CFCheckpt, CFHeaders, CFilter, GetCFCheckpt, GetCFHeaders, GetCFilters};
 use dash_primitives::{GovObject, GovVote};
 use dash_types::type_id::Unencodable;
 
@@ -61,24 +58,6 @@ define_p2p! {
     GetHeaders2(GetHeaders2) => GETHEADERS2 "getheaders2" @ 163,
     /// Compressed block headers.
     Headers2(Headers2) => HEADERS2 "headers2" @ 165,
-    /// Request compact filters.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfilters"))]
-    GetCFilters(GetCFilters) => GETCFILTERS "getcfilters" @ 22,
-    /// Compact block filter.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfilter"))]
-    CFilter(CFilter) => CFILTER "cfilter" @ 23,
-    /// Request compact filter headers.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfheaders"))]
-    GetCFHeaders(GetCFHeaders) => GETCFHEADERS "getcfheaders" @ 24,
-    /// Compact filter headers.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfheaders"))]
-    CFHeaders(CFHeaders) => CFHEADERS "cfheaders" @ 25,
-    /// Request compact filter checkpoints.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::get_cfcheckpt"))]
-    GetCFCheckpt(GetCFCheckpt) => GETCFCHECKPT "getcfcheckpt" @ 26,
-    /// Compact filter checkpoints.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::cfcheckpt"))]
-    CFCheckpt(CFCheckpt) => CFCHECKPT "cfcheckpt" @ 27,
     /// Governance sync request.
     GovSync(GovSync) => GOVSYNC "govsync" @ 140,
     /// Governance object.
@@ -89,15 +68,6 @@ define_p2p! {
     GetMnListDiff(GetMnListDiff) => GETMNLISTD "getmnlistd" @ 143,
     /// MN list diff.
     MnListDiff(MnListDiff) => MNLISTDIFF "mnlistdiff" @ 144,
-    /// BIP152: signal compact block support.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::send_cmpct"))]
-    SendCmpct(SendCmpct) => SENDCMPCT "sendcmpct" @ 20,
-    /// BIP37: load bloom filter.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::filter_load"))]
-    FilterLoad(FilterLoad) => FILTERLOAD "filterload" @ 8,
-    /// BIP37: add data to bloom filter.
-    #[cfg_attr(feature = "serde", serde(with = "crate::serialize::filter_add"))]
-    FilterAdd(FilterAdd) => FILTERADD "filteradd" @ 6,
   }
 
   parsed_empty {
@@ -120,14 +90,32 @@ define_p2p! {
     BlockTxn => BLOCKTXN "blocktxn" @ 3,
     /// BIP152: compact block.
     CmpctBlock => CMPCTBLOCK "cmpctblock" @ 4,
+    /// BIP37: add data to bloom filter.
+    FilterAdd => FILTERADD "filteradd" @ 6,
+    /// BIP37: load bloom filter.
+    FilterLoad => FILTERLOAD "filterload" @ 8,
     /// Request block hashes.
     GetBlocks => GETBLOCKS "getblocks" @ 9,
     /// BIP152: request compact block transactions.
     GetBlockTxn => GETBLOCKTXN "getblocktxn" @ 10,
     /// BIP37: filtered block.
     MerkleBlock => MERKLEBLOCK "merkleblock" @ 16,
+    /// BIP152: signal compact block support.
+    SendCmpct => SENDCMPCT "sendcmpct" @ 20,
     /// Transaction.
     Tx => TX "tx" @ 21,
+    /// Request compact filters.
+    GetCFilters => GETCFILTERS "getcfilters" @ 22,
+    /// Compact block filter.
+    CFilter => CFILTER "cfilter" @ 23,
+    /// Request compact filter headers.
+    GetCFHeaders => GETCFHEADERS "getcfheaders" @ 24,
+    /// Compact filter headers.
+    CFHeaders => CFHEADERS "cfheaders" @ 25,
+    /// Request compact filter checkpoints.
+    GetCFCheckpt => GETCFCHECKPT "getcfcheckpt" @ 26,
+    /// Compact filter checkpoints.
+    CFCheckpt => CFCHECKPT "cfcheckpt" @ 27,
     /// BIP330: transaction reconciliation.
     SendTxRcncl => SENDTXRCNCL "sendtxrcncl",
     /// Spork broadcast/request.

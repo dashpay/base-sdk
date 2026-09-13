@@ -1,8 +1,13 @@
 [package]
 name = "dash-types-marker"
 version = "0.0.0"
-edition = "2021"
-license = "MIT"
+readme = "README.md"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [lib]
 proc-macro = true
@@ -13,7 +18,4 @@ syn = "2"
 xxhash-rust = { version = "0.8", features = ["xxh32"] }
 
 [lints]
-workspace = true
-
-[package.rust-version]
 workspace = true

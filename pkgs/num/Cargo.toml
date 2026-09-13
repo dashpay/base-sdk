@@ -1,8 +1,13 @@
 [package]
 name = "dash-num"
 version = "0.0.0"
-edition = "2021"
-license = "MIT"
+readme = "README.md"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [features]
 default = []
@@ -49,7 +54,4 @@ path = "bench/main.rs"
 harness = false
 
 [lints]
-workspace = true
-
-[package.rust-version]
 workspace = true

@@ -15,6 +15,7 @@ import re
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from textwrap import dedent
 from typing import TYPE_CHECKING
 
 from common import off_disk, root_dir, spelt_as_stored
@@ -99,8 +100,11 @@ class GfmAlertsPreprocessor(Preprocessor):
 # Matches a code block, and whatever trails the marker on that line.
 _FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 
+# Info string of a fence holding a directive as the syntax being shown.
+_LITERAL_INFO = "text"
+
 # Matches a splice from another file, or one named section from it.
-_INCLUDE_RE = re.compile(r"^\s*<!--\s*\[include:([^\]]+)\]\s*-->\s*$")
+_INCLUDE_RE = re.compile(r"^(\s*)<!--\s*\[include:([^\]]+)\]\s*-->\s*$")
 
 # Matches any directive-shaped comment, by the verb and label it names.
 _DIRECTIVE_RE = re.compile(r"^\s*<!--\s*\[([A-Za-z]+):[^\]]*\]\s*-->\s*$")
@@ -114,6 +118,11 @@ _OMIT_LABEL = "omit"
 # Matches a bound of such a segment.
 _OMIT_RE = re.compile(rf"^\s*<!--\s*\[(start|end):{_OMIT_LABEL}\]\s*-->\s*$")
 
+# Matches a line holding a marker.
+_MARKER_ONLY_RE = re.compile(
+  r"^[\s/*#<>!;%-]*\[(?:start|end):[^\]]+\][\s/*#<>!;%-]*$"
+)
+
 # Matches the target of an inline link, and any title trailing it.
 _LINK_RE = re.compile(
   r"\]\(\s*(<[^<>]*>|[^\s()]+)"
@@ -122,6 +131,9 @@ _LINK_RE = re.compile(
 
 # Directory holding this extension, which is the documentation root.
 _DOCS_ROOT = Path(__file__).resolve().parent
+
+# Suffix of a file that is prose, and so a page rather than a quotation.
+_PAGE_SUFFIX = ".md"
 
 # Stems Zensical serves as a directory's own index, matched as spelt here.
 _INDEX_STEMS = frozenset({"README", "index"})
@@ -173,8 +185,14 @@ def _named_directive(line: str) -> None:
 class _Fences:
   """Running fence state over a sequence of lines."""
 
-  def __init__(self, opener: str | None = None) -> None:
+  def __init__(self, opener: str | None = None, info: str = "") -> None:
     self.opener = opener
+    self.info = info
+
+  @property
+  def literal(self) -> bool:
+    """Whether the open fence shows a directive rather than using it."""
+    return self.opener is not None and self.info == _LITERAL_INFO
 
   def covers(self, line: str) -> bool:
     """Whether *line* is fenced, counting the fence markers themselves."""
@@ -184,6 +202,7 @@ class _Fences:
     found, trailing = marker.group(1), marker.group(2)
     if self.opener is None:
       self.opener = found
+      self.info = trailing.strip()
     # A closing fence carries no info string, so a marker that does is
     # content the block holds rather than the end of it.
     elif (
@@ -192,6 +211,7 @@ class _Fences:
       and not trailing.strip()
     ):
       self.opener = None
+      self.info = ""
     return True
 
 
@@ -201,6 +221,16 @@ def _opens_a_fence(lines: list[str]) -> bool:
   for line in lines:
     fences.covers(line)
   return fences.opener is not None
+
+
+def _quoted(lines: list[str]) -> list[str]:
+  """Return *lines* as code, at their own margin and without markers.
+
+  A region may hold the bounds of another, which name a segment rather
+  than the code the reader is being shown.
+  """
+  kept = (line for line in lines if not _MARKER_ONLY_RE.match(line))
+  return dedent("\n".join(kept)).strip("\n").splitlines()
 
 
 def forge_url(repo_url: str, branch: str, source: Path) -> str:
@@ -237,22 +267,28 @@ class IncludePreprocessor(Preprocessor):
     output: list[str] = []
 
     for line in lines:
-      # A directive inside a fence is the syntax being shown, not used.
-      fenced = fences.covers(line)
-      match = None if fenced else _INCLUDE_RE.match(line)
+      fences.covers(line)
+      # A directive a literal fence holds is the syntax being shown.
+      if fences.literal:
+        output.append(line)
+        continue
+      match = _INCLUDE_RE.match(line)
       if match is None:
-        if not fenced:
-          _named_directive(line)
+        _named_directive(line)
         output.append(line)
         continue
       if budget <= 0:
-        raise ValueError(f"{match.group(1)}: includes nested past the limit")
-      spliced = self._include(match.group(1), fences)
-      output.extend(self._expand(spliced, budget - 1, fences))
+        raise ValueError(f"{match.group(2)}: includes nested past the limit")
+      # A directive stands at the margin of whatever holds it, so what it
+      # splices in has to be laid out from there and not from column zero.
+      margin = match.group(1)
+      spliced = self._include(match.group(2), fences, budget)
+      output.extend(margin + text if text else text for text in spliced)
 
     return output
 
-  def _include(self, spec: str, fences: _Fences) -> list[str]:
+  def _include(self, spec: str, fences: _Fences, budget: int) -> list[str]:
+    """Return the lines *spec* names, as the prose or the code they are."""
     name, _, section = spec.partition(":")
     source = (root_dir() / name).resolve()
     # An absolute *name* would displace the root it is joined to, so the
@@ -261,13 +297,25 @@ class IncludePreprocessor(Preprocessor):
       raise ValueError(f"{spec}: outside the repository")
     if not source.is_file():
       raise ValueError(f"{spec}: no such file in the repository")
+    prose = source.suffix == _PAGE_SUFFIX
+    if not prose and fences.opener is None:
+      raise ValueError(f"{spec}: outside a code fence")
 
-    lines = _strip_omitted(source.read_text(encoding="utf-8").splitlines())
+    lines = source.read_text(encoding="utf-8").splitlines()
+    if prose:
+      lines = _strip_omitted(lines)
     if section:
       lines = _section(lines, section, spec)
+    if not prose:
+      # Code holds no link the site can resolve and no directive it
+      # reads, so it stands as stored, at the margin its fence sets.
+      return _quoted(lines)
+
     # `_rebase` walks these same lines, so it takes a copy of the fence
     # state at the splice point rather than advancing the caller's.
-    return self._rebase(lines, source.parent, _Fences(fences.opener))
+    held = _Fences(fences.opener, fences.info)
+    spliced = self._rebase(lines, source.parent, held)
+    return self._expand(spliced, budget - 1, fences)
 
   def _rebase(
     self, lines: list[str], home: Path, fences: _Fences,
@@ -376,6 +424,7 @@ def makeExtension(**kwargs: object) -> PreprocessorHost:
   """Construct the extension."""
   return PreprocessorHost(**kwargs)
 
+
 # Stand-in forge the tests resolve their fixtures against.
 _REPO = "https://forge.test/owner/repo"
 _BRANCH = "trunk"
@@ -428,12 +477,22 @@ class TestPreprocess:
     assert "above" not in out
     assert "below" not in out
 
-  def test_include_refuses_an_unknown_section(self) -> None:
+  def test_include_refuses_what_it_cannot_carry(self) -> None:
     import pytest
 
     with self._scratch(whole="nothing marked\n") as home:
-      with pytest.raises(ValueError, match="no such section"):
-        self._render(f'<!-- [include:{home}/whole.md:mid] -->\n')
+      code = self._carve(home, "demo.rs", "fn main() {}\n")
+      cases = (
+        ("/etc/hosts", "outside the repository"),
+        ("../../../../etc/hosts", "outside the repository"),
+        (f"{home}/gone.md", "no such file"),
+        (f"{home}/whole.md:mid", "no such section"),
+        # Code read as prose would be rendered as prose.
+        (code, "outside a code fence"),
+      )
+      for spec, message in cases:
+        with pytest.raises(ValueError, match=message):
+          self._render(f'<!-- [include:{spec}] -->\n')
 
   def test_section_refuses_an_unclosed_fence(self) -> None:
     import pytest
@@ -444,22 +503,17 @@ class TestPreprocess:
       with pytest.raises(ValueError, match="leaves a fence open"):
         self._render(f'<!-- [include:{home}/whole.md:mid] -->\n')
 
-  def test_include_rejects_an_absolute_path(self) -> None:
-    import pytest
-
-    with pytest.raises(ValueError, match="outside the repository"):
-      self._render('<!-- [include:/etc/hosts] -->\n')
-
-  def test_include_rejects_a_traversal(self) -> None:
-    import pytest
-
-    with pytest.raises(ValueError, match="outside the repository"):
-      self._render('<!-- [include:../../../../etc/hosts] -->\n')
-
-  def test_include_inside_a_fence_is_left_alone(self) -> None:
-    out = self._render('```\n<!-- [include:maint/unconv.toml] -->\n```\n')
-    assert "[include:maint/unconv.toml]" in out
-    assert "[global]" not in out
+  def test_a_literal_fence_shows_the_directive_it_holds(self) -> None:
+    held = [
+      "<!-- [include:maint/unconv.toml] -->",
+      "<!-- [inclde:README.md] -->",
+      "<!-- [start:omit] -->",
+      "<!-- [end:omit] -->",
+    ]
+    # Neither read nor refused, so a misspelt verb is text like the rest.
+    assert self._pointer().run(["```text", *held, "```"]) == [
+      "```text", *held, "```",
+    ]
 
   def test_a_misspelt_directive_is_refused(self) -> None:
     import pytest
@@ -471,13 +525,9 @@ class TestPreprocess:
     out = self._render("<!-- [start:mid] -->\nkept\n<!-- [end:mid] -->\n")
     assert "kept" in out
 
-  def test_a_misspelt_directive_in_a_fence_is_left_alone(self) -> None:
-    out = self._render("```\n<!-- [inclde:README.md] -->\n```\n")
-    assert "[inclde:README.md]" in out
-
   def test_include_nests(self) -> None:
     with self._scratch(
-      outer='<!-- [include:maint/unconv.toml] -->\n',
+      outer='```toml\n<!-- [include:maint/unconv.toml] -->\n```\n',
     ) as home:
       out = self._render(f'<!-- [include:{home}/outer.md] -->\n')
     assert "[include:" not in out
@@ -533,21 +583,69 @@ class TestPreprocess:
     assert "carried" in out
     assert "nope.md" not in out
 
-  def test_titled_link_is_rebased(self) -> None:
-    with self._scratch(page='[a](../README.md "root")\n') as home:
-      out = self._render(f'<!-- [include:{home}/page.md] -->\n')
-    assert f'href="{_REPO}/blob/{_BRANCH}/README.md"' in out
-    assert 'title="root"' in out
+  @staticmethod
+  def _carve(home: Path, name: str, text: str) -> str:
+    """Write *text* to *name* under *home* and return the spec for it."""
+    (root_dir() / home / name).write_text(text, encoding="utf-8")
+    return f"{home}/{name}"
 
-  def test_caged_link_is_rebased(self) -> None:
-    with self._scratch(page="[a](<../README.md>)\n") as home:
-      out = self._render(f'<!-- [include:{home}/page.md] -->\n')
-    assert f'href="{_REPO}/blob/{_BRANCH}/README.md"' in out
+  def test_code_stands_in_the_fence_holding_it(self) -> None:
+    body = (
+      "fn skipped() {}\n"
+      "  // [start:shown]\n"
+      "  fn shown() {\n"
+      "    // [start:inner]\n"
+      "    let x = 1;\n"
+      "    // [end:inner]\n"
+      "  }\n"
+      "  // [end:shown]\n"
+    )
+    def fenced(spec: str, margin: str = "") -> list[str]:
+      return [
+        f"{margin}```rust",
+        f"{margin}<!-- [include:{spec}] -->",
+        f"{margin}```",
+      ]
 
-  def test_bare_link_is_rebased(self) -> None:
-    with self._scratch(page="[a](../maint/unconv.toml)\n") as home:
-      out = self._render(f'<!-- [include:{home}/page.md] -->\n')
-    assert f'href="{_REPO}/blob/{_BRANCH}/maint/unconv.toml"' in out
+    with self._scratch() as home:
+      spec = self._carve(home, "demo.rs", body)
+      whole = self._pointer().run(fenced(spec))
+      region = self._pointer().run(fenced(f"{spec}:shown"))
+      held = self._pointer().run(fenced(f"{spec}:shown", "    "))
+    # A marker names a segment rather than the code being shown, so it is
+    # dropped wherever it falls, and a region is read at its own margin.
+    assert whole == [
+      "```rust",
+      "fn skipped() {}",
+      "  fn shown() {",
+      "    let x = 1;",
+      "  }",
+      "```",
+    ]
+    assert region == [
+      "```rust",
+      "fn shown() {",
+      "  let x = 1;",
+      "}",
+      "```",
+    ]
+    # A fence the page indents, such as one a content tab holds, carries
+    # the code it shows at that margin rather than at column zero.
+    assert held == ["    " + line for line in region]
+
+  def test_a_link_is_rebased_in_every_form_it_is_written(self) -> None:
+    blob = f"{_REPO}/blob/{_BRANCH}"
+    cases = (
+      ('[a](../README.md "root")',
+       (f'href="{blob}/README.md"', 'title="root"')),
+      ("[a](<../README.md>)", (f'href="{blob}/README.md"',)),
+      ("[a](../maint/unconv.toml)", (f'href="{blob}/maint/unconv.toml"',)),
+    )
+    for source, expected in cases:
+      with self._scratch(page=f"{source}\n") as home:
+        out = self._render(f'<!-- [include:{home}/page.md] -->\n')
+      for fragment in expected:
+        assert fragment in out, source
 
   def test_page_under_docs_is_addressed_from_the_site(self) -> None:
     with self._scratch(page="[a](../docs/dev/guide_rust.md)\n") as home:
@@ -560,12 +658,19 @@ class TestPreprocess:
     assert 'href="tel:+15551212"' in out
     assert 'href="irc://x/y"' in out
 
-  def test_missing_link_target_is_refused(self) -> None:
+  def test_a_link_naming_no_file_is_refused(self) -> None:
     import pytest
 
-    with self._scratch(page="[a](./nope.md)\n") as home:
-      with pytest.raises(ValueError, match="no such file"):
-        self._render(f'<!-- [include:{home}/page.md] -->\n')
+    # A wrong-case link is refused either as missing or as misspelt, by
+    # the case rules of the host the tests run on.
+    cases = (
+      ("[a](./nope.md)", "no such file"),
+      ("[a](../README.MD)", r"no such file|not spelt"),
+    )
+    for source, message in cases:
+      with self._scratch(page=f"{source}\n") as home:
+        with pytest.raises(ValueError, match=message):
+          self._render(f'<!-- [include:{home}/page.md] -->\n')
 
   @staticmethod
   def _pointer() -> IncludePreprocessor:
@@ -590,17 +695,9 @@ class TestPreprocess:
     assert not spelt_as_stored(root, root / "README.MD")
     assert not spelt_as_stored(root, root / "Docs" / "README.md")
 
-  def test_wrong_case_link_is_refused(self) -> None:
-    import pytest
-
-    # Refused either as missing or as misspelt, by the host's case rules.
-    with self._scratch(page="[a](../README.MD)\n") as home:
-      with pytest.raises(ValueError, match=r"no such file|not spelt"):
-        self._render(f'<!-- [include:{home}/page.md] -->\n')
-
   def test_include_survives_a_fenced_info_string(self) -> None:
     out = self._render(
-      '```\n```text\n<!-- [include:maint/unconv.toml] -->\n```\n'
+      '```text\n```markdown\n<!-- [include:maint/unconv.toml] -->\n```\n'
     )
     assert "[include:maint/unconv.toml]" in out
     assert "[global]" not in out
@@ -616,16 +713,16 @@ class TestPreprocess:
     assert 'href="/dev/about_docs/"' in out
 
   def test_a_fence_an_include_opens_holds_over_the_parent(self) -> None:
-    with self._scratch(opener="```\n", body="spliced text\n") as home:
+    with self._scratch(opener="```text\n", body="spliced text\n") as home:
       out = self._pointer().run([
         f'<!-- [include:{home}/opener.md] -->',
         f'<!-- [include:{home}/body.md] -->',
         "```",
         f'<!-- [include:{home}/body.md] -->',
       ])
-    # Held back while the fence the first splice opened is still open,
-    # then spliced once the parent's own marker closes that fence.
-    assert out[0] == "```"
+    # Held back while the literal fence the first splice opened is still
+    # open, then spliced once the parent's own marker closes that fence.
+    assert out[0] == "```text"
     assert out[1].startswith("<!-- [include:")
     assert out[2] == "```"
     assert out[3] == "spliced text"

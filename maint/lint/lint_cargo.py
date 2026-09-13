@@ -266,9 +266,30 @@ def _check_msrv(repo_root: Path) -> int | None:
   return RETCODE_ERR
 
 
+def _check_yanked(repo_root: Path) -> int | None:
+  """Fail on a yanked release, or None when cargo-deny is absent."""
+  try:
+    deny_bin = require_bin("cargo-deny")
+  except FileNotFoundError as e:
+    print(f"{e}, skipping the yanked check", file=sys.stderr)
+    return None
+
+  print("checking yanked: every crate the graph resolves")
+  result = subprocess.run(  # noqa: S603
+    [deny_bin, "check", "advisories"],
+    capture_output=True,
+    check=False,
+    cwd=str(repo_root),
+    text=True,
+  )
+  relay(result.stdout, repo_root)
+  relay(result.stderr, repo_root, stream=sys.stderr)
+  return RETCODE_PASS if result.returncode == 0 else RETCODE_ERR
+
+
 def main() -> int:
   args = declare_verbs(
-    "Validate the crate graph is compatible with the MSRV.",
+    "Validate the crate graph against the MSRV and yanked releases.",
     {
       "check": "report every fault, changing nothing",
       "apply": f"also rewrite TOML this branch changed vs {DEFAULT_BASE}",
@@ -282,6 +303,7 @@ def main() -> int:
   verdicts: list[int | None] = [
     _check_format(repo_root, fix=fix, only=only),
     _check_msrv(repo_root),
+    _check_yanked(repo_root),
   ]
   ran = [v for v in verdicts if v is not None]
   if not ran:

@@ -14,13 +14,12 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-base58ck = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
-bitcoin-consensus-encoding = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
-bitcoin-internals = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
-bitcoin-p2p-messages = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
-bitcoin-primitives = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
-bitcoin-units = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
-bitcoin_hashes = { git = "https://github.com/rust-bitcoin/rust-bitcoin", tag = "bitcoin-crypto-0.2.0", default-features = false }
+base58ck = { version = "0.4.0", default-features = false }
+bitcoin-consensus-encoding = { version = "1.2.0", default-features = false }
+bitcoin-internals = { version = "0.6.0", default-features = false }
+bitcoin-primitives = { version = "0.103.0", default-features = false }
+bitcoin-units = { version = "0.5.0", default-features = false }
+bitcoin_hashes = { version = "1.2.0", default-features = false }
 
 [workspace.lints.clippy]
 expect_used = "deny"
@@ -40,6 +39,11 @@ unsafe_code = "deny"
 unused_must_use = "deny"
 
 [workspace.package]
+authors = ["Kittywhiskers Van Gogh <kittywhiskers@dash.org>"]
+edition = "2021"
+homepage = "https://dashpay.github.io/base-sdk"
+license = "MIT"
+repository = "https://github.com/dashpay/base-sdk"
 rust-version = "1.85.0"
 
 [profile.release]
