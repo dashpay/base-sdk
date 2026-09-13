@@ -69,9 +69,9 @@ impl BlsScheme for BlsScIetf {
     pk.compress()
   }
 
-  /// Decompress the blst public key into a projective G1 point.
+  /// Lift the blst public key into a projective G1 point.
   fn pk_to_g1(pk: &Self::InnerPk) -> Result<G1, BlsError> {
-    let aff = G1Affine::uncompress(&pk.compress()).map_err(|_| BlsError::InvalidPublicKey)?;
+    let aff = G1Affine::deserialize(&pk.serialize()).map_err(|_| BlsError::InvalidPublicKey)?;
     Ok(aff.to_projective())
   }
 
@@ -103,9 +103,9 @@ impl BlsScheme for BlsScIetf {
     sig.compress()
   }
 
-  /// Decompress the blst signature into a projective G2 point.
+  /// Lift the blst signature into a projective G2 point.
   fn sig_to_g2(sig: &Self::InnerSig) -> Result<G2, BlsError> {
-    let aff = G2Affine::uncompress(&Self::sig_to_bytes(sig)).map_err(|_| BlsError::InvalidSignature)?;
+    let aff = G2Affine::deserialize(&sig.serialize()).map_err(|_| BlsError::InvalidSignature)?;
     Ok(aff.to_projective())
   }
 
@@ -249,6 +249,41 @@ mod tests {
       let shared = BlsScIetf::dh_exchange(&sk, &peer).unwrap();
       assert_eq!(BlsScIetf::pk_to_bytes(&shared).to_lower_hex_string(), v.shared);
     }
+  }
+
+  /// The lifts skip decompression, so they have to land on the point that
+  /// decompressing the compressed encoding yields, inclusive of identity.
+  /// A cancelled aggregate serializes to the infinity marker on both paths.
+  #[test]
+  fn lifts_agree_with_decompression() {
+    let sk = BlsScIetf::sk_from_ikm(&RSEED[0]).unwrap();
+    let pk = BlsScIetf::derive_pk(&sk);
+    let sig = BlsScIetf::sign(&sk, &MSG_DEADBEEF);
+
+    let decompressed = G1Affine::uncompress(&pk.compress()).unwrap().to_projective();
+    assert_eq!(BlsScIetf::pk_to_g1(&pk).unwrap(), decompressed);
+    let decompressed = G2Affine::uncompress(&sig.compress()).unwrap().to_projective();
+    assert_eq!(BlsScIetf::sig_to_g2(&sig).unwrap(), decompressed);
+
+    let mut negated = pk.compress();
+    negated[0] ^= 0x20;
+    let negated = PublicKey::from_bytes(&negated).unwrap();
+    let cancelled = AggregatePublicKey::aggregate(&[&pk, &negated], true)
+      .unwrap()
+      .to_public_key();
+    let decompressed = G1Affine::uncompress(&cancelled.compress()).unwrap().to_projective();
+    assert!(decompressed.is_inf());
+    assert_eq!(BlsScIetf::pk_to_g1(&cancelled).unwrap(), decompressed);
+
+    let mut negated = sig.compress();
+    negated[0] ^= 0x20;
+    let negated = Signature::from_bytes(&negated).unwrap();
+    let cancelled = AggregateSignature::aggregate(&[&sig, &negated], true)
+      .unwrap()
+      .to_signature();
+    let decompressed = G2Affine::uncompress(&cancelled.compress()).unwrap().to_projective();
+    assert!(decompressed.is_inf());
+    assert_eq!(BlsScIetf::sig_to_g2(&cancelled).unwrap(), decompressed);
   }
 
   #[test]

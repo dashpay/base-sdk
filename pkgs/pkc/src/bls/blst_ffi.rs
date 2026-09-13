@@ -416,6 +416,21 @@ impl G1Affine {
     }
     Ok(Self(aff))
   }
+
+  /// Deserialize a 96-byte uncompressed G1 point.
+  ///
+  /// # Errors
+  ///
+  /// Returns the blst error code when the bytes do not encode a point on the
+  /// curve.
+  pub(crate) fn deserialize(bytes: &[u8; 96]) -> Result<Self, BLST_ERROR> {
+    let mut aff = blst_p1_affine::default();
+    let rc = unsafe { blst_p1_deserialize(&mut aff, bytes.as_ptr()) };
+    if rc != BLST_ERROR::BLST_SUCCESS {
+      return Err(rc);
+    }
+    Ok(Self(aff))
+  }
 }
 
 impl G2 {
@@ -522,6 +537,21 @@ impl G2Affine {
   pub(crate) fn uncompress(bytes: &[u8; 96]) -> Result<Self, BLST_ERROR> {
     let mut aff = blst_p2_affine::default();
     let rc = unsafe { blst_p2_uncompress(&mut aff, bytes.as_ptr()) };
+    if rc != BLST_ERROR::BLST_SUCCESS {
+      return Err(rc);
+    }
+    Ok(Self(aff))
+  }
+
+  /// Deserialize a 192-byte uncompressed G2 point.
+  ///
+  /// # Errors
+  ///
+  /// Returns the blst error code when the bytes do not encode a point on the
+  /// curve.
+  pub(crate) fn deserialize(bytes: &[u8; 192]) -> Result<Self, BLST_ERROR> {
+    let mut aff = blst_p2_affine::default();
+    let rc = unsafe { blst_p2_deserialize(&mut aff, bytes.as_ptr()) };
     if rc != BLST_ERROR::BLST_SUCCESS {
       return Err(rc);
     }
