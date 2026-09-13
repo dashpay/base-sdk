@@ -7,10 +7,10 @@
 //! Secret-holding codec implementation.
 
 #[cfg(feature = "codec")]
-use crate::codec::{DecodeError, EncodeBuf};
+use crate::codec::{BaseCodec, DecodeError, EncodeBuf};
 
 #[cfg(feature = "codec")]
-use bitcoin_consensus_encoding::{Decoder, Encoder};
+use bitcoin_consensus_encoding::{Decoder, DecoderStatus, Encoder, EncoderStatus};
 #[cfg(feature = "codec")]
 use zeroize::Zeroize;
 
@@ -162,13 +162,9 @@ impl<const N: usize> Encoder for ArrEncoder<N> {
     }
   }
 
-  fn advance(&mut self) -> bool {
-    if self.done {
-      false
-    } else {
-      self.done = true;
-      false
-    }
+  fn advance(&mut self) -> EncoderStatus {
+    self.done = true;
+    EncoderStatus::Finished
   }
 }
 
@@ -215,15 +211,15 @@ impl<T, const N: usize, E> Decoder for ArrDecoder<T, N, E> {
   type Output = T;
   type Error = DecodeError<E>;
 
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
-    let remaining = self.buf.spare();
-    if remaining == 0 {
-      return Ok(false);
-    }
-    let take = bytes.len().min(remaining);
+  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<DecoderStatus, Self::Error> {
+    let take = bytes.len().min(self.buf.spare());
     self.buf.extend_from_slice(&bytes[..take]);
     *bytes = &bytes[take..];
-    Ok(true)
+    if self.buf.spare() == 0 {
+      Ok(DecoderStatus::Ready)
+    } else {
+      Ok(DecoderStatus::NeedsMore)
+    }
   }
 
   fn end(self) -> Result<Self::Output, Self::Error> {
@@ -241,6 +237,13 @@ impl<T, const N: usize, E> Decoder for ArrDecoder<T, N, E> {
 
   fn read_limit(&self) -> usize {
     self.buf.spare()
+  }
+}
+
+#[cfg(feature = "codec")]
+impl<T: BaseCodec<E>, const N: usize, E> Default for ArrDecoder<T, N, E> {
+  fn default() -> Self {
+    Self::new(T::decode)
   }
 }
 
@@ -462,7 +465,7 @@ mod tests {
   use crate::codec::{DecodeError, EncodeBuf};
   use crate::prelude::*;
 
-  use bitcoin_consensus_encoding::{Decoder, Encoder};
+  use bitcoin_consensus_encoding::{Decoder, DecoderStatus, Encoder, EncoderStatus};
   use rstest::*;
   use zeroize::Zeroize;
 
@@ -484,7 +487,7 @@ mod tests {
     // A short write into a wide buffer must not leak the zero padding.
     let mut enc = ArrEncoder::new(filled::<64>(0xAB, 10));
     assert_eq!(enc.current_chunk(), [0xAB; 10]);
-    assert!(!enc.advance());
+    assert!(matches!(enc.advance(), EncoderStatus::Finished));
     assert_eq!(enc.current_chunk(), &[] as &[u8]);
   }
 
@@ -517,7 +520,7 @@ mod tests {
     let mut dec = ArrDecoder::<Vec<u8>, 8>::new(take_all);
     assert_eq!(dec.read_limit(), 8);
     let mut input: &[u8] = &[1, 2, 3];
-    assert!(dec.push_bytes(&mut input).unwrap_or(false));
+    assert!(matches!(dec.push_bytes(&mut input), Ok(DecoderStatus::NeedsMore)));
     assert!(input.is_empty());
     assert_eq!(dec.read_limit(), 5);
     assert_eq!(dec.end().unwrap_or_default(), vec![1, 2, 3]);
@@ -527,10 +530,11 @@ mod tests {
   fn arr_decoder_stops_at_capacity() {
     let mut dec = ArrDecoder::<Vec<u8>, 4>::new(take_all);
     let mut input: &[u8] = &[9; 10];
-    assert!(dec.push_bytes(&mut input).unwrap_or(false));
+    assert!(matches!(dec.push_bytes(&mut input), Ok(DecoderStatus::Ready)));
     assert_eq!(input.len(), 6, "excess must be left for the caller");
     assert_eq!(dec.read_limit(), 0);
-    assert!(!dec.push_bytes(&mut input).unwrap_or(true));
+    assert!(matches!(dec.push_bytes(&mut input), Ok(DecoderStatus::Ready)));
+    assert_eq!(input.len(), 6, "a ready decoder takes nothing more");
   }
 
   /// Both encoders redact: a `{:?}` in a panic must not print key material.

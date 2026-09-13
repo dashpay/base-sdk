@@ -329,7 +329,7 @@ mod tests {
   #[case::compressed(Compression::Compressed)]
   #[case::uncompressed(Compression::Uncompressed)]
   fn consensus_bridge_roundtrip(#[case] compressed: Compression) {
-    use bitcoin_consensus_encoding::{encode_to_vec, Decode, Decoder};
+    use bitcoin_consensus_encoding::{encode_to_vec, Decode, Decoder, DecoderStatus};
 
     let sk = EcdsaSecretKey::from_bytes(&ALICE_SK, compressed).unwrap();
     let wire = encode_to_vec(&sk);
@@ -341,7 +341,7 @@ mod tests {
 
     let mut dec = <EcdsaSecretKey as Decode>::decoder();
     let mut cursor = wire.as_slice();
-    while dec.push_bytes(&mut cursor).unwrap() && !cursor.is_empty() {}
+    while matches!(dec.push_bytes(&mut cursor).unwrap(), DecoderStatus::NeedsMore) && !cursor.is_empty() {}
     let back = dec.end().unwrap();
     assert_eq!(*back.to_bytes(), *sk.to_bytes());
     assert_eq!(back.is_compressed(), compressed.is_compressed());

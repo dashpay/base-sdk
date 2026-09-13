@@ -7,12 +7,12 @@
 //! Buffered codec implementation.
 
 #[cfg(feature = "codec")]
-use crate::codec::DecodeError;
+use crate::codec::{BaseCodec, DecodeError, SerBound};
 #[cfg(feature = "codec")]
 use crate::prelude::*;
 
 #[cfg(feature = "codec")]
-use bitcoin_consensus_encoding::{Decoder, Encoder};
+use bitcoin_consensus_encoding::{Decoder, DecoderStatus, Encoder, EncoderStatus};
 
 #[cfg(feature = "codec")]
 use core::convert::Infallible;
@@ -59,13 +59,9 @@ impl Encoder for VecEncoder {
     }
   }
 
-  fn advance(&mut self) -> bool {
-    if self.done {
-      false
-    } else {
-      self.done = true;
-      false
-    }
+  fn advance(&mut self) -> EncoderStatus {
+    self.done = true;
+    EncoderStatus::Finished
   }
 }
 
@@ -120,15 +116,16 @@ impl<T, E> Decoder for VecDecoder<T, E> {
   type Output = T;
   type Error = DecodeError<E>;
 
-  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<bool, Self::Error> {
+  fn push_bytes(&mut self, bytes: &mut &[u8]) -> Result<DecoderStatus, Self::Error> {
     let remaining = self.limit.saturating_sub(self.buf.len());
-    if remaining == 0 {
-      return Ok(false);
-    }
     let take = bytes.len().min(remaining);
     self.buf.extend_from_slice(&bytes[..take]);
     *bytes = &bytes[take..];
-    Ok(true)
+    if self.buf.len() < self.limit {
+      Ok(DecoderStatus::NeedsMore)
+    } else {
+      Ok(DecoderStatus::Ready)
+    }
   }
 
   fn end(self) -> Result<Self::Output, Self::Error> {
@@ -144,6 +141,13 @@ impl<T, E> Decoder for VecDecoder<T, E> {
 
   fn read_limit(&self) -> usize {
     self.limit.saturating_sub(self.buf.len())
+  }
+}
+
+#[cfg(feature = "codec")]
+impl<T: BaseCodec<E> + SerBound, E> Default for VecDecoder<T, E> {
+  fn default() -> Self {
+    Self::new(T::decode, T::MAX_SER_SIZE)
   }
 }
 
@@ -163,6 +167,10 @@ macro_rules! impl_type {
         $crate::codec::BaseCodec::encode(self, &mut buf);
         $crate::VecEncoder::new(buf)
       }
+    }
+
+    impl<$($impl_generics)*> $crate::codec::SerBound for $ty {
+      const MAX_SER_SIZE: usize = $max;
     }
 
     impl<$($impl_generics)*> $crate::__private::bitcoin_consensus_encoding::Decode for $ty {

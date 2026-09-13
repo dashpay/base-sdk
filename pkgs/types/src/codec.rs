@@ -189,6 +189,12 @@ pub trait NumCodec<N>: Sized {
   fn to_base(&self) -> N;
 }
 
+/// The widest wire image a type's buffering decoder will accept.
+pub trait SerBound {
+  /// Upper bound on the encoded width, in bytes.
+  const MAX_SER_SIZE: usize;
+}
+
 /// Cursor-based encode/decode for consensus wire types.
 pub trait BaseCodec<E = Infallible>: Sized {
   /// Decodes from the cursor, advancing it past consumed bytes.
