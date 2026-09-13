@@ -15,6 +15,7 @@ extern crate std;
 
 mod entity;
 mod macros;
+mod numeric;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 mod secret;
@@ -24,6 +25,7 @@ mod traits;
 pub mod serialize;
 
 pub use macros::qtypestr;
+pub use numeric::Numeric;
 pub use traits::{Checkable, Hashable};
 
 cfg_if::cfg_if! {
@@ -31,14 +33,12 @@ cfg_if::cfg_if! {
     #[allow(unused_macros, reason = "used by feature-gated submodules")]
     mod adapters;
     mod compact;
-    mod numeric;
 
     pub mod codec;
     pub mod type_id;
 
     pub use compact::CompactSize;
     pub use entity::{VecDecoder, VecEncoder, MAX_SER_SIZE};
-    pub use numeric::Numeric;
     pub use secret::{ArrDecoder, ArrEncoder, ArrayBuf, MAX_ARR_SIZE};
   }
 }
