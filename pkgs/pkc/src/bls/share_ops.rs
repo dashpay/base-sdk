@@ -127,6 +127,63 @@ impl<S: BlsScheme> Hash for BlsSigShare<S> {
   }
 }
 
+/// Public key share from a threshold participant.
+#[cfg_attr(feature = "codec", derive(Unencodable))]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(bound(serialize = "", deserialize = "")))]
+pub struct BlsPkShare<S: BlsScheme> {
+  id: BlsShareId,
+  pk: BlsPublicKey<S>,
+}
+
+impl<S: BlsScheme> BlsPkShare<S> {
+  /// Construct a public key share from an ID and a public key.
+  pub fn new(id: BlsShareId, pk: BlsPublicKey<S>) -> Self {
+    Self { id, pk }
+  }
+
+  /// Participant identifier.
+  pub fn id(&self) -> &BlsShareId {
+    &self.id
+  }
+
+  /// The underlying public key.
+  pub fn public_key(&self) -> &BlsPublicKey<S> {
+    &self.pk
+  }
+}
+
+impl<S: BlsScheme> Clone for BlsPkShare<S> {
+  fn clone(&self) -> Self {
+    Self {
+      id: self.id,
+      pk: self.pk.clone(),
+    }
+  }
+}
+
+impl<S: BlsScheme> Debug for BlsPkShare<S> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    qtypestr(f, core::any::type_name::<Self>())?;
+    write!(f, "(id={:?})", self.id)
+  }
+}
+
+impl<S: BlsScheme> PartialEq for BlsPkShare<S> {
+  fn eq(&self, other: &Self) -> bool {
+    self.id == other.id && self.pk == other.pk
+  }
+}
+
+impl<S: BlsScheme> Eq for BlsPkShare<S> {}
+
+impl<S: BlsScheme> Hash for BlsPkShare<S> {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.id.hash(state);
+    state.write(&self.pk.to_bytes());
+  }
+}
+
 impl<S: BlsScheme> BlsSecretKey<S> {
   /// Split this secret key into shares for the given participant IDs, requiring
   /// `threshold` shares to recover.
@@ -174,6 +231,21 @@ impl<S: BlsScheme> BlsPublicKey<S> {
   pub fn derive_share(master_pks: &[&Self], id: &BlsShareId) -> Result<Self, BlsError> {
     let inner_refs: Vec<&S::InnerPk> = master_pks.iter().map(|pk| &pk.0).collect();
     S::derive_pk_share(&inner_refs, id).map(Self::from_inner)
+  }
+
+  /// Recover the master public key from threshold public key shares via
+  /// Lagrange interpolation in G1.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InsufficientShares` if fewer than 2 shares are provided,
+  /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidPublicKey`
+  /// when a share fails to decode.
+  pub fn recover_shares(shares: &[&BlsPkShare<S>]) -> Result<Self, BlsError> {
+    let ids: Vec<&BlsShareId> = shares.iter().map(|s| s.id()).collect();
+    let pks: Vec<&S::InnerPk> = shares.iter().map(|s| &s.public_key().0).collect();
+
+    S::recover_pk_shares(&ids, &pks).map(Self::from_inner)
   }
 }
 
@@ -325,6 +397,47 @@ mod tests {
   #[case::chia(assert_derive_share_rejects_short_vv::<BlsScChia>)]
   #[case::ietf(assert_derive_share_rejects_short_vv::<BlsScIetf>)]
   fn derive_share_rejects_short_verification_vector(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// Public key shares interpolate back to the key they were derived from.
+  ///
+  /// Compared against the master key itself rather than verified against the
+  /// shares, which is what pins interpolation to the right point in G1 rather
+  /// than to a self-consistent point.
+  fn assert_pk_shares_recover_master<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let ids = sequential_ids(5);
+
+    let sk_shares = sk.split(3, &ids, &mut UnwrapErr(SysRng)).unwrap();
+    let pk_shares: Vec<BlsPkShare<S>> = sk_shares
+      .iter()
+      .map(|s| BlsPkShare::new(*s.id(), s.secret_key().public_key()))
+      .collect();
+
+    // Any threshold-sized subset recovers the master key, and a different
+    // subset recovers the same key.
+    let first: Vec<&BlsPkShare<S>> = pk_shares[..3].iter().collect();
+    let second: Vec<&BlsPkShare<S>> = pk_shares[2..].iter().collect();
+    assert_eq!(BlsPublicKey::<S>::recover_shares(&first).unwrap(), sk.public_key());
+    assert_eq!(BlsPublicKey::<S>::recover_shares(&second).unwrap(), sk.public_key());
+
+    // One share is a point, not a polynomial, and two ids that collide mod
+    // the group order would invert a zero denominator.
+    assert!(matches!(
+      BlsPublicKey::<S>::recover_shares(&first[..1]),
+      Err(BlsError::InsufficientShares)
+    ));
+    assert!(matches!(
+      BlsPublicKey::<S>::recover_shares(&[first[0], first[0]]),
+      Err(BlsError::DuplicateShareId)
+    ));
+  }
+
+  #[rstest]
+  #[case::chia(assert_pk_shares_recover_master::<BlsScChia>)]
+  #[case::ietf(assert_pk_shares_recover_master::<BlsScIetf>)]
+  fn pk_shares_recover_master(#[case] assertion: fn()) {
     assertion();
   }
 

@@ -57,7 +57,7 @@ cfg_if::cfg_if! {
     pub use scalar::Fr;
     pub use scheme_ops::BlsScheme;
     pub use secret_ops::BlsSecretKey;
-    pub use share_ops::{BlsSigShare, BlsSkShare};
+    pub use share_ops::{BlsPkShare, BlsSigShare, BlsSkShare};
     pub use sig_basic::BlsSignature;
   }
 }

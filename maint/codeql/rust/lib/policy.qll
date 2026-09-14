@@ -56,6 +56,9 @@ predicate isSecretType(TypeItem t) {
       // A share *of a signature* is published, so it's non-secret. Excluded by exact name because
       // `BlsSkShare` and `RawShare` match the same Share substring and do carry secret scalars.
       "BlsSigShare",
+      // A share *of a public key* is the point the quorum publishes for a participant, and what it
+      // recovers to is the master key, which is also public.
+      "BlsPkShare",
       // The identifier a share is issued against is the participant's, known to every member of the
       // quorum; only the scalar the share carries is secret.
       "BlsShareId",

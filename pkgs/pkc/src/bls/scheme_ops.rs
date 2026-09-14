@@ -424,6 +424,37 @@ pub trait BlsScheme: BlsSchemeId + Sized {
     Self::g2_to_sig(recovered)
   }
 
+  /// Recover a full public key from threshold shares by interpolation.
+  ///
+  /// The G1 counterpart of [`Self::recover_sig_shares`] the same interpolation,
+  /// over the group public keys live in.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InsufficientShares` when fewer than two shares are given,
+  /// `CountMismatch` when `ids` and `pks` differ in length,
+  /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidPublicKey`
+  /// when a share or the recovered point fails to decode.
+  fn recover_pk_shares(ids: &[&BlsShareId], pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError> {
+    if pks.len() < 2 {
+      return Err(BlsError::InsufficientShares);
+    }
+    // ids and pks are paired; a length mismatch would desync interpolation
+    // and could index out of bounds in interpolate_g1.
+    if ids.len() != pks.len() {
+      return Err(BlsError::CountMismatch);
+    }
+
+    let reduced = reduce_share_ids(ids)?;
+    let points = pks
+      .iter()
+      .map(|pk| Self::pk_to_g1(pk))
+      .collect::<Result<Vec<_>, BlsError>>()?;
+
+    let recovered = interpolate_g1(&reduced, &points);
+    Self::g1_to_pk(recovered)
+  }
+
   /// Derive a public key share from the master verification vector.
   ///
   /// # Errors
@@ -617,6 +648,26 @@ fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   let coeffs = compute_lagrange_coeffs(ids);
 
   let mut result = G2::identity();
+  for i in 0..n {
+    // Convert Fr coefficient to scalar for point multiplication.
+    let scalar = blst::blst_scalar::from(&coeffs[i]);
+    result += points[i].mul_scalar(&scalar.b, FR_BITS);
+  }
+  result
+}
+
+/// Recover a G1 point from shares via Lagrange interpolation at x=0.
+///
+/// The G1 counterpart of [`interpolate_g2`], over the group public keys
+/// live in. Same coefficients, different group.
+fn interpolate_g1(ids: &[Fr], points: &[G1]) -> G1 {
+  let n = ids.len();
+
+  // Compute Lagrange coefficients at x=0:
+  //   L_i = prod_{j!=i} id_j / (id_j - id_i)
+  let coeffs = compute_lagrange_coeffs(ids);
+
+  let mut result = G1::identity();
   for i in 0..n {
     // Convert Fr coefficient to scalar for point multiplication.
     let scalar = blst::blst_scalar::from(&coeffs[i]);
