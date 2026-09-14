@@ -20,11 +20,17 @@ const WHITESPACE: [char; 6] = [' ', '\x0c', '\n', '\r', '\t', '\x0b'];
 
 /// Error returned when parsing a hex string fails.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ParseHexError {
   /// The hex string has an odd number of characters.
   OddLength,
-  /// The decoded byte count does not match the expected length.
-  InvalidLength { expected: usize, got: usize },
+  /// The hex character count does not match the expected length.
+  InvalidLength {
+    /// Hex characters the target type accepts, twice its byte width.
+    expected: usize,
+    /// Hex characters supplied, after any prefix was stripped.
+    got: usize,
+  },
   /// A non-hex character was encountered.
   InvalidChar(u8),
 }
@@ -43,8 +49,7 @@ impl fmt::Display for ParseHexError {
   }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for ParseHexError {}
+impl core::error::Error for ParseHexError {}
 
 /// Fixed-size opaque hash blob stored in little-endian byte order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -140,7 +145,7 @@ impl<const N: usize> HashBlob<N> {
   /// # Errors
   ///
   /// Returns `OddLength` when input has an odd number of hex characters,
-  /// `InvalidLength` when the decoded byte count exceeds the type width, or
+  /// `InvalidLength` when the hex character count exceeds the type width, or
   /// `InvalidChar` on a non-hex digit.
   pub fn from_hex(s: &str) -> Result<Self, ParseHexError> {
     let s = s.trim_start_matches(WHITESPACE);
