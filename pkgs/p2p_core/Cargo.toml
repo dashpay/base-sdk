@@ -46,7 +46,7 @@ serde = { version = "1", default-features = false, features = [
 
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
-hex-conservative = "1.3"
+hex-conservative = { workspace = true, features = ["std"] }
 rstest = "0.25"
 
 [lints]
