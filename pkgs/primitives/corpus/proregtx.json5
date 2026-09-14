@@ -15,13 +15,13 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "43fa3b0cd9cfcf02334960d49eee58cb56327e8f",
+        "keyIdOwner": "8f7e3256cb58ee9ed460493302cfcfd90c3bfa43",
         "pubKeyOperator": "b5972b49674355830eecabdfd8969a407af76a4d2816f5e55d2b5fc892619daf943c3d264b7e7dc806285bd7df130c7a",
-        "keyIdVoting": "dd04564bdca9a21c215c198ed87288c25a364575",
+        "keyIdVoting": "7545365ac28872d88e195c211ca2a9dc4b5604dd",
         "operatorReward": 0,
         "scriptPayout": "76a91461ba0f43e13c1cdf5bc81db6bc46fdaf162f038c88ac",
         "inputsHash": "14d1dee1725af3614214f7aff620370b5c02cd0388dfcc645342676905297e5c",
-        "platformNodeId": "654a3d682a60f7f34b1d86d05deef48c664c4f26",
+        "platformNodeId": "264f4c668cf4ee5dd0861d4bf3f7602a683d4a65",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "vchSig": "1f16db0ccc66182d4b27f3dabe5aa8b3b1a0d4bf62cc54a7d2a153ba1bc5116fd70ad026a738de888709c08828dec37dfdada63cb2e0016c74fe7c5f2a0d313b11"
@@ -42,13 +42,13 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "82f4b2b1b363694b3e64a38b379ada86d9bde58a",
+        "keyIdOwner": "8ae5bdd986da9a378ba3643e4b6963b3b1b2f482",
         "pubKeyOperator": "85d45e8d7a9d0efb98cf59fb0d4e57740592c4d420c36e7b10a8e3f52e35f2b4ea12d82a0a5e437f1b46408455b8b42b",
-        "keyIdVoting": "2d6a6e7b75e71c48dae0668a7a71875ac4d6740f",
+        "keyIdVoting": "0f74d6c45a87717a8a66e0da481ce7757b6e6a2d",
         "operatorReward": 0,
         "scriptPayout": "76a914483e7a329d883f9a2d2d27dddbec545141a2eafa88ac",
         "inputsHash": "79815061cda3266f1c0348b2e924f8e5e3c2a91539baa4a94305e88e01857b1b",
-        "platformNodeId": "49a4722949519fbfb7c3a0fdb971780eb336eaf7",
+        "platformNodeId": "f7ea36b30e7871b9fda0c3b7bf9f51492972a449",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "vchSig": "1fd49c9e563301d7835ec173f1465e59e821166ef6c4db0f704f648908dda8d1ae30f635d6d5989c6a704274a56f709d58c0f1231fcf1a42e6a8bcdea540af238d"
@@ -69,9 +69,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "f1af9cc7c4f0cf1fd124db0a107e3642fde3d9e4",
+        "keyIdOwner": "e4d9e3fd42367e100adb24d11fcff0c4c79caff1",
         "pubKeyOperator": "a6c4b0fc1f58323fe68110914c3043507061b5d4ec10fa88cde3da9b1cef31d02ff08751011f02893d97ed30c0fa816c",
-        "keyIdVoting": "f1af9cc7c4f0cf1fd124db0a107e3642fde3d9e4",
+        "keyIdVoting": "e4d9e3fd42367e100adb24d11fcff0c4c79caff1",
         "operatorReward": 0,
         "scriptPayout": "76a91479792439badb2bfc00f975b6b2ec1ff7fa72433688ac",
         "inputsHash": "424b7a9112588ba4423f327953197481152d107558d9b185ea8362923c87bf74",
@@ -96,9 +96,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "8237e982f95b0bf0ea818027776e52ed5c17b28b",
+        "keyIdOwner": "8bb2175ced526e77278081eaf00b5bf982e93782",
         "pubKeyOperator": "b96245aecc59b154054815558fb6d95a75ab0460f704015eba82d8912380af70436557abc2972d7b3f1ff67451696f15",
-        "keyIdVoting": "ad9a1bf8855b4929ce375384c47cc3214f74abd5",
+        "keyIdVoting": "d5ab744f21c37cc4845337ce29495b85f81b9aad",
         "operatorReward": 0,
         "scriptPayout": "76a91414198a0a98002ed96e5bc64e756f4aea2912945f88ac",
         "inputsHash": "95135d08fc3c00e3cf13037c43560ed02afac18a363b67e0593d5e19cf766612",
@@ -123,9 +123,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "c4ff47c02e84d3096c80d01df6f816b9b3a388a6",
+        "keyIdOwner": "a688a3b3b916f8f61dd0806c09d3842ec047ffc4",
         "pubKeyOperator": "a35a0a201413c35d1138d30c4d9500cbe48fce23c9f310e2029c9cf00f724a78fa70fe5fb1f870a207f8ddde4931dcab",
-        "keyIdVoting": "c4ff47c02e84d3096c80d01df6f816b9b3a388a6",
+        "keyIdVoting": "a688a3b3b916f8f61dd0806c09d3842ec047ffc4",
         "operatorReward": 0,
         "scriptPayout": "76a9146d4d1fe9a69b18c3c73d77982b1b8e4359ab672a88ac",
         "inputsHash": "9ecdd64634e071b599abebfa3a88df8274488057101c5418082053a5f2cdcb36",
@@ -150,9 +150,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "e22a4e009ce5598cb7e1020e06373556657a2b25",
+        "keyIdOwner": "252b7a65563537060e02e1b78c59e59c004e2ae2",
         "pubKeyOperator": "b11aeeafcb4d4e6f3256798249d4bd34160e3e2caafb4060a04c233f2cc472b8baa9a8c4ec0044b5b58bd1ac06e9727a",
-        "keyIdVoting": "e22a4e009ce5598cb7e1020e06373556657a2b25",
+        "keyIdVoting": "252b7a65563537060e02e1b78c59e59c004e2ae2",
         "operatorReward": 0,
         "scriptPayout": "76a91454b36fbe92b19ff994e6e418ab2868dcc624d6d588ac",
         "inputsHash": "e2f32379c60b58c74eae64a866305e7ac528adf981fc0b927384628a018a4c80",
@@ -177,9 +177,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "907e27d09f3723c5e0fe816acd13fbf7e5679085",
+        "keyIdOwner": "859067e5f7fb13cd6a81fee0c523379fd0277e90",
         "pubKeyOperator": "aa8130c2fdcf9dd9acf7164823a825c09295280a4d21889d70aaa2118feabb5a4919052bb91720e82116a4ab47f9e146",
-        "keyIdVoting": "3e4bc16d9aff17ec19c803139871336ed284b058",
+        "keyIdVoting": "58b084d26e3371981303c819ec17ff9a6dc14b3e",
         "operatorReward": 0,
         "scriptPayout": "76a914a5fb7f82e3cd6a7509aa1eea433d10c5995fb36d88ac",
         "inputsHash": "7b0e72ab455ed2bfe2cc986fe5193860dbd3536816807ea837c729c9f3095156",
@@ -204,13 +204,13 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "2ba6ed4e78dd031a81b362bb20177d40eb7fd948",
+        "keyIdOwner": "48d97feb407d1720bb62b3811a03dd784eeda62b",
         "pubKeyOperator": "957a95e21066b5fba59f1f12a68a6ea3f00d067ec7dfd20a12e01295100b323f646735324dbe02c935532667ea29a4a9",
-        "keyIdVoting": "8bcde470a76ee6c0a902f8f96a81d1a30ea0548e",
+        "keyIdVoting": "8e54a00ea3d1816af9f802a9c0e66ea770e4cd8b",
         "operatorReward": 0,
         "scriptPayout": "76a9149206aaa8d9786f268744e6c6476ffcbba10a3e3e88ac",
         "inputsHash": "903802edb9c408c51eadb85cd3b3a06126da9f16f2540a1a945b2f3cfe6eb8e0",
-        "platformNodeId": "c7cb4a5860a570e71f9c0ffe66720ab4781f99b6",
+        "platformNodeId": "b6991f78b40a7266fe0f9c1fe770a560584acbc7",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "vchSig": "1f413375dab8d08586ff58f1711367e8e3b395520bb9e965e347991d7e6ad743544ce3d5a59be075151e48975f6f00c538f01fcb6d5c641aeada584f2d5306dc5d"
@@ -231,9 +231,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "c8e3db358775199e796677b06705cbba2c34d75f",
+        "keyIdOwner": "5fd7342cbacb0567b07766799e19758735dbe3c8",
         "pubKeyOperator": "a668b8b61f7b540a0e002789b4349c0331d3c23c69019855194bbbbeea1432b65befe8273ee51c906e9481ea5f9aa97c",
-        "keyIdVoting": "c8e3db358775199e796677b06705cbba2c34d75f",
+        "keyIdVoting": "5fd7342cbacb0567b07766799e19758735dbe3c8",
         "operatorReward": 0,
         "scriptPayout": "76a9142b567ee71b12a3b472cfe91f3265061e2e10587888ac",
         "inputsHash": "6d986728e764ee5ce2a5b3fa5d0149018d0ecd3b432f9b55bd2cfd7850fff217",
@@ -258,9 +258,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "3ac3116b38fcbeb40db4568f4e4936b323cf7b2c",
+        "keyIdOwner": "2c7bcf23b336494e8f56b40db4befc386b11c33a",
         "pubKeyOperator": "a181aeb564815cf48f58e2b8d611fd6b2e9eda6e5608839ebbce5951ee4e6aa04884f43a795701af63853292d415c960",
-        "keyIdVoting": "3ac3116b38fcbeb40db4568f4e4936b323cf7b2c",
+        "keyIdVoting": "2c7bcf23b336494e8f56b40db4befc386b11c33a",
         "operatorReward": 0,
         "scriptPayout": "76a91433a9ad4b5cae7054d1753920764d5560ec0ba7ac88ac",
         "inputsHash": "62b7825efe7f7365d592ffd4cfd7fc25b2b116797ff303c52b5acc84e04b54b8",
@@ -285,9 +285,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "162e5e22b8ed8cc75848e5813d1d7f6e62359c1d",
+        "keyIdOwner": "1d9c35626e7f1d3d81e54858c78cedb8225e2e16",
         "pubKeyOperator": "931184a9141a21bf1ec6421abf8f61508aac8087f42574fae79ad8bcb2c7de79dfad7ba63e21dbcf7dfb5936c59b6d16",
-        "keyIdVoting": "162e5e22b8ed8cc75848e5813d1d7f6e62359c1d",
+        "keyIdVoting": "1d9c35626e7f1d3d81e54858c78cedb8225e2e16",
         "operatorReward": 0,
         "scriptPayout": "76a914050b269f170bd20d52b937fd8bc9514cd3cbe4cd88ac",
         "inputsHash": "6ef76e314e9c6a24da67ba6b86d2d86479cc6593c66c0e7d018c35ff08d8aebd",
@@ -312,9 +312,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "6728ae525355fd4533c543854e64a4de9a08404e",
+        "keyIdOwner": "4e40089adea4644e8543c53345fd555352ae2867",
         "pubKeyOperator": "a46d14b890aa6816f6e3a778ff5cc9dda7157ab4a06367a868045c0094574147abad3b59a6076edd5b17c8391d5be160",
-        "keyIdVoting": "ef8999978e48ec9c5281c66bbedfa6b83e65b40b",
+        "keyIdVoting": "0bb4653eb8a6dfbe6bc681529cec488e979989ef",
         "operatorReward": 0,
         "scriptPayout": "76a91496996ca8110c4630ceebc02c70962ef8be717c7d88ac",
         "inputsHash": "db9dfa96f39763f775897e63066aafb12f48d3ce941d5ca917e0fdae1e73499b",
@@ -339,9 +339,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "075ea155956d8ada128c3be1ecf71655158fdc8d",
+        "keyIdOwner": "8ddc8f155516f7ece13b8c12da8a6d9555a15e07",
         "pubKeyOperator": "b3e117dae2c2476e80fe8b2a79f5fb4f26b36de88913239ccea60df5b51f2f0e70c53fc8494ef913c01e160533f19c55",
-        "keyIdVoting": "075ea155956d8ada128c3be1ecf71655158fdc8d",
+        "keyIdVoting": "8ddc8f155516f7ece13b8c12da8a6d9555a15e07",
         "operatorReward": 0,
         "scriptPayout": "76a91490d6e9c81a813309b0eab1bd243191337e9f9d0b88ac",
         "inputsHash": "3b30b278bf8845ba6d4a2c7bacf54a8ee8a3bc00800f717bee43e0b874778102",
@@ -366,9 +366,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "fe6d9d930b0c8e63cf1e3e98b42c31f8f7dfc140",
+        "keyIdOwner": "40c1dff7f8312cb4983e1ecf638e0c0b939d6dfe",
         "pubKeyOperator": "839e4e2fbd42f8265255b5c2a3d235111ab1618a5e8394d5edd7856c7a01180c9aba83f4219fe62a44034c90db6e5e75",
-        "keyIdVoting": "fe6d9d930b0c8e63cf1e3e98b42c31f8f7dfc140",
+        "keyIdVoting": "40c1dff7f8312cb4983e1ecf638e0c0b939d6dfe",
         "operatorReward": 0,
         "scriptPayout": "76a914da8e302a76b166f3977f31fcde0841af5d6d7c8988ac",
         "inputsHash": "cdae76bced287a20a79c0fe556b81be5ba7252606935e951a1e645a2a99d67b3",
@@ -393,9 +393,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "1c8d29a7e9d7922f87879cd6d39cf799034a2e96",
+        "keyIdOwner": "962e4a0399f79cd3d69c87872f92d7e9a7298d1c",
         "pubKeyOperator": "8bef6831d3930dd85da8875e711f0a984dc85467f0a8fe29c3b76bfa7d037d884d10717a22c52df02527bed5698b876d",
-        "keyIdVoting": "1c8d29a7e9d7922f87879cd6d39cf799034a2e96",
+        "keyIdVoting": "962e4a0399f79cd3d69c87872f92d7e9a7298d1c",
         "operatorReward": 0,
         "scriptPayout": "76a914a09f657dec791e21cf184fd7770c21194bb90e1688ac",
         "inputsHash": "47653790a93ff3ef16b10c9412619fb8fe120e96d31697e43b59bf40a7d0235e",
@@ -420,9 +420,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "2859ca0b8ea8afe6dd58bb2deae41b5485e151ef",
+        "keyIdOwner": "ef51e185541be4ea2dbb58dde6afa88e0bca5928",
         "pubKeyOperator": "9690d85c0c46b8139897c17adf13166b38d7bb1853cf88c581ed5e04714583ad66b3ca4cdeeee5f4d49b7529ae6a0504",
-        "keyIdVoting": "a67dc749a04bc47e05a1e16af4ebbeffce0cdbec",
+        "keyIdVoting": "ecdb0cceffbeebf46ae1a1057ec44ba049c77da6",
         "operatorReward": 0,
         "scriptPayout": "76a9143c23989752e45aae7b03bcb4aa5149b17147cec088ac",
         "inputsHash": "0f274e96d3e0a2b13a35a89c67e4483eb2586295032a0effb372a7e12f4cc75e",
@@ -447,9 +447,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "de9c0164b2a9eddec0ee7a34042e0e51723c0793",
+        "keyIdOwner": "93073c72510e2e04347aeec0deeda9b264019cde",
         "pubKeyOperator": "82a30aed744984202ad2025e4393431954a755e5108bb209b6799c6f0175cbf163c946ce07c52b6619388770a4e2dda5",
-        "keyIdVoting": "de9c0164b2a9eddec0ee7a34042e0e51723c0793",
+        "keyIdVoting": "93073c72510e2e04347aeec0deeda9b264019cde",
         "operatorReward": 0,
         "scriptPayout": "76a9141154840e7e8ef3654f5c8dfa91ee07639fc81c6b88ac",
         "inputsHash": "b3617dd6150f7390de0e16f201792a0a792c72ef1598f86700eda58fe7ea0338",
@@ -474,9 +474,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "7460797d306b0c202b6c2565dffc76f7a6d57ba7",
+        "keyIdOwner": "a77bd5a6f776fcdf65256c2b200c6b307d796074",
         "pubKeyOperator": "ad5522d6bc1138ec71f5f539d5d4d9077cbd9217f93ffd7e3ad78fb14de2aaa3937366f623f47ebdead83ad8a9d14fb1",
-        "keyIdVoting": "7460797d306b0c202b6c2565dffc76f7a6d57ba7",
+        "keyIdVoting": "a77bd5a6f776fcdf65256c2b200c6b307d796074",
         "operatorReward": 0,
         "scriptPayout": "76a914d91d60841617c26ad42a255ac4da41e7caeb762c88ac",
         "inputsHash": "7d30d955b71e968b90e7b8b30c0ad984e52f5ca673e52dfe851218c517ad6a3b",
@@ -501,9 +501,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "ba45a43bde7371a7a355dd96d8dd3cef35046ab6",
+        "keyIdOwner": "b66a0435ef3cddd896dd55a3a77173de3ba445ba",
         "pubKeyOperator": "92a5bab6d7b31e2fbdf34464d2f68b2cb90846c1082d29dda9639120fad97c51284c514e124dcacb36fb1dbf6bc58653",
-        "keyIdVoting": "ba45a43bde7371a7a355dd96d8dd3cef35046ab6",
+        "keyIdVoting": "b66a0435ef3cddd896dd55a3a77173de3ba445ba",
         "operatorReward": 0,
         "scriptPayout": "76a9149cd483a32238700565aaf47b1258832be4e97bf688ac",
         "inputsHash": "d5279de90a1d7b8b3bb03db8051d347344323c7b94a78a69b27eb62d7ef65542",
@@ -528,9 +528,9 @@
             "port": 9999
           }
         },
-        "keyIdOwner": "a9597f70edd2bde53fee9aa64b38eebbcd197a1b",
+        "keyIdOwner": "1b7a19cdbbee384ba69aee3fe5bdd2ed707f59a9",
         "pubKeyOperator": "a21023bf3d8ef6570553987f28baa979597c3b125527da5384351175bc52d215706eab8db1a06b3a2c0db9e3283afbe7",
-        "keyIdVoting": "a9597f70edd2bde53fee9aa64b38eebbcd197a1b",
+        "keyIdVoting": "1b7a19cdbbee384ba69aee3fe5bdd2ed707f59a9",
         "operatorReward": 0,
         "scriptPayout": "76a914c7db8c99504bf14f9d7e6e32c2d28bf00c80031f88ac",
         "inputsHash": "ac66dfefbe1bd9966548722c7f204251d704485f62d9b2081169379f48f1bc6a",
@@ -559,13 +559,13 @@
             ]
           }
         },
-        "keyIdOwner": "a8de9990c0a0676a95450ee59c6032c0222060dc",
+        "keyIdOwner": "dc602022c032609ce50e45956a67a0c09099dea8",
         "pubKeyOperator": "a326c971a901c71247043152a691a5a460c79ac9ff83fd876e3c1a6fa3b6734ecc72961438ddfc67049f941b3dfbedea",
-        "keyIdVoting": "19badc75f739727264b6848edef4e2f97ae303eb",
+        "keyIdVoting": "eb03e37af9e2f4de8e84b664727239f775dcba19",
         "operatorReward": 0,
         "scriptPayout": "76a9142528448b4447518b5eafe16f574661c8e07bb18588ac",
         "inputsHash": "72ff777cffc971751e903efae0c9af4c0b00add4c20bc4c1bccd12eb39fdae3a",
-        "platformNodeId": "e5992efdc3d9e31931fb19590b33aaa1b90bb958",
+        "platformNodeId": "58b90bb9a1aa330b5919fb3119e3d9c3fd2e99e5",
         "platformP2PPort": null,
         "platformHTTPPort": null,
         "vchSig": "20c21b280fb2e8f72f9c46d7af4f78e50f6f6c31f0aeb080c6042879027a096a2b2f29047d0871e506e93c277e37e3ac52a2823cd205fe6051be5539b798d0f08f"
@@ -599,13 +599,13 @@
             ]
           }
         },
-        "keyIdOwner": "fd553fc926287871a7dcd71968ad659026c093f7",
+        "keyIdOwner": "f793c0269065ad6819d7dca771782826c93f55fd",
         "pubKeyOperator": "95d86735440a8f1f650c1efae172fa21e5ea6cb5edb374e2cb6c3399184a5904f36a35d5969a01c9a15f49d3d4075b73",
-        "keyIdVoting": "1441c5334f5decfbff85f3e60b1073ee2597c750",
+        "keyIdVoting": "50c79725ee73100be6f385fffbec5d4f33c54114",
         "operatorReward": 0,
         "scriptPayout": "76a9146fcb03df8b448707f27f4adb99bb1ddbf11a561a88ac",
         "inputsHash": "837a79008934b5202870c11a6fcb6ea8d637e3b770a2816b5596c9088aff4d2b",
-        "platformNodeId": "44442971737accd3a941166d9b3dc35f619ca10f",
+        "platformNodeId": "0fa19c615fc33d9b6d1641a9d3cc7a7371294444",
         "platformP2PPort": null,
         "platformHTTPPort": null,
         "vchSig": "20c9582a842b570f95c68246ed563f992328354d3e0ee0d64bba7344278ca2ee93519761d07d315b0108bd4e95487c5e6fdc07970fdf9b528c747b1292cfbe25c7"
@@ -626,13 +626,13 @@
             "entries": []
           }
         },
-        "keyIdOwner": "15dde7c373a14ad16c091f409198b0f40f831b1f",
+        "keyIdOwner": "1f1b830ff4b09891401f096cd14aa173c3e7dd15",
         "pubKeyOperator": "87dc4da5b388e0287ef12d48630e441e36baf164e6a2d24f986a4d0584144f879725722d0336c35c4ceaa36aeb607ae0",
-        "keyIdVoting": "f69375ea93a7fd20b3e2c0e24df9b3aa82613c96",
+        "keyIdVoting": "963c6182aab3f94de2c0e2b320fda793ea7593f6",
         "operatorReward": 0,
         "scriptPayout": "76a9144eb62894923a194f0f56ed20e37ba336b680264c88ac",
         "inputsHash": "ea85ae259e22e523f2b7e49779c85fd8ed6b628282d90b0fe24c64dd84fea977",
-        "platformNodeId": "d769470503e89d55001d813fcbb8b3a770f97fe0",
+        "platformNodeId": "e07ff970a7b3b8cb3f811d00559de803054769d7",
         "platformP2PPort": null,
         "platformHTTPPort": null,
         "vchSig": "1fbeb28ed0e786225ff0bed8b2eb86a3d95929737b25bd0083ecf0efeeabe74b9127a5436866bc2a38af290d64d05d8b77b8ee428337af47a4ca1cd97c3af59297"

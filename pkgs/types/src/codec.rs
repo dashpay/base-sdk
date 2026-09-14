@@ -180,15 +180,6 @@ impl EncodeBuf for Vec<u8> {
   }
 }
 
-/// Links a type to its underlying base integer type.
-pub trait NumCodec<N>: Sized {
-  /// Constructs from the base integer.
-  fn from_base(v: N) -> Self;
-
-  /// Returns the base integer.
-  fn to_base(&self) -> N;
-}
-
 /// The widest wire image a type's buffering decoder will accept.
 pub trait SerBound {
   /// Upper bound on the encoded width, in bytes.

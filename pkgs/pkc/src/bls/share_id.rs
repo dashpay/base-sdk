@@ -6,12 +6,13 @@
 
 //! Threshold participant identifier.
 
-use dash_types::make_bytes;
+use dash_num::make_hash;
+use dash_types::Numeric;
+
+make_hash! {
+  /// Threshold participant identifier.
+  BlsShareId, 32
+}
 
 /// Threshold participant identifier length.
-pub const BLS_ID_LEN: usize = 32;
-
-make_bytes! {
-  /// Threshold participant identifier.
-  BlsShareId, BLS_ID_LEN, rev, nocodec
-}
+pub const BLS_ID_LEN: usize = <BlsShareId as Numeric>::LEN;

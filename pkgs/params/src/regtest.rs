@@ -13,6 +13,7 @@ use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use dash_num::{Arith256, Hash256};
 use dash_primitives::{Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Transaction, TxHash, TxIn, TxOut, TxType};
 use dash_script::AddrParams;
+use dash_types::Numeric;
 use hex_literal::hex;
 
 /// Returns the regtest genesis block.
@@ -68,7 +69,7 @@ pub fn genesis() -> Block {
 
 pub static PARAMS: ChainParams = ChainParams {
   consensus: ConsensusParams {
-    hash_genesis_block: Hash256::new(hex!("000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e")),
+    hash_genesis_block: Hash256::from_bendian(hex!("000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e")),
     subsidy_halving_interval: 150,
     masternode_payments_start_block: BlockHeight::from_u32(240),
     masternode_payments_increase_block: BlockHeight::from_u32(350),
@@ -129,7 +130,7 @@ pub static PARAMS: ChainParams = ChainParams {
       },
     },
     // ~uint256(0) >> 1
-    pow_limit: Arith256::new(hex!("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
+    pow_limit: Arith256::from_bendian(hex!("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
     pow_allow_min_difficulty_blocks: true,
     pow_no_retargeting: true,
     pow_target_spacing: 150,     // 2.5 minutes
@@ -179,5 +180,5 @@ pub static PARAMS: ChainParams = ChainParams {
 
 #[rustfmt::skip]
 const CHECKPOINTS: [Checkpoint; 1] = [
-  (BlockHeight::from_u32(0), Hash256::new(hex!("000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e"))),
+  (BlockHeight::from_u32(0), Hash256::from_bendian(hex!("000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e"))),
 ];

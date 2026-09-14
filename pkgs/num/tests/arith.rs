@@ -9,13 +9,14 @@
 #![expect(clippy::unwrap_used, reason = "test code")]
 
 use dash_num::{Arith256, Hash256};
+use dash_types::Numeric;
 use hex_literal::hex;
 use rstest::*;
 
 use core::str::FromStr;
 
 fn arith_from_le(bytes: &[u8; 32]) -> Arith256 {
-  Arith256::from(Hash256::from_bytes(*bytes))
+  Arith256::from(Hash256::from_lendian(*bytes))
 }
 
 fn arith_from_hex(s: &str) -> Arith256 {
@@ -29,7 +30,7 @@ fn from_array(a: [u64; 4]) -> Arith256 {
   let mut bytes = [0u8; 32];
   bytes[..16].copy_from_slice(&lo.to_le_bytes());
   bytes[16..].copy_from_slice(&hi.to_le_bytes());
-  Arith256::from_le_bytes(bytes)
+  Arith256::from_lendian(bytes)
 }
 
 #[fixture]
@@ -54,7 +55,7 @@ fn r2_hex() -> &'static str {
 
 #[fixture]
 fn one_hash() -> Hash256 {
-  Hash256::from_bytes({
+  Hash256::from_lendian({
     let mut a = [0u8; 32];
     a[0] = 1;
     a
@@ -81,8 +82,8 @@ mod conversion {
     for h in [
       Hash256::ZERO,
       one_hash,
-      Hash256::from_bytes(r1_bytes),
-      Hash256::from_bytes(r2_bytes),
+      Hash256::from_lendian(r1_bytes),
+      Hash256::from_lendian(r2_bytes),
     ] {
       assert_eq!(Hash256::from(Arith256::from(h)), h);
     }
@@ -103,7 +104,7 @@ mod conversion {
   #[rstest]
   fn hex_through_arith_matches_hash(r1_bytes: [u8; 32], r2_bytes: [u8; 32]) {
     for bytes in [r1_bytes, r2_bytes] {
-      let h = Hash256::from_bytes(bytes);
+      let h = Hash256::from_lendian(bytes);
       let a = Arith256::from(h);
       assert_eq!(format!("{h}"), format!("{a}"));
     }
@@ -178,35 +179,35 @@ mod byte_conversion {
   }
 
   #[rstest]
-  fn to_be_bytes() {
-    assert_eq!(want().to_be_bytes(), BE_BYTES);
+  fn to_bendian() {
+    assert_eq!(want().to_bendian(), BE_BYTES);
   }
 
   #[rstest]
-  fn from_be_bytes() {
-    assert_eq!(Arith256::from_be_bytes(BE_BYTES), want());
+  fn from_bendian() {
+    assert_eq!(Arith256::from_bendian(BE_BYTES), want());
   }
 
   #[rstest]
-  fn to_le_bytes() {
-    assert_eq!(want().to_le_bytes(), LE_BYTES);
+  fn to_lendian() {
+    assert_eq!(want().to_lendian(), LE_BYTES);
   }
 
   #[rstest]
-  fn from_le_bytes() {
-    assert_eq!(Arith256::from_le_bytes(LE_BYTES), want());
+  fn from_lendian() {
+    assert_eq!(Arith256::from_lendian(LE_BYTES), want());
   }
 
   #[rstest]
   fn roundtrip_be() {
     let v = want();
-    assert_eq!(Arith256::from_be_bytes(v.to_be_bytes()), v);
+    assert_eq!(Arith256::from_bendian(v.to_bendian()), v);
   }
 
   #[rstest]
   fn roundtrip_le() {
     let v = want();
-    assert_eq!(Arith256::from_le_bytes(v.to_le_bytes()), v);
+    assert_eq!(Arith256::from_lendian(v.to_lendian()), v);
   }
 
   #[rstest]
@@ -371,7 +372,7 @@ mod multiply {
   #[rstest]
   fn cross_limb() {
     let a = Arith256::from_u128(1u128 << 64);
-    let expected = Arith256::from_le_bytes({
+    let expected = Arith256::from_lendian({
       let mut bytes = [0u8; 32];
       bytes[16] = 1;
       bytes
@@ -488,7 +489,7 @@ mod divide {
     let shr = shl >> 40u32;
     assert_eq!(shr, from_array([0, 0, 0x0001_BD5B_7DDF_BD5B, 0x7DDE_0000_0000_0000]));
 
-    let incr = shr.wrapping_inc();
+    let incr = shr.wrapping_add(Arith256::ONE);
     assert_eq!(incr, from_array([0, 0, 0x0001_BD5B_7DDF_BD5B, 0x7DDE_0000_0000_0001]));
 
     let sub = incr.wrapping_sub(init);
@@ -703,7 +704,7 @@ mod comparison {
   #[rstest]
   fn cross_limb() {
     let lo_max = Arith256::from_u128(u128::MAX);
-    let hi_one = Arith256::from_le_bytes({
+    let hi_one = Arith256::from_lendian({
       let mut b = [0u8; 32];
       b[16] = 1;
       b
@@ -746,22 +747,9 @@ mod methods {
   }
 
   #[rstest]
-  fn is_one() {
-    assert!(Arith256::ONE.is_one());
-    assert!(!Arith256::ZERO.is_one());
-    assert!(!Arith256::MAX.is_one());
-    assert!(!Arith256::from_u64(2).is_one());
-  }
-
-  #[rstest]
-  fn is_max() {
-    assert!(Arith256::MAX.is_max());
-    assert!(!Arith256::ZERO.is_max());
-    assert!(!Arith256::ONE.is_max());
-    assert!(!Arith256::from_u128(u128::MAX).is_max());
-    // Construct MAX from parts
+  fn max_is_both_halves_set() {
     let u = Arith256::from_u128(u128::MAX);
-    assert!(((u << 128u32) + u).is_max());
+    assert_eq!((u << 128u32) + u, Arith256::MAX);
   }
 
   #[rstest]
@@ -942,13 +930,13 @@ mod mul_u64 {
   }
 }
 
-mod wrapping_inc {
+mod increment {
   use super::*;
 
   #[rstest]
   fn basic() {
-    assert_eq!(Arith256::ZERO.wrapping_inc(), Arith256::ONE);
-    assert_eq!(Arith256::MAX.wrapping_inc(), Arith256::ZERO);
+    assert_eq!(Arith256::ZERO.wrapping_add(Arith256::ONE), Arith256::ONE);
+    assert_eq!(Arith256::MAX.wrapping_add(Arith256::ONE), Arith256::ZERO);
   }
 
   #[rstest]
@@ -959,7 +947,7 @@ mod wrapping_inc {
       0xFFFF_FFFF_FFFF_FFFF,
       0xFFFF_FFFF_FFFF_FFFE,
     ]);
-    val = val.wrapping_inc();
+    val = val.wrapping_add(Arith256::ONE);
     assert_eq!(
       val,
       from_array([
@@ -969,7 +957,7 @@ mod wrapping_inc {
         0xFFFF_FFFF_FFFF_FFFF,
       ])
     );
-    val = val.wrapping_inc();
+    val = val.wrapping_add(Arith256::ONE);
     assert_eq!(
       val,
       from_array([
@@ -982,14 +970,21 @@ mod wrapping_inc {
   }
 }
 
-mod inverse {
+mod block_proof {
   use super::*;
 
   #[rstest]
   fn zero_min_max() {
-    assert_eq!(Arith256::MAX.inverse(), Arith256::ONE);
-    assert_eq!(Arith256::ONE.inverse(), Arith256::MAX);
-    assert_eq!(Arith256::ZERO.inverse(), Arith256::MAX);
+    assert_eq!(Arith256::MAX.block_proof(), Arith256::ONE);
+    assert_eq!(Arith256::ONE.block_proof(), Arith256::ONE << 255u32);
+    assert_eq!(Arith256::ZERO.block_proof(), Arith256::ZERO);
+  }
+
+  #[rstest]
+  fn pow_limit() {
+    let target = (Arith256::ONE << 224u32) - Arith256::ONE;
+    let expected = Arith256::ONE << 32u32;
+    assert_eq!(target.block_proof(), expected);
   }
 }
 
@@ -1034,5 +1029,26 @@ mod formatting {
       format!("{:#X}", Arith256::MAX),
       "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
     );
+  }
+}
+
+mod from_str {
+  use super::*;
+
+  #[rstest]
+  fn display_round_trips(r1: Arith256) {
+    assert_eq!(Arith256::from_str(&format!("{r1}")).unwrap(), r1);
+    assert_eq!(Arith256::from_str(&format!("{:#x}", r1)).unwrap(), r1);
+  }
+
+  #[rstest]
+  fn short_input_zero_extends() {
+    assert_eq!(Arith256::from_str("ff").unwrap(), Arith256::from_u64(0xff));
+  }
+
+  #[rstest]
+  fn rejects_over_long() {
+    let long = "0".repeat(66);
+    assert!(Arith256::from_str(&long).is_err());
   }
 }

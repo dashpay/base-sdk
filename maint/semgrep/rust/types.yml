@@ -9,7 +9,7 @@ rules:
         - /pkgs/types/src/entity.rs
         - /pkgs/types/src/macros.rs
         - /pkgs/types/src/secret.rs
-        - /pkgs/types/src/uint.rs
+        - /pkgs/types/src/numeric.rs
     pattern-regex: '\b(?:make|impl)_(?:bytes|num|type)!\s*[({]'
 
   - id: types-macro-generics-bracketed

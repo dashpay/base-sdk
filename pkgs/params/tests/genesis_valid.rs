@@ -8,7 +8,7 @@
 
 use dash_params::{ChainParams, Network};
 use dash_primitives::{Block, BlockHash, MerkleRoot};
-use dash_types::codec::Hashable;
+use dash_types::{Hashable, Numeric};
 use hex_literal::hex;
 use rstest::rstest;
 
@@ -16,17 +16,17 @@ use rstest::rstest;
 #[case::mainnet(
   Network::Main.genesis(),
   Network::Main.chain(),
-  MerkleRoot::new(hex!("e0028eb9648db56b1ac77cf090b99048a8007e2bb64b68f092c03c7f56a662c7")),
+  MerkleRoot::from_bendian(hex!("e0028eb9648db56b1ac77cf090b99048a8007e2bb64b68f092c03c7f56a662c7")),
 )]
 #[case::testnet(
   Network::Testnet3.genesis(),
   Network::Testnet3.chain(),
-  MerkleRoot::new(hex!("e0028eb9648db56b1ac77cf090b99048a8007e2bb64b68f092c03c7f56a662c7")),
+  MerkleRoot::from_bendian(hex!("e0028eb9648db56b1ac77cf090b99048a8007e2bb64b68f092c03c7f56a662c7")),
 )]
 #[case::regtest(
   Network::Regtest.genesis(),
   Network::Regtest.chain(),
-  MerkleRoot::new(hex!("e0028eb9648db56b1ac77cf090b99048a8007e2bb64b68f092c03c7f56a662c7")),
+  MerkleRoot::from_bendian(hex!("e0028eb9648db56b1ac77cf090b99048a8007e2bb64b68f092c03c7f56a662c7")),
 )]
 fn genesis_block_hash_matches(
   #[case] genesis: Block,

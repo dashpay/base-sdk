@@ -6,19 +6,31 @@
 
 //! Fixed-size opaque hash blob types.
 
-use core::fmt;
+#[cfg(feature = "codec")]
+use dash_types::impl_type;
+use dash_types::{type_cvrt, Numeric};
+use hex_conservative::{BytesToHexIter, Case, HexToBytesIter};
+
+use core::fmt::{self, Write as _};
 use core::hash::Hash;
 use core::str::FromStr;
 
-pub(crate) const HEX_LOWER: [u8; 16] = *b"0123456789abcdef";
+/// Whitespace skipped before a hex prefix.
+const WHITESPACE: [char; 6] = [' ', '\x0c', '\n', '\r', '\t', '\x0b'];
 
 /// Error returned when parsing a hex string fails.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ParseHexError {
   /// The hex string has an odd number of characters.
   OddLength,
-  /// The decoded byte count does not match the expected length.
-  InvalidLength { expected: usize, got: usize },
+  /// The hex character count does not match the expected length.
+  InvalidLength {
+    /// Hex characters the target type accepts, twice its byte width.
+    expected: usize,
+    /// Hex characters supplied, after any prefix was stripped.
+    got: usize,
+  },
   /// A non-hex character was encountered.
   InvalidChar(u8),
 }
@@ -37,317 +49,209 @@ impl fmt::Display for ParseHexError {
   }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for ParseHexError {}
+impl core::error::Error for ParseHexError {}
 
-pub(crate) fn hex_val(c: u8) -> Result<u8, ParseHexError> {
-  match c {
-    b'0'..=b'9' => Ok(c - b'0'),
-    b'a'..=b'f' => Ok(c - b'a' + 10),
-    b'A'..=b'F' => Ok(c - b'A' + 10),
-    _ => Err(ParseHexError::InvalidChar(c)),
+/// Fixed-size opaque hash blob stored in little-endian byte order.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct HashBlob<const N: usize>([u8; N]);
+
+impl<const N: usize> Numeric for HashBlob<N> {
+  type Base = [u8; N];
+
+  type Bytes = [u8; N];
+
+  const ZERO: Self = Self([0u8; N]);
+
+  #[inline]
+  fn from_base(v: [u8; N]) -> Self {
+    Self(v)
+  }
+
+  #[inline]
+  fn to_base(&self) -> [u8; N] {
+    self.0
+  }
+
+  #[inline]
+  fn from_lendian(bytes: [u8; N]) -> Self {
+    Self(bytes)
+  }
+
+  #[inline]
+  fn to_lendian(&self) -> [u8; N] {
+    self.0
+  }
+
+  #[inline]
+  fn from_bendian(bytes: [u8; N]) -> Self {
+    // Resolves to the inherent `const` form.
+    Self::from_bendian(bytes)
+  }
+
+  #[inline]
+  fn to_bendian(&self) -> [u8; N] {
+    <[u8; N] as Numeric>::to_bendian(&self.0)
   }
 }
 
-/// Shared interface for all fixed-size hash blob types.
-pub trait HashBlob:
-  Copy + Clone + Default + Eq + Ord + Hash + fmt::Debug + fmt::Display + fmt::LowerHex + FromStr + AsRef<[u8]>
-{
-  /// The fixed-size byte array type.
-  type Bytes: Copy;
+#[cfg(feature = "codec")]
+impl<const N: usize> dash_types::codec::BaseCodec for HashBlob<N> {
+  fn decode(data: &mut &[u8]) -> Result<Self, dash_types::codec::DecodeError> {
+    dash_types::codec::take::<N>(data).map(<Self as Numeric>::from_lendian)
+  }
 
-  /// The all-zeros (null) hash.
-  const ZERO: Self;
-  /// Byte length of this hash type.
-  const LEN: usize;
+  fn encode(&self, buf: &mut impl dash_types::codec::EncodeBuf) {
+    buf.extend_from_slice(&self.0);
+  }
+}
 
-  /// Wrap raw little-endian bytes into a hash.
-  fn from_bytes(bytes: Self::Bytes) -> Self;
-  /// Return the raw little-endian bytes.
-  fn to_bytes(self) -> Self::Bytes;
+#[cfg(feature = "codec")]
+impl_type!(for[const N: usize] HashBlob<N>, N);
+
+impl<const N: usize> HashBlob<N> {
   /// Borrow the raw little-endian bytes.
-  fn as_bytes(&self) -> &Self::Bytes;
+  #[inline]
+  pub fn as_bytes(&self) -> &[u8; N] {
+    &self.0
+  }
+
   /// Construct from big-endian bytes (consensus display order).
-  fn new(be: Self::Bytes) -> Self;
-  /// Returns `true` if every byte is zero.
-  fn is_null(&self) -> bool;
-  /// Parse from a big-endian hex string.
-  fn from_hex(s: &str) -> Result<Self, ParseHexError>;
-}
-
-macro_rules! define_hash {
-  ($name:ident, $n:literal) => {
-    /// Fixed-size opaque hash blob stored in little-endian byte order.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct $name([u8; $n]);
-
-    impl $name {
-      /// The all-zeros (null) hash.
-      pub const ZERO: Self = Self([0u8; $n]);
-      /// Byte length of this hash type.
-      pub const LEN: usize = $n;
-
-      /// Wrap raw little-endian bytes into a hash.
-      #[inline]
-      pub const fn from_bytes(bytes: [u8; $n]) -> Self {
-        Self(bytes)
-      }
-
-      /// Return the raw little-endian bytes.
-      #[inline]
-      pub const fn to_bytes(self) -> [u8; $n] {
-        self.0
-      }
-
-      /// Borrow the raw little-endian bytes.
-      #[inline]
-      pub const fn as_bytes(&self) -> &[u8; $n] {
-        &self.0
-      }
-
-      /// Construct from big-endian bytes (consensus display order).
-      ///
-      /// This is the natural byte order produced by `hex_literal::hex!()` when
-      /// given a block hash or other consensus hex value. Internally the bytes
-      /// are stored little-endian, so this reverses the input.
-      #[inline]
-      pub const fn new(be: [u8; $n]) -> Self {
-        let mut le = [0u8; $n];
-        let mut i = 0;
-        while i < $n {
-          le[i] = be[$n - 1 - i];
-          i += 1;
-        }
-        Self(le)
-      }
-
-      /// Returns `true` if every byte is zero.
-      pub const fn is_null(&self) -> bool {
-        let mut i = 0;
-        while i < $n {
-          if self.0[i] != 0 {
-            return false;
-          }
-          i += 1;
-        }
-        true
-      }
-
-      /// Parse from a big-endian hex string.
-      ///
-      /// Accepts an optional `0x`/`0X` prefix followed by optional leading
-      /// spaces before the hex digits. The digits are big-endian (most
-      /// significant byte first), mirroring the consensus display convention.
-      ///
-      /// # Errors
-      ///
-      /// Returns `OddLength` when the input has an odd
-      /// number of hex characters, `InvalidLength` when the
-      /// decoded byte count exceeds the type width, or
-      /// `InvalidChar` on a non-hex digit.
-      pub fn from_hex(s: &str) -> Result<Self, ParseHexError> {
-        let s = s.as_bytes();
-
-        // strip optional 0x prefix
-        let s = if s.len() >= 2 && s[0] == b'0' && (s[1] == b'x' || s[1] == b'X') {
-          &s[2..]
-        } else {
-          s
-        };
-
-        // skip leading whitespace
-        let mut start = 0;
-        while start < s.len() && s[start] == b' ' {
-          start += 1;
-        }
-        let s = &s[start..];
-
-        if s.len() % 2 != 0 {
-          return Err(ParseHexError::OddLength);
-        }
-
-        let byte_len = s.len() / 2;
-        if byte_len > $n {
-          return Err(ParseHexError::InvalidLength {
-            expected: $n * 2,
-            got: s.len(),
-          });
-        }
-
-        let mut bytes = [0u8; $n];
-        // Big-endian hex: first byte is most significant,
-        // stored last in the little-endian array.
-        let mut i = 0;
-        while i < byte_len {
-          let hi = hex_val(s[i * 2])?;
-          let lo = hex_val(s[i * 2 + 1])?;
-          bytes[byte_len - 1 - i] = (hi << 4) | lo;
-          i += 1;
-        }
-
-        Ok(Self(bytes))
-      }
-    }
-
-    impl HashBlob for $name {
-      type Bytes = [u8; $n];
-      const ZERO: Self = Self::ZERO;
-      const LEN: usize = $n;
-
-      #[inline]
-      fn from_bytes(bytes: [u8; $n]) -> Self {
-        Self::from_bytes(bytes)
-      }
-
-      #[inline]
-      fn to_bytes(self) -> [u8; $n] {
-        Self::to_bytes(self)
-      }
-
-      #[inline]
-      fn as_bytes(&self) -> &[u8; $n] {
-        Self::as_bytes(self)
-      }
-
-      #[inline]
-      fn new(be: [u8; $n]) -> Self {
-        Self::new(be)
-      }
-
-      #[inline]
-      fn is_null(&self) -> bool {
-        Self::is_null(self)
-      }
-
-      #[inline]
-      fn from_hex(s: &str) -> Result<Self, ParseHexError> {
-        Self::from_hex(s)
-      }
-    }
-
-    impl Default for $name {
-      fn default() -> Self {
-        Self::ZERO
-      }
-    }
-
-    impl Ord for $name {
-      fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-        // Lexicographic on raw bytes (consensus ordering).
-        self.0.cmp(&other.0)
-      }
-    }
-
-    impl PartialOrd for $name {
-      fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
-        Some(self.cmp(other))
-      }
-    }
-
-    /// Reversed hex (big-endian display, consensus format).
-    impl fmt::Display for $name {
-      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in (0..$n).rev() {
-          let b = self.0[i];
-          let c1 = HEX_LOWER[(b >> 4) as usize] as char;
-          let c2 = HEX_LOWER[(b & 0x0f) as usize] as char;
-          f.write_fmt(format_args!("{c1}{c2}"))?;
-        }
-        Ok(())
-      }
-    }
-
-    impl fmt::LowerHex for $name {
-      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(self, f)
-      }
-    }
-
-    impl fmt::Debug for $name {
-      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}({})", stringify!($name), self)
-      }
-    }
-
-    impl FromStr for $name {
-      type Err = ParseHexError;
-
-      fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_hex(s)
-      }
-    }
-
-    impl From<[u8; $n]> for $name {
-      fn from(bytes: [u8; $n]) -> Self {
-        Self(bytes)
-      }
-    }
-
-    impl From<$name> for [u8; $n] {
-      fn from(h: $name) -> Self {
-        h.0
-      }
-    }
-
-    impl AsRef<[u8]> for $name {
-      fn as_ref(&self) -> &[u8] {
-        &self.0
-      }
-    }
-
-    impl AsRef<[u8; $n]> for $name {
-      fn as_ref(&self) -> &[u8; $n] {
-        &self.0
-      }
-    }
-
-    $crate::cfg_codec! {
-      impl $crate::__private::dash_types::codec::BaseCodec for $name {
-        fn decode(data: &mut &[u8]) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
-          $crate::__private::dash_types::codec::take::<$n>(data).map(Self::from_bytes)
-        }
-
-        fn encode(&self, buf: &mut impl $crate::__private::dash_types::codec::EncodeBuf) {
-          buf.extend_from_slice(&self.0);
-        }
-      }
-
-      $crate::__private::dash_types::impl_type!($name);
-    }
-
-    #[cfg(feature = "serde")]
-    impl ::serde::Serialize for $name {
-      fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&::alloc::format!("{}", self))
-      }
-    }
-
-    #[cfg(feature = "serde")]
-    impl<'de> ::serde::Deserialize<'de> for $name {
-      fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
-        Self::from_hex(&s).map_err(::serde::de::Error::custom)
-      }
-    }
-  };
-}
-
-define_hash!(Hash160, 20);
-define_hash!(Hash256, 32);
-define_hash!(Hash512, 64);
-
-impl Hash512 {
-  /// Truncate to 256 bits by taking the first 32 bytes (low half in LE).
   ///
-  /// This is the final step in the proof-of-work daisy chain: the 512-bit
-  /// intermediate result is truncated to 256 bits.
-  pub const fn truncate(&self) -> Hash256 {
-    let mut out = [0u8; 32];
+  /// This is the natural byte order produced by `hex_literal::hex!()` when
+  /// given a block hash or other consensus hex value. Internally the bytes
+  /// are stored little-endian, so this reverses the input.
+  #[inline]
+  pub const fn from_bendian(be: [u8; N]) -> Self {
+    let mut le = [0u8; N];
     let mut i = 0;
-    while i < 32 {
-      out[i] = self.0[i];
+    while i < N {
+      le[i] = be[N - 1 - i];
       i += 1;
     }
-    Hash256::from_bytes(out)
+    Self(le)
+  }
+
+  /// Returns `true` if every byte is zero.
+  pub fn is_null(&self) -> bool {
+    self.0 == [0u8; N]
+  }
+
+  /// Parse from a big-endian hex string.
+  ///
+  /// Accepts leading whitespace followed by an optional `0x`/`0X` prefix,
+  /// in that order. The digits are big-endian (MSB first), mirroring the
+  /// consensus display convention.
+  ///
+  /// # Errors
+  ///
+  /// Returns `OddLength` when input has an odd number of hex characters,
+  /// `InvalidLength` when the hex character count exceeds the type width, or
+  /// `InvalidChar` on a non-hex digit.
+  pub fn from_hex(s: &str) -> Result<Self, ParseHexError> {
+    let s = s.trim_start_matches(WHITESPACE);
+    let s = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
+
+    if s.len() > N * 2 {
+      return Err(ParseHexError::InvalidLength {
+        expected: N * 2,
+        got: s.len(),
+      });
+    }
+
+    let digits = HexToBytesIter::new(s).map_err(|_| ParseHexError::OddLength)?;
+    let mut bytes = [0u8; N];
+    for (slot, byte) in bytes.iter_mut().zip(digits.rev()) {
+      *slot = byte.map_err(|e| ParseHexError::InvalidChar(e.invalid_char()))?;
+    }
+
+    Ok(Self(bytes))
   }
 }
+
+impl<const N: usize> Default for HashBlob<N> {
+  fn default() -> Self {
+    Self::ZERO
+  }
+}
+
+/// Reversed hex (big-endian display, consensus format).
+impl<const N: usize> fmt::Display for HashBlob<N> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write_hex(self.as_bytes(), Case::Lower, f)
+  }
+}
+
+/// Big-endian hex, `N * 2` chars zero-padded.
+impl<const N: usize> fmt::LowerHex for HashBlob<N> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write_hex(self.as_bytes(), Case::Lower, f)
+  }
+}
+
+/// Big-endian hex (uppercase), `N * 2` chars zero-padded.
+impl<const N: usize> fmt::UpperHex for HashBlob<N> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write_hex(self.as_bytes(), Case::Upper, f)
+  }
+}
+
+/// Writes little-endian storage as big-endian hex, honouring `{:#x}`.
+fn write_hex(bytes: &[u8], case: Case, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+  if f.alternate() {
+    f.write_str(if case == Case::Lower { "0x" } else { "0X" })?;
+  }
+  for c in BytesToHexIter::new(bytes.iter().rev().copied(), case) {
+    f.write_char(c)?;
+  }
+  Ok(())
+}
+
+impl<const N: usize> fmt::Debug for HashBlob<N> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "HashBlob<{N}>({self})")
+  }
+}
+
+impl<const N: usize> FromStr for HashBlob<N> {
+  type Err = ParseHexError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    Self::from_hex(s)
+  }
+}
+
+type_cvrt!(for[const N: usize] From<[u8; N]> for HashBlob<N>, |b| Self(*b));
+type_cvrt!(for[const N: usize] From<HashBlob<N>> for [u8; N], |h| h.0);
+
+impl<const N: usize> AsRef<[u8]> for HashBlob<N> {
+  fn as_ref(&self) -> &[u8] {
+    &self.0
+  }
+}
+
+impl<const N: usize> AsRef<[u8; N]> for HashBlob<N> {
+  fn as_ref(&self) -> &[u8; N] {
+    &self.0
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<const N: usize> ::serde::Serialize for HashBlob<N> {
+  fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(&::alloc::format!("{}", self))
+  }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, const N: usize> ::serde::Deserialize<'de> for HashBlob<N> {
+  fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
+    Self::from_hex(&s).map_err(::serde::de::Error::custom)
+  }
+}
+
+/// 160-bit hash blob.
+pub type Hash160 = HashBlob<20>;
+
+/// 256-bit hash blob.
+pub type Hash256 = HashBlob<32>;

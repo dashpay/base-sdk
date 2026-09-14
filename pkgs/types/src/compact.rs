@@ -7,12 +7,46 @@
 //! CompactSize-encoded integers.
 
 use crate::codec::{BaseCodec, DecodeError, EncodeBuf};
+use crate::Numeric;
 
 /// An unsigned integer encoded in variable-width CompactSize.
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(::serde::Deserialize, ::serde::Serialize))]
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct CompactSize(u64);
+
+/// The base is the wrapped integer and the byte image is the integer itself.
+impl Numeric for CompactSize {
+  type Base = u64;
+
+  type Bytes = [u8; 8];
+
+  const ZERO: Self = Self(0);
+
+  fn from_base(v: u64) -> Self {
+    Self(v)
+  }
+
+  fn to_base(&self) -> u64 {
+    self.0
+  }
+
+  fn from_lendian(bytes: [u8; 8]) -> Self {
+    Self(u64::from_le_bytes(bytes))
+  }
+
+  fn to_lendian(&self) -> [u8; 8] {
+    self.0.to_le_bytes()
+  }
+
+  fn from_bendian(bytes: [u8; 8]) -> Self {
+    Self(u64::from_be_bytes(bytes))
+  }
+
+  fn to_bendian(&self) -> [u8; 8] {
+    self.0.to_be_bytes()
+  }
+}
 
 impl BaseCodec for CompactSize {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
@@ -73,11 +107,6 @@ impl CompactSize {
     Self(value)
   }
 
-  /// Returns the wrapped integer.
-  pub const fn get(self) -> u64 {
-    self.0
-  }
-
   /// Converts the value to a length no greater than `limit`.
   ///
   /// # Errors
@@ -117,6 +146,7 @@ mod tests {
   use super::CompactSize;
   use crate::codec::{BaseCodec, DecodeError};
   use crate::prelude::*;
+  use crate::Numeric;
 
   use rstest::*;
 
@@ -135,7 +165,7 @@ mod tests {
     assert_eq!(buf, wire, "encoding {value:#x}");
 
     let mut cursor = wire;
-    assert_eq!(CompactSize::decode(&mut cursor).map(CompactSize::get), Ok(value));
+    assert_eq!(CompactSize::decode(&mut cursor).map(|v| v.to_base()), Ok(value));
     assert!(cursor.is_empty(), "decode left {} bytes", cursor.len());
   }
 
@@ -172,6 +202,6 @@ mod tests {
   #[rstest]
   fn conversions_preserve_the_value() {
     assert_eq!(u64::from(CompactSize::from(0xDEAD_u64)), 0xDEAD);
-    assert_eq!(CompactSize::from(7usize).get(), 7);
+    assert_eq!(CompactSize::from(7usize).to_base(), 7);
   }
 }

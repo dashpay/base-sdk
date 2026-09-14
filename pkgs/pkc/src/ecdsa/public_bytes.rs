@@ -73,7 +73,7 @@ impl BaseCodec for EcdsaPkBytes {
     let raw = read_bytes(data, n)?;
     let prefix = raw
       .first()
-      .and_then(|&b| Sec1Byte::from_base(b))
+      .and_then(|&b| Sec1Byte::try_from_base(b))
       .ok_or_else(|| DecodeError::InvalidValue {
         expected: Sec1Byte::variants().iter().map(|p| u64::from(p.to_base())).collect(),
         actual: raw.first().map_or(0, |&b| u64::from(b)),
@@ -126,7 +126,7 @@ impl EcdsaPkBytes {
 
   /// Constructs from raw SEC1 bytes.
   pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
-    let prefix = Sec1Byte::from_base(*bytes.first()?)?;
+    let prefix = Sec1Byte::try_from_base(*bytes.first()?)?;
     if bytes.len() != prefix.size() {
       return None;
     }
@@ -258,6 +258,6 @@ mod tests {
   #[case(0x00)]
   #[case(0x05)]
   fn sec1_byte_rejects_invalid(#[case] byte: u8) {
-    assert!(Sec1Byte::from_base(byte).is_none());
+    assert!(Sec1Byte::try_from_base(byte).is_none());
   }
 }

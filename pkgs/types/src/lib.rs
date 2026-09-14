@@ -15,6 +15,7 @@ extern crate std;
 
 mod entity;
 mod macros;
+mod numeric;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
 mod secret;
@@ -23,15 +24,17 @@ mod traits;
 #[cfg(feature = "serde")]
 pub mod serialize;
 
-pub use macros::qtypestr;
-pub use traits::{Checkable, Hashable};
+pub use crate::macros::qtypestr;
+pub use crate::numeric::Numeric;
+pub use crate::traits::{Checkable, Hashable};
+
+pub use zeroize;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "codec")] {
     #[allow(unused_macros, reason = "used by feature-gated submodules")]
     mod adapters;
     mod compact;
-    mod uint;
 
     pub mod codec;
     pub mod type_id;
@@ -54,5 +57,4 @@ pub mod __private {
   #[cfg(feature = "serde")]
   pub use serde;
   pub use subtle;
-  pub use zeroize;
 }

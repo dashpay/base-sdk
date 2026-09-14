@@ -181,11 +181,12 @@ impl<S: BlsScheme> BlsPublicKey<S> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{id_from_hex, make_id, sequential_ids, GROUP_ORDER, MSG_DEADBEEF, RSEED};
+  use crate::bls::tests::{make_id, sequential_ids, GROUP_ORDER, MSG_DEADBEEF, RSEED};
   use crate::bls::{BlsScChia, BlsScIetf};
 
   use cfg_if::cfg_if;
   use dash_dev::{arr_from_hex, Corpus, Value};
+  use dash_types::Numeric;
   use getrandom::SysRng;
   use hex_conservative::DisplayHex;
   use rand_core::UnwrapErr;
@@ -201,7 +202,7 @@ mod tests {
         break;
       }
     }
-    BlsShareId::from_bytes(bytes)
+    BlsShareId::from_bendian(bytes)
   }
 
   /// A 1-of-n split hands the master key to every participant, so a `threshold`
@@ -234,14 +235,14 @@ mod tests {
   fn assert_zero_reducing_id_rejected<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
 
-    let zero = BlsShareId::from_bytes([0u8; 32]);
+    let zero = BlsShareId::from_bendian([0u8; 32]);
     let ids = [make_id(1), zero];
     assert!(matches!(
       sk.split(2, &ids, &mut UnwrapErr(SysRng)),
       Err(BlsError::InvalidShareId)
     ));
 
-    let order = BlsShareId::from_bytes(GROUP_ORDER);
+    let order = BlsShareId::from_bendian(GROUP_ORDER);
     let ids = [make_id(1), order];
     assert!(matches!(
       sk.split(2, &ids, &mut UnwrapErr(SysRng)),
@@ -298,7 +299,7 @@ mod tests {
       Err(BlsError::InvalidVerificationVector)
     ));
     assert!(matches!(
-      BlsSecretKey::<S>::derive_share(&master_refs, &BlsShareId::from_bytes([0u8; 32])),
+      BlsSecretKey::<S>::derive_share(&master_refs, &BlsShareId::from_bendian([0u8; 32])),
       Err(BlsError::InvalidShareId)
     ));
   }
@@ -413,7 +414,7 @@ mod tests {
         let sk_share = BlsSecretKey::<S>::from_bytes(&arr_from_hex(sk_hex.as_str().unwrap())).unwrap();
         let pk_from_share = sk_share.public_key();
 
-        let member_id = id_from_hex(&member_ids[member_idx]);
+        let member_id = BlsShareId::from_hex(&member_ids[member_idx]).unwrap();
         let pk_from_vvec = BlsPublicKey::derive_share(&vvec_refs, &member_id).unwrap();
 
         let matches = pk_from_share.to_bytes() == pk_from_vvec.to_bytes();
@@ -565,7 +566,7 @@ mod tests {
     let sig_shares: Vec<BlsSigShare<S>> = signer_ids
       .iter()
       .map(|sid| {
-        let member_id = BlsShareId::from_bytes(arr_from_hex::<32>(sid));
+        let member_id = BlsShareId::from_bendian(arr_from_hex::<32>(sid));
         let sid_display = member_id.to_string();
         let idx = member_ids.iter().position(|m| *m == sid_display).unwrap();
         let sk = BlsSecretKey::<S>::from_bytes(&arr_from_hex(commits[idx]["sk_share"].as_str().unwrap())).unwrap();
@@ -584,7 +585,10 @@ mod tests {
     );
 
     // Cross-check: recovery from all members should match the subset recovery.
-    let all_ids: Vec<BlsShareId> = member_ids.iter().map(|mid| id_from_hex(mid)).collect();
+    let all_ids: Vec<BlsShareId> = member_ids
+      .iter()
+      .map(|mid| BlsShareId::from_hex(mid).unwrap())
+      .collect();
     let all_shares: Vec<BlsSigShare<S>> = commits
       .iter()
       .zip(all_ids.iter())

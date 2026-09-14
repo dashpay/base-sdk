@@ -6,7 +6,9 @@
 
 //! 256-bit unsigned arithmetic integer.
 
-use crate::Hash256;
+use crate::{Hash256, ParseHexError};
+
+use dash_types::Numeric;
 
 use core::cmp::Ordering;
 use core::fmt;
@@ -14,6 +16,7 @@ use core::ops::{
   Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign, Neg,
   Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
+use core::str::FromStr;
 
 /// 256-bit unsigned arithmetic integer.
 ///
@@ -25,66 +28,33 @@ pub struct Arith256 {
   hi: u128,
 }
 
-impl Arith256 {
-  /// The additive identity (all bits zero).
-  pub const ZERO: Self = Self { lo: 0, hi: 0 };
-  /// The multiplicative identity.
-  pub const ONE: Self = Self { lo: 1, hi: 0 };
-  /// The largest representable value (all bits set).
-  pub const MAX: Self = Self {
-    lo: u128::MAX,
-    hi: u128::MAX,
-  };
-  /// Byte length.
-  pub const LEN: usize = 32;
+impl Numeric for Arith256 {
+  type Base = [u8; 32];
 
-  /// Create from a `u64`, zero-extending the upper bits.
+  type Bytes = [u8; 32];
+
+  const ZERO: Self = Self { lo: 0, hi: 0 };
+
   #[inline]
-  pub const fn from_u64(v: u64) -> Self {
-    Self { lo: v as u128, hi: 0 }
+  fn from_base(v: [u8; 32]) -> Self {
+    Self::from_lendian(v)
   }
 
-  /// Create from a `u128`, zero-extending the upper bits.
   #[inline]
-  pub const fn from_u128(v: u128) -> Self {
-    Self { lo: v, hi: 0 }
+  fn to_base(&self) -> [u8; 32] {
+    self.to_lendian()
   }
 
-  /// Construct from little-endian bytes.
-  ///
-  /// `bytes[0..16]` maps to `lo`, `bytes[16..32]` to `hi`.
   #[inline]
-  pub const fn from_le_bytes(bytes: [u8; 32]) -> Self {
-    let lo = u128::from_le_bytes(split_low(bytes));
-    let hi = u128::from_le_bytes(split_high(bytes));
-    Self { lo, hi }
-  }
-
-  /// Construct from big-endian bytes.
-  #[inline]
-  pub const fn from_be_bytes(bytes: [u8; 32]) -> Self {
-    let mut le = [0u8; 32];
-    let mut i = 0;
-    while i < 32 {
-      le[i] = bytes[31 - i];
-      i += 1;
+  fn from_lendian(bytes: [u8; 32]) -> Self {
+    Self {
+      lo: u128::from_le_bytes(split_low(bytes)),
+      hi: u128::from_le_bytes(split_high(bytes)),
     }
-    Self::from_le_bytes(le)
   }
 
-  /// Construct from big-endian bytes (consensus display order).
-  ///
-  /// This is the natural byte order produced by `hex_literal::hex!()` when
-  /// given a consensus hex value. Internally the value is stored
-  /// little-endian, so this reverses the input before decoding.
   #[inline]
-  pub const fn new(be: [u8; 32]) -> Self {
-    Self::from_be_bytes(be)
-  }
-
-  /// Convert to little-endian bytes.
-  #[inline]
-  pub const fn to_le_bytes(self) -> [u8; 32] {
+  fn to_lendian(&self) -> [u8; 32] {
     let lo = self.lo.to_le_bytes();
     let hi = self.hi.to_le_bytes();
     let mut out = [0u8; 32];
@@ -97,59 +67,83 @@ impl Arith256 {
     out
   }
 
-  /// Convert to big-endian bytes.
   #[inline]
-  pub const fn to_be_bytes(self) -> [u8; 32] {
-    let le = self.to_le_bytes();
-    let mut be = [0u8; 32];
+  fn from_bendian(bytes: [u8; 32]) -> Self {
+    // Resolves to the inherent `const` form.
+    Self::from_bendian(bytes)
+  }
+
+  #[inline]
+  fn to_bendian(&self) -> [u8; 32] {
+    let mut out = self.to_lendian();
+    out.reverse();
+    out
+  }
+}
+
+impl Arith256 {
+  /// The multiplicative identity.
+  pub const ONE: Self = Self { lo: 1, hi: 0 };
+  /// The largest representable value (all bits set).
+  pub const MAX: Self = Self {
+    lo: u128::MAX,
+    hi: u128::MAX,
+  };
+  /// Create from a `u64`, zero-extending the upper bits.
+  #[inline]
+  pub fn from_u64(v: u64) -> Self {
+    Self { lo: v as u128, hi: 0 }
+  }
+
+  /// Create from a `u128`, zero-extending the upper bits.
+  #[inline]
+  pub fn from_u128(v: u128) -> Self {
+    Self { lo: v, hi: 0 }
+  }
+
+  /// Construct from big-endian bytes (consensus display order).
+  ///
+  /// This is the natural byte order produced by `hex_literal::hex!()` when
+  /// given a consensus hex value. Internally the value is stored
+  /// little-endian, so this reverses the input before decoding.
+  ///
+  /// Shadows [`Numeric::from_bendian`] with a `const` form.
+  #[inline]
+  pub const fn from_bendian(be: [u8; 32]) -> Self {
+    let mut le = [0u8; 32];
     let mut i = 0;
     while i < 32 {
-      be[i] = le[31 - i];
+      le[i] = be[31 - i];
       i += 1;
     }
-    be
-  }
-
-  /// Returns `true` if the value is zero.
-  #[inline]
-  pub const fn is_zero(self) -> bool {
-    self.lo == 0 && self.hi == 0
-  }
-
-  /// Returns `true` if the value is one.
-  #[inline]
-  pub const fn is_one(self) -> bool {
-    self.lo == 1 && self.hi == 0
-  }
-
-  /// Returns `true` if the value is MAX (all bits set).
-  #[inline]
-  pub const fn is_max(self) -> bool {
-    self.lo == u128::MAX && self.hi == u128::MAX
+    Self {
+      lo: u128::from_le_bytes(split_low(le)),
+      hi: u128::from_le_bytes(split_high(le)),
+    }
   }
 
   /// Returns the lowest 32 bits of the value.
   #[inline]
-  pub const fn low_u32(self) -> u32 {
+  pub fn low_u32(self) -> u32 {
     self.lo as u32
   }
 
   /// Returns the lowest 64 bits of the value.
   #[inline]
-  pub const fn low_u64(self) -> u64 {
+  pub fn low_u64(self) -> u64 {
     self.lo as u64
   }
 
   /// Returns the lowest 128 bits of the value.
   #[inline]
-  pub const fn low_u128(self) -> u128 {
+  pub fn low_u128(self) -> u128 {
     self.lo
   }
 
   /// Saturating conversion to u128. Returns u128::MAX if value exceeds 128
   /// bits.
   #[inline]
-  pub const fn saturating_to_u128(self) -> u128 {
+  pub fn saturating_to_u128(self) -> u128 {
     if self.hi != 0 {
       u128::MAX
     } else {
@@ -159,7 +153,7 @@ impl Arith256 {
 
   /// Highest set bit position plus one, or zero if zero.
   #[inline]
-  pub const fn bits(self) -> u32 {
+  pub fn bits(self) -> u32 {
     if self.hi != 0 {
       256 - self.hi.leading_zeros()
     } else if self.lo != 0 {
@@ -171,7 +165,7 @@ impl Arith256 {
 
   /// Wrapping addition.
   #[inline]
-  pub const fn wrapping_add(self, rhs: Self) -> Self {
+  pub fn wrapping_add(self, rhs: Self) -> Self {
     let (lo, carry) = self.lo.overflowing_add(rhs.lo);
     let hi = self.hi.wrapping_add(rhs.hi).wrapping_add(carry as u128);
     Self { lo, hi }
@@ -179,35 +173,14 @@ impl Arith256 {
 
   /// Wrapping subtraction.
   #[inline]
-  pub const fn wrapping_sub(self, rhs: Self) -> Self {
+  pub fn wrapping_sub(self, rhs: Self) -> Self {
     let (lo, borrow) = self.lo.overflowing_sub(rhs.lo);
     let hi = self.hi.wrapping_sub(rhs.hi).wrapping_sub(borrow as u128);
     Self { lo, hi }
   }
 
-  /// Two's complement negation.
-  #[inline]
-  pub const fn wrapping_neg(self) -> Self {
-    self.bitwise_not().wrapping_add(Self::ONE)
-  }
-
-  /// Wrapping increment (add one).
-  #[inline]
-  pub const fn wrapping_inc(self) -> Self {
-    self.wrapping_add(Self::ONE)
-  }
-
-  /// Bitwise NOT.
-  #[inline]
-  pub const fn bitwise_not(self) -> Self {
-    Self {
-      lo: !self.lo,
-      hi: !self.hi,
-    }
-  }
-
   /// Wrapping multiply via 64-bit limb decomposition.
-  pub const fn wrapping_mul(self, rhs: Self) -> Self {
+  pub fn wrapping_mul(self, rhs: Self) -> Self {
     let a0 = self.lo as u64 as u128;
     let a1 = (self.lo >> 64) as u64 as u128;
     let a2 = self.hi as u64 as u128;
@@ -258,8 +231,8 @@ impl Arith256 {
   }
 
   /// Checked division. Returns `None` on divide-by-zero.
-  pub const fn checked_div(self, rhs: Self) -> Option<Self> {
-    if rhs.is_zero() {
+  pub fn checked_div(self, rhs: Self) -> Option<Self> {
+    if rhs == Self::ZERO {
       return None;
     }
     Some(self.div_rem(rhs).0)
@@ -268,8 +241,8 @@ impl Arith256 {
   /// Quotient and remainder via bitwise long division.
   ///
   /// Returns `(ZERO, ZERO)` when `rhs` is zero.
-  pub const fn div_rem(self, rhs: Self) -> (Self, Self) {
-    if rhs.is_zero() {
+  pub fn div_rem(self, rhs: Self) -> (Self, Self) {
+    if rhs == Self::ZERO {
       return (Self::ZERO, Self::ZERO);
     }
 
@@ -306,7 +279,7 @@ impl Arith256 {
 
   /// Wrapping left shift.
   #[inline]
-  pub const fn wrapping_shl(self, shift: u32) -> Self {
+  pub fn wrapping_shl(self, shift: u32) -> Self {
     if shift >= 256 {
       return Self::ZERO;
     }
@@ -328,7 +301,7 @@ impl Arith256 {
 
   /// Wrapping right shift.
   #[inline]
-  pub const fn wrapping_shr(self, shift: u32) -> Self {
+  pub fn wrapping_shr(self, shift: u32) -> Self {
     if shift >= 256 {
       return Self::ZERO;
     }
@@ -348,36 +321,8 @@ impl Arith256 {
     }
   }
 
-  /// Wrapping multiply by a `u32` scalar.
-  pub const fn wrapping_mul_u32(self, b: u32) -> Self {
-    let b = b as u128;
-    let a0 = self.lo as u64 as u128;
-    let a1 = (self.lo >> 64) as u64 as u128;
-    let a2 = self.hi as u64 as u128;
-    let a3 = (self.hi >> 64) as u64 as u128;
-
-    let n0 = a0 * b;
-    let r0 = n0 as u64 as u128;
-    let carry = n0 >> 64;
-
-    let n1 = carry + a1 * b;
-    let r1 = n1 as u64 as u128;
-    let carry = n1 >> 64;
-
-    let n2 = carry + a2 * b;
-    let r2 = n2 as u64 as u128;
-    let carry = n2 >> 64;
-
-    let r3 = (carry + a3 * b) as u64 as u128;
-
-    Self {
-      lo: r0 | (r1 << 64),
-      hi: r2 | (r3 << 64),
-    }
-  }
-
   /// Multiply by a `u64` scalar, returning the result and an overflow flag.
-  pub const fn mul_u64(self, b: u64) -> (Self, bool) {
+  pub fn mul_u64(self, b: u64) -> (Self, bool) {
     let b = b as u128;
     let a0 = self.lo as u64 as u128;
     let a1 = (self.lo >> 64) as u64 as u128;
@@ -409,21 +354,21 @@ impl Arith256 {
     )
   }
 
-  /// Compute `2^256 / (self + 1)`. Returns MAX when self is zero or one.
-  pub const fn inverse(self) -> Self {
-    if self.is_zero() || self.is_one() {
-      return Self::MAX;
+  /// Work contributed by this difficulty target, `2^256 / (self + 1)`.
+  pub fn block_proof(self) -> Self {
+    if self == Self::ZERO {
+      return Self::ZERO;
     }
-    if self.is_max() {
+    if self == Self::MAX {
       return Self::ONE;
     }
-    let d = self.wrapping_inc();
-    // !self = 2^256 - 1 - self, so (!self) / (self + 1) + 1 ~ 2^256 / (self + 1)
-    self.bitwise_not().div_rem(d).0.wrapping_inc()
+    let d = self.wrapping_add(Self::ONE);
+    // !self = 2^256 - 1 - self, so (!self) / (self + 1) + 1 = 2^256 / (self + 1)
+    (!self).div_rem(d).0.wrapping_add(Self::ONE)
   }
 
   /// Approximate conversion to `f64`.
-  pub const fn to_f64(self) -> f64 {
+  pub fn to_f64(self) -> f64 {
     let a0 = self.lo as u64;
     let a1 = (self.lo >> 64) as u64;
     let a2 = self.hi as u64;
@@ -488,8 +433,7 @@ impl fmt::Debug for Arith256 {
 /// Reversed hex (big-endian display, consensus format).
 impl fmt::Display for Arith256 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let h: Hash256 = (*self).into();
-    fmt::Display::fmt(&h, f)
+    fmt::LowerHex::fmt(self, f)
   }
 }
 
@@ -510,6 +454,15 @@ impl fmt::UpperHex for Arith256 {
       f.write_str("0x")?;
     }
     write!(f, "{:032X}{:032X}", self.hi, self.lo)
+  }
+}
+
+/// Parses the big-endian hex rendered by [`Display`](fmt::Display).
+impl FromStr for Arith256 {
+  type Err = ParseHexError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    Hash256::from_hex(s).map(Self::from)
   }
 }
 
@@ -545,13 +498,13 @@ impl From<u128> for Arith256 {
 
 impl From<Hash256> for Arith256 {
   fn from(h: Hash256) -> Self {
-    Self::from_le_bytes(h.to_bytes())
+    Self::from_lendian(h.to_lendian())
   }
 }
 
 impl From<Arith256> for Hash256 {
   fn from(a: Arith256) -> Self {
-    Hash256::from_bytes(a.to_le_bytes())
+    Hash256::from_lendian(a.to_lendian())
   }
 }
 
@@ -604,7 +557,7 @@ impl Mul<u32> for Arith256 {
   type Output = Self;
   #[inline]
   fn mul(self, rhs: u32) -> Self {
-    self.wrapping_mul_u32(rhs)
+    self.mul_u64(u64::from(rhs)).0
   }
 }
 
@@ -652,7 +605,7 @@ impl Neg for Arith256 {
   type Output = Self;
   #[inline]
   fn neg(self) -> Self {
-    self.wrapping_neg()
+    (!self).wrapping_add(Self::ONE)
   }
 }
 
@@ -660,7 +613,10 @@ impl Not for Arith256 {
   type Output = Self;
   #[inline]
   fn not(self) -> Self {
-    self.bitwise_not()
+    Self {
+      lo: !self.lo,
+      hi: !self.hi,
+    }
   }
 }
 

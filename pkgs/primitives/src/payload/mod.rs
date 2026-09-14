@@ -23,7 +23,7 @@ use crate::hash_impl;
 use crate::prelude::*;
 use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
-use dash_num::{make_hash, Hash256};
+use dash_num::make_hash;
 use dash_types::codec::Checkable;
 use dash_types::type_id::{TypeId, Unencodable};
 use dash_types::{enum_map, impl_num};
@@ -44,17 +44,15 @@ pub(crate) const PROTX_VERSION_BASIC_BLS: u16 = 2;
 pub(crate) const PROTX_VERSION_EXT_ADDR: u16 = 3;
 
 make_hash! {
-  Hash256,
   /// LLMQ quorum identifier.
-  QuorumHash
+  QuorumHash, 32
 }
 
 hash_impl!(QuorumHash);
 
 make_hash! {
-  Hash256,
   /// Hash of serialized transaction inputs.
-  InputsHash
+  InputsHash, 32
 }
 
 hash_impl!(InputsHash);

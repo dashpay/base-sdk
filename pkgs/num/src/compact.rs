@@ -6,20 +6,18 @@
 
 //! Compact difficulty target encoding.
 
-use crate::Arith256;
+use crate::{Arith256, ParseHexError};
 
-#[cfg(feature = "codec")]
-use dash_types::codec::NumCodec;
 #[cfg(feature = "codec")]
 use dash_types::impl_num;
+use dash_types::Numeric;
 
 use core::fmt;
+use core::str::FromStr;
 
-/// Compact difficulty target -- a newtype around the consensus `nBits` u32.
-///
-/// Construct directly via `CompactTarget(0x1d00ffff)`.
+/// Compact difficulty target.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CompactTarget(pub u32);
+pub struct CompactTarget(u32);
 
 /// Result of decoding a compact difficulty target.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
@@ -33,8 +31,13 @@ pub struct DecodedTarget {
   pub overflow: bool,
 }
 
-#[cfg(feature = "codec")]
-impl NumCodec<u32> for CompactTarget {
+impl Numeric for CompactTarget {
+  type Base = u32;
+
+  type Bytes = [u8; 4];
+
+  const ZERO: Self = Self(0);
+
   fn from_base(v: u32) -> Self {
     Self(v)
   }
@@ -42,14 +45,36 @@ impl NumCodec<u32> for CompactTarget {
   fn to_base(&self) -> u32 {
     self.0
   }
+
+  fn from_lendian(bytes: [u8; 4]) -> Self {
+    Self::from_base(u32::from_lendian(bytes))
+  }
+
+  fn to_lendian(&self) -> [u8; 4] {
+    self.0.to_lendian()
+  }
+
+  fn from_bendian(bytes: [u8; 4]) -> Self {
+    Self::from_base(u32::from_bendian(bytes))
+  }
+
+  fn to_bendian(&self) -> [u8; 4] {
+    self.0.to_bendian()
+  }
 }
 
 #[cfg(feature = "codec")]
 impl_num!(CompactTarget, u32);
 
 impl CompactTarget {
-  /// Decode this compact (nBits) representation into a 256-bit target value.
-  pub const fn decode(self) -> DecodedTarget {
+  /// Wraps a raw `nBits` word.
+  #[inline]
+  pub fn new(bits: u32) -> Self {
+    Self(bits)
+  }
+
+  /// Expand this compact (nBits) representation to a 256-bit target value.
+  pub fn expand(self) -> DecodedTarget {
     let compact = self.0;
     let size = (compact >> 24) as usize;
     let mut word = compact & 0x007f_ffff;
@@ -79,16 +104,38 @@ impl fmt::Display for CompactTarget {
   }
 }
 
-impl Arith256 {
-  /// Decode a compact (nBits) representation into a 256-bit target value.
-  ///
-  /// Convenience method that delegates to [`CompactTarget::decode`].
-  pub const fn from_compact(ct: CompactTarget) -> DecodedTarget {
-    ct.decode()
-  }
+/// Parses the `0x`-prefixed hex rendered by [`Display`](fmt::Display).
+impl FromStr for CompactTarget {
+  type Err = ParseHexError;
 
-  /// Encode this value as a compact (nBits) representation.
-  pub const fn to_compact(self, negative: bool) -> CompactTarget {
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    let digits = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
+
+    if digits.is_empty() || digits.len() > 8 {
+      return Err(ParseHexError::InvalidLength {
+        expected: 8,
+        got: digits.len(),
+      });
+    }
+
+    let mut bits: u32 = 0;
+    for b in digits.bytes() {
+      let digit = match b {
+        b'0'..=b'9' => b - b'0',
+        b'a'..=b'f' => b - b'a' + 10,
+        b'A'..=b'F' => b - b'A' + 10,
+        _ => return Err(ParseHexError::InvalidChar(b)),
+      };
+      bits = (bits << 4) | u32::from(digit);
+    }
+
+    Ok(Self(bits))
+  }
+}
+
+impl Arith256 {
+  /// Compact this value to its `nBits` representation.
+  pub fn compact(self, negative: bool) -> CompactTarget {
     let mut size = self.bits().div_ceil(8);
     let mut compact: u32 = if size <= 3 {
       (self.low_u64() << (8 * (3 - size as u64))) as u32

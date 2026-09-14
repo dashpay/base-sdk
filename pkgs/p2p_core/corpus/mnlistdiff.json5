@@ -57,7 +57,7 @@
               "port": 9999
             },
             "operatorKey": "b60fba0f9c1a76b69619c17c145f8a7ee9eaa13c214219777d56b15efc68c43f04873f8235b738d8e7b806c4f8afbc4a",
-            "votingKeyId": "903852cf6c818b2935f110be072b0a0a48cb0b9b",
+            "votingKeyId": "9b0bcb480a0a2b07be10f135298b816ccf523890",
             "isValid": false,
             "mnType": 0,
             "platformHTTPPort": null,
@@ -72,7 +72,7 @@
               "port": 9999
             },
             "operatorKey": "832e090090b5f78ff6be581bd51ddc4511e9ecc5f147cef310ffc2cc452847b4e3f577f1fd84039789e613a41e11ceab",
-            "votingKeyId": "8855d6ef13eb70da08097075a51d2ad4953f8e98",
+            "votingKeyId": "988e3f95d42a1da575700908da70eb13efd65588",
             "isValid": true,
             "mnType": 0,
             "platformHTTPPort": null,
@@ -87,7 +87,7 @@
               "port": 9999
             },
             "operatorKey": "a0d2cd8b8ff02763ce7ccc19daa78922b79e68e0fe884695680176f4fb7dc96fb77e8bc25f0765b9f9d9ab9e2493ce4b",
-            "votingKeyId": "ac099cfe8eef1042573fa821537941e3b594c306",
+            "votingKeyId": "06c394b5e341795321a83f574210ef8efe9c09ac",
             "isValid": true,
             "mnType": 0,
             "platformHTTPPort": null,
@@ -102,11 +102,11 @@
               "port": 9999
             },
             "operatorKey": "821c519051c7c590fbbe986a93643b52f66df9a1ed80fa08952e475ec4f1da7f76a78aa0ef8ddf0d2404368ea8e584b6",
-            "votingKeyId": "8d724c803b333e755fe046c86780baf9b557b165",
+            "votingKeyId": "65b157b5f9ba8067c846e05f753e333b804c728d",
             "isValid": true,
             "mnType": 1,
             "platformHTTPPort": 443,
-            "platformNodeId": "5d3c77d719ee6c6558c68f59a9770c4ae85506bb"
+            "platformNodeId": "bb0655e84a0c77a9598fc658656cee19d7773c5d"
           },
           {
             "version": 2,
@@ -117,7 +117,7 @@
               "port": 9999
             },
             "operatorKey": "802e1e55c506e930327788db0528089a1d48cbc350cfe874514873ac2bcaee483a0f6b225552e6c1b02169d0a7403117",
-            "votingKeyId": "bf516c77f67340fac3acee0c439c4748e72b76e6",
+            "votingKeyId": "e6762be748479c430ceeacc3fa4073f6776c51bf",
             "isValid": true,
             "mnType": 0,
             "platformHTTPPort": null,
@@ -132,7 +132,7 @@
               "port": 9999
             },
             "operatorKey": "917e3809889b89ac65c6cc2b4544a507656cec1a1040a82662be13cf93bfa1d12f2b5205f3b6b0c5c43571a8eb94709b",
-            "votingKeyId": "8db7bc2ee991e5c6917fd6627d922f00c958881a",
+            "votingKeyId": "1a8858c9002f927d62d67f91c6e591e92ebcb78d",
             "isValid": true,
             "mnType": 0,
             "platformHTTPPort": null,
@@ -147,7 +147,7 @@
               "port": 9999
             },
             "operatorKey": "b4805c1a34826a5b2d6f610437958ceaeb0e870261ffe97f57c384928c26c1b4f7bff6d024d1311fb6c704cd15a74feb",
-            "votingKeyId": "5378923253011931f21fb5ae02361baa19180945",
+            "votingKeyId": "45091819aa1b3602aeb51ff23119015332927853",
             "isValid": true,
             "mnType": 0,
             "platformHTTPPort": null,
@@ -162,7 +162,7 @@
               "port": 9999
             },
             "operatorKey": "b838c7baca69548d9a7e2a98385d300e81cc2d738a6444d0cbfce0120689b9f16252308558ea269198407fc22e29897f",
-            "votingKeyId": "ccfa4fe906ed265f97987677d929adeb50c15ea5",
+            "votingKeyId": "a55ec150ebad29d9777698975f26ed06e94ffacc",
             "isValid": true,
             "mnType": 0,
             "platformHTTPPort": null,

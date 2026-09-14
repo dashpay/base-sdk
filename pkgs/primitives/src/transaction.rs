@@ -14,10 +14,10 @@ use crate::{codec_type, hash_impl};
 use bitcoin_hashes::sha256d;
 use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use bitcoin_units::Amount;
-use dash_num::{make_hash, Hash256};
+use dash_num::make_hash;
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable};
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::{impl_type, CompactSize};
+use dash_types::{impl_type, CompactSize, Numeric};
 
 use core::fmt;
 
@@ -28,9 +28,8 @@ pub const MAX_TX_EXTRA_PAYLOAD: usize = 10_000;
 pub const MAX_COINBASE_SCRIPT_SIZE: usize = 100;
 
 make_hash! {
-  Hash256,
   /// SHA256d hash of a serialized transaction.
-  TxHash
+  TxHash, 32
 }
 
 hash_impl!(TxHash);
@@ -329,7 +328,7 @@ impl Hashable for Transaction {
   fn hash(&self) -> TxHash {
     let mut buf = Vec::new();
     self.encode(&mut buf);
-    TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
+    TxHash::from_lendian(sha256d::Hash::hash(&buf).to_byte_array())
   }
 }
 

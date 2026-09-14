@@ -6,12 +6,17 @@
 
 //! Compact difficulty target encoding tests.
 
+#![expect(clippy::unwrap_used, reason = "test code")]
+
 use dash_num::{Arith256, CompactTarget};
+use dash_types::Numeric;
 use rstest::*;
+
+use core::str::FromStr;
 
 /// Assert compact decode flags match expectations.
 fn check_compact(compact: u32, expected_negative: bool, expected_overflow: bool) {
-  let ct = CompactTarget(compact).decode();
+  let ct = CompactTarget::new(compact).expand();
   assert_eq!(
     ct.negative, expected_negative,
     "negative mismatch for compact {compact:#010x}"
@@ -32,9 +37,9 @@ fn check_compact(compact: u32, expected_negative: bool, expected_overflow: bool)
 #[case(0x0300_0000)]
 #[case(0x0400_0000)]
 fn zero_value(#[case] compact: u32) {
-  let ct = CompactTarget(compact).decode();
+  let ct = CompactTarget::new(compact).expand();
   assert_eq!(ct.value, Arith256::ZERO);
-  assert_eq!(ct.value.to_compact(false), CompactTarget(0));
+  assert_eq!(ct.value.compact(false), CompactTarget::new(0));
   check_compact(compact, false, false);
 }
 
@@ -47,34 +52,34 @@ fn zero_value(#[case] compact: u32) {
 #[case(0x0380_0000)]
 #[case(0x0480_0000)]
 fn sign_bit_but_zero_word(#[case] compact: u32) {
-  let ct = CompactTarget(compact).decode();
+  let ct = CompactTarget::new(compact).expand();
   assert_eq!(ct.value, Arith256::ZERO);
-  assert_eq!(ct.value.to_compact(false), CompactTarget(0));
+  assert_eq!(ct.value.compact(false), CompactTarget::new(0));
   check_compact(compact, false, false);
 }
 
 #[rstest]
 fn compact_01123456() {
-  let ct = CompactTarget(0x01123456).decode();
+  let ct = CompactTarget::new(0x01123456).expand();
   assert_eq!(ct.value, Arith256::from_u64(0x12));
-  assert_eq!(ct.value.to_compact(false), CompactTarget(0x01120000));
+  assert_eq!(ct.value.compact(false), CompactTarget::new(0x01120000));
   check_compact(0x01123456, false, false);
 }
 
 #[rstest]
 fn compact_0x80_avoids_sign_bit() {
   let num = Arith256::from_u64(0x80);
-  assert_eq!(num.to_compact(false), CompactTarget(0x02008000));
+  assert_eq!(num.compact(false), CompactTarget::new(0x02008000));
 }
 
 #[rstest]
 fn compact_01fedcba() {
   // word=0x7edcba, size=1, shifted=0x7e, sign bit set
-  let ct = CompactTarget(0x01fedcba).decode();
+  let ct = CompactTarget::new(0x01fedcba).expand();
   assert_eq!(ct.value, Arith256::from_u64(0x7e));
   assert!(ct.negative);
   assert!(!ct.overflow);
-  assert_eq!(ct.value.to_compact(true), CompactTarget(0x01fe0000));
+  assert_eq!(ct.value.compact(true), CompactTarget::new(0x01fe0000));
 }
 
 /// Non-zero values with expected compact roundtrips.
@@ -83,49 +88,41 @@ fn compact_01fedcba() {
 #[case(0x0312_3456, 0x12_3456, 0x0312_3456)]
 #[case(0x0412_3456, 0x1234_5600, 0x0412_3456)]
 fn positive_values(#[case] compact: u32, #[case] expected_val: u64, #[case] expected_roundtrip: u32) {
-  let ct = CompactTarget(compact).decode();
+  let ct = CompactTarget::new(compact).expand();
   assert_eq!(ct.value, Arith256::from_u64(expected_val));
-  assert_eq!(ct.value.to_compact(false), CompactTarget(expected_roundtrip));
+  assert_eq!(ct.value.compact(false), CompactTarget::new(expected_roundtrip));
   check_compact(compact, false, false);
 }
 
 #[rstest]
 fn compact_04923456_negative() {
-  let ct = CompactTarget(0x04923456).decode();
+  let ct = CompactTarget::new(0x04923456).expand();
   assert_eq!(ct.value, Arith256::from_u64(0x12345600));
   assert!(ct.negative);
   assert!(!ct.overflow);
-  assert_eq!(ct.value.to_compact(true), CompactTarget(0x04923456));
+  assert_eq!(ct.value.compact(true), CompactTarget::new(0x04923456));
 }
 
 #[rstest]
 fn compact_05009234() {
-  let ct = CompactTarget(0x05009234).decode();
+  let ct = CompactTarget::new(0x05009234).expand();
   assert_eq!(ct.value, Arith256::from_u64(0x92340000));
-  assert_eq!(ct.value.to_compact(false), CompactTarget(0x05009234));
+  assert_eq!(ct.value.compact(false), CompactTarget::new(0x05009234));
   check_compact(0x05009234, false, false);
 }
 
 #[rstest]
 fn compact_20123456() {
-  let ct = CompactTarget(0x20123456).decode();
-  assert_eq!(ct.value.to_compact(false), CompactTarget(0x20123456));
+  let ct = CompactTarget::new(0x20123456).expand();
+  assert_eq!(ct.value.compact(false), CompactTarget::new(0x20123456));
   check_compact(0x20123456, false, false);
 }
 
 #[rstest]
 fn compact_ff123456_overflow() {
-  let ct = CompactTarget(0xff123456).decode();
+  let ct = CompactTarget::new(0xff123456).expand();
   assert!(!ct.negative);
   assert!(ct.overflow);
-}
-
-/// Test convenience method on Arith256.
-#[rstest]
-fn from_compact_convenience() {
-  let ct = CompactTarget(0x0312_3456);
-  let decoded = Arith256::from_compact(ct);
-  assert_eq!(decoded.value, Arith256::from_u64(0x12_3456));
 }
 
 #[rstest]
@@ -136,7 +133,7 @@ fn from_compact_convenience() {
 #[case(0x0492_3456_u32, 0x00_u64)]
 #[case(0x0412_3456_u32, 0x1234_5600_u64)]
 fn target_from_compact_ported(#[case] n_bits: u32, #[case] target: u64) {
-  let decoded = CompactTarget(n_bits).decode();
+  let decoded = CompactTarget::new(n_bits).expand();
   // For negative-flagged values the target is 0.
   if decoded.negative {
     assert_eq!(Arith256::from_u64(target), Arith256::ZERO);
@@ -148,5 +145,30 @@ fn target_from_compact_ported(#[case] n_bits: u32, #[case] target: u64) {
 /// CompactTarget display.
 #[rstest]
 fn display() {
-  assert_eq!(format!("{}", CompactTarget(0x1d00ffff)), "0x1d00ffff");
+  assert_eq!(format!("{}", CompactTarget::new(0x1d00ffff)), "0x1d00ffff");
+}
+
+#[rstest]
+#[case("0x1d00ffff", 0x1d00_ffff)]
+#[case("1d00ffff", 0x1d00_ffff)]
+#[case("0X1D00FFFF", 0x1d00_ffff)]
+#[case("1", 1)]
+fn from_str_accepts(#[case] text: &str, #[case] want: u32) {
+  let parsed = CompactTarget::from_str(text).unwrap();
+  assert_eq!(parsed, CompactTarget::new(want));
+}
+
+#[rstest]
+#[case("")]
+#[case("0x")]
+#[case("1d00ffff0")]
+#[case("1d00fffg")]
+fn from_str_rejects(#[case] text: &str) {
+  assert!(CompactTarget::from_str(text).is_err());
+}
+
+#[rstest]
+fn display_round_trips() {
+  let ct = CompactTarget::new(0x1d00_ffff);
+  assert_eq!(CompactTarget::from_str(&format!("{ct}")).unwrap(), ct);
 }

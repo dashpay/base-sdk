@@ -21,7 +21,7 @@ use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf};
 #[cfg(feature = "codec")]
 use dash_types::type_id::TypeId;
 #[cfg(feature = "codec")]
-use dash_types::{impl_type, CompactSize};
+use dash_types::{impl_type, CompactSize, Numeric};
 #[cfg(feature = "codec")]
 use dash_types::{Checkable, Hashable};
 use hex_conservative::DisplayHex;
@@ -90,7 +90,7 @@ impl<S: BlsSchemeId> Hashable for BlsIesBlobBytes<S> {
   type Hash = Hash256;
 
   fn hash(&self) -> Self::Hash {
-    Hash256::from_bytes(Sha256d::hash(&self.to_bytes()).to_byte_array())
+    Hash256::from_lendian(Sha256d::hash(&self.to_bytes()).to_byte_array())
   }
 }
 
@@ -215,7 +215,7 @@ impl<S: BlsSchemeId> Hashable for BlsIesMultiBytes<S> {
   type Hash = Hash256;
 
   fn hash(&self) -> Self::Hash {
-    Hash256::from_bytes(Sha256d::hash(&self.to_bytes()).to_byte_array())
+    Hash256::from_lendian(Sha256d::hash(&self.to_bytes()).to_byte_array())
   }
 }
 

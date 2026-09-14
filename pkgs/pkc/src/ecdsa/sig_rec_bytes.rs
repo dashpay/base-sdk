@@ -15,7 +15,7 @@ use cfg_if::cfg_if;
 use dash_num::Hash256;
 use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
 use dash_types::type_id::TypeId;
-use dash_types::{enum_map, impl_type, type_cvrt, CompactSize};
+use dash_types::{enum_map, impl_type, type_cvrt, CompactSize, Numeric};
 
 use core::fmt;
 
@@ -98,7 +98,7 @@ impl BaseCodec for EcdsaRecSigBytes {
       });
     }
     let raw = read_bytes(data, n)?;
-    let flags = CompactFlags::from_base(raw[0]).ok_or_else(|| DecodeError::InvalidValue {
+    let flags = CompactFlags::try_from_base(raw[0]).ok_or_else(|| DecodeError::InvalidValue {
       expected: CompactFlags::variants()
         .iter()
         .map(|f| u64::from(f.to_base()))
@@ -127,7 +127,7 @@ impl Hashable for EcdsaRecSigBytes {
   type Hash = Hash256;
 
   fn hash(&self) -> Hash256 {
-    Hash256::from_bytes(sha256d::Hash::hash(&self.to_bytes()).to_byte_array())
+    Hash256::from_lendian(sha256d::Hash::hash(&self.to_bytes()).to_byte_array())
   }
 }
 
@@ -163,7 +163,7 @@ impl EcdsaRecSigBytes {
   /// Returns `None` when the header byte is outside the `27..=34` range that
   /// encodes a recovery id and compression flag.
   pub fn from_raw(bytes: [u8; ECDSA_SIG_LEN + 1]) -> Option<Self> {
-    let flags = CompactFlags::from_base(bytes[0])?;
+    let flags = CompactFlags::try_from_base(bytes[0])?;
     let mut arr = [0u8; ECDSA_SIG_LEN];
     arr.copy_from_slice(&bytes[1..]);
     Some(Self {
@@ -294,7 +294,7 @@ mod tests {
     let flags = CompactFlags::new(rid, compressed).unwrap();
     assert_eq!(flags.recovery_id(), rid);
     assert_eq!(flags.is_compressed(), compressed.is_compressed());
-    assert_eq!(CompactFlags::from_base(flags.to_base()), Some(flags));
+    assert_eq!(CompactFlags::try_from_base(flags.to_base()), Some(flags));
   }
 
   #[rstest]

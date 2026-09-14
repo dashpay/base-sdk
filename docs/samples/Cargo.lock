@@ -122,6 +122,7 @@ version = "0.0.0"
 dependencies = [
  "bitcoin-consensus-encoding 1.2.0",
  "dash-types",
+ "hex-conservative 0.3.2",
  "serde",
 ]
 
