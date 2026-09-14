@@ -172,25 +172,10 @@ macro_rules! make_hash {
       }
     }
 
-    impl From<[u8; { <$base>::LEN }]> for $name {
-      #[inline]
-      fn from(bytes: [u8; { <$base>::LEN }]) -> Self { Self::from_bytes(bytes) }
-    }
-
-    impl From<$name> for [u8; { <$base>::LEN }] {
-      #[inline]
-      fn from(h: $name) -> Self { h.to_bytes() }
-    }
-
-    impl From<$base> for $name {
-      #[inline]
-      fn from(h: $base) -> Self { Self(h) }
-    }
-
-    impl From<$name> for $base {
-      #[inline]
-      fn from(h: $name) -> Self { h.0 }
-    }
+    $crate::__private::dash_types::type_cvrt!(From<[u8; { <$base>::LEN }]> for $name, |b| Self::from_bytes(*b));
+    $crate::__private::dash_types::type_cvrt!(From<$name> for [u8; { <$base>::LEN }], |h| h.to_bytes());
+    $crate::__private::dash_types::type_cvrt!(From<$base> for $name, |h| Self(*h));
+    $crate::__private::dash_types::type_cvrt!(From<$name> for $base, |h| h.0);
 
     impl AsRef<[u8]> for $name {
       #[inline]

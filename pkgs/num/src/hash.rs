@@ -215,17 +215,8 @@ macro_rules! define_hash {
       }
     }
 
-    impl From<[u8; $n]> for $name {
-      fn from(bytes: [u8; $n]) -> Self {
-        Self(bytes)
-      }
-    }
-
-    impl From<$name> for [u8; $n] {
-      fn from(h: $name) -> Self {
-        h.0
-      }
-    }
+    $crate::__private::dash_types::type_cvrt!(From<[u8; $n]> for $name, |b| Self(*b));
+    $crate::__private::dash_types::type_cvrt!(From<$name> for [u8; $n], |h| h.0);
 
     impl AsRef<[u8]> for $name {
       fn as_ref(&self) -> &[u8] {
