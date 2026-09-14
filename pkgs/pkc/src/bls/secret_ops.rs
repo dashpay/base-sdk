@@ -164,8 +164,8 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsSkBytes<S>> for BlsSecretKey<S>, BlsErro
   Self::from_bytes(bytes.as_bytes())
 });
 
-type_cvrt!(for[S: BlsScheme] From<BlsSecretKey<S>> for Zeroizing<Fr>, |sk| {
-  Zeroizing::new(Fr::from_bendian_reduce(&sk.to_bytes()))
+type_cvrt!(for[S: BlsScheme] TryFrom<BlsSecretKey<S>> for Zeroizing<Fr>, BlsError, |sk| {
+  Fr::from_bendian_reduce(&sk.to_bytes()).map(Zeroizing::new)
 });
 
 type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar| {

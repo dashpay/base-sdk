@@ -16,6 +16,7 @@ use crate::aes_cbc::{self, AES_BLOCK_LEN, AES_KEY_LEN};
 use crate::prelude::*;
 
 use blst::BLST_ERROR;
+use dash_types::Numeric;
 use ff::Field;
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
@@ -363,7 +364,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// Returns `InvalidThreshold` when `threshold < 2` (a 1-of-n split hands
   /// the master key to every participant), `ids` is empty, or `threshold >
-  /// ids.len()`; `InvalidShareId`/`DuplicateShareId` on bad ids;
+  /// ids.len()`; `ZeroScalar`/`DuplicateShareId` on bad ids;
   /// `InvalidSecretKey` when share generation or parsing fails.
   fn split_sk<S>(
     sk: &Self::InnerSk,
@@ -399,7 +400,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// Returns `InsufficientShares` when fewer than two shares are given,
   /// `CountMismatch` when `ids` and `sigs` differ in length,
-  /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
+  /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidSignature`
   /// when a share or the recovered point fails to decode.
   fn recover_sig_shares(ids: &[&BlsShareId], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
     if sigs.len() < 2 {
@@ -428,7 +429,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   /// # Errors
   ///
   /// Returns `InsufficientCoefficients` when fewer than two keys are
-  /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
+  /// given, `ZeroScalar` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
   fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &BlsShareId) -> Result<Self::InnerPk, BlsError> {
     // Evaluating the verification-vector polynomial needs >= 2 coefficients.
@@ -440,7 +441,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
       .map(|pk| Self::pk_to_g1(pk))
       .collect::<Result<Vec<_>, BlsError>>()?;
 
-    let x = Fr::from_share_id(id)?;
+    let x = Fr::from_bendian_reduce(&id.to_bendian())?;
     let result = eval_poly_g1(&coeffs_g1, &x);
 
     Self::g1_to_pk(result)
@@ -456,7 +457,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   /// # Errors
   ///
   /// Returns `InsufficientCoefficients` when fewer than two keys are given,
-  /// `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey` when the
+  /// `ZeroScalar` on a zero-reducing id, or `InvalidSecretKey` when the
   /// result is not a valid scalar.
   fn derive_sk_share(master_sks: &[&Self::InnerSk], id: &BlsShareId) -> Result<Self::InnerSk, BlsError> {
     if master_sks.len() < 2 {
@@ -471,7 +472,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
       scalar.b.zeroize();
     }
 
-    let x = Fr::from_share_id(id)?;
+    let x = Fr::from_bendian_reduce(&id.to_bendian())?;
     let mut y = poly_eval(&coeffs, &x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
@@ -677,7 +678,7 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
 fn reduce_share_ids(ids: &[&BlsShareId]) -> Result<Vec<Fr>, BlsError> {
   let fr_ids = ids
     .iter()
-    .map(|id| Fr::from_share_id(id))
+    .map(|id| Fr::from_bendian_reduce(&id.to_bendian()))
     .collect::<Result<Vec<Fr>, BlsError>>()?;
   let mut reduced: Vec<[u8; 32]> = fr_ids.iter().map(|fr| *fr.to_lendian()).collect();
   reduced.sort_unstable();

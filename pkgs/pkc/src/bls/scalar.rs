@@ -8,7 +8,6 @@
 
 use super::curve_consts;
 use super::error::BlsError;
-use super::share_id::BlsShareId;
 
 use blst::{blst_fp, blst_fp2, blst_fr};
 use dash_types::type_cvrt;
@@ -39,29 +38,23 @@ const WIDE_LEN: usize = 64;
 pub struct Fr(pub(super) blst_fr);
 
 impl Fr {
-  /// Reduces a threshold participant id into the field (big-integer).
+  /// Reduces a big-endian integer into the field.
   ///
   /// [`PrimeField::from_repr`] takes a canonical little-endian encoding and
   /// rejects anything above `r` while this function will reduce.
   ///
   /// # Errors
   ///
-  /// Returns `InvalidShareId` when the id reduces to zero; the polynomial
-  /// evaluated there yields its constant term, the master secret itself.
-  pub fn from_share_id(id: &BlsShareId) -> Result<Self, BlsError> {
-    let reduced = Self::from_lendian_reduce(id.as_bytes());
-    if bool::from(reduced.is_zero()) {
-      return Err(BlsError::InvalidShareId);
-    }
-    Ok(reduced)
-  }
-
-  /// Reduces a big-endian integer into the field.
-  pub(crate) fn from_bendian_reduce(bytes: &[u8; 32]) -> Self {
+  /// Returns `ZeroScalar` when the input reduces to zero.
+  pub fn from_bendian_reduce(bytes: &[u8; 32]) -> Result<Self, BlsError> {
     let mut scalar = super::blst_ffi::scalar_from_bendian(bytes);
     let reduced = Self::from(&scalar);
     scalar.b.zeroize();
-    reduced
+
+    if bool::from(reduced.is_zero()) {
+      return Err(BlsError::ZeroScalar);
+    }
+    Ok(reduced)
   }
 
   /// Emits the canonical big-endian encoding.
@@ -416,8 +409,11 @@ mod tests {
   /// the field's one and the same byte at the front is `2^248` instead.
   #[rstest]
   fn share_id_reads_big_endian() {
-    assert_eq!(Fr::from_share_id(&make_id(1)).unwrap(), Fr::ONE);
-    assert_eq!(Fr::from_share_id(&make_id(258)).unwrap(), Fr::from(258));
+    assert_eq!(Fr::from_bendian_reduce(&make_id(1).to_bendian()).unwrap(), Fr::ONE);
+    assert_eq!(
+      Fr::from_bendian_reduce(&make_id(258).to_bendian()).unwrap(),
+      Fr::from(258)
+    );
 
     let mut leading = [0u8; 32];
     leading[0] = 1;
@@ -425,7 +421,7 @@ mod tests {
     for _ in 0..248 {
       expected = expected.double();
     }
-    assert_eq!(Fr::from_share_id(&BlsShareId::from_bendian(leading)).unwrap(), expected);
+    assert_eq!(Fr::from_bendian_reduce(&leading).unwrap(), expected);
   }
 
   /// An id is an integer rather than an encoding of one, so a value at or
@@ -435,10 +431,7 @@ mod tests {
   fn share_id_reduces_past_the_order() {
     let mut order_plus_one = GROUP_ORDER;
     order_plus_one[31] += 1;
-    assert_eq!(
-      Fr::from_share_id(&BlsShareId::from_bendian(order_plus_one)).unwrap(),
-      Fr::ONE
-    );
+    assert_eq!(Fr::from_bendian_reduce(&order_plus_one).unwrap(), Fr::ONE);
 
     let mut order_le = GROUP_ORDER;
     order_le.reverse();
@@ -451,10 +444,7 @@ mod tests {
   #[case::zero([0u8; 32])]
   #[case::order(GROUP_ORDER)]
   fn share_id_rejects_the_zero_residue(#[case] bytes: [u8; 32]) {
-    assert_eq!(
-      Fr::from_share_id(&BlsShareId::from_bendian(bytes)),
-      Err(BlsError::InvalidShareId)
-    );
+    assert_eq!(Fr::from_bendian_reduce(&bytes), Err(BlsError::ZeroScalar));
   }
 
   /// Read a secret key back as the field element it is: the wire form is
@@ -478,7 +468,7 @@ mod tests {
 
     for i in 1..=4u32 {
       let id = make_id(i);
-      let x = Fr::from_share_id(&id).unwrap();
+      let x = Fr::from_bendian_reduce(&id.to_bendian()).unwrap();
       let evaluated = coeffs[0] + coeffs[1] * x + coeffs[2] * x * x;
 
       let share = BlsSecretKey::<S>::derive_share(&refs, &id).unwrap();

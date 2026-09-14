@@ -134,7 +134,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// # Errors
   ///
   /// Returns `InvalidThreshold` if `threshold` is below 2, exceeds id count
-  /// or no ids are supplied, `InvalidShareId` if any id reduces to zero,
+  /// or no ids are supplied, `ZeroScalar` if any id reduces to zero,
   /// `DuplicateShareId` if two ids collide mod the group order, or
   /// `InvalidSecretKey` if share generation fails.
   pub fn split(
@@ -154,7 +154,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// # Errors
   ///
   /// Returns `InsufficientCoefficients` when fewer than two master keys are
-  /// given, `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey`
+  /// given, `ZeroScalar` on a zero-reducing id, or `InvalidSecretKey`
   /// when the result is not a valid scalar.
   pub fn derive_share(master_sks: &[&Self], id: &BlsShareId) -> Result<Self, BlsError> {
     let inner_refs: Vec<&S::InnerSk> = master_sks.iter().map(|sk| &sk.0).collect();
@@ -169,7 +169,7 @@ impl<S: BlsScheme> BlsPublicKey<S> {
   /// # Errors
   ///
   /// Returns `InsufficientCoefficients` when fewer than two master keys are
-  /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
+  /// given, `ZeroScalar` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
   pub fn derive_share(master_pks: &[&Self], id: &BlsShareId) -> Result<Self, BlsError> {
     let inner_refs: Vec<&S::InnerPk> = master_pks.iter().map(|pk| &pk.0).collect();
@@ -239,14 +239,14 @@ mod tests {
     let ids = [make_id(1), zero];
     assert!(matches!(
       sk.split(2, &ids, &mut UnwrapErr(SysRng)),
-      Err(BlsError::InvalidShareId)
+      Err(BlsError::ZeroScalar)
     ));
 
     let order = BlsShareId::from_bendian(GROUP_ORDER);
     let ids = [make_id(1), order];
     assert!(matches!(
       sk.split(2, &ids, &mut UnwrapErr(SysRng)),
-      Err(BlsError::InvalidShareId)
+      Err(BlsError::ZeroScalar)
     ));
   }
 
@@ -300,7 +300,7 @@ mod tests {
     ));
     assert!(matches!(
       BlsSecretKey::<S>::derive_share(&master_refs, &BlsShareId::from_bendian([0u8; 32])),
-      Err(BlsError::InvalidShareId)
+      Err(BlsError::ZeroScalar)
     ));
   }
 

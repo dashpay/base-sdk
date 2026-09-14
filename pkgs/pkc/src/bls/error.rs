@@ -39,14 +39,14 @@ pub enum BlsError {
   InvalidPublicKey,
   /// secret key bytes are not a valid scalar
   InvalidSecretKey,
-  /// share id reduces to zero in the scalar field
-  InvalidShareId,
   /// signature bytes are not a valid G2 point
   InvalidSignature,
   /// threshold is below 2, exceeds id count or no ids supplied
   InvalidThreshold,
   /// signature verification failed
   VerifyFailed,
+  /// input reduces to zero in the scalar field
+  ZeroScalar,
 }
 
 impl fmt::Display for BlsError {
@@ -66,10 +66,10 @@ impl fmt::Display for BlsError {
       Self::InvalidPlaintextLength => write!(f, "plaintext is empty or not a whole number of cipher blocks"),
       Self::InvalidPublicKey => write!(f, "invalid public key bytes"),
       Self::InvalidSecretKey => write!(f, "invalid secret key bytes"),
-      Self::InvalidShareId => write!(f, "share id reduces to zero in the scalar field"),
       Self::InvalidSignature => write!(f, "invalid signature bytes"),
       Self::InvalidThreshold => write!(f, "threshold is below 2, exceeds id count or no ids supplied"),
       Self::VerifyFailed => write!(f, "signature verification failed"),
+      Self::ZeroScalar => write!(f, "input reduces to zero in the scalar field"),
     }
   }
 }

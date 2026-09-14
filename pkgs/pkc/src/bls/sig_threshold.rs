@@ -20,7 +20,7 @@ impl<S: BlsScheme> BlsSignature<S> {
   /// # Errors
   ///
   /// Returns `InsufficientShares` if fewer than 2 shares are provided,
-  /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
+  /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidSignature`
   /// when a share fails to decode.
   pub fn recover_shares(shares: &[&BlsSigShare<S>]) -> Result<Self, BlsError> {
     let ids: Vec<&BlsShareId> = shares.iter().map(|s| s.id()).collect();
