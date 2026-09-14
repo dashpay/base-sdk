@@ -349,7 +349,7 @@ macro_rules! derive_bytes {
         {
           use $crate::__private::serde::de::Error as _;
           let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
-          let mut bytes = <[u8; $n] as $crate::__private::hex_conservative::FromHex>::from_hex(&s)
+          let mut bytes = $crate::__private::hex_conservative::decode_to_array::<$n>(&s)
             .map_err(D::Error::custom)?;
           if $rev {
             bytes.reverse();

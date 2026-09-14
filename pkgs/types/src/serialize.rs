@@ -10,7 +10,7 @@
 pub mod hex {
   use crate::prelude::*;
 
-  use hex_conservative::{DisplayHex, FromHex};
+  use hex_conservative::{decode_to_vec, DisplayHex};
 
   /// Serializes bytes as a wire-order hex string.
   ///
@@ -29,7 +29,7 @@ pub mod hex {
   /// it is not valid hex.
   pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
     let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
-    Vec::<u8>::from_hex(&s).map_err(::serde::de::Error::custom)
+    decode_to_vec(&s).map_err(::serde::de::Error::custom)
   }
 }
 

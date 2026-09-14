@@ -9,7 +9,7 @@
 #[cfg(feature = "codec")]
 use dash_types::impl_type;
 use dash_types::{type_cvrt, Numeric};
-use hex_conservative::{BytesToHexIter, Case, HexToBytesIter};
+use hex_conservative::{BytesToHexIter, Case, HexSliceToBytesIter};
 
 use core::fmt::{self, Write as _};
 use core::hash::Hash;
@@ -158,7 +158,7 @@ impl<const N: usize> HashBlob<N> {
       });
     }
 
-    let digits = HexToBytesIter::new(s).map_err(|_| ParseHexError::OddLength)?;
+    let digits = HexSliceToBytesIter::new(s).map_err(|_| ParseHexError::OddLength)?;
     let mut bytes = [0u8; N];
     for (slot, byte) in bytes.iter_mut().zip(digits.rev()) {
       *slot = byte.map_err(|e| ParseHexError::InvalidChar(e.invalid_char()))?;
@@ -200,8 +200,9 @@ fn write_hex(bytes: &[u8], case: Case, f: &mut fmt::Formatter<'_>) -> fmt::Resul
   if f.alternate() {
     f.write_str(if case == Case::Lower { "0x" } else { "0X" })?;
   }
-  for c in BytesToHexIter::new(bytes.iter().rev().copied(), case) {
-    f.write_char(c)?;
+  for [hi, lo] in BytesToHexIter::new(bytes.iter().rev().copied(), case) {
+    f.write_char(char::from(hi))?;
+    f.write_char(char::from(lo))?;
   }
   Ok(())
 }

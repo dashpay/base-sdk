@@ -8,7 +8,7 @@
 
 use crate::prelude::*;
 
-use hex_conservative::FromHex;
+use hex_conservative::decode_to_vec;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use core::fmt;
@@ -114,7 +114,7 @@ impl Corpus {
 
     let mut result = BTreeMap::new();
     for (label, entry) in entries {
-      let bytes = Vec::<u8>::from_hex(&entry.raw).unwrap_or_else(|e| panic!("{section}/{label}: hex: {e}"));
+      let bytes = decode_to_vec(&entry.raw).unwrap_or_else(|e| panic!("{section}/{label}: hex: {e}"));
       check(&bytes, &entry.details, &label);
       result.insert(label, entry.details);
     }
