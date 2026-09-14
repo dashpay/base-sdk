@@ -15,7 +15,6 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-mod arith;
 mod arith256;
 mod compact;
 mod hash;
@@ -34,7 +33,6 @@ pub mod __private {
   pub use serde;
 }
 
-pub use arith::ArithInt;
 pub use arith256::Arith256;
 pub use compact::{CompactTarget, DecodedTarget};
-pub use hash::{Hash160, Hash256, HashBlob, ParseHexError};
+pub use hash::{Hash160, Hash256, ParseHexError};

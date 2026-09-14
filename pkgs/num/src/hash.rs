@@ -49,32 +49,6 @@ pub(crate) fn hex_val(c: u8) -> Result<u8, ParseHexError> {
   }
 }
 
-/// Shared interface for all fixed-size hash blob types.
-pub trait HashBlob:
-  Copy + Clone + Default + Eq + Ord + Hash + fmt::Debug + fmt::Display + fmt::LowerHex + FromStr + AsRef<[u8]>
-{
-  /// The fixed-size byte array type.
-  type Bytes: Copy;
-
-  /// The all-zeros (null) hash.
-  const ZERO: Self;
-  /// Byte length of this hash type.
-  const LEN: usize;
-
-  /// Wrap raw little-endian bytes into a hash.
-  fn from_bytes(bytes: Self::Bytes) -> Self;
-  /// Return the raw little-endian bytes.
-  fn to_bytes(self) -> Self::Bytes;
-  /// Borrow the raw little-endian bytes.
-  fn as_bytes(&self) -> &Self::Bytes;
-  /// Construct from big-endian bytes (consensus display order).
-  fn new(be: Self::Bytes) -> Self;
-  /// Returns `true` if every byte is zero.
-  fn is_null(&self) -> bool;
-  /// Parse from a big-endian hex string.
-  fn from_hex(s: &str) -> Result<Self, ParseHexError>;
-}
-
 macro_rules! define_hash {
   ($name:ident, $n:literal) => {
     /// Fixed-size opaque hash blob stored in little-endian byte order.
@@ -186,42 +160,6 @@ macro_rules! define_hash {
         }
 
         Ok(Self(bytes))
-      }
-    }
-
-    impl HashBlob for $name {
-      type Bytes = [u8; $n];
-      const ZERO: Self = Self::ZERO;
-      const LEN: usize = $n;
-
-      #[inline]
-      fn from_bytes(bytes: [u8; $n]) -> Self {
-        Self::from_bytes(bytes)
-      }
-
-      #[inline]
-      fn to_bytes(self) -> [u8; $n] {
-        Self::to_bytes(self)
-      }
-
-      #[inline]
-      fn as_bytes(&self) -> &[u8; $n] {
-        Self::as_bytes(self)
-      }
-
-      #[inline]
-      fn new(be: [u8; $n]) -> Self {
-        Self::new(be)
-      }
-
-      #[inline]
-      fn is_null(&self) -> bool {
-        Self::is_null(self)
-      }
-
-      #[inline]
-      fn from_hex(s: &str) -> Result<Self, ParseHexError> {
-        Self::from_hex(s)
       }
     }
 
