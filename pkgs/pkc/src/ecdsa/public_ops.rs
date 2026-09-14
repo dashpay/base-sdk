@@ -10,7 +10,7 @@ use super::error::EcdsaError;
 use super::public_bytes::{EcdsaPkBytes, Sec1Byte, ECDSA_PK_LEN};
 use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
-use super::{Compression, EcdsaRecSigBytes, PubKeyHash};
+use super::{Compression, PubKeyHash};
 
 use dash_types::type_id::{TypeId, Unencodable};
 use dash_types::{dlgt_codec, type_cvrt};
@@ -162,18 +162,6 @@ impl EcdsaPublicKey {
       .map_err(|_| EcdsaError::RecoveryFailed)
   }
 
-  /// Recover a public key from a compact recoverable signature.
-  ///
-  /// # Errors
-  ///
-  /// Returns [`EcdsaError::InvalidSignature`] when the bag's scalars are not a
-  /// well-formed signature, plus every error listed for
-  /// [`recover`](Self::recover).
-  pub fn recover_compact(msg_hash: &[u8; 32], sig: &EcdsaRecSigBytes) -> Result<Self, EcdsaError> {
-    let parsed = EcdsaRecSignature::try_from(*sig)?;
-    Self::recover(msg_hash, &parsed)
-  }
-
   /// Verify a signature over a 32-byte prehashed message.
   ///
   /// Accepts anything that can view itself as a plain signature, so a
@@ -251,7 +239,8 @@ mod tests {
     for v in corpus.vectors::<RecoverVector>("recover") {
       let sig = EcdsaSigBytes::from(arr_from_hex::<64>(&v.sig));
       let compact = EcdsaRecSigBytes::from_parts(sig, v.recovery_id, Compression::Compressed).unwrap();
-      let pk = EcdsaPublicKey::recover_compact(&arr_from_hex::<32>(&v.msg), &compact).unwrap();
+      let parsed = EcdsaRecSignature::try_from(compact).unwrap();
+      let pk = EcdsaPublicKey::recover(&arr_from_hex::<32>(&v.msg), &parsed).unwrap();
       assert_eq!(pk.to_compressed(), arr_from_hex::<33>(&v.pk));
     }
   }
@@ -331,8 +320,9 @@ mod tests {
 
   #[rstest]
   fn recover_roundtrip(alice_pk: EcdsaPublicKey, alice_sk: EcdsaSecretKey, alice_rec_sig: EcdsaRecSignature) {
-    let compact_sig = alice_sk.sign_compact(&MSG).unwrap();
-    assert_eq!(EcdsaPublicKey::recover_compact(&MSG, &compact_sig).unwrap(), alice_pk);
+    let compact_sig = EcdsaRecSigBytes::from(alice_sk.sign_recoverable(&MSG).unwrap());
+    let restored = EcdsaRecSignature::try_from(compact_sig).unwrap();
+    assert_eq!(EcdsaPublicKey::recover(&MSG, &restored).unwrap(), alice_pk);
     assert_eq!(EcdsaPublicKey::recover(&MSG, &alice_rec_sig).unwrap(), alice_pk);
   }
 
