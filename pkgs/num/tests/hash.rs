@@ -8,7 +8,7 @@
 
 #![expect(clippy::unwrap_used, reason = "test code")]
 
-use dash_num::{Hash160, Hash256, Hash512, ParseHexError};
+use dash_num::{Hash160, Hash256, ParseHexError};
 use hex_literal::hex;
 use rstest::*;
 
@@ -126,18 +126,6 @@ fn hex_errors() {
 }
 
 #[rstest]
-fn hash512_roundtrip() {
-  let mut bytes = [0u8; 64];
-  bytes[0] = 0x42;
-  bytes[63] = 0xff;
-  let h = Hash512::from_bytes(bytes);
-  let hex = format!("{h}");
-  assert!(hex.starts_with("ff"));
-  assert!(hex.ends_with("42"));
-  assert_eq!(Hash512::from_str(&hex).unwrap(), h);
-}
-
-#[rstest]
 fn hash160_roundtrip() {
   let bytes = hex!("0102030405060708090a0b0c0d0e0f1011121314");
   let h = Hash160::from_bytes(bytes);
@@ -161,30 +149,4 @@ fn hash160_new_reverses() {
   // new() reverses, so first byte in LE is last byte of BE input
   assert_eq!(h.to_bytes()[0], 0x14);
   assert_eq!(h.to_bytes()[19], 0x01);
-}
-
-#[rstest]
-fn hash512_truncate_takes_first_32_bytes() {
-  let mut bytes = [0u8; 64];
-  // Fill first 32 bytes with a recognizable pattern
-  for (i, b) in bytes.iter_mut().enumerate().take(32) {
-    *b = (i + 1) as u8;
-  }
-  // Fill last 32 bytes with 0xff
-  for b in bytes.iter_mut().skip(32) {
-    *b = 0xff;
-  }
-  let h512 = Hash512::from_bytes(bytes);
-  let h256 = h512.truncate();
-
-  let mut expected = [0u8; 32];
-  for (i, b) in expected.iter_mut().enumerate() {
-    *b = (i + 1) as u8;
-  }
-  assert_eq!(h256.to_bytes(), expected);
-}
-
-#[rstest]
-fn hash512_truncate_zero() {
-  assert_eq!(Hash512::ZERO.truncate(), Hash256::ZERO);
 }

@@ -7,7 +7,7 @@
 //! Serde roundtrip tests for all types.
 
 use dash_dev::{assert_json_rt, from_json, json_rejects, to_json};
-use dash_num::{Arith256, CompactTarget, Hash160, Hash256, Hash512};
+use dash_num::{Arith256, CompactTarget, Hash160, Hash256};
 use hex_literal::hex;
 
 #[test]
@@ -26,16 +26,6 @@ fn hash160_json_roundtrip() {
   let h = Hash160::from_bytes(bytes);
   assert_json_rt(&h);
   assert_json_rt(&Hash160::ZERO);
-}
-
-#[test]
-fn hash512_json_roundtrip() {
-  let mut bytes = [0u8; 64];
-  bytes[0] = 0x42;
-  bytes[63] = 0xff;
-  let h = Hash512::from_bytes(bytes);
-  assert_json_rt(&h);
-  assert_json_rt(&Hash512::ZERO);
 }
 
 #[test]

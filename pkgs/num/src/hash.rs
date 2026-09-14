@@ -334,20 +334,3 @@ macro_rules! define_hash {
 
 define_hash!(Hash160, 20);
 define_hash!(Hash256, 32);
-define_hash!(Hash512, 64);
-
-impl Hash512 {
-  /// Truncate to 256 bits by taking the first 32 bytes (low half in LE).
-  ///
-  /// This is the final step in the proof-of-work daisy chain: the 512-bit
-  /// intermediate result is truncated to 256 bits.
-  pub const fn truncate(&self) -> Hash256 {
-    let mut out = [0u8; 32];
-    let mut i = 0;
-    while i < 32 {
-      out[i] = self.0[i];
-      i += 1;
-    }
-    Hash256::from_bytes(out)
-  }
-}

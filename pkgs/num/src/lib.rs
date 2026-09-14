@@ -6,7 +6,7 @@
 
 //! Consensus-compatible numeric types.
 //!
-//! Provides hash blob types ([`Hash512`], [`Hash256`], [`Hash160`])
+//! Provides hash blob types ([`Hash256`], [`Hash160`])
 //! and the [`Arith256`] arithmetic integer type.
 
 #![no_std]
@@ -37,4 +37,4 @@ pub mod __private {
 pub use arith::ArithInt;
 pub use arith256::Arith256;
 pub use compact::{CompactTarget, DecodedTarget};
-pub use hash::{Hash160, Hash256, Hash512, HashBlob, ParseHexError};
+pub use hash::{Hash160, Hash256, HashBlob, ParseHexError};
