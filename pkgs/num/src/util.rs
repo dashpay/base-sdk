@@ -48,13 +48,13 @@ macro_rules! cfg_serde {
 #[macro_export]
 macro_rules! make_hash {
   // The codec half, split out for gating with `cfg_codec!`.
-  (@codec $base:ty, $name:ident) => {
+  (@codec $len:literal, $name:ident) => {
     $crate::cfg_codec! {
     impl $crate::__private::dash_types::codec::BaseCodec for $name {
       fn decode(
         data: &mut &[u8],
       ) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
-        $crate::__private::dash_types::codec::take::<{ <$base as $crate::__private::dash_types::Numeric>::LEN }>(data)
+        $crate::__private::dash_types::codec::take::<$len>(data)
           .map(<Self as $crate::__private::dash_types::Numeric>::from_lendian)
       }
 
@@ -67,9 +67,8 @@ macro_rules! make_hash {
     }
   };
   (
-    $base:ty,
     $(#[$attr:meta])*
-    $name:ident
+    $name:ident, $len:literal
   ) => {
     $crate::cfg_codec! {
       {
@@ -78,11 +77,11 @@ macro_rules! make_hash {
           Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash,
           $crate::__private::dash_types::type_id::TypeId,
         )]
-        pub struct $name($base);
+        pub struct $name($crate::HashBlob<$len>);
       } else {
         $(#[$attr])*
         #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        pub struct $name($base);
+        pub struct $name($crate::HashBlob<$len>);
       }
     }
 
@@ -99,7 +98,7 @@ macro_rules! make_hash {
         fn deserialize<D: $crate::__private::serde::Deserializer<'de>>(
           deserializer: D,
         ) -> Result<Self, D::Error> {
-          <$base as $crate::__private::serde::Deserialize>::deserialize(deserializer).map(Self)
+          <$crate::HashBlob<$len> as $crate::__private::serde::Deserialize>::deserialize(deserializer).map(Self)
         }
       }
     }
@@ -107,7 +106,7 @@ macro_rules! make_hash {
     impl $name {
       /// Borrow the raw little-endian bytes.
       #[inline]
-      pub fn as_bytes(&self) -> &[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] {
+      pub fn as_bytes(&self) -> &[u8; $len] {
         self.0.as_bytes()
       }
 
@@ -120,45 +119,45 @@ macro_rules! make_hash {
       /// Parse from a big-endian hex string.
       #[inline]
       pub fn from_hex(s: &str) -> Result<Self, $crate::ParseHexError> {
-        <$base>::from_hex(s).map(Self)
+        <$crate::HashBlob<$len>>::from_hex(s).map(Self)
       }
     }
 
     impl $crate::__private::dash_types::Numeric for $name {
-      type Base = $base;
+      type Base = $crate::HashBlob<$len>;
 
-      type Bytes = [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }];
+      type Bytes = [u8; $len];
 
-      const ZERO: Self = Self(<$base as $crate::__private::dash_types::Numeric>::ZERO);
+      const ZERO: Self = Self(<$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::ZERO);
 
       #[inline]
-      fn from_base(v: $base) -> Self {
+      fn from_base(v: $crate::HashBlob<$len>) -> Self {
         Self(v)
       }
 
       #[inline]
-      fn to_base(&self) -> $base {
+      fn to_base(&self) -> $crate::HashBlob<$len> {
         self.0
       }
 
       #[inline]
-      fn from_lendian(bytes: [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]) -> Self {
-        Self(<$base as $crate::__private::dash_types::Numeric>::from_lendian(bytes))
+      fn from_lendian(bytes: [u8; $len]) -> Self {
+        Self(<$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::from_lendian(bytes))
       }
 
       #[inline]
-      fn to_lendian(&self) -> [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] {
-        <$base as $crate::__private::dash_types::Numeric>::to_lendian(&self.0)
+      fn to_lendian(&self) -> [u8; $len] {
+        <$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::to_lendian(&self.0)
       }
 
       #[inline]
-      fn from_bendian(bytes: [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]) -> Self {
-        Self(<$base as $crate::__private::dash_types::Numeric>::from_bendian(bytes))
+      fn from_bendian(bytes: [u8; $len]) -> Self {
+        Self(<$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::from_bendian(bytes))
       }
 
       #[inline]
-      fn to_bendian(&self) -> [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] {
-        <$base as $crate::__private::dash_types::Numeric>::to_bendian(&self.0)
+      fn to_bendian(&self) -> [u8; $len] {
+        <$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::to_bendian(&self.0)
       }
     }
 
@@ -187,21 +186,21 @@ macro_rules! make_hash {
       }
     }
 
-    $crate::__private::dash_types::type_cvrt!(From<[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]> for $name, |b| <Self as $crate::__private::dash_types::Numeric>::from_lendian(*b));
-    $crate::__private::dash_types::type_cvrt!(From<$name> for [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }], |h| $crate::__private::dash_types::Numeric::to_lendian(h));
-    $crate::__private::dash_types::type_cvrt!(From<$base> for $name, |h| Self(*h));
-    $crate::__private::dash_types::type_cvrt!(From<$name> for $base, |h| h.0);
+    $crate::__private::dash_types::type_cvrt!(From<[u8; $len]> for $name, |b| <Self as $crate::__private::dash_types::Numeric>::from_lendian(*b));
+    $crate::__private::dash_types::type_cvrt!(From<$name> for [u8; $len], |h| $crate::__private::dash_types::Numeric::to_lendian(h));
+    $crate::__private::dash_types::type_cvrt!(From<$crate::HashBlob<$len>> for $name, |h| Self(*h));
+    $crate::__private::dash_types::type_cvrt!(From<$name> for $crate::HashBlob<$len>, |h| h.0);
 
     impl AsRef<[u8]> for $name {
       #[inline]
       fn as_ref(&self) -> &[u8] { self.0.as_ref() }
     }
 
-    impl AsRef<[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]> for $name {
+    impl AsRef<[u8; $len]> for $name {
       #[inline]
-      fn as_ref(&self) -> &[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] { self.0.as_bytes() }
+      fn as_ref(&self) -> &[u8; $len] { self.0.as_bytes() }
     }
 
-    $crate::make_hash!(@codec $base, $name);
+    $crate::make_hash!(@codec $len, $name);
   };
 }

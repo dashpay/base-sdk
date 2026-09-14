@@ -16,11 +16,12 @@ use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::{hash_impl, TxHash};
 
 use bitcoin_primitives::script::ScriptPubKeyBuf;
+use dash_num::make_hash;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
 use dash_script::{PubKeyHash, Recipient};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::type_id::TypeId;
-use dash_types::{make_bytes, Numeric};
+use dash_types::Numeric;
 
 use core::fmt;
 
@@ -264,7 +265,7 @@ impl fmt::Display for ProRegTx {
   }
 }
 
-make_bytes! {
+make_hash! {
   /// Platform node identifier for Evo masternodes.
   PlatformNodeId, 20
 }

@@ -225,7 +225,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "7b1f9767752adfb40f49cece000d666b12df25fa75f8dd5c4b66e535eaf94a94",
-        "platformNodeId": "4c7e47d459857b8c6e70cf2195998bf1b4e29f6d",
+        "platformNodeId": "6d9fe2b4f18b999521cf706e8c7b8559d4477e4c",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "b9301a6b80ecde2908b573f47eff5c88fbbe513e7203814ef03cc51c061d5a876223daf3af7fcb045730ebe5344a7124196bf0c87a1bab4bb2dcf8d22688491297dd2bec1209ee8d8f13020e8601ec31ab9a48cc058fb52aaf50ed15c023686f"
@@ -246,7 +246,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "a81eda28bf3f2b3d67fda43e78d52ae0f3ef1f04e4e5a3973d4d0c4c6de51b08",
-        "platformNodeId": "24ff591905e75621c902bf6a067ca588456f65c5",
+        "platformNodeId": "c5656f4588a57c066abf02c92156e7051959ff24",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "b4ad337f9c7fd983e3a5f1478041a3bf839f1be8dab2278caab46936926c1fdf229b4c28b233d85726d2f58d2e3edad30d3c5f4ef5911d7dde2b72687e013a9d2d6d0966bab7034246a58ce373d1e58be6db0cd79584c03b67055bb72d9a0b0c"
@@ -267,7 +267,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "07e9e7dd1220c5072ad0291202050a71f99c335c7951d703c9cbb329a95a0a6e",
-        "platformNodeId": "944675af37104f743964a373b025286fa5912359",
+        "platformNodeId": "592391a56f2825b073a36439744f1037af754694",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "a008419108d55938ceed98a4253a22143d2eb57c36666f6aa4cc05b0cc5821f18c7a17d2eca8a7b4ef66c9f5dbf3200202430a10967f1b920ecb8d1db447a42969e95e6ee80c66a64953b858a97d9afad6ac9722ed2b42884835b95a62053b64"
@@ -288,7 +288,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "8fd979a0078c4034ba6cb368a56b978451e320e3a01be06f836b6f4b0e4dec9a",
-        "platformNodeId": "d38d8886bb28489ad58e68a2b655e8bd49fcc1e9",
+        "platformNodeId": "e9c1fc49bde855b6a2688ed59a4828bb86888dd3",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "a07b1a788ab5da703c0f6d1fc3ee928ff8fc3b533674334b3c04b593444ca170228576abae6a067bbcc2949d8ffb4018170eb69caacabb00ed573f06c30fe0441ea1edd890add401577f7e92959c6d11822a535d6cfb286f3ac22341fb7b6a45"
@@ -309,7 +309,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "f4c4b4a15392868e50f041021ae57ddec91a6e9452f84d16ae2acf48dfc41eeb",
-        "platformNodeId": "ec8d1e6c5d2f2f44982c65f2884f1dcfd08683cb",
+        "platformNodeId": "cb8386d0cf1d4f88f2652c98442f2f5d6c1e8dec",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "902e40be051252feb43e6fb42ab12757d41d8c7c859960eef9c281e0aec60506415754b9e1cf8140a36303df446cba16096c30df8599f1e416f09d936b6246dfe1adf8764bdafc21a5929860100f1477fa191c255e01c6d5f842005d1d77a2eb"
@@ -330,7 +330,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "bd915184b82f3c62634100c5eb7fed546a97c63f3ccf9848c3ce28b3e1bd4a9b",
-        "platformNodeId": "c549921c0f97ebdd4777efb41bc99b11945844ee",
+        "platformNodeId": "ee445894119bc91bb4ef7747ddeb970f1c9249c5",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "a813a7a6ac12072b7bc372b46f7da28a6c812aaee9413829ed0283411cb156ff3d954a12267f4bed936da9db56e3485a0c401a49978b74af239b7d5dafc2fcb3f2950bbe108182637f41fa20024b3b3976764dcb4c1c8136d145a9d7fe851c6c"
@@ -351,7 +351,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "932f4e65fcd8b2473fd2de050453b796b03b431fbb91543d203821bf7cc50b88",
-        "platformNodeId": "97e47a754ea361929bcd068c0554bbd59f08663e",
+        "platformNodeId": "3e66089fd5bb54058c06cd9b9261a34e757ae497",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "8da9de39ac15a825c3c0556255f96d25b6c368e7209ef9db209a6c371c318e73d1e10c85a1685fe58351bdfb90ef520508b27e5d017a464e08afe4c790b583571057b173d63a214d70d451def4678923686be84f8afbbab7900bee75f2189b23"
@@ -372,7 +372,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "93f2d895627e764e7372899cf88f64061bd113ec43ddd987be2433ca94abb61b",
-        "platformNodeId": "8abdc35752c65f65d71baed0e6967ddef9d5beae",
+        "platformNodeId": "aebed5f9de7d96e6d0ae1bd7655fc65257c3bd8a",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "8ed262631cd203059fdadc69151f61c8bb5a7ff4ecb80c5aa7a223444141626bc849cb4a0060c49f530f74afc0b184c301763db65fbce3cca72cdcd93623216e922076d26b1757d32b47f13dd3255b0e1ed2801b59e9c3c5613302ac09c6c926"
@@ -393,7 +393,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "d7806e25992565d4bfa164a0c738c19ff57db2bb1302180c80951e3cad76ab45",
-        "platformNodeId": "f2998535db16e2315344befbde1f88f5baaba062",
+        "platformNodeId": "62a0abbaf5881fdefbbe445331e216db358599f2",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "a1327da115ece64bfdd2a9f459ea4cb3b025fb7f4711b687078ae54cb9f053d8bee170cd02e64cc01f76dc9f2f0303c51309917edb76812824757cacafa08bfa53cc650315685f88076e2bdc1a9e44acf6616a1a2ed914e58d3d2e67e601db7d"
@@ -414,7 +414,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "b3d90f8582c0b5f478e60655dac9715f0131ff75d7627d556d2eff42cec62ac0",
-        "platformNodeId": "8a84d43d1195c9ba1d0e7dd3764365efbfbd6ee3",
+        "platformNodeId": "e36ebdbfef654376d37d0e1dbac995113dd4848a",
         "platformP2PPort": 26656,
         "platformHTTPPort": 443,
         "sig": "84daa3b3afd35091f2db2837ce74b0392783dfe9f08787310ddbda953613846175ef67c5af77831d685fa44c2c3b43a8122a5b08898304830af8aa5766551d19a50fe202189f36dd2eddb242fcde98d515e183e6cfb414e4f1e87439f700da64"
@@ -439,7 +439,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "772ea8ff4660de8fdb74df33eaf7d8404793338f79cd242c13b20c81b9ee9707",
-        "platformNodeId": "e5992efdc3d9e31931fb19590b33aaa1b90bb958",
+        "platformNodeId": "58b90bb9a1aa330b5919fb3119e3d9c3fd2e99e5",
         "platformP2PPort": null,
         "platformHTTPPort": null,
         "sig": "82f472080ab9042136ac31bcc3fc0a4339cfb049d65aaa9815449b7f7a07a0413b5537dd8a4571e7813c7db282e55d8d19518e3ad5040646d95b1a721833d40e4199ac1e9c12df262aa54a5cdb958e2f7ca08f0624ef8655c88c83892c47ccee"
@@ -473,7 +473,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "e2c4f44326c4518abf50fc55b1c8c86a3a4a7312e5534148bf4e33ba531d8d1a",
-        "platformNodeId": "e5992efdc3d9e31931fb19590b33aaa1b90bb958",
+        "platformNodeId": "58b90bb9a1aa330b5919fb3119e3d9c3fd2e99e5",
         "platformP2PPort": null,
         "platformHTTPPort": null,
         "sig": "9792fe587c23c184602bc283e5f0e133b5a4cb3b9f8b00937947b7fd77968880dde692fc93de16bbcdf7bcfc20e5547b14ff016e2530cf6aa2f2d0e69af5bf6ffea3fcc8121dc0398485a23889607afb3f259396c875267d4013723aa3239c5e"
@@ -511,7 +511,7 @@
         },
         "scriptOperatorPayout": "",
         "inputsHash": "42b7423c5ee93cc20ac235040d696369884cca1ff43aa4287bb0645062012c16",
-        "platformNodeId": "e5992efdc3d9e31931fb19590b33aaa1b90bb958",
+        "platformNodeId": "58b90bb9a1aa330b5919fb3119e3d9c3fd2e99e5",
         "platformP2PPort": null,
         "platformHTTPPort": null,
         "sig": "a962a6fba440cc328e9acb9c06d3a487d08b635008d7af5aba040a5ef53656f974ac492e235ab757504b709ba80b530007e92cea0aa4455dbe1eac9ed67f57d1ba46ed4e324b83d896832c05afc260970cdbbc9837c75cce573b25b45f1de799"

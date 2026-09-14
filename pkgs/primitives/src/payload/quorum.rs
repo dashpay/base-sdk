@@ -11,7 +11,7 @@ use crate::codec::impl_payload;
 use crate::hash_impl;
 use crate::support::{DynBitset, LlmqType};
 
-use dash_num::{make_hash, Hash256};
+use dash_num::make_hash;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf, BlsSigBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::type_id::{TypeId, Unencodable};
@@ -20,9 +20,8 @@ use dash_types::Numeric;
 use core::fmt;
 
 make_hash! {
-  Hash256,
   /// Quorum verification vector hash.
-  QuorumVvecHash
+  QuorumVvecHash, 32
 }
 
 hash_impl!(QuorumVvecHash);

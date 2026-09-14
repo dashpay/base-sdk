@@ -26,17 +26,15 @@ pub const MAX_LEGACY_BLOCK_SIZE: usize = 1_000_000;
 pub const MAX_DIP0001_BLOCK_SIZE: usize = 2_000_000;
 
 make_hash! {
-  Hash256,
   /// Hash of a block header.
-  BlockHash
+  BlockHash, 32
 }
 
 hash_impl!(BlockHash);
 
 make_hash! {
-  Hash256,
   /// Merkle tree root hash.
-  MerkleRoot
+  MerkleRoot, 32
 }
 
 hash_impl!(MerkleRoot);
