@@ -98,7 +98,7 @@ impl BaseCodec for EcdsaRecSigBytes {
       });
     }
     let raw = read_bytes(data, n)?;
-    let flags = CompactFlags::from_base(raw[0]).ok_or_else(|| DecodeError::InvalidValue {
+    let flags = CompactFlags::try_from_base(raw[0]).ok_or_else(|| DecodeError::InvalidValue {
       expected: CompactFlags::variants()
         .iter()
         .map(|f| u64::from(f.to_base()))
@@ -163,7 +163,7 @@ impl EcdsaRecSigBytes {
   /// Returns `None` when the header byte is outside the `27..=34` range that
   /// encodes a recovery id and compression flag.
   pub fn from_raw(bytes: [u8; ECDSA_SIG_LEN + 1]) -> Option<Self> {
-    let flags = CompactFlags::from_base(bytes[0])?;
+    let flags = CompactFlags::try_from_base(bytes[0])?;
     let mut arr = [0u8; ECDSA_SIG_LEN];
     arr.copy_from_slice(&bytes[1..]);
     Some(Self {
@@ -294,7 +294,7 @@ mod tests {
     let flags = CompactFlags::new(rid, compressed).unwrap();
     assert_eq!(flags.recovery_id(), rid);
     assert_eq!(flags.is_compressed(), compressed.is_compressed());
-    assert_eq!(CompactFlags::from_base(flags.to_base()), Some(flags));
+    assert_eq!(CompactFlags::try_from_base(flags.to_base()), Some(flags));
   }
 
   #[rstest]

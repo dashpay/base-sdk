@@ -6,7 +6,7 @@
 
 //! Script opcodes as defined by the consensus rules.
 
-use dash_types::enum_map;
+use dash_types::{enum_map, Numeric};
 
 use core::fmt;
 
@@ -302,6 +302,7 @@ mod tests {
   use super::Opcode;
   use crate::prelude::*;
 
+  use dash_types::Numeric;
   use rstest::*;
 
   #[rstest]

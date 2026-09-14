@@ -85,28 +85,11 @@ pub fn qtypestr(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
   f.write_str(&path[seg..])
 }
 
-/// Generates `Numeric<$base>` for an enum that already carries the inherent
-/// `fn {from,to}_base` pair.
-#[cfg(feature = "codec")]
-#[macro_export]
-macro_rules! impl_enum {
-  ($enum:ident, $base:ty) => {
-    impl $crate::Numeric<$base> for $enum {
-      fn from_base(val: $base) -> Self {
-        $enum::from_base(val)
-      }
-
-      fn to_base(&self) -> $base {
-        $enum::to_base(*self)
-      }
-    }
-  };
-}
-
 /// Maps enum variants to integer constants and display strings.
 ///
-/// Generates the enum definition, inherent `const fn` integer mapping, and
-/// `impl Display` from a single table.
+/// Generates the enum definition, the integer mapping, and `impl Display`
+/// from a single table. An open enum maps through `Numeric`, a closed one
+/// through an inherent fallible pair.
 ///
 /// # Syntax
 ///
@@ -119,9 +102,8 @@ macro_rules! impl_enum {
 ///
 /// ## Infallible
 ///
-/// Generates the enum with a catch-all variant, inherent `fn {to,from}_base`
-/// methods and the [`impl_enum!`](crate::impl_enum) impl over them, `new`,
-/// `is_canonical`, `variants`, and `impl Display`.
+/// Generates the enum with a catch-all variant, a [`Numeric`](crate::Numeric)
+/// impl, inherent `new`, `is_canonical`, `variants`, and `impl Display`.
 ///
 /// The catch-all displays as `unknown({v})`; build values with `new` so it
 /// never shadows a named variant.
@@ -140,7 +122,7 @@ macro_rules! impl_enum {
 ///
 /// ## Fallible
 ///
-/// Generates the enum (closed), inherent `const fn from_base` / `to_base`
+/// Generates the enum (closed), inherent `const fn try_from_base` / `to_base`
 /// methods, and `impl Display`.
 ///
 /// ```ignore
@@ -254,29 +236,12 @@ macro_rules! enum_map {
     $($variant:ident = $value:literal),+
   }) => {
     impl $enum {
-      /// Constructs from the base integer value.
-      pub const fn from_base(val: $base) -> Self {
+      /// Canonical constructor.
+      pub const fn new(val: $base) -> Self {
         match val {
           $($value => Self::$variant,)+
           other => Self::$catch_all(other),
         }
-      }
-
-      /// Returns the base integer value.
-      pub const fn to_base(self) -> $base {
-        match self {
-          $(Self::$variant => $value,)+
-          Self::$catch_all(v) => v,
-        }
-      }
-
-      /// Canonical constructor.
-      ///
-      /// Routes through `from_base`, so a value a named variant covers yields
-      /// that variant instead of a catch-all holding the same number. Decoded
-      /// values already take this path.
-      pub const fn new(val: $base) -> Self {
-        Self::from_base(val)
       }
 
       /// Whether this value is in canonical form.
@@ -285,7 +250,7 @@ macro_rules! enum_map {
       /// already covers.
       pub fn is_canonical(&self) -> bool {
         !matches!(self, Self::$catch_all(v) if matches!(
-          Self::from_base(*v),
+          Self::new(*v),
           $(Self::$variant)|+
         ))
       }
@@ -296,8 +261,17 @@ macro_rules! enum_map {
       }
     }
 
-    $crate::cfg_codec! {
-      $crate::impl_enum!($enum, $base);
+    impl $crate::Numeric<$base> for $enum {
+      fn from_base(val: $base) -> Self {
+        Self::new(val)
+      }
+
+      fn to_base(&self) -> $base {
+        match self {
+          $(Self::$variant => $value,)+
+          Self::$catch_all(v) => *v,
+        }
+      }
     }
   };
 
@@ -305,8 +279,8 @@ macro_rules! enum_map {
     $($variant:ident = $value:literal),+
   }) => {
     impl $enum {
-      /// Constructs from the base integer value.
-      pub const fn from_base(v: $base) -> Option<Self> {
+      /// Constructs from the base integer value, if it names a variant.
+      pub const fn try_from_base(v: $base) -> Option<Self> {
         match v {
           $($value => Some(Self::$variant),)+
           _ => None,
@@ -415,6 +389,7 @@ macro_rules! type_cvrt {
 mod tests {
   use super::qtypestr;
   use crate::prelude::*;
+  use crate::Numeric;
 
   use rstest::*;
 
@@ -495,13 +470,13 @@ mod tests {
   #[case::unmapped(0x0300, None)]
   #[case::zero(0, None)]
   fn closed_rejects_unmapped(#[case] raw: u16, #[case] expected: Option<Closed>) {
-    assert_eq!(Closed::from_base(raw), expected);
+    assert_eq!(Closed::try_from_base(raw), expected);
   }
 
   #[rstest]
   fn closed_roundtrips_every_variant() {
     for v in Closed::variants() {
-      assert_eq!(Closed::from_base(v.to_base()), Some(*v));
+      assert_eq!(Closed::try_from_base(v.to_base()), Some(*v));
     }
   }
 
@@ -510,11 +485,8 @@ mod tests {
     assert_eq!(Closed::Lo.to_string(), "Lo");
   }
 
-  #[cfg(feature = "codec")]
   #[rstest]
-  fn open_maps_through_the_codec_trait() {
-    use crate::Numeric;
-
+  fn open_maps_through_the_shared_trait() {
     assert_eq!(<Open as Numeric<u8>>::from_base(1), Open::One);
     assert_eq!(Numeric::<u8>::to_base(&Open::Two), 2);
   }

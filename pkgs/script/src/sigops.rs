@@ -8,6 +8,8 @@
 
 use crate::opcode::Opcode;
 
+use dash_types::Numeric;
+
 const MAX_PUBKEYS: usize = 20;
 
 /// Count legacy signature operations in a script.

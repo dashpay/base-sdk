@@ -15,6 +15,7 @@ use dash_num::{make_hash, Hash256};
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf, BlsSigBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::Numeric;
 
 use core::fmt;
 

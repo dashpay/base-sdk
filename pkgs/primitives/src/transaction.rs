@@ -17,7 +17,7 @@ use bitcoin_units::Amount;
 use dash_num::{make_hash, Hash256};
 use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf, Hashable};
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::{impl_type, CompactSize};
+use dash_types::{impl_type, CompactSize, Numeric};
 
 use core::fmt;
 

@@ -91,7 +91,7 @@ impl EcdsaPublicKey {
   /// contradicts the Y coordinate's parity, or the coordinates do not lie on
   /// the curve.
   pub fn from_bytes(bytes: &[u8]) -> Result<Self, EcdsaError> {
-    let prefix = bytes.first().and_then(|&b| Sec1Byte::from_base(b));
+    let prefix = bytes.first().and_then(|&b| Sec1Byte::try_from_base(b));
     match prefix {
       Some(p @ (Sec1Byte::HybridEven | Sec1Byte::HybridOdd)) => {
         if bytes.len() != ECDSA_PK_LEN + 1 || (bytes[ECDSA_PK_LEN] & 1 != 0) != (p == Sec1Byte::HybridOdd) {
