@@ -353,10 +353,10 @@ impl Arith256 {
     )
   }
 
-  /// Compute `2^256 / (self + 1)`. Returns MAX when self is zero or one.
-  pub fn inverse(self) -> Self {
-    if self == Self::ZERO || self == Self::ONE {
-      return Self::MAX;
+  /// Work contributed by this difficulty target, `2^256 / (self + 1)`.
+  pub fn block_proof(self) -> Self {
+    if self == Self::ZERO {
+      return Self::ZERO;
     }
     if self == Self::MAX {
       return Self::ONE;

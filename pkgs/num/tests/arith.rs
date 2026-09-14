@@ -970,14 +970,21 @@ mod increment {
   }
 }
 
-mod inverse {
+mod block_proof {
   use super::*;
 
   #[rstest]
   fn zero_min_max() {
-    assert_eq!(Arith256::MAX.inverse(), Arith256::ONE);
-    assert_eq!(Arith256::ONE.inverse(), Arith256::MAX);
-    assert_eq!(Arith256::ZERO.inverse(), Arith256::MAX);
+    assert_eq!(Arith256::MAX.block_proof(), Arith256::ONE);
+    assert_eq!(Arith256::ONE.block_proof(), Arith256::ONE << 255u32);
+    assert_eq!(Arith256::ZERO.block_proof(), Arith256::ZERO);
+  }
+
+  #[rstest]
+  fn pow_limit() {
+    let target = (Arith256::ONE << 224u32) - Arith256::ONE;
+    let expected = Arith256::ONE << 32u32;
+    assert_eq!(target.block_proof(), expected);
   }
 }
 
