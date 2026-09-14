@@ -10,7 +10,8 @@ use crate::bls::BlsShareId;
 use crate::prelude::*;
 
 use cfg_if::cfg_if;
-use hex_conservative::{hex, FromHex};
+use dash_types::Numeric;
+use hex_conservative::hex;
 
 /// BLS12-381 scalar field order r, big-endian.
 pub const GROUP_ORDER: [u8; 32] = hex!("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
@@ -68,18 +69,11 @@ pub const fn ietf_g1_encoding(mut chia: [u8; 48]) -> [u8; 48] {
   chia
 }
 
-/// Parse a participant id from a big-endian hex string.
-pub fn id_from_hex(s: &str) -> BlsShareId {
-  let mut bytes = <[u8; 32]>::from_hex(s).unwrap();
-  bytes.reverse();
-  BlsShareId::from_bytes(bytes)
-}
-
-/// Build a participant id whose low bytes encode `i`.
+/// Build a participant id whose field element is `i`.
 pub fn make_id(i: u32) -> BlsShareId {
   let mut bytes = [0u8; 32];
   bytes[28..32].copy_from_slice(&i.to_be_bytes());
-  BlsShareId::from_bytes(bytes)
+  BlsShareId::from_bendian(bytes)
 }
 
 /// Build `n` sequential participant ids `1..=n`.

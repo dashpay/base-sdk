@@ -49,7 +49,7 @@ impl Fr {
   /// Returns `InvalidShareId` when the id reduces to zero; the polynomial
   /// evaluated there yields its constant term, the master secret itself.
   pub fn from_share_id(id: &BlsShareId) -> Result<Self, BlsError> {
-    let reduced = Self::from_bendian_reduce(id.as_bytes());
+    let reduced = Self::from_lendian_reduce(id.as_bytes());
     if bool::from(reduced.is_zero()) {
       return Err(BlsError::InvalidShareId);
     }
@@ -353,6 +353,7 @@ mod tests {
   use crate::bls::{BlsScChia, BlsScIetf, BlsScheme, BlsSecretKey};
   use crate::prelude::*;
 
+  use dash_types::Numeric;
   use getrandom::SysRng;
   use rand_core::UnwrapErr;
   use rstest::rstest;
@@ -424,7 +425,7 @@ mod tests {
     for _ in 0..248 {
       expected = expected.double();
     }
-    assert_eq!(Fr::from_share_id(&BlsShareId::from_bytes(leading)).unwrap(), expected);
+    assert_eq!(Fr::from_share_id(&BlsShareId::from_bendian(leading)).unwrap(), expected);
   }
 
   /// An id is an integer rather than an encoding of one, so a value at or
@@ -435,7 +436,7 @@ mod tests {
     let mut order_plus_one = GROUP_ORDER;
     order_plus_one[31] += 1;
     assert_eq!(
-      Fr::from_share_id(&BlsShareId::from_bytes(order_plus_one)).unwrap(),
+      Fr::from_share_id(&BlsShareId::from_bendian(order_plus_one)).unwrap(),
       Fr::ONE
     );
 
@@ -451,7 +452,7 @@ mod tests {
   #[case::order(GROUP_ORDER)]
   fn share_id_rejects_the_zero_residue(#[case] bytes: [u8; 32]) {
     assert_eq!(
-      Fr::from_share_id(&BlsShareId::from_bytes(bytes)),
+      Fr::from_share_id(&BlsShareId::from_bendian(bytes)),
       Err(BlsError::InvalidShareId)
     );
   }

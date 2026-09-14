@@ -112,7 +112,7 @@ impl Fr {
     }
   }
 
-  /// Reduces a wide little-endian integer into the field.
+  /// Reduces a little-endian integer of any width into the field.
   ///
   /// Wider input than the modulus is the point; reducing 64 bytes into a
   /// 255-bit field leaves a bias below `2^-250`, where rejection sampling would

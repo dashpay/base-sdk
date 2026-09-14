@@ -49,7 +49,6 @@ cfg_if::cfg_if! {
 
     #[cfg(any(test, feature = "tests"))]
     #[doc(hidden)]
-    #[expect(clippy::unwrap_used, reason = "test support code")]
     pub mod tests;
 
     pub use ies_ops::{BlsIesBlob, BlsIesMulti};
