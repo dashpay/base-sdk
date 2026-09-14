@@ -39,10 +39,14 @@ pub mod bitcoin_primitives {
 
   adapt_codec!(<T>, ScriptBuf<T>);
 
-  // nosemgrep: types-macro-no-codec
-  make_bytes! {
+  // `CScriptID` is a `uint160` but the relevant routines are in dash-num, a
+  // child crate, rendering it unavailable to us. This is worked around by
+  // using `make_bytes!`'s display reversal but doesn't offer the same surface.
+  //
+  // TODO(kwvg): figure out a way to treat ScriptHash as a proper `Hash160`
+  make_bytes! { // nosemgrep: types-macro-no-codec
     /// 20-byte script hash.
-    ScriptHash, 20
+    ScriptHash, 20, rev
   }
 
   impl ScriptHash {
