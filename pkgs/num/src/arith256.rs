@@ -40,13 +40,13 @@ impl Arith256 {
 
   /// Create from a `u64`, zero-extending the upper bits.
   #[inline]
-  pub const fn from_u64(v: u64) -> Self {
+  pub fn from_u64(v: u64) -> Self {
     Self { lo: v as u128, hi: 0 }
   }
 
   /// Create from a `u128`, zero-extending the upper bits.
   #[inline]
-  pub const fn from_u128(v: u128) -> Self {
+  pub fn from_u128(v: u128) -> Self {
     Self { lo: v, hi: 0 }
   }
 
@@ -54,7 +54,7 @@ impl Arith256 {
   ///
   /// `bytes[0..16]` maps to `lo`, `bytes[16..32]` to `hi`.
   #[inline]
-  pub const fn from_le_bytes(bytes: [u8; 32]) -> Self {
+  pub fn from_le_bytes(bytes: [u8; 32]) -> Self {
     let lo = u128::from_le_bytes(split_low(bytes));
     let hi = u128::from_le_bytes(split_high(bytes));
     Self { lo, hi }
@@ -62,7 +62,7 @@ impl Arith256 {
 
   /// Construct from big-endian bytes.
   #[inline]
-  pub const fn from_be_bytes(bytes: [u8; 32]) -> Self {
+  pub fn from_be_bytes(bytes: [u8; 32]) -> Self {
     let mut le = [0u8; 32];
     let mut i = 0;
     while i < 32 {
@@ -79,12 +79,21 @@ impl Arith256 {
   /// little-endian, so this reverses the input before decoding.
   #[inline]
   pub const fn new(be: [u8; 32]) -> Self {
-    Self::from_be_bytes(be)
+    let mut le = [0u8; 32];
+    let mut i = 0;
+    while i < 32 {
+      le[i] = be[31 - i];
+      i += 1;
+    }
+    Self {
+      lo: u128::from_le_bytes(split_low(le)),
+      hi: u128::from_le_bytes(split_high(le)),
+    }
   }
 
   /// Convert to little-endian bytes.
   #[inline]
-  pub const fn to_le_bytes(self) -> [u8; 32] {
+  pub fn to_le_bytes(self) -> [u8; 32] {
     let lo = self.lo.to_le_bytes();
     let hi = self.hi.to_le_bytes();
     let mut out = [0u8; 32];
@@ -99,7 +108,7 @@ impl Arith256 {
 
   /// Convert to big-endian bytes.
   #[inline]
-  pub const fn to_be_bytes(self) -> [u8; 32] {
+  pub fn to_be_bytes(self) -> [u8; 32] {
     let le = self.to_le_bytes();
     let mut be = [0u8; 32];
     let mut i = 0;
@@ -112,44 +121,44 @@ impl Arith256 {
 
   /// Returns `true` if the value is zero.
   #[inline]
-  pub const fn is_zero(self) -> bool {
+  pub fn is_zero(self) -> bool {
     self.lo == 0 && self.hi == 0
   }
 
   /// Returns `true` if the value is one.
   #[inline]
-  pub const fn is_one(self) -> bool {
+  pub fn is_one(self) -> bool {
     self.lo == 1 && self.hi == 0
   }
 
   /// Returns `true` if the value is MAX (all bits set).
   #[inline]
-  pub const fn is_max(self) -> bool {
+  pub fn is_max(self) -> bool {
     self.lo == u128::MAX && self.hi == u128::MAX
   }
 
   /// Returns the lowest 32 bits of the value.
   #[inline]
-  pub const fn low_u32(self) -> u32 {
+  pub fn low_u32(self) -> u32 {
     self.lo as u32
   }
 
   /// Returns the lowest 64 bits of the value.
   #[inline]
-  pub const fn low_u64(self) -> u64 {
+  pub fn low_u64(self) -> u64 {
     self.lo as u64
   }
 
   /// Returns the lowest 128 bits of the value.
   #[inline]
-  pub const fn low_u128(self) -> u128 {
+  pub fn low_u128(self) -> u128 {
     self.lo
   }
 
   /// Saturating conversion to u128. Returns u128::MAX if value exceeds 128
   /// bits.
   #[inline]
-  pub const fn saturating_to_u128(self) -> u128 {
+  pub fn saturating_to_u128(self) -> u128 {
     if self.hi != 0 {
       u128::MAX
     } else {
@@ -159,7 +168,7 @@ impl Arith256 {
 
   /// Highest set bit position plus one, or zero if zero.
   #[inline]
-  pub const fn bits(self) -> u32 {
+  pub fn bits(self) -> u32 {
     if self.hi != 0 {
       256 - self.hi.leading_zeros()
     } else if self.lo != 0 {
@@ -171,7 +180,7 @@ impl Arith256 {
 
   /// Wrapping addition.
   #[inline]
-  pub const fn wrapping_add(self, rhs: Self) -> Self {
+  pub fn wrapping_add(self, rhs: Self) -> Self {
     let (lo, carry) = self.lo.overflowing_add(rhs.lo);
     let hi = self.hi.wrapping_add(rhs.hi).wrapping_add(carry as u128);
     Self { lo, hi }
@@ -179,7 +188,7 @@ impl Arith256 {
 
   /// Wrapping subtraction.
   #[inline]
-  pub const fn wrapping_sub(self, rhs: Self) -> Self {
+  pub fn wrapping_sub(self, rhs: Self) -> Self {
     let (lo, borrow) = self.lo.overflowing_sub(rhs.lo);
     let hi = self.hi.wrapping_sub(rhs.hi).wrapping_sub(borrow as u128);
     Self { lo, hi }
@@ -187,19 +196,19 @@ impl Arith256 {
 
   /// Two's complement negation.
   #[inline]
-  pub const fn wrapping_neg(self) -> Self {
+  pub fn wrapping_neg(self) -> Self {
     self.bitwise_not().wrapping_add(Self::ONE)
   }
 
   /// Wrapping increment (add one).
   #[inline]
-  pub const fn wrapping_inc(self) -> Self {
+  pub fn wrapping_inc(self) -> Self {
     self.wrapping_add(Self::ONE)
   }
 
   /// Bitwise NOT.
   #[inline]
-  pub const fn bitwise_not(self) -> Self {
+  pub fn bitwise_not(self) -> Self {
     Self {
       lo: !self.lo,
       hi: !self.hi,
@@ -207,7 +216,7 @@ impl Arith256 {
   }
 
   /// Wrapping multiply via 64-bit limb decomposition.
-  pub const fn wrapping_mul(self, rhs: Self) -> Self {
+  pub fn wrapping_mul(self, rhs: Self) -> Self {
     let a0 = self.lo as u64 as u128;
     let a1 = (self.lo >> 64) as u64 as u128;
     let a2 = self.hi as u64 as u128;
@@ -258,7 +267,7 @@ impl Arith256 {
   }
 
   /// Checked division. Returns `None` on divide-by-zero.
-  pub const fn checked_div(self, rhs: Self) -> Option<Self> {
+  pub fn checked_div(self, rhs: Self) -> Option<Self> {
     if rhs.is_zero() {
       return None;
     }
@@ -268,7 +277,7 @@ impl Arith256 {
   /// Quotient and remainder via bitwise long division.
   ///
   /// Returns `(ZERO, ZERO)` when `rhs` is zero.
-  pub const fn div_rem(self, rhs: Self) -> (Self, Self) {
+  pub fn div_rem(self, rhs: Self) -> (Self, Self) {
     if rhs.is_zero() {
       return (Self::ZERO, Self::ZERO);
     }
@@ -306,7 +315,7 @@ impl Arith256 {
 
   /// Wrapping left shift.
   #[inline]
-  pub const fn wrapping_shl(self, shift: u32) -> Self {
+  pub fn wrapping_shl(self, shift: u32) -> Self {
     if shift >= 256 {
       return Self::ZERO;
     }
@@ -328,7 +337,7 @@ impl Arith256 {
 
   /// Wrapping right shift.
   #[inline]
-  pub const fn wrapping_shr(self, shift: u32) -> Self {
+  pub fn wrapping_shr(self, shift: u32) -> Self {
     if shift >= 256 {
       return Self::ZERO;
     }
@@ -349,7 +358,7 @@ impl Arith256 {
   }
 
   /// Wrapping multiply by a `u32` scalar.
-  pub const fn wrapping_mul_u32(self, b: u32) -> Self {
+  pub fn wrapping_mul_u32(self, b: u32) -> Self {
     let b = b as u128;
     let a0 = self.lo as u64 as u128;
     let a1 = (self.lo >> 64) as u64 as u128;
@@ -377,7 +386,7 @@ impl Arith256 {
   }
 
   /// Multiply by a `u64` scalar, returning the result and an overflow flag.
-  pub const fn mul_u64(self, b: u64) -> (Self, bool) {
+  pub fn mul_u64(self, b: u64) -> (Self, bool) {
     let b = b as u128;
     let a0 = self.lo as u64 as u128;
     let a1 = (self.lo >> 64) as u64 as u128;
@@ -410,7 +419,7 @@ impl Arith256 {
   }
 
   /// Compute `2^256 / (self + 1)`. Returns MAX when self is zero or one.
-  pub const fn inverse(self) -> Self {
+  pub fn inverse(self) -> Self {
     if self.is_zero() || self.is_one() {
       return Self::MAX;
     }
@@ -423,7 +432,7 @@ impl Arith256 {
   }
 
   /// Approximate conversion to `f64`.
-  pub const fn to_f64(self) -> f64 {
+  pub fn to_f64(self) -> f64 {
     let a0 = self.lo as u64;
     let a1 = (self.lo >> 64) as u64;
     let a2 = self.hi as u64;

@@ -89,19 +89,19 @@ macro_rules! define_hash {
 
       /// Wrap raw little-endian bytes into a hash.
       #[inline]
-      pub const fn from_bytes(bytes: [u8; $n]) -> Self {
+      pub fn from_bytes(bytes: [u8; $n]) -> Self {
         Self(bytes)
       }
 
       /// Return the raw little-endian bytes.
       #[inline]
-      pub const fn to_bytes(self) -> [u8; $n] {
+      pub fn to_bytes(self) -> [u8; $n] {
         self.0
       }
 
       /// Borrow the raw little-endian bytes.
       #[inline]
-      pub const fn as_bytes(&self) -> &[u8; $n] {
+      pub fn as_bytes(&self) -> &[u8; $n] {
         &self.0
       }
 
@@ -122,7 +122,7 @@ macro_rules! define_hash {
       }
 
       /// Returns `true` if every byte is zero.
-      pub const fn is_null(&self) -> bool {
+      pub fn is_null(&self) -> bool {
         let mut i = 0;
         while i < $n {
           if self.0[i] != 0 {

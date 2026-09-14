@@ -49,7 +49,7 @@ impl_num!(CompactTarget, u32);
 
 impl CompactTarget {
   /// Decode this compact (nBits) representation into a 256-bit target value.
-  pub const fn decode(self) -> DecodedTarget {
+  pub fn decode(self) -> DecodedTarget {
     let compact = self.0;
     let size = (compact >> 24) as usize;
     let mut word = compact & 0x007f_ffff;
@@ -83,12 +83,12 @@ impl Arith256 {
   /// Decode a compact (nBits) representation into a 256-bit target value.
   ///
   /// Convenience method that delegates to [`CompactTarget::decode`].
-  pub const fn from_compact(ct: CompactTarget) -> DecodedTarget {
+  pub fn from_compact(ct: CompactTarget) -> DecodedTarget {
     ct.decode()
   }
 
   /// Encode this value as a compact (nBits) representation.
-  pub const fn to_compact(self, negative: bool) -> CompactTarget {
+  pub fn to_compact(self, negative: bool) -> CompactTarget {
     let mut size = self.bits().div_ceil(8);
     let mut compact: u32 = if size <= 3 {
       (self.low_u64() << (8 * (3 - size as u64))) as u32
