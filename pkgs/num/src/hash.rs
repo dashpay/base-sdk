@@ -13,6 +13,9 @@ use core::fmt::{self, Write as _};
 use core::hash::Hash;
 use core::str::FromStr;
 
+/// Whitespace skipped before a hex prefix.
+const WHITESPACE: [char; 6] = [' ', '\x0c', '\n', '\r', '\t', '\x0b'];
+
 /// Error returned when parsing a hex string fails.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseHexError {
@@ -142,9 +145,9 @@ impl<const N: usize> HashBlob<N> {
 
   /// Parse from a big-endian hex string.
   ///
-  /// Accepts an optional `0x`/`0X` prefix followed by optional leading
-  /// spaces before the hex digits. The digits are big-endian (MSB first),
-  /// mirroring the consensus display convention.
+  /// Accepts leading whitespace followed by an optional `0x`/`0X` prefix,
+  /// in that order. The digits are big-endian (MSB first), mirroring the
+  /// consensus display convention.
   ///
   /// # Errors
   ///
@@ -152,8 +155,8 @@ impl<const N: usize> HashBlob<N> {
   /// `InvalidLength` when the decoded byte count exceeds the type width, or
   /// `InvalidChar` on a non-hex digit.
   pub fn from_hex(s: &str) -> Result<Self, ParseHexError> {
+    let s = s.trim_start_matches(WHITESPACE);
     let s = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
-    let s = s.trim_start_matches(' ');
 
     if s.len() > N * 2 {
       return Err(ParseHexError::InvalidLength {
