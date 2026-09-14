@@ -1,6 +1,19 @@
 [package]
 name = "dash-num"
-version = "0.0.0"
+version = "0.1.0-beta"
+description = "Wide-integer blob and arithmetic types for the Dash Base SDK"
+keywords = ["base-sdk", "dash", "dashcore", "dashpay"]
+categories = [
+  "cryptography::cryptocurrencies",
+  "encoding",
+  "no-std",
+  "wasm",
+]
+exclude = [
+  "bench",
+  "corpus",
+  "tests",
+]
 readme = "README.md"
 authors.workspace = true
 edition.workspace = true
@@ -42,7 +55,7 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 
 [dev-dependencies]
-dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
+dash-dev = { path = "../dev", features = ["full"] }
 divan = "0.1"
 hex-literal = "0.4"
 rstest = "0.25"
@@ -72,3 +85,6 @@ harness = false
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
