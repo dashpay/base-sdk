@@ -8,6 +8,8 @@
 
 use crate::Hash256;
 
+use dash_types::Numeric;
+
 use core::cmp::Ordering;
 use core::fmt;
 use core::ops::{
@@ -25,9 +27,45 @@ pub struct Arith256 {
   hi: u128,
 }
 
+impl Numeric for Arith256 {
+  type Base = [u8; 32];
+
+  type Bytes = [u8; 32];
+
+  const ZERO: Self = Self { lo: 0, hi: 0 };
+
+  #[inline]
+  fn from_base(v: [u8; 32]) -> Self {
+    Self::from_le_bytes(v)
+  }
+
+  #[inline]
+  fn to_base(&self) -> [u8; 32] {
+    self.to_le_bytes()
+  }
+
+  #[inline]
+  fn from_lendian(bytes: [u8; 32]) -> Self {
+    Self::from_le_bytes(bytes)
+  }
+
+  #[inline]
+  fn to_lendian(&self) -> [u8; 32] {
+    self.to_le_bytes()
+  }
+
+  #[inline]
+  fn from_bendian(bytes: [u8; 32]) -> Self {
+    Self::new(bytes)
+  }
+
+  #[inline]
+  fn to_bendian(&self) -> [u8; 32] {
+    self.to_be_bytes()
+  }
+}
+
 impl Arith256 {
-  /// The additive identity (all bits zero).
-  pub const ZERO: Self = Self { lo: 0, hi: 0 };
   /// The multiplicative identity.
   pub const ONE: Self = Self { lo: 1, hi: 0 };
   /// The largest representable value (all bits set).

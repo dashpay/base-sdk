@@ -10,7 +10,6 @@ use crate::Arith256;
 
 #[cfg(feature = "codec")]
 use dash_types::impl_num;
-#[cfg(feature = "codec")]
 use dash_types::Numeric;
 
 use core::fmt;
@@ -31,14 +30,35 @@ pub struct DecodedTarget {
   pub overflow: bool,
 }
 
-#[cfg(feature = "codec")]
-impl Numeric<u32> for CompactTarget {
+impl Numeric for CompactTarget {
+  type Base = u32;
+
+  type Bytes = [u8; 4];
+
+  const ZERO: Self = Self(0);
+
   fn from_base(v: u32) -> Self {
     Self(v)
   }
 
   fn to_base(&self) -> u32 {
     self.0
+  }
+
+  fn from_lendian(bytes: [u8; 4]) -> Self {
+    Self::from_base(u32::from_lendian(bytes))
+  }
+
+  fn to_lendian(&self) -> [u8; 4] {
+    self.0.to_lendian()
+  }
+
+  fn from_bendian(bytes: [u8; 4]) -> Self {
+    Self::from_base(u32::from_bendian(bytes))
+  }
+
+  fn to_bendian(&self) -> [u8; 4] {
+    self.0.to_bendian()
   }
 }
 

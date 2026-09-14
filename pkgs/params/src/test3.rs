@@ -13,6 +13,7 @@ use bitcoin_primitives::script::{ScriptPubKeyBuf, ScriptSigBuf};
 use dash_num::{Arith256, Hash256};
 use dash_primitives::{Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Transaction, TxHash, TxIn, TxOut, TxType};
 use dash_script::AddrParams;
+use dash_types::Numeric;
 use hex_literal::hex;
 
 /// Returns the testnet genesis block.

@@ -107,9 +107,6 @@ macro_rules! make_hash {
     }
 
     impl $name {
-      /// The all-zeros (null) hash.
-      pub const ZERO: Self = Self(<$base>::ZERO);
-
       /// Wrap raw little-endian bytes into a hash.
       #[inline]
       pub fn from_bytes(bytes: [u8; { <$base>::LEN }]) -> Self {
@@ -147,9 +144,47 @@ macro_rules! make_hash {
       }
     }
 
+    impl $crate::__private::dash_types::Numeric for $name {
+      type Base = $base;
+
+      type Bytes = [u8; { <$base>::LEN }];
+
+      const ZERO: Self = Self(<$base as $crate::__private::dash_types::Numeric>::ZERO);
+
+      #[inline]
+      fn from_base(v: $base) -> Self {
+        Self(v)
+      }
+
+      #[inline]
+      fn to_base(&self) -> $base {
+        self.0
+      }
+
+      #[inline]
+      fn from_lendian(bytes: [u8; { <$base>::LEN }]) -> Self {
+        Self(<$base as $crate::__private::dash_types::Numeric>::from_lendian(bytes))
+      }
+
+      #[inline]
+      fn to_lendian(&self) -> [u8; { <$base>::LEN }] {
+        <$base as $crate::__private::dash_types::Numeric>::to_lendian(&self.0)
+      }
+
+      #[inline]
+      fn from_bendian(bytes: [u8; { <$base>::LEN }]) -> Self {
+        Self(<$base as $crate::__private::dash_types::Numeric>::from_bendian(bytes))
+      }
+
+      #[inline]
+      fn to_bendian(&self) -> [u8; { <$base>::LEN }] {
+        <$base as $crate::__private::dash_types::Numeric>::to_bendian(&self.0)
+      }
+    }
+
     impl Default for $name {
       #[inline]
-      fn default() -> Self { Self::ZERO }
+      fn default() -> Self { <Self as $crate::__private::dash_types::Numeric>::ZERO }
     }
 
     impl ::core::fmt::Display for $name {

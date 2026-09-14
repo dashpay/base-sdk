@@ -13,7 +13,7 @@ use bitcoin_units::BlockHeight;
 use dash_pkc::bls::{BlsScIetf, BlsSigBytes};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::CompactSize;
+use dash_types::{CompactSize, Numeric};
 
 use core::fmt;
 
@@ -56,7 +56,7 @@ impl BaseCodec for CoinbaseCommitment {
     };
     let (best_cl_height_diff, best_cl_signature, credit_pool_balance) = if version >= 3 {
       (
-        Some(CompactSize::decode(data)?.get()),
+        Some(CompactSize::decode(data)?.to_base()),
         Some(BlsSigBytes::<BlsScIetf>::decode(data)?),
         Some(i64::decode(data)?),
       )

@@ -162,10 +162,7 @@ impl BaseCodec for NIEntry {
         Ok(Self::Domain { name, port })
       }
       NIEntryCode::Unknown(t) => Err(DecodeError::InvalidValue {
-        expected: NIEntryCode::variants()
-          .iter()
-          .map(|v| u64::from(Numeric::<u8>::to_base(v)))
-          .collect(),
+        expected: NIEntryCode::variants().iter().map(|v| u64::from(v.to_base())).collect(),
         actual: u64::from(t),
       }),
     }

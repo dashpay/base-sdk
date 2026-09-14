@@ -8,6 +8,7 @@
 
 use dash_dev::{assert_json_rt, from_json, json_rejects, to_json};
 use dash_num::{Arith256, CompactTarget, Hash160, Hash256};
+use dash_types::Numeric;
 use hex_literal::hex;
 
 #[test]

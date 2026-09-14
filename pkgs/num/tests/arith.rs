@@ -9,6 +9,7 @@
 #![expect(clippy::unwrap_used, reason = "test code")]
 
 use dash_num::{Arith256, Hash256};
+use dash_types::Numeric;
 use hex_literal::hex;
 use rstest::*;
 

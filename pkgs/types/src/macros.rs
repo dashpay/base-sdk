@@ -261,7 +261,13 @@ macro_rules! enum_map {
       }
     }
 
-    impl $crate::Numeric<$base> for $enum {
+    impl $crate::Numeric for $enum {
+      type Base = $base;
+
+      type Bytes = <$base as $crate::Numeric>::Bytes;
+
+      const ZERO: Self = Self::new(0);
+
       fn from_base(val: $base) -> Self {
         Self::new(val)
       }
@@ -271,6 +277,22 @@ macro_rules! enum_map {
           $(Self::$variant => $value,)+
           Self::$catch_all(v) => *v,
         }
+      }
+
+      fn from_lendian(bytes: Self::Bytes) -> Self {
+        Self::from_base(<$base as $crate::Numeric>::from_lendian(bytes))
+      }
+
+      fn to_lendian(&self) -> Self::Bytes {
+        <$base as $crate::Numeric>::to_lendian(&self.to_base())
+      }
+
+      fn from_bendian(bytes: Self::Bytes) -> Self {
+        Self::from_base(<$base as $crate::Numeric>::from_bendian(bytes))
+      }
+
+      fn to_bendian(&self) -> Self::Bytes {
+        <$base as $crate::Numeric>::to_bendian(&self.to_base())
       }
     }
   };
@@ -487,8 +509,10 @@ mod tests {
 
   #[rstest]
   fn open_maps_through_the_shared_trait() {
-    assert_eq!(<Open as Numeric<u8>>::from_base(1), Open::One);
-    assert_eq!(Numeric::<u8>::to_base(&Open::Two), 2);
+    assert_eq!(<Open as Numeric>::from_base(1), Open::One);
+    assert_eq!(Open::Two.to_base(), 2);
+    assert_eq!(Open::Two.to_lendian(), [2]);
+    assert_eq!(<Open as Numeric>::LEN, 1);
   }
 
   struct Qtype<'a>(&'a str);

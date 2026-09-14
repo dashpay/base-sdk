@@ -7,6 +7,7 @@
 //! Compact difficulty target encoding tests.
 
 use dash_num::{Arith256, CompactTarget};
+use dash_types::Numeric;
 use rstest::*;
 
 /// Assert compact decode flags match expectations.

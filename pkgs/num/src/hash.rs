@@ -6,6 +6,7 @@
 
 //! Fixed-size opaque hash blob types.
 
+use dash_types::Numeric;
 use hex_conservative::{BytesToHexIter, Case, HexToBytesIter};
 
 use core::fmt::{self, Write as _};
@@ -47,8 +48,6 @@ macro_rules! define_hash {
     pub struct $name([u8; $n]);
 
     impl $name {
-      /// The all-zeros (null) hash.
-      pub const ZERO: Self = Self([0u8; $n]);
       /// Byte length of this hash type.
       pub const LEN: usize = $n;
 
@@ -127,6 +126,44 @@ macro_rules! define_hash {
         }
 
         Ok(Self(bytes))
+      }
+    }
+
+    impl Numeric for $name {
+      type Base = [u8; $n];
+
+      type Bytes = [u8; $n];
+
+      const ZERO: Self = Self([0u8; $n]);
+
+      #[inline]
+      fn from_base(v: [u8; $n]) -> Self {
+        Self(v)
+      }
+
+      #[inline]
+      fn to_base(&self) -> [u8; $n] {
+        self.0
+      }
+
+      #[inline]
+      fn from_lendian(bytes: [u8; $n]) -> Self {
+        Self(bytes)
+      }
+
+      #[inline]
+      fn to_lendian(&self) -> [u8; $n] {
+        self.0
+      }
+
+      #[inline]
+      fn from_bendian(bytes: [u8; $n]) -> Self {
+        Self::new(bytes)
+      }
+
+      #[inline]
+      fn to_bendian(&self) -> [u8; $n] {
+        <[u8; $n] as Numeric>::to_bendian(&self.0)
       }
     }
 
