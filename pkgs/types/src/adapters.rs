@@ -44,7 +44,7 @@ pub mod bitcoin_primitives {
   // using `make_bytes!`'s display reversal but doesn't offer the same surface.
   //
   // TODO(kwvg): figure out a way to treat ScriptHash as a proper `Hash160`
-  make_bytes! { // nosemgrep: types-macro-no-codec
+  make_bytes! { // nosemgrep: bytes-rev-means-hash, types-macro-no-codec
     /// 20-byte script hash.
     ScriptHash, 20, rev
   }

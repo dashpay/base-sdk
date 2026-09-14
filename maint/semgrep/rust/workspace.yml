@@ -237,3 +237,19 @@ rules:
       include: [/pkgs/**/*.rs, /docs/samples/**/*.rs]
       exclude: ["**/lib.rs", "**/mod.rs"]
     pattern-regex: '^\s*pub\s+use\s'
+
+  - id: bytes-rev-means-hash
+    message: "dash_types::make_bytes! is not suitable for hash types, use dash_num::make_hash! instead"
+    severity: ERROR
+    languages: [rust]
+    paths:
+      include: [/pkgs/**/*.rs, /docs/samples/**/*.rs]
+      exclude:
+        - /pkgs/types/src/entity.rs # declares the generator
+        - /pkgs/types/src/secret.rs # declares its secret sibling
+    pattern-regex: |-
+      (?x)
+      \b (?: make | derive ) _ s? bytes !  # a byte-bag generator invocation
+      \s* [({]                             # ... opening its arguments
+      (?: [^\n]* \n ){0,6}?                # ... over its doc comment, if any
+      [^\n]* \b rev \b                     # ... to the order token's line
