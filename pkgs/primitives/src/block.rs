@@ -198,7 +198,7 @@ fn compute_merkle_root(leaves: &[TxHash]) -> (MerkleRoot, bool) {
     return (MerkleRoot::default(), false);
   }
 
-  let mut hashes: Vec<Hash256> = leaves.iter().map(|h| Hash256::from_bytes(*h.as_bytes())).collect();
+  let mut hashes: Vec<Hash256> = leaves.iter().map(|h| Hash256::from_lendian(*h.as_bytes())).collect();
   let mut mutated = false;
 
   while hashes.len() > 1 {
@@ -213,12 +213,12 @@ fn compute_merkle_root(leaves: &[TxHash]) -> (MerkleRoot, bool) {
       let mut combined = [0u8; 64];
       combined[..32].copy_from_slice(hashes[left].as_bytes());
       combined[32..].copy_from_slice(hashes[right].as_bytes());
-      hashes[i] = Hash256::from_bytes(sha256d::Hash::hash(&combined).to_byte_array());
+      hashes[i] = Hash256::from_lendian(sha256d::Hash::hash(&combined).to_byte_array());
     }
     hashes.truncate(half);
   }
 
-  (MerkleRoot::from_bytes(*hashes[0].as_bytes()), mutated)
+  (MerkleRoot::from_lendian(*hashes[0].as_bytes()), mutated)
 }
 
 impl Block {

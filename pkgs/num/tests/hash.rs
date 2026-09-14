@@ -47,37 +47,37 @@ const ONE_ARRAY: [u8; 32] = {
 
 #[rstest]
 fn from_bytes_to_hex(r1_bytes: [u8; 32], r1_hex: &str, r2_bytes: [u8; 32], r2_hex: &str) {
-  assert_eq!(format!("{}", Hash256::from_bytes(r1_bytes)), r1_hex);
-  assert_eq!(format!("{}", Hash256::from_bytes(r2_bytes)), r2_hex);
+  assert_eq!(format!("{}", Hash256::from_lendian(r1_bytes)), r1_hex);
+  assert_eq!(format!("{}", Hash256::from_lendian(r2_bytes)), r2_hex);
 }
 
 #[rstest]
 fn from_hex_to_bytes(r1_bytes: [u8; 32], r1_hex: &str, r2_bytes: [u8; 32], r2_hex: &str) {
-  assert_eq!(Hash256::from_hex(r1_hex).unwrap().to_bytes(), r1_bytes);
-  assert_eq!(Hash256::from_hex(r2_hex).unwrap().to_bytes(), r2_bytes);
+  assert_eq!(Hash256::from_hex(r1_hex).unwrap().to_lendian(), r1_bytes);
+  assert_eq!(Hash256::from_hex(r2_hex).unwrap().to_lendian(), r2_bytes);
 }
 
 #[rstest]
 fn roundtrip_hex(r1_bytes: [u8; 32], r2_bytes: [u8; 32]) {
-  let r1 = Hash256::from_bytes(r1_bytes);
+  let r1 = Hash256::from_lendian(r1_bytes);
   assert_eq!(Hash256::from_str(&format!("{r1}")).unwrap(), r1);
 
-  let r2 = Hash256::from_bytes(r2_bytes);
+  let r2 = Hash256::from_lendian(r2_bytes);
   assert_eq!(Hash256::from_str(&format!("{r2}")).unwrap(), r2);
 }
 
 #[rstest]
 fn roundtrip_bytes(r1_bytes: [u8; 32], r2_bytes: [u8; 32]) {
-  assert_eq!(Hash256::from_bytes(r1_bytes).to_bytes(), r1_bytes);
-  assert_eq!(Hash256::from_bytes(r2_bytes).to_bytes(), r2_bytes);
+  assert_eq!(Hash256::from_lendian(r1_bytes).to_lendian(), r1_bytes);
+  assert_eq!(Hash256::from_lendian(r2_bytes).to_lendian(), r2_bytes);
 }
 
 #[rstest]
 fn zero_one_max() {
-  assert_eq!(Hash256::ZERO.to_bytes(), [0u8; 32]);
+  assert_eq!(Hash256::ZERO.to_lendian(), [0u8; 32]);
   assert!(Hash256::ZERO.is_null());
 
-  let one = Hash256::from_bytes(ONE_ARRAY);
+  let one = Hash256::from_lendian(ONE_ARRAY);
   assert!(!one.is_null());
 
   assert_eq!(
@@ -89,7 +89,7 @@ fn zero_one_max() {
     "0000000000000000000000000000000000000000000000000000000000000001"
   );
   assert_eq!(
-    format!("{}", Hash256::from_bytes([0xff; 32])),
+    format!("{}", Hash256::from_lendian([0xff; 32])),
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
   );
 }
@@ -97,8 +97,8 @@ fn zero_one_max() {
 #[rstest]
 fn ordering_is_lexicographic() {
   let zero = Hash256::ZERO;
-  let one = Hash256::from_bytes(ONE_ARRAY);
-  let max = Hash256::from_bytes([0xff; 32]);
+  let one = Hash256::from_lendian(ONE_ARRAY);
+  let max = Hash256::from_lendian([0xff; 32]);
 
   assert!(one > zero);
   assert!(max > one);
@@ -107,12 +107,12 @@ fn ordering_is_lexicographic() {
 
 #[rstest]
 fn from_hex_with_prefix() {
-  assert_eq!(Hash256::from_hex("0x01").unwrap().to_bytes(), ONE_ARRAY);
+  assert_eq!(Hash256::from_hex("0x01").unwrap().to_lendian(), ONE_ARRAY);
 }
 
 #[rstest]
 fn from_hex_short() {
-  assert_eq!(Hash256::from_hex("01").unwrap().to_bytes(), ONE_ARRAY);
+  assert_eq!(Hash256::from_hex("01").unwrap().to_lendian(), ONE_ARRAY);
 }
 
 #[rstest]
@@ -129,7 +129,7 @@ fn hex_errors() {
 #[rstest]
 fn hash160_roundtrip() {
   let bytes = hex!("0102030405060708090a0b0c0d0e0f1011121314");
-  let h = Hash160::from_bytes(bytes);
+  let h = Hash160::from_lendian(bytes);
   let hex = format!("{h}");
   assert_eq!(hex, "14131211100f0e0d0c0b0a090807060504030201");
   assert_eq!(Hash160::from_str(&hex).unwrap(), h);
@@ -139,15 +139,15 @@ fn hash160_roundtrip() {
 fn hash160_zero_and_null() {
   assert!(Hash160::ZERO.is_null());
   assert_eq!(Hash160::LEN, 20);
-  let h = Hash160::from_bytes([0xff; 20]);
+  let h = Hash160::from_lendian([0xff; 20]);
   assert!(!h.is_null());
 }
 
 #[rstest]
 fn hash160_new_reverses() {
   let be = hex!("0102030405060708090a0b0c0d0e0f1011121314");
-  let h = Hash160::new(be);
+  let h = Hash160::from_bendian(be);
   // new() reverses, so first byte in LE is last byte of BE input
-  assert_eq!(h.to_bytes()[0], 0x14);
-  assert_eq!(h.to_bytes()[19], 0x01);
+  assert_eq!(h.to_lendian()[0], 0x14);
+  assert_eq!(h.to_lendian()[19], 0x01);
 }

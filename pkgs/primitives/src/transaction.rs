@@ -329,7 +329,7 @@ impl Hashable for Transaction {
   fn hash(&self) -> TxHash {
     let mut buf = Vec::new();
     self.encode(&mut buf);
-    TxHash::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
+    TxHash::from_lendian(sha256d::Hash::hash(&buf).to_byte_array())
   }
 }
 

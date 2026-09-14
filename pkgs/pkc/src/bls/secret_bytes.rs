@@ -12,6 +12,7 @@ use bitcoin_hashes::sha256d::Hash as Sha256d;
 use dash_num::Hash256;
 use dash_types::make_sbytes;
 use dash_types::Hashable;
+use dash_types::Numeric;
 
 /// Raw BLS secret key length (scalar).
 pub const BLS_SK_LEN: usize = 32;
@@ -25,6 +26,6 @@ impl<S: BlsSchemeId> Hashable for BlsSkBytes<S> {
   type Hash = Hash256;
 
   fn hash(&self) -> Self::Hash {
-    Hash256::from_bytes(Sha256d::hash(self.as_bytes()).to_byte_array())
+    Hash256::from_lendian(Sha256d::hash(self.as_bytes()).to_byte_array())
   }
 }

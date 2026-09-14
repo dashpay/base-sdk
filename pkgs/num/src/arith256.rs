@@ -36,32 +36,47 @@ impl Numeric for Arith256 {
 
   #[inline]
   fn from_base(v: [u8; 32]) -> Self {
-    Self::from_le_bytes(v)
+    Self::from_lendian(v)
   }
 
   #[inline]
   fn to_base(&self) -> [u8; 32] {
-    self.to_le_bytes()
+    self.to_lendian()
   }
 
   #[inline]
   fn from_lendian(bytes: [u8; 32]) -> Self {
-    Self::from_le_bytes(bytes)
+    Self {
+      lo: u128::from_le_bytes(split_low(bytes)),
+      hi: u128::from_le_bytes(split_high(bytes)),
+    }
   }
 
   #[inline]
   fn to_lendian(&self) -> [u8; 32] {
-    self.to_le_bytes()
+    let lo = self.lo.to_le_bytes();
+    let hi = self.hi.to_le_bytes();
+    let mut out = [0u8; 32];
+    let mut i = 0;
+    while i < 16 {
+      out[i] = lo[i];
+      out[i + 16] = hi[i];
+      i += 1;
+    }
+    out
   }
 
   #[inline]
   fn from_bendian(bytes: [u8; 32]) -> Self {
-    Self::new(bytes)
+    // Resolves to the inherent `const` form.
+    Self::from_bendian(bytes)
   }
 
   #[inline]
   fn to_bendian(&self) -> [u8; 32] {
-    self.to_be_bytes()
+    let mut out = self.to_lendian();
+    out.reverse();
+    out
   }
 }
 
@@ -85,35 +100,15 @@ impl Arith256 {
     Self { lo: v, hi: 0 }
   }
 
-  /// Construct from little-endian bytes.
-  ///
-  /// `bytes[0..16]` maps to `lo`, `bytes[16..32]` to `hi`.
-  #[inline]
-  pub fn from_le_bytes(bytes: [u8; 32]) -> Self {
-    let lo = u128::from_le_bytes(split_low(bytes));
-    let hi = u128::from_le_bytes(split_high(bytes));
-    Self { lo, hi }
-  }
-
-  /// Construct from big-endian bytes.
-  #[inline]
-  pub fn from_be_bytes(bytes: [u8; 32]) -> Self {
-    let mut le = [0u8; 32];
-    let mut i = 0;
-    while i < 32 {
-      le[i] = bytes[31 - i];
-      i += 1;
-    }
-    Self::from_le_bytes(le)
-  }
-
   /// Construct from big-endian bytes (consensus display order).
   ///
   /// This is the natural byte order produced by `hex_literal::hex!()` when
   /// given a consensus hex value. Internally the value is stored
   /// little-endian, so this reverses the input before decoding.
+  ///
+  /// Shadows [`Numeric::from_bendian`] with a `const` form.
   #[inline]
-  pub const fn new(be: [u8; 32]) -> Self {
+  pub const fn from_bendian(be: [u8; 32]) -> Self {
     let mut le = [0u8; 32];
     let mut i = 0;
     while i < 32 {
@@ -124,34 +119,6 @@ impl Arith256 {
       lo: u128::from_le_bytes(split_low(le)),
       hi: u128::from_le_bytes(split_high(le)),
     }
-  }
-
-  /// Convert to little-endian bytes.
-  #[inline]
-  pub fn to_le_bytes(self) -> [u8; 32] {
-    let lo = self.lo.to_le_bytes();
-    let hi = self.hi.to_le_bytes();
-    let mut out = [0u8; 32];
-    let mut i = 0;
-    while i < 16 {
-      out[i] = lo[i];
-      out[i + 16] = hi[i];
-      i += 1;
-    }
-    out
-  }
-
-  /// Convert to big-endian bytes.
-  #[inline]
-  pub fn to_be_bytes(self) -> [u8; 32] {
-    let le = self.to_le_bytes();
-    let mut be = [0u8; 32];
-    let mut i = 0;
-    while i < 32 {
-      be[i] = le[31 - i];
-      i += 1;
-    }
-    be
   }
 
   /// Returns the lowest 32 bits of the value.
@@ -521,13 +488,13 @@ impl From<u128> for Arith256 {
 
 impl From<Hash256> for Arith256 {
   fn from(h: Hash256) -> Self {
-    Self::from_le_bytes(h.to_bytes())
+    Self::from_lendian(h.to_lendian())
   }
 }
 
 impl From<Arith256> for Hash256 {
   fn from(a: Arith256) -> Self {
-    Hash256::from_bytes(a.to_le_bytes())
+    Hash256::from_lendian(a.to_lendian())
   }
 }
 

@@ -17,7 +17,7 @@ use bitcoin_hashes::sha256d;
 use dash_num::Hash256;
 use dash_types::codec::{ensure, BaseCodec, DecodeError, EncodeBuf, Hashable};
 use dash_types::type_id::TypeId;
-use dash_types::{impl_stype, type_cvrt, ArrayBuf};
+use dash_types::{impl_stype, type_cvrt, ArrayBuf, Numeric};
 use hex_conservative::hex;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
 use k256::elliptic_curve::ops::Neg;
@@ -162,7 +162,7 @@ impl Hashable for EcdsaSecretKey {
   fn hash(&self) -> Hash256 {
     let mut buf = Zeroizing::new(ArrayBuf::<{ DER_SIZES[1] }>::new());
     self.encode(&mut *buf);
-    Hash256::from_bytes(sha256d::Hash::hash(buf.as_bytes()).to_byte_array())
+    Hash256::from_lendian(sha256d::Hash::hash(buf.as_bytes()).to_byte_array())
   }
 }
 

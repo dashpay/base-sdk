@@ -13,7 +13,7 @@ use cfg_if::cfg_if;
 use dash_num::Hash256;
 use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
 use dash_types::type_id::TypeId;
-use dash_types::{impl_type, type_cvrt, CompactSize};
+use dash_types::{impl_type, type_cvrt, CompactSize, Numeric};
 
 use core::fmt;
 
@@ -50,7 +50,7 @@ impl Hashable for EcdsaSigBytes {
   type Hash = Hash256;
 
   fn hash(&self) -> Hash256 {
-    Hash256::from_bytes(sha256d::Hash::hash(&self.0).to_byte_array())
+    Hash256::from_lendian(sha256d::Hash::hash(&self.0).to_byte_array())
   }
 }
 

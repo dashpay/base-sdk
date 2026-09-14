@@ -6,6 +6,8 @@
 
 //! Fixed-size opaque hash blob types.
 
+#[cfg(feature = "codec")]
+use dash_types::impl_type;
 use dash_types::{type_cvrt, Numeric};
 use hex_conservative::{BytesToHexIter, Case, HexToBytesIter};
 
@@ -77,7 +79,8 @@ impl<const N: usize> Numeric for HashBlob<N> {
 
   #[inline]
   fn from_bendian(bytes: [u8; N]) -> Self {
-    Self::new(bytes)
+    // Resolves to the inherent `const` form.
+    Self::from_bendian(bytes)
   }
 
   #[inline]
@@ -89,7 +92,7 @@ impl<const N: usize> Numeric for HashBlob<N> {
 #[cfg(feature = "codec")]
 impl<const N: usize> dash_types::codec::BaseCodec for HashBlob<N> {
   fn decode(data: &mut &[u8]) -> Result<Self, dash_types::codec::DecodeError> {
-    dash_types::codec::take::<N>(data).map(Self::from_bytes)
+    dash_types::codec::take::<N>(data).map(<Self as Numeric>::from_lendian)
   }
 
   fn encode(&self, buf: &mut impl dash_types::codec::EncodeBuf) {
@@ -98,24 +101,9 @@ impl<const N: usize> dash_types::codec::BaseCodec for HashBlob<N> {
 }
 
 #[cfg(feature = "codec")]
-dash_types::impl_type!(for[const N: usize] HashBlob<N>, N);
+impl_type!(for[const N: usize] HashBlob<N>, N);
 
 impl<const N: usize> HashBlob<N> {
-  /// Byte length of this hash type.
-  pub const LEN: usize = N;
-
-  /// Wrap raw little-endian bytes into a hash.
-  #[inline]
-  pub fn from_bytes(bytes: [u8; N]) -> Self {
-    Self(bytes)
-  }
-
-  /// Return the raw little-endian bytes.
-  #[inline]
-  pub fn to_bytes(self) -> [u8; N] {
-    self.0
-  }
-
   /// Borrow the raw little-endian bytes.
   #[inline]
   pub fn as_bytes(&self) -> &[u8; N] {
@@ -128,7 +116,7 @@ impl<const N: usize> HashBlob<N> {
   /// given a block hash or other consensus hex value. Internally the bytes
   /// are stored little-endian, so this reverses the input.
   #[inline]
-  pub const fn new(be: [u8; N]) -> Self {
+  pub const fn from_bendian(be: [u8; N]) -> Self {
     let mut le = [0u8; N];
     let mut i = 0;
     while i < N {

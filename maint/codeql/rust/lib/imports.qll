@@ -67,16 +67,24 @@ predicate isMacroReexport(Use u) {
 
 /** Holds if `u` is an allowlisted re-export from a foreign crate. */
 private predicate isAllowlistedReexport(Use u) {
+  // Sub-crate isolation demands re-exports, part of public API
   usePrefix(u) = "dash_types_marker" and
   fileOf(u).getAbsolutePath().matches("%pkgs/types/%")
   or
+  // Workaround for the orphan rule, not part of public API
   usePrefix(u) = "dash_pkc" and
   u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__PubKeyHash" and
   fileOf(u).getAbsolutePath().matches("%pkgs/script/%")
   or
+  // Workaround for the orphan rule, not part of public API
   usePrefix(u) = "dash_types" and
   u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__ScriptHash" and
   fileOf(u).getAbsolutePath().matches("%pkgs/script/%")
+  or
+  // Crate emits types relying on traits defined by a dependency, part of public API
+  usePrefix(u) = "dash_types" and
+  u.getUseTree().getPath().getSegment().getIdentifier().getText() = "Numeric" and
+  fileOf(u).getAbsolutePath().matches("%pkgs/num/%")
 }
 
 /**

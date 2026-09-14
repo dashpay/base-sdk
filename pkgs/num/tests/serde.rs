@@ -14,17 +14,17 @@ use hex_literal::hex;
 #[test]
 fn hash256_json_roundtrip() {
   let bytes = hex!("9c524adbcf5611122b29125e5d35d2d22281aab533f00832d556b1f9eae51d7d");
-  let h = Hash256::from_bytes(bytes);
+  let h = Hash256::from_lendian(bytes);
   assert_json_rt(&h);
 
   assert_json_rt(&Hash256::ZERO);
-  assert_json_rt(&Hash256::from_bytes([0xff; 32]));
+  assert_json_rt(&Hash256::from_lendian([0xff; 32]));
 }
 
 #[test]
 fn hash160_json_roundtrip() {
   let bytes = hex!("0102030405060708090a0b0c0d0e0f1011121314");
-  let h = Hash160::from_bytes(bytes);
+  let h = Hash160::from_lendian(bytes);
   assert_json_rt(&h);
   assert_json_rt(&Hash160::ZERO);
 }

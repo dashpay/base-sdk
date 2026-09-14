@@ -15,7 +15,7 @@ use bitcoin_units::Amount;
 use dash_num::Hash256;
 use dash_types::codec::{BaseCodec, Checkable, Hashable};
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::{enum_map, impl_num, ArrayBuf};
+use dash_types::{enum_map, impl_num, ArrayBuf, Numeric};
 use hex_conservative::DisplayHex;
 
 use core::fmt;
@@ -179,7 +179,7 @@ impl Hashable for GovObject {
     0xFFFF_FFFFu32.encode(&mut buf);
     self.sig.encode(&mut buf);
 
-    Hash256::from_bytes(sha256d::Hash::hash(&buf).to_byte_array())
+    Hash256::from_lendian(sha256d::Hash::hash(&buf).to_byte_array())
   }
 }
 
@@ -287,7 +287,7 @@ impl Hashable for GovVote {
     self.outcome.encode(&mut buf);
     self.time.encode(&mut buf);
 
-    Hash256::from_bytes(sha256d::Hash::hash(&buf.into_array()).to_byte_array())
+    Hash256::from_lendian(sha256d::Hash::hash(&buf.into_array()).to_byte_array())
   }
 }
 

@@ -6,8 +6,8 @@
 
 //! Consensus-compatible numeric types.
 //!
-//! Provides hash blob types ([`Hash256`], [`Hash160`])
-//! and the [`Arith256`] arithmetic integer type.
+//! Provides hash blob types [`Hash256`], [`Hash160`] and the [`Arith256`]
+//! arithmetic integer type.
 
 #![no_std]
 
@@ -29,6 +29,8 @@ pub mod __private {
   pub use serde;
 }
 
-pub use arith256::Arith256;
-pub use compact::{CompactTarget, DecodedTarget};
-pub use hash::{Hash160, Hash256, HashBlob, ParseHexError};
+pub use crate::arith256::Arith256;
+pub use crate::compact::{CompactTarget, DecodedTarget};
+pub use crate::hash::{Hash160, Hash256, HashBlob, ParseHexError};
+
+pub use dash_types::Numeric;

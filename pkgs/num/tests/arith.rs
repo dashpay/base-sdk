@@ -16,7 +16,7 @@ use rstest::*;
 use core::str::FromStr;
 
 fn arith_from_le(bytes: &[u8; 32]) -> Arith256 {
-  Arith256::from(Hash256::from_bytes(*bytes))
+  Arith256::from(Hash256::from_lendian(*bytes))
 }
 
 fn arith_from_hex(s: &str) -> Arith256 {
@@ -30,7 +30,7 @@ fn from_array(a: [u64; 4]) -> Arith256 {
   let mut bytes = [0u8; 32];
   bytes[..16].copy_from_slice(&lo.to_le_bytes());
   bytes[16..].copy_from_slice(&hi.to_le_bytes());
-  Arith256::from_le_bytes(bytes)
+  Arith256::from_lendian(bytes)
 }
 
 #[fixture]
@@ -55,7 +55,7 @@ fn r2_hex() -> &'static str {
 
 #[fixture]
 fn one_hash() -> Hash256 {
-  Hash256::from_bytes({
+  Hash256::from_lendian({
     let mut a = [0u8; 32];
     a[0] = 1;
     a
@@ -82,8 +82,8 @@ mod conversion {
     for h in [
       Hash256::ZERO,
       one_hash,
-      Hash256::from_bytes(r1_bytes),
-      Hash256::from_bytes(r2_bytes),
+      Hash256::from_lendian(r1_bytes),
+      Hash256::from_lendian(r2_bytes),
     ] {
       assert_eq!(Hash256::from(Arith256::from(h)), h);
     }
@@ -104,7 +104,7 @@ mod conversion {
   #[rstest]
   fn hex_through_arith_matches_hash(r1_bytes: [u8; 32], r2_bytes: [u8; 32]) {
     for bytes in [r1_bytes, r2_bytes] {
-      let h = Hash256::from_bytes(bytes);
+      let h = Hash256::from_lendian(bytes);
       let a = Arith256::from(h);
       assert_eq!(format!("{h}"), format!("{a}"));
     }
@@ -179,35 +179,35 @@ mod byte_conversion {
   }
 
   #[rstest]
-  fn to_be_bytes() {
-    assert_eq!(want().to_be_bytes(), BE_BYTES);
+  fn to_bendian() {
+    assert_eq!(want().to_bendian(), BE_BYTES);
   }
 
   #[rstest]
-  fn from_be_bytes() {
-    assert_eq!(Arith256::from_be_bytes(BE_BYTES), want());
+  fn from_bendian() {
+    assert_eq!(Arith256::from_bendian(BE_BYTES), want());
   }
 
   #[rstest]
-  fn to_le_bytes() {
-    assert_eq!(want().to_le_bytes(), LE_BYTES);
+  fn to_lendian() {
+    assert_eq!(want().to_lendian(), LE_BYTES);
   }
 
   #[rstest]
-  fn from_le_bytes() {
-    assert_eq!(Arith256::from_le_bytes(LE_BYTES), want());
+  fn from_lendian() {
+    assert_eq!(Arith256::from_lendian(LE_BYTES), want());
   }
 
   #[rstest]
   fn roundtrip_be() {
     let v = want();
-    assert_eq!(Arith256::from_be_bytes(v.to_be_bytes()), v);
+    assert_eq!(Arith256::from_bendian(v.to_bendian()), v);
   }
 
   #[rstest]
   fn roundtrip_le() {
     let v = want();
-    assert_eq!(Arith256::from_le_bytes(v.to_le_bytes()), v);
+    assert_eq!(Arith256::from_lendian(v.to_lendian()), v);
   }
 
   #[rstest]
@@ -372,7 +372,7 @@ mod multiply {
   #[rstest]
   fn cross_limb() {
     let a = Arith256::from_u128(1u128 << 64);
-    let expected = Arith256::from_le_bytes({
+    let expected = Arith256::from_lendian({
       let mut bytes = [0u8; 32];
       bytes[16] = 1;
       bytes
@@ -704,7 +704,7 @@ mod comparison {
   #[rstest]
   fn cross_limb() {
     let lo_max = Arith256::from_u128(u128::MAX);
-    let hi_one = Arith256::from_le_bytes({
+    let hi_one = Arith256::from_lendian({
       let mut b = [0u8; 32];
       b[16] = 1;
       b

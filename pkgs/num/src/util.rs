@@ -54,8 +54,8 @@ macro_rules! make_hash {
       fn decode(
         data: &mut &[u8],
       ) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
-        $crate::__private::dash_types::codec::take::<{ <$base>::LEN }>(data)
-          .map(Self::from_bytes)
+        $crate::__private::dash_types::codec::take::<{ <$base as $crate::__private::dash_types::Numeric>::LEN }>(data)
+          .map(<Self as $crate::__private::dash_types::Numeric>::from_lendian)
       }
 
       fn encode(&self, buf: &mut impl $crate::__private::dash_types::codec::EncodeBuf) {
@@ -105,28 +105,10 @@ macro_rules! make_hash {
     }
 
     impl $name {
-      /// Wrap raw little-endian bytes into a hash.
-      #[inline]
-      pub fn from_bytes(bytes: [u8; { <$base>::LEN }]) -> Self {
-        Self(<$base>::from_bytes(bytes))
-      }
-
-      /// Return the raw little-endian bytes.
-      #[inline]
-      pub fn to_bytes(self) -> [u8; { <$base>::LEN }] {
-        self.0.to_bytes()
-      }
-
       /// Borrow the raw little-endian bytes.
       #[inline]
-      pub fn as_bytes(&self) -> &[u8; { <$base>::LEN }] {
+      pub fn as_bytes(&self) -> &[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] {
         self.0.as_bytes()
-      }
-
-      /// Construct from big-endian bytes (consensus display order).
-      #[inline]
-      pub const fn new(be: [u8; { <$base>::LEN }]) -> Self {
-        Self(<$base>::new(be))
       }
 
       /// Returns `true` if every byte is zero.
@@ -145,7 +127,7 @@ macro_rules! make_hash {
     impl $crate::__private::dash_types::Numeric for $name {
       type Base = $base;
 
-      type Bytes = [u8; { <$base>::LEN }];
+      type Bytes = [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }];
 
       const ZERO: Self = Self(<$base as $crate::__private::dash_types::Numeric>::ZERO);
 
@@ -160,22 +142,22 @@ macro_rules! make_hash {
       }
 
       #[inline]
-      fn from_lendian(bytes: [u8; { <$base>::LEN }]) -> Self {
+      fn from_lendian(bytes: [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]) -> Self {
         Self(<$base as $crate::__private::dash_types::Numeric>::from_lendian(bytes))
       }
 
       #[inline]
-      fn to_lendian(&self) -> [u8; { <$base>::LEN }] {
+      fn to_lendian(&self) -> [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] {
         <$base as $crate::__private::dash_types::Numeric>::to_lendian(&self.0)
       }
 
       #[inline]
-      fn from_bendian(bytes: [u8; { <$base>::LEN }]) -> Self {
+      fn from_bendian(bytes: [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]) -> Self {
         Self(<$base as $crate::__private::dash_types::Numeric>::from_bendian(bytes))
       }
 
       #[inline]
-      fn to_bendian(&self) -> [u8; { <$base>::LEN }] {
+      fn to_bendian(&self) -> [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] {
         <$base as $crate::__private::dash_types::Numeric>::to_bendian(&self.0)
       }
     }
@@ -205,8 +187,8 @@ macro_rules! make_hash {
       }
     }
 
-    $crate::__private::dash_types::type_cvrt!(From<[u8; { <$base>::LEN }]> for $name, |b| Self::from_bytes(*b));
-    $crate::__private::dash_types::type_cvrt!(From<$name> for [u8; { <$base>::LEN }], |h| h.to_bytes());
+    $crate::__private::dash_types::type_cvrt!(From<[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]> for $name, |b| <Self as $crate::__private::dash_types::Numeric>::from_lendian(*b));
+    $crate::__private::dash_types::type_cvrt!(From<$name> for [u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }], |h| $crate::__private::dash_types::Numeric::to_lendian(h));
     $crate::__private::dash_types::type_cvrt!(From<$base> for $name, |h| Self(*h));
     $crate::__private::dash_types::type_cvrt!(From<$name> for $base, |h| h.0);
 
@@ -215,9 +197,9 @@ macro_rules! make_hash {
       fn as_ref(&self) -> &[u8] { self.0.as_ref() }
     }
 
-    impl AsRef<[u8; { <$base>::LEN }]> for $name {
+    impl AsRef<[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }]> for $name {
       #[inline]
-      fn as_ref(&self) -> &[u8; { <$base>::LEN }] { self.0.as_bytes() }
+      fn as_ref(&self) -> &[u8; { <$base as $crate::__private::dash_types::Numeric>::LEN }] { self.0.as_bytes() }
     }
 
     $crate::make_hash!(@codec $base, $name);
