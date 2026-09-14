@@ -22,7 +22,7 @@ serde = ["dep:serde", "dash-types/serde"]
 
 [dependencies]
 bitcoin-consensus-encoding = { workspace = true, optional = true }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
+dash-types = { version = "0.1.0-beta", path = "../types", default-features = false }
 hex-conservative = { workspace = true }
 serde = { version = "1", default-features = false, features = [
   "derive",

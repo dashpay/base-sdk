@@ -1,6 +1,19 @@
 [package]
 name = "dash-types"
-version = "0.0.0"
+version = "0.1.0-beta"
+description = "Fixed-width and buffered type (de)serialization for the Dash Base SDK"
+keywords = ["base-sdk", "dash", "dashcore", "dashpay"]
+categories = [
+  "cryptography::cryptocurrencies",
+  "encoding",
+  "no-std",
+  "wasm",
+]
+exclude = [
+  "bench",
+  "corpus",
+  "tests",
+]
 readme = "README.md"
 authors.workspace = true
 edition.workspace = true
@@ -45,7 +58,7 @@ bitcoin-consensus-encoding = { workspace = true, optional = true }
 bitcoin_hashes = { workspace = true, optional = true, features = ["alloc"] }
 bitcoin-primitives = { workspace = true, optional = true, features = ["alloc"] }
 cfg-if = "1"
-dash-types-marker = { version = "0.0.0", path = "marker", optional = true }
+dash-types-marker = { version = "0.1.0-beta", path = "marker", optional = true }
 hex-conservative = { workspace = true, features = [
   "alloc",
 ], optional = true }
@@ -62,3 +75,6 @@ serde = { version = "1", features = ["derive"] }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
