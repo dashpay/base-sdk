@@ -33,4 +33,4 @@ pub mod __private {
 
 pub use arith256::Arith256;
 pub use compact::{CompactTarget, DecodedTarget};
-pub use hash::{Hash160, Hash256, ParseHexError};
+pub use hash::{Hash160, Hash256, HashBlob, ParseHexError};
