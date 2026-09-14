@@ -28,6 +28,10 @@ nav = [
     { "Overview" = "types/README.md" },
     { "Changelog" = "types/changelog.md" },
   ] },
+  { "dash-num" = [
+    { "Overview" = "num/README.md" },
+    { "Changelog" = "num/changelog.md" },
+  ] },
   { "Samples" = [
     { "Genesis Solver" = "samples/solver/README.md" },
     { "Object Parser" = "samples/parser/README.md" },

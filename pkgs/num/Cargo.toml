@@ -10,15 +10,27 @@ repository.workspace = true
 rust-version.workspace = true
 
 [features]
-default = []
+default = ["codec"]
 std = [
   "bitcoin-consensus-encoding?/std",
   "dash-types/std",
   "hex-conservative/std",
 ]
-full = ["std", "codec", "serde"]
-codec = ["dep:bitcoin-consensus-encoding", "dash-types/codec"]
-serde = ["dep:serde", "dash-types/serde"]
+
+codec = [
+  "dash-types/codec",
+  "dep:bitcoin-consensus-encoding",
+]
+full = [
+  "codec",
+  "serde",
+  "std",
+]
+serde = [
+  "codec",
+  "dash-types/serde",
+  "dep:serde",
+]
 
 [dependencies]
 bitcoin-consensus-encoding = { workspace = true, optional = true }
