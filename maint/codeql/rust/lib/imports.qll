@@ -67,24 +67,32 @@ predicate isMacroReexport(Use u) {
 
 /** Holds if `u` is an allowlisted re-export from a foreign crate. */
 private predicate isAllowlistedReexport(Use u) {
-  // Sub-crate isolation demands re-exports, part of public API
-  usePrefix(u) = "dash_types_marker" and
-  fileOf(u).getAbsolutePath().matches("%pkgs/types/%")
+  fileOf(u).getAbsolutePath().matches("%pkgs/num/%") and
+  (
+    // Crate emits types relying on traits defined by a dependency, part of public API
+    usePrefix(u) = "dash_types" and
+    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "Numeric"
+  )
   or
-  // Workaround for the orphan rule, not part of public API
-  usePrefix(u) = "dash_pkc" and
-  u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__PubKeyHash" and
-  fileOf(u).getAbsolutePath().matches("%pkgs/script/%")
+  fileOf(u).getAbsolutePath().matches("%pkgs/script/%") and
+  (
+    // Workaround for the orphan rule, not part of public API
+    usePrefix(u) = "dash_pkc" and
+    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__PubKeyHash"
+    or
+    // Workaround for the orphan rule, not part of public API
+    usePrefix(u) = "dash_types" and
+    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__ScriptHash"
+  )
   or
-  // Workaround for the orphan rule, not part of public API
-  usePrefix(u) = "dash_types" and
-  u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__ScriptHash" and
-  fileOf(u).getAbsolutePath().matches("%pkgs/script/%")
-  or
-  // Crate emits types relying on traits defined by a dependency, part of public API
-  usePrefix(u) = "dash_types" and
-  u.getUseTree().getPath().getSegment().getIdentifier().getText() = "Numeric" and
-  fileOf(u).getAbsolutePath().matches("%pkgs/num/%")
+  fileOf(u).getAbsolutePath().matches("%pkgs/types/%") and
+  (
+    // Sub-crate isolation demands re-exports, part of public API
+    usePrefix(u) = "dash_types_marker"
+    or
+    // Crate emits types relying on types or traits defined by a dependency, part of public API
+    usePrefix(u) = "zeroize"
+  )
 }
 
 /**

@@ -24,9 +24,11 @@ mod traits;
 #[cfg(feature = "serde")]
 pub mod serialize;
 
-pub use macros::qtypestr;
-pub use numeric::Numeric;
-pub use traits::{Checkable, Hashable};
+pub use crate::macros::qtypestr;
+pub use crate::numeric::Numeric;
+pub use crate::traits::{Checkable, Hashable};
+
+pub use zeroize;
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "codec")] {
@@ -55,5 +57,4 @@ pub mod __private {
   #[cfg(feature = "serde")]
   pub use serde;
   pub use subtle;
-  pub use zeroize;
 }
