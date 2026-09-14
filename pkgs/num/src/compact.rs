@@ -80,13 +80,6 @@ impl fmt::Display for CompactTarget {
 }
 
 impl Arith256 {
-  /// Decode a compact (nBits) representation into a 256-bit target value.
-  ///
-  /// Convenience method that delegates to [`CompactTarget::decode`].
-  pub fn from_compact(ct: CompactTarget) -> DecodedTarget {
-    ct.decode()
-  }
-
   /// Encode this value as a compact (nBits) representation.
   pub fn to_compact(self, negative: bool) -> CompactTarget {
     let mut size = self.bits().div_ceil(8);

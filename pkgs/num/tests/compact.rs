@@ -120,14 +120,6 @@ fn compact_ff123456_overflow() {
   assert!(ct.overflow);
 }
 
-/// Test convenience method on Arith256.
-#[rstest]
-fn from_compact_convenience() {
-  let ct = CompactTarget(0x0312_3456);
-  let decoded = Arith256::from_compact(ct);
-  assert_eq!(decoded.value, Arith256::from_u64(0x12_3456));
-}
-
 #[rstest]
 #[case(0x0100_3456_u32, 0x00_u64)]
 #[case(0x0112_3456_u32, 0x12_u64)]

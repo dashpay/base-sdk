@@ -35,9 +35,6 @@ impl Arith256 {
     lo: u128::MAX,
     hi: u128::MAX,
   };
-  /// Byte length.
-  pub const LEN: usize = 32;
-
   /// Create from a `u64`, zero-extending the upper bits.
   #[inline]
   pub fn from_u64(v: u64) -> Self {
@@ -119,24 +116,6 @@ impl Arith256 {
     be
   }
 
-  /// Returns `true` if the value is zero.
-  #[inline]
-  pub fn is_zero(self) -> bool {
-    self.lo == 0 && self.hi == 0
-  }
-
-  /// Returns `true` if the value is one.
-  #[inline]
-  pub fn is_one(self) -> bool {
-    self.lo == 1 && self.hi == 0
-  }
-
-  /// Returns `true` if the value is MAX (all bits set).
-  #[inline]
-  pub fn is_max(self) -> bool {
-    self.lo == u128::MAX && self.hi == u128::MAX
-  }
-
   /// Returns the lowest 32 bits of the value.
   #[inline]
   pub fn low_u32(self) -> u32 {
@@ -194,27 +173,6 @@ impl Arith256 {
     Self { lo, hi }
   }
 
-  /// Two's complement negation.
-  #[inline]
-  pub fn wrapping_neg(self) -> Self {
-    self.bitwise_not().wrapping_add(Self::ONE)
-  }
-
-  /// Wrapping increment (add one).
-  #[inline]
-  pub fn wrapping_inc(self) -> Self {
-    self.wrapping_add(Self::ONE)
-  }
-
-  /// Bitwise NOT.
-  #[inline]
-  pub fn bitwise_not(self) -> Self {
-    Self {
-      lo: !self.lo,
-      hi: !self.hi,
-    }
-  }
-
   /// Wrapping multiply via 64-bit limb decomposition.
   pub fn wrapping_mul(self, rhs: Self) -> Self {
     let a0 = self.lo as u64 as u128;
@@ -268,7 +226,7 @@ impl Arith256 {
 
   /// Checked division. Returns `None` on divide-by-zero.
   pub fn checked_div(self, rhs: Self) -> Option<Self> {
-    if rhs.is_zero() {
+    if rhs == Self::ZERO {
       return None;
     }
     Some(self.div_rem(rhs).0)
@@ -278,7 +236,7 @@ impl Arith256 {
   ///
   /// Returns `(ZERO, ZERO)` when `rhs` is zero.
   pub fn div_rem(self, rhs: Self) -> (Self, Self) {
-    if rhs.is_zero() {
+    if rhs == Self::ZERO {
       return (Self::ZERO, Self::ZERO);
     }
 
@@ -357,34 +315,6 @@ impl Arith256 {
     }
   }
 
-  /// Wrapping multiply by a `u32` scalar.
-  pub fn wrapping_mul_u32(self, b: u32) -> Self {
-    let b = b as u128;
-    let a0 = self.lo as u64 as u128;
-    let a1 = (self.lo >> 64) as u64 as u128;
-    let a2 = self.hi as u64 as u128;
-    let a3 = (self.hi >> 64) as u64 as u128;
-
-    let n0 = a0 * b;
-    let r0 = n0 as u64 as u128;
-    let carry = n0 >> 64;
-
-    let n1 = carry + a1 * b;
-    let r1 = n1 as u64 as u128;
-    let carry = n1 >> 64;
-
-    let n2 = carry + a2 * b;
-    let r2 = n2 as u64 as u128;
-    let carry = n2 >> 64;
-
-    let r3 = (carry + a3 * b) as u64 as u128;
-
-    Self {
-      lo: r0 | (r1 << 64),
-      hi: r2 | (r3 << 64),
-    }
-  }
-
   /// Multiply by a `u64` scalar, returning the result and an overflow flag.
   pub fn mul_u64(self, b: u64) -> (Self, bool) {
     let b = b as u128;
@@ -420,15 +350,15 @@ impl Arith256 {
 
   /// Compute `2^256 / (self + 1)`. Returns MAX when self is zero or one.
   pub fn inverse(self) -> Self {
-    if self.is_zero() || self.is_one() {
+    if self == Self::ZERO || self == Self::ONE {
       return Self::MAX;
     }
-    if self.is_max() {
+    if self == Self::MAX {
       return Self::ONE;
     }
-    let d = self.wrapping_inc();
-    // !self = 2^256 - 1 - self, so (!self) / (self + 1) + 1 ~ 2^256 / (self + 1)
-    self.bitwise_not().div_rem(d).0.wrapping_inc()
+    let d = self.wrapping_add(Self::ONE);
+    // !self = 2^256 - 1 - self, so (!self) / (self + 1) + 1 = 2^256 / (self + 1)
+    (!self).div_rem(d).0.wrapping_add(Self::ONE)
   }
 
   /// Approximate conversion to `f64`.
@@ -497,8 +427,7 @@ impl fmt::Debug for Arith256 {
 /// Reversed hex (big-endian display, consensus format).
 impl fmt::Display for Arith256 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let h: Hash256 = (*self).into();
-    fmt::Display::fmt(&h, f)
+    fmt::LowerHex::fmt(self, f)
   }
 }
 
@@ -613,7 +542,7 @@ impl Mul<u32> for Arith256 {
   type Output = Self;
   #[inline]
   fn mul(self, rhs: u32) -> Self {
-    self.wrapping_mul_u32(rhs)
+    self.mul_u64(u64::from(rhs)).0
   }
 }
 
@@ -661,7 +590,7 @@ impl Neg for Arith256 {
   type Output = Self;
   #[inline]
   fn neg(self) -> Self {
-    self.wrapping_neg()
+    (!self).wrapping_add(Self::ONE)
   }
 }
 
@@ -669,7 +598,10 @@ impl Not for Arith256 {
   type Output = Self;
   #[inline]
   fn not(self) -> Self {
-    self.bitwise_not()
+    Self {
+      lo: !self.lo,
+      hi: !self.hi,
+    }
   }
 }
 

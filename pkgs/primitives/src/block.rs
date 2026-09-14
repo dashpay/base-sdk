@@ -140,7 +140,7 @@ impl Checkable for Block {
   fn check(&self) -> Option<Self::Error> {
     let pow_hash = Arith256::from(Hash256::from(self.header.hash()));
     let decoded = CompactTarget(self.header.bits).decode();
-    if decoded.negative || decoded.value.is_zero() || decoded.overflow || pow_hash > decoded.value {
+    if decoded.negative || decoded.value == Arith256::ZERO || decoded.overflow || pow_hash > decoded.value {
       return Some(BlockInvalid::BadProofOfWork);
     }
 

@@ -488,7 +488,7 @@ mod divide {
     let shr = shl >> 40u32;
     assert_eq!(shr, from_array([0, 0, 0x0001_BD5B_7DDF_BD5B, 0x7DDE_0000_0000_0000]));
 
-    let incr = shr.wrapping_inc();
+    let incr = shr.wrapping_add(Arith256::ONE);
     assert_eq!(incr, from_array([0, 0, 0x0001_BD5B_7DDF_BD5B, 0x7DDE_0000_0000_0001]));
 
     let sub = incr.wrapping_sub(init);
@@ -746,22 +746,9 @@ mod methods {
   }
 
   #[rstest]
-  fn is_one() {
-    assert!(Arith256::ONE.is_one());
-    assert!(!Arith256::ZERO.is_one());
-    assert!(!Arith256::MAX.is_one());
-    assert!(!Arith256::from_u64(2).is_one());
-  }
-
-  #[rstest]
-  fn is_max() {
-    assert!(Arith256::MAX.is_max());
-    assert!(!Arith256::ZERO.is_max());
-    assert!(!Arith256::ONE.is_max());
-    assert!(!Arith256::from_u128(u128::MAX).is_max());
-    // Construct MAX from parts
+  fn max_is_both_halves_set() {
     let u = Arith256::from_u128(u128::MAX);
-    assert!(((u << 128u32) + u).is_max());
+    assert_eq!((u << 128u32) + u, Arith256::MAX);
   }
 
   #[rstest]
@@ -942,13 +929,13 @@ mod mul_u64 {
   }
 }
 
-mod wrapping_inc {
+mod increment {
   use super::*;
 
   #[rstest]
   fn basic() {
-    assert_eq!(Arith256::ZERO.wrapping_inc(), Arith256::ONE);
-    assert_eq!(Arith256::MAX.wrapping_inc(), Arith256::ZERO);
+    assert_eq!(Arith256::ZERO.wrapping_add(Arith256::ONE), Arith256::ONE);
+    assert_eq!(Arith256::MAX.wrapping_add(Arith256::ONE), Arith256::ZERO);
   }
 
   #[rstest]
@@ -959,7 +946,7 @@ mod wrapping_inc {
       0xFFFF_FFFF_FFFF_FFFF,
       0xFFFF_FFFF_FFFF_FFFE,
     ]);
-    val = val.wrapping_inc();
+    val = val.wrapping_add(Arith256::ONE);
     assert_eq!(
       val,
       from_array([
@@ -969,7 +956,7 @@ mod wrapping_inc {
         0xFFFF_FFFF_FFFF_FFFF,
       ])
     );
-    val = val.wrapping_inc();
+    val = val.wrapping_add(Arith256::ONE);
     assert_eq!(
       val,
       from_array([

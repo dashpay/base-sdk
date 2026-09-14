@@ -20,9 +20,7 @@ mod compact;
 mod hash;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
-
-#[doc(hidden)]
-pub mod util;
+mod util;
 
 #[doc(hidden)]
 pub mod __private {
