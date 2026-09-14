@@ -1031,3 +1031,24 @@ mod formatting {
     );
   }
 }
+
+mod from_str {
+  use super::*;
+
+  #[rstest]
+  fn display_round_trips(r1: Arith256) {
+    assert_eq!(Arith256::from_str(&format!("{r1}")).unwrap(), r1);
+    assert_eq!(Arith256::from_str(&format!("{:#x}", r1)).unwrap(), r1);
+  }
+
+  #[rstest]
+  fn short_input_zero_extends() {
+    assert_eq!(Arith256::from_str("ff").unwrap(), Arith256::from_u64(0xff));
+  }
+
+  #[rstest]
+  fn rejects_over_long() {
+    let long = "0".repeat(66);
+    assert!(Arith256::from_str(&long).is_err());
+  }
+}

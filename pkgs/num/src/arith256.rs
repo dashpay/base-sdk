@@ -6,7 +6,7 @@
 
 //! 256-bit unsigned arithmetic integer.
 
-use crate::Hash256;
+use crate::{Hash256, ParseHexError};
 
 use dash_types::Numeric;
 
@@ -16,6 +16,7 @@ use core::ops::{
   Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign, Neg,
   Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
+use core::str::FromStr;
 
 /// 256-bit unsigned arithmetic integer.
 ///
@@ -453,6 +454,15 @@ impl fmt::UpperHex for Arith256 {
       f.write_str("0x")?;
     }
     write!(f, "{:032X}{:032X}", self.hi, self.lo)
+  }
+}
+
+/// Parses the big-endian hex rendered by [`Display`](fmt::Display).
+impl FromStr for Arith256 {
+  type Err = ParseHexError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    Hash256::from_hex(s).map(Self::from)
   }
 }
 

@@ -6,9 +6,13 @@
 
 //! Compact difficulty target encoding tests.
 
+#![expect(clippy::unwrap_used, reason = "test code")]
+
 use dash_num::{Arith256, CompactTarget};
 use dash_types::Numeric;
 use rstest::*;
+
+use core::str::FromStr;
 
 /// Assert compact decode flags match expectations.
 fn check_compact(compact: u32, expected_negative: bool, expected_overflow: bool) {
@@ -142,4 +146,29 @@ fn target_from_compact_ported(#[case] n_bits: u32, #[case] target: u64) {
 #[rstest]
 fn display() {
   assert_eq!(format!("{}", CompactTarget::new(0x1d00ffff)), "0x1d00ffff");
+}
+
+#[rstest]
+#[case("0x1d00ffff", 0x1d00_ffff)]
+#[case("1d00ffff", 0x1d00_ffff)]
+#[case("0X1D00FFFF", 0x1d00_ffff)]
+#[case("1", 1)]
+fn from_str_accepts(#[case] text: &str, #[case] want: u32) {
+  let parsed = CompactTarget::from_str(text).unwrap();
+  assert_eq!(parsed, CompactTarget::new(want));
+}
+
+#[rstest]
+#[case("")]
+#[case("0x")]
+#[case("1d00ffff0")]
+#[case("1d00fffg")]
+fn from_str_rejects(#[case] text: &str) {
+  assert!(CompactTarget::from_str(text).is_err());
+}
+
+#[rstest]
+fn display_round_trips() {
+  let ct = CompactTarget::new(0x1d00_ffff);
+  assert_eq!(CompactTarget::from_str(&format!("{ct}")).unwrap(), ct);
 }

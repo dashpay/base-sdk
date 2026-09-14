@@ -177,17 +177,33 @@ impl<const N: usize> Default for HashBlob<N> {
 /// Reversed hex (big-endian display, consensus format).
 impl<const N: usize> fmt::Display for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    for c in BytesToHexIter::new(self.0.iter().rev().copied(), Case::Lower) {
-      f.write_char(c)?;
-    }
-    Ok(())
+    write_hex(self.as_bytes(), Case::Lower, f)
   }
 }
 
+/// Big-endian hex, `N * 2` chars zero-padded.
 impl<const N: usize> fmt::LowerHex for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    fmt::Display::fmt(self, f)
+    write_hex(self.as_bytes(), Case::Lower, f)
   }
+}
+
+/// Big-endian hex (uppercase), `N * 2` chars zero-padded.
+impl<const N: usize> fmt::UpperHex for HashBlob<N> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write_hex(self.as_bytes(), Case::Upper, f)
+  }
+}
+
+/// Writes little-endian storage as big-endian hex, honouring `{:#x}`.
+fn write_hex(bytes: &[u8], case: Case, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+  if f.alternate() {
+    f.write_str(if case == Case::Lower { "0x" } else { "0X" })?;
+  }
+  for c in BytesToHexIter::new(bytes.iter().rev().copied(), case) {
+    f.write_char(c)?;
+  }
+  Ok(())
 }
 
 impl<const N: usize> fmt::Debug for HashBlob<N> {

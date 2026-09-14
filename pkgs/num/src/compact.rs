@@ -6,13 +6,14 @@
 
 //! Compact difficulty target encoding.
 
-use crate::Arith256;
+use crate::{Arith256, ParseHexError};
 
 #[cfg(feature = "codec")]
 use dash_types::impl_num;
 use dash_types::Numeric;
 
 use core::fmt;
+use core::str::FromStr;
 
 /// Compact difficulty target.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -100,6 +101,35 @@ impl CompactTarget {
 impl fmt::Display for CompactTarget {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{:#010x}", self.0)
+  }
+}
+
+/// Parses the `0x`-prefixed hex rendered by [`Display`](fmt::Display).
+impl FromStr for CompactTarget {
+  type Err = ParseHexError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    let digits = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
+
+    if digits.is_empty() || digits.len() > 8 {
+      return Err(ParseHexError::InvalidLength {
+        expected: 8,
+        got: digits.len(),
+      });
+    }
+
+    let mut bits: u32 = 0;
+    for b in digits.bytes() {
+      let digit = match b {
+        b'0'..=b'9' => b - b'0',
+        b'a'..=b'f' => b - b'a' + 10,
+        b'A'..=b'F' => b - b'A' + 10,
+        _ => return Err(ParseHexError::InvalidChar(b)),
+      };
+      bits = (bits << 4) | u32::from(digit);
+    }
+
+    Ok(Self(bits))
   }
 }
 

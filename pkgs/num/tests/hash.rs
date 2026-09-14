@@ -144,10 +144,19 @@ fn hash160_zero_and_null() {
 }
 
 #[rstest]
-fn hash160_new_reverses() {
+fn hash160_from_bendian_reverses() {
   let be = hex!("0102030405060708090a0b0c0d0e0f1011121314");
   let h = Hash160::from_bendian(be);
   // new() reverses, so first byte in LE is last byte of BE input
   assert_eq!(h.to_lendian()[0], 0x14);
   assert_eq!(h.to_lendian()[19], 0x01);
+}
+
+#[rstest]
+fn hex_formatting(r1_bytes: [u8; 32], r1_hex: &str) {
+  let h = Hash256::from_lendian(r1_bytes);
+  assert_eq!(format!("{h:x}"), r1_hex);
+  assert_eq!(format!("{h:X}"), r1_hex.to_uppercase());
+  assert_eq!(format!("{h:#x}"), format!("0x{r1_hex}"));
+  assert_eq!(format!("{h:#X}"), format!("0X{}", r1_hex.to_uppercase()));
 }

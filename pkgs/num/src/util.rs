@@ -172,6 +172,18 @@ macro_rules! make_hash {
       }
     }
 
+    impl ::core::fmt::LowerHex for $name {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        ::core::fmt::LowerHex::fmt(&self.0, f)
+      }
+    }
+
+    impl ::core::fmt::UpperHex for $name {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        ::core::fmt::UpperHex::fmt(&self.0, f)
+      }
+    }
+
     impl ::core::fmt::Debug for $name {
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         write!(f, "{}({})", stringify!($name), self.0)
