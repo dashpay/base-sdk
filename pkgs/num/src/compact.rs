@@ -15,11 +15,9 @@ use dash_types::impl_num;
 
 use core::fmt;
 
-/// Compact difficulty target -- a newtype around the consensus `nBits` u32.
-///
-/// Construct directly via `CompactTarget(0x1d00ffff)`.
+/// Compact difficulty target.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CompactTarget(pub u32);
+pub struct CompactTarget(u32);
 
 /// Result of decoding a compact difficulty target.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
@@ -48,8 +46,14 @@ impl NumCodec<u32> for CompactTarget {
 impl_num!(CompactTarget, u32);
 
 impl CompactTarget {
-  /// Decode this compact (nBits) representation into a 256-bit target value.
-  pub fn decode(self) -> DecodedTarget {
+  /// Wraps a raw `nBits` word.
+  #[inline]
+  pub fn new(bits: u32) -> Self {
+    Self(bits)
+  }
+
+  /// Expand this compact (nBits) representation to a 256-bit target value.
+  pub fn expand(self) -> DecodedTarget {
     let compact = self.0;
     let size = (compact >> 24) as usize;
     let mut word = compact & 0x007f_ffff;
@@ -80,8 +84,8 @@ impl fmt::Display for CompactTarget {
 }
 
 impl Arith256 {
-  /// Encode this value as a compact (nBits) representation.
-  pub fn to_compact(self, negative: bool) -> CompactTarget {
+  /// Compact this value to its `nBits` representation.
+  pub fn compact(self, negative: bool) -> CompactTarget {
     let mut size = self.bits().div_ceil(8);
     let mut compact: u32 = if size <= 3 {
       (self.low_u64() << (8 * (3 - size as u64))) as u32

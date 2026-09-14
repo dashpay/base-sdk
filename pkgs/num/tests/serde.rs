@@ -68,7 +68,7 @@ fn arith256_json_invalid() {
 
 #[test]
 fn compact_target_json_roundtrip() {
-  assert_json_rt(&CompactTarget(0));
-  assert_json_rt(&CompactTarget(0x1d00ffff));
-  assert_json_rt(&CompactTarget(0x0412_3456));
+  assert_json_rt(&CompactTarget::new(0));
+  assert_json_rt(&CompactTarget::new(0x1d00ffff));
+  assert_json_rt(&CompactTarget::new(0x0412_3456));
 }

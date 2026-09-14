@@ -101,7 +101,7 @@ pub fn scanhash(
   };
   let mut header_buf = encode_to_vec(&header);
 
-  let decoded = CompactTarget(bits).decode();
+  let decoded = CompactTarget::new(bits).expand();
   if decoded.negative || decoded.overflow {
     return Err("invalid compact target".to_string());
   }
