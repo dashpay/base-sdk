@@ -492,6 +492,7 @@ dependencies = [
  "dash-dev",
  "dash-types",
  "divan",
+ "hex-conservative 0.3.2",
  "hex-literal",
  "rstest",
  "serde",

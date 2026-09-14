@@ -11,7 +11,11 @@ rust-version.workspace = true
 
 [features]
 default = []
-std = ["bitcoin-consensus-encoding?/std", "dash-types/std"]
+std = [
+  "bitcoin-consensus-encoding?/std",
+  "dash-types/std",
+  "hex-conservative/std",
+]
 full = ["std", "codec", "serde"]
 codec = ["dep:bitcoin-consensus-encoding", "dash-types/codec"]
 serde = ["dep:serde", "dash-types/serde"]
@@ -19,6 +23,7 @@ serde = ["dep:serde", "dash-types/serde"]
 [dependencies]
 bitcoin-consensus-encoding = { workspace = true, optional = true }
 dash-types = { version = "0.0.0", path = "../types", default-features = false }
+hex-conservative = { version = "0.3", default-features = false }
 serde = { version = "1", default-features = false, features = [
   "derive",
   "alloc",

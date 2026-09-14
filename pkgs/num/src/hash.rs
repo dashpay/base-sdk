@@ -6,11 +6,11 @@
 
 //! Fixed-size opaque hash blob types.
 
-use core::fmt;
+use hex_conservative::{BytesToHexIter, Case, HexToBytesIter};
+
+use core::fmt::{self, Write as _};
 use core::hash::Hash;
 use core::str::FromStr;
-
-pub(crate) const HEX_LOWER: [u8; 16] = *b"0123456789abcdef";
 
 /// Error returned when parsing a hex string fails.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -39,15 +39,6 @@ impl fmt::Display for ParseHexError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for ParseHexError {}
-
-pub(crate) fn hex_val(c: u8) -> Result<u8, ParseHexError> {
-  match c {
-    b'0'..=b'9' => Ok(c - b'0'),
-    b'a'..=b'f' => Ok(c - b'a' + 10),
-    b'A'..=b'F' => Ok(c - b'A' + 10),
-    _ => Err(ParseHexError::InvalidChar(c)),
-  }
-}
 
 macro_rules! define_hash {
   ($name:ident, $n:literal) => {
@@ -110,53 +101,29 @@ macro_rules! define_hash {
       /// Parse from a big-endian hex string.
       ///
       /// Accepts an optional `0x`/`0X` prefix followed by optional leading
-      /// spaces before the hex digits. The digits are big-endian (most
-      /// significant byte first), mirroring the consensus display convention.
+      /// spaces before the hex digits. The digits are big-endian (MSB first),
+      /// mirroring the consensus display convention.
       ///
       /// # Errors
       ///
-      /// Returns `OddLength` when the input has an odd
-      /// number of hex characters, `InvalidLength` when the
-      /// decoded byte count exceeds the type width, or
+      /// Returns `OddLength` when input has an odd number of hex characters,
+      /// `InvalidLength` when the decoded byte count exceeds the type width, or
       /// `InvalidChar` on a non-hex digit.
       pub fn from_hex(s: &str) -> Result<Self, ParseHexError> {
-        let s = s.as_bytes();
+        let s = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
+        let s = s.trim_start_matches(' ');
 
-        // strip optional 0x prefix
-        let s = if s.len() >= 2 && s[0] == b'0' && (s[1] == b'x' || s[1] == b'X') {
-          &s[2..]
-        } else {
-          s
-        };
-
-        // skip leading whitespace
-        let mut start = 0;
-        while start < s.len() && s[start] == b' ' {
-          start += 1;
-        }
-        let s = &s[start..];
-
-        if s.len() % 2 != 0 {
-          return Err(ParseHexError::OddLength);
-        }
-
-        let byte_len = s.len() / 2;
-        if byte_len > $n {
+        if s.len() > $n * 2 {
           return Err(ParseHexError::InvalidLength {
             expected: $n * 2,
             got: s.len(),
           });
         }
 
+        let digits = HexToBytesIter::new(s).map_err(|_| ParseHexError::OddLength)?;
         let mut bytes = [0u8; $n];
-        // Big-endian hex: first byte is most significant,
-        // stored last in the little-endian array.
-        let mut i = 0;
-        while i < byte_len {
-          let hi = hex_val(s[i * 2])?;
-          let lo = hex_val(s[i * 2 + 1])?;
-          bytes[byte_len - 1 - i] = (hi << 4) | lo;
-          i += 1;
+        for (slot, byte) in bytes.iter_mut().zip(digits.rev()) {
+          *slot = byte.map_err(|e| ParseHexError::InvalidChar(e.invalid_char()))?;
         }
 
         Ok(Self(bytes))
@@ -185,11 +152,8 @@ macro_rules! define_hash {
     /// Reversed hex (big-endian display, consensus format).
     impl fmt::Display for $name {
       fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in (0..$n).rev() {
-          let b = self.0[i];
-          let c1 = HEX_LOWER[(b >> 4) as usize] as char;
-          let c2 = HEX_LOWER[(b & 0x0f) as usize] as char;
-          f.write_fmt(format_args!("{c1}{c2}"))?;
+        for c in BytesToHexIter::new(self.0.iter().rev().copied(), Case::Lower) {
+          f.write_char(c)?;
         }
         Ok(())
       }
