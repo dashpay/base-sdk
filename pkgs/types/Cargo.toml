@@ -10,21 +10,34 @@ repository.workspace = true
 rust-version.workspace = true
 
 [features]
-default = []
+default = ["codec"]
 std = [
   "bitcoin-consensus-encoding?/std",
   "bitcoin-primitives?/std",
   "hex-conservative?/std",
 ]
-full = ["std", "codec", "serde", "bitcoin-primitives"]
-codec = ["dep:bitcoin-consensus-encoding", "dep:dash-types-marker"]
+
 bitcoin-primitives = [
   "codec",
   "dep:base58ck",
-  "dep:bitcoin-primitives",
   "dep:bitcoin_hashes",
+  "dep:bitcoin-primitives",
 ]
-serde = ["dep:serde", "dep:hex-conservative"]
+codec = [
+  "dep:bitcoin-consensus-encoding",
+  "dep:dash-types-marker",
+]
+full = [
+  "bitcoin-primitives",
+  "codec",
+  "serde",
+  "std",
+]
+serde = [
+  "codec",
+  "dep:hex-conservative",
+  "dep:serde",
+]
 
 [dependencies]
 base58ck = { workspace = true, optional = true, features = ["alloc"] }

@@ -24,6 +24,10 @@ nav = [
     { "Maintenance" = "dev/maintenance.md" },
     { "Style Guide (Rust)" = "dev/guide_rust.md" },
   ] },
+  { "dash-types" = [
+    { "Overview" = "types/README.md" },
+    { "Changelog" = "types/changelog.md" },
+  ] },
   { "Samples" = [
     { "Genesis Solver" = "samples/solver/README.md" },
     { "Object Parser" = "samples/parser/README.md" },
