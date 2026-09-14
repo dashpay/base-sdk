@@ -18,8 +18,6 @@ extern crate std;
 mod arith256;
 mod compact;
 mod hash;
-#[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
-mod prelude;
 mod util;
 
 #[doc(hidden)]

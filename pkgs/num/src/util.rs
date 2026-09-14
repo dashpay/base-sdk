@@ -43,10 +43,13 @@ macro_rules! cfg_serde {
   ($($item:tt)*) => {};
 }
 
-/// Generates `BaseCodec` + `Encode` + `Decode` for hash newtypes.
+/// Generates a newtype wrapping a hash base type with full trait
+/// implementations and consensus encoding support.
 #[macro_export]
-macro_rules! impl_hash {
-  ($base:ty, $($name:ident),* $(,)?) => { $( $crate::cfg_codec! {
+macro_rules! make_hash {
+  // The codec half, split out for gating with `cfg_codec!`.
+  (@codec $base:ty, $name:ident) => {
+    $crate::cfg_codec! {
     impl $crate::__private::dash_types::codec::BaseCodec for $name {
       fn decode(
         data: &mut &[u8],
@@ -61,13 +64,8 @@ macro_rules! impl_hash {
     }
 
     $crate::__private::dash_types::impl_type!($name);
-  } )* };
-}
-
-/// Generates a newtype wrapping a hash base type with full trait
-/// implementations and consensus encoding support.
-#[macro_export]
-macro_rules! make_hash {
+    }
+  };
   (
     $base:ty,
     $(#[$attr:meta])*
@@ -222,6 +220,6 @@ macro_rules! make_hash {
       fn as_ref(&self) -> &[u8; { <$base>::LEN }] { self.0.as_bytes() }
     }
 
-    $crate::impl_hash!($base, $name);
+    $crate::make_hash!(@codec $base, $name);
   };
 }
