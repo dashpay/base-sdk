@@ -346,7 +346,6 @@ mod tests {
   use crate::bls::{BlsScChia, BlsScIetf, BlsScheme, BlsSecretKey};
   use crate::prelude::*;
 
-  use dash_types::Numeric;
   use getrandom::SysRng;
   use rand_core::UnwrapErr;
   use rstest::rstest;
@@ -409,11 +408,8 @@ mod tests {
   /// the field's one and the same byte at the front is `2^248` instead.
   #[rstest]
   fn share_id_reads_big_endian() {
-    assert_eq!(Fr::from_bendian_reduce(&make_id(1).to_bendian()).unwrap(), Fr::ONE);
-    assert_eq!(
-      Fr::from_bendian_reduce(&make_id(258).to_bendian()).unwrap(),
-      Fr::from(258)
-    );
+    assert_eq!(Fr::from_bendian_reduce(make_id(1).as_bytes()).unwrap(), Fr::ONE);
+    assert_eq!(Fr::from_bendian_reduce(make_id(258).as_bytes()).unwrap(), Fr::from(258));
 
     let mut leading = [0u8; 32];
     leading[0] = 1;
@@ -468,7 +464,7 @@ mod tests {
 
     for i in 1..=4u32 {
       let id = make_id(i);
-      let x = Fr::from_bendian_reduce(&id.to_bendian()).unwrap();
+      let x = Fr::from_bendian_reduce(id.as_bytes()).unwrap();
       let evaluated = coeffs[0] + coeffs[1] * x + coeffs[2] * x * x;
 
       let share = BlsSecretKey::<S>::derive_share(&refs, &id).unwrap();

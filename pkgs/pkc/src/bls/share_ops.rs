@@ -274,7 +274,7 @@ mod tests {
         break;
       }
     }
-    BlsShareId::from_bendian(bytes)
+    BlsShareId::from_lendian(bytes)
   }
 
   /// A 1-of-n split hands the master key to every participant, so a `threshold`
@@ -307,14 +307,14 @@ mod tests {
   fn assert_zero_reducing_id_rejected<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
 
-    let zero = BlsShareId::from_bendian([0u8; 32]);
+    let zero = BlsShareId::from_lendian([0u8; 32]);
     let ids = [make_id(1), zero];
     assert!(matches!(
       sk.split(2, &ids, &mut UnwrapErr(SysRng)),
       Err(BlsError::ZeroScalar)
     ));
 
-    let order = BlsShareId::from_bendian(GROUP_ORDER);
+    let order = BlsShareId::from_lendian(GROUP_ORDER);
     let ids = [make_id(1), order];
     assert!(matches!(
       sk.split(2, &ids, &mut UnwrapErr(SysRng)),
@@ -371,7 +371,7 @@ mod tests {
       Err(BlsError::InsufficientCoefficients)
     ));
     assert!(matches!(
-      BlsSecretKey::<S>::derive_share(&master_refs, &BlsShareId::from_bendian([0u8; 32])),
+      BlsSecretKey::<S>::derive_share(&master_refs, &BlsShareId::from_lendian([0u8; 32])),
       Err(BlsError::ZeroScalar)
     ));
   }

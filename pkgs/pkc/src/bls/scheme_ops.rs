@@ -16,7 +16,6 @@ use crate::aes_cbc::{self, AES_BLOCK_LEN, AES_KEY_LEN};
 use crate::prelude::*;
 
 use blst::BLST_ERROR;
-use dash_types::Numeric;
 use ff::{Field, PrimeField};
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
@@ -541,7 +540,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
       .map(|pk| Self::pk_to_g1(pk))
       .collect::<Result<Vec<_>, BlsError>>()?;
 
-    let x = Fr::from_bendian_reduce(&id.to_bendian())?;
+    let x = Fr::from_bendian_reduce(id.as_bytes())?;
     let result = eval_poly_g1(&coeffs_g1, &x);
 
     Self::g1_to_pk(result)
@@ -572,7 +571,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
       scalar.b.zeroize();
     }
 
-    let x = Fr::from_bendian_reduce(&id.to_bendian())?;
+    let x = Fr::from_bendian_reduce(id.as_bytes())?;
     let mut y = poly_eval(&coeffs, &x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
@@ -814,7 +813,7 @@ fn tweak_scalar(tweak: &[u8; 32]) -> Result<Fr, BlsError> {
 fn reduce_share_ids(ids: &[&BlsShareId]) -> Result<Vec<Fr>, BlsError> {
   let fr_ids = ids
     .iter()
-    .map(|id| Fr::from_bendian_reduce(&id.to_bendian()))
+    .map(|id| Fr::from_bendian_reduce(id.as_bytes()))
     .collect::<Result<Vec<Fr>, BlsError>>()?;
   let mut reduced: Vec<[u8; 32]> = fr_ids.iter().map(|fr| *fr.to_lendian()).collect();
   reduced.sort_unstable();
