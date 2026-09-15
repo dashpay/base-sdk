@@ -8,7 +8,7 @@
 
 use super::error::BlsError;
 use super::group::{G1Affine, G2Affine, G1, G2};
-use super::scheme_ops::{verify_ok, BlsScheme};
+use super::scheme_ops::{sealed::Sealed, verify_ok, BlsScheme};
 use super::schemes::BlsScIetf;
 use super::sig_id::BlsSigId;
 use crate::prelude::*;
@@ -21,6 +21,8 @@ const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
 const DST_POP: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 /// Domain separation tag for proofs of possession.
 const DST_POP_PROVE: &[u8] = b"BLS_POP_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+
+impl Sealed for BlsScIetf {}
 
 impl BlsScheme for BlsScIetf {
   type InnerSk = SecretKey;

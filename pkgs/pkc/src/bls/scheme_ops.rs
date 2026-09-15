@@ -38,8 +38,15 @@ pub(crate) fn verify_ok(result: BLST_ERROR) -> Result<(), BlsError> {
   }
 }
 
+/// Keeps [`BlsScheme`] sealed to types defined in this crate.
+pub(crate) mod sealed {
+  /// Sealing marker for [`BlsScheme`](super::BlsScheme).
+  pub trait Sealed {}
+}
+
 /// BLS operations tied to a specific scheme.
-pub trait BlsScheme: BlsSchemeId + Sized {
+#[doc(hidden)]
+pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Inner secret key representation.
   type InnerSk: Clone + Send + Sync;
   /// Inner public key representation.

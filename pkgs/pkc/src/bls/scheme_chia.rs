@@ -12,7 +12,7 @@ use super::curve_consts::HALF_P;
 use super::error::BlsError;
 use super::group::{G1Affine, G2Affine, Point, G1, G2};
 use super::scalar::FR_BITS;
-use super::scheme_ops::BlsScheme;
+use super::scheme_ops::{sealed::Sealed, BlsScheme};
 use super::schemes::BlsScChia;
 use crate::prelude::*;
 
@@ -23,6 +23,8 @@ use zeroize::Zeroize;
 fn y_c1_is_larger(y_c1: &[u8]) -> bool {
   y_c1.len() >= 48 && y_c1[..48] > HALF_P[..]
 }
+
+impl Sealed for BlsScChia {}
 
 impl BlsScheme for BlsScChia {
   type InnerSk = blst::blst_scalar;
