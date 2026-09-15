@@ -1,5 +1,7 @@
 name: base-sdk/codeql-rust
 version: 0.0.0
+dataExtensions:
+  - "**/*.model.yml"
 dependencies:
   codeql/rust-all: ~0.2.17
   codeql/rust-queries: ~0.1.38
