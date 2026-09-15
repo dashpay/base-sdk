@@ -144,6 +144,23 @@ mod tests {
     }
   }
 
+  #[derive(Deserialize)]
+  struct KeygenVector {
+    sk: String,
+    pk: String,
+  }
+
+  #[rstest]
+  fn corpus_derive_pk() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "eddsa_keygen");
+
+    for v in corpus.vectors::<KeygenVector>("derive_pk") {
+      let sk = EddsaSecretKey::from_bytes(&arr_from_hex(&v.sk));
+
+      assert_eq!(sk.public_key().to_bytes(), arr_from_hex::<32>(&v.pk));
+    }
+  }
+
   #[rstest]
   fn reference_key_round_trips(alice_sk: EddsaSecretKey, alice_pk: EddsaPublicKey) {
     assert_eq!(*alice_sk.to_bytes(), ALICE_SK);

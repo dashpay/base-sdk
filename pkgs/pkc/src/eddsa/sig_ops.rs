@@ -68,11 +68,38 @@ type_cvrt!(From<Signature> for EddsaSignature, |inner| {
 mod tests {
   use super::*;
   use crate::eddsa::tests::*;
-  use crate::eddsa::EddsaPublicKey;
+  use crate::eddsa::{EddsaPublicKey, EddsaSecretKey};
+  use crate::prelude::*;
 
   #[cfg(feature = "serde")]
   use dash_dev::assert_json_rt;
+  use dash_dev::{arr_from_hex, vec_from_hex, Corpus};
   use rstest::rstest;
+  use serde::Deserialize;
+
+  #[derive(Deserialize)]
+  struct SignVector {
+    sk: String,
+    pk: String,
+    msg: String,
+    sig: String,
+  }
+
+  #[rstest]
+  fn corpus_sign() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "eddsa_sign");
+
+    for v in corpus.vectors::<SignVector>("sign") {
+      let sk = EddsaSecretKey::from_bytes(&arr_from_hex(&v.sk));
+      let pk = sk.public_key();
+      let msg = vec_from_hex(&v.msg);
+      let sig = sk.sign(&msg);
+
+      assert_eq!(pk.to_bytes(), arr_from_hex::<32>(&v.pk));
+      assert_eq!(sig.to_bytes(), arr_from_hex::<EDDSA_SIG_LEN>(&v.sig));
+      assert!(pk.verify(&msg, &sig).is_ok());
+    }
+  }
 
   #[rstest]
   fn the_signature_round_trips(alice_sig: EddsaSignature) {
