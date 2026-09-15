@@ -77,6 +77,11 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     BlsPublicKey(S::derive_pk(&self.0))
   }
 
+  /// Whether `pubkey` is this key's public counterpart.
+  pub fn verify_pubkey(&self, pubkey: &BlsPublicKey<S>) -> bool {
+    self.public_key() == *pubkey
+  }
+
   /// Sign a message of the scheme's message type.
   pub fn sign(&self, msg: &S::Msg) -> BlsSignature<S> {
     BlsSignature::from_inner(S::sign(&self.0, msg))
