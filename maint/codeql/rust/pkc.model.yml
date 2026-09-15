@@ -38,10 +38,6 @@ extensions:
       - ["Bls", "PublicKey", "derive_share"]              # Get share from master keys
       - ["Bls", "Signature", "recover_shares"]            # Get signature
       - ["Bls", "PublicKey", "recover_shares"]            # Get master public key
-      # Tweaking
-      - ["Bls", "SecretKey", "add_tweak"]
-      - ["Bls", "PublicKey", "add_tweak"]
-      - ["Bls", "PublicKey", "mul_tweak"]
       # ECDSA
       # Compression
       - ["Ecdsa", "SecretKey", "is_compressed"]           # Form the derived key will take

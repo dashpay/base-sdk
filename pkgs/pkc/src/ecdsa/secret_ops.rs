@@ -27,10 +27,12 @@ use dash_types::{impl_stype, type_id::TypeId, ArrayBuf};
 #[cfg(feature = "codec")]
 use dash_types::{Hashable, Numeric};
 use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
+use k256::elliptic_curve::ff::PrimeField;
 use k256::elliptic_curve::ops::Neg;
 use k256::elliptic_curve::Generate;
 #[cfg(feature = "codec")]
 use k256::{elliptic_curve::sec1::ToSec1Point, AffinePoint};
+use k256::{NonZeroScalar, Scalar};
 use rand_core::CryptoRng;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -171,6 +173,21 @@ impl Hashable for EcdsaSecretKey {
   }
 }
 
+/// Parse a tweak as a scalar below the curve order.
+///
+/// Shared with the point tweaks, which bound a tweak the same way: `from_repr`
+/// is the canonical parse, so a value at or above the order is refused rather
+/// than reduced into range behind the caller's back.
+///
+/// # Errors
+///
+/// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the order.
+pub(super) fn tweak_scalar(tweak: &[u8; ECDSA_SK_LEN]) -> Result<Scalar, EcdsaError> {
+  Scalar::from_repr((*tweak).into())
+    .into_option()
+    .ok_or(EcdsaError::InvalidTweak)
+}
+
 impl EcdsaSecretKey {
   /// Parse a secret key from a 32-byte big-endian scalar.
   ///
@@ -198,6 +215,24 @@ impl EcdsaSecretKey {
   /// Whether the corresponding public key should be compressed.
   pub fn is_compressed(&self) -> bool {
     self.compressed
+  }
+
+  /// Add `tweak` to the scalar, modulo the curve order.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the curve
+  /// order, or when the sum is zero. Zero is not a valid secret key, so the
+  /// sum is refused rather than returned as one.
+  pub fn add_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
+    let scalar = tweak_scalar(tweak)?;
+    let sum = *self.inner.as_nonzero_scalar().as_ref() + scalar;
+    let sum = NonZeroScalar::new(sum).into_option().ok_or(EcdsaError::InvalidTweak)?;
+
+    Ok(Self {
+      inner: SigningKey::from(sum),
+      compressed: self.compressed,
+    })
   }
 
   /// Negate the secret scalar in place.
@@ -286,8 +321,9 @@ type_cvrt!(TryFrom<EcdsaSkBytes> for EcdsaSecretKey, EcdsaError, |bytes| {
 #[expect(clippy::ptr_arg, clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::OID_PRIME_FIELD;
+  use crate::ecdsa::curve_consts::ORDER;
   use crate::ecdsa::tests::*;
-  use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaSecretKey};
+  use crate::ecdsa::{Compression, EcdsaError, EcdsaPublicKey, EcdsaSecretKey, ECDSA_SK_LEN};
   use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, Corpus};
@@ -413,6 +449,55 @@ mod tests {
       restored.public_key().to_compressed(),
       alice_sk.public_key().to_compressed()
     );
+  }
+
+  #[rstest]
+  fn tweaking_agrees_on_both_sides(alice_sk: EcdsaSecretKey, bob_sk: EcdsaSecretKey) {
+    // (a + t)G has to equal aG + tG, or the same tweak applied to the two
+    // halves of a key pair would part them.
+    let tweak = *bob_sk.to_bytes();
+    let tweaked_sk = alice_sk.add_tweak(&tweak).unwrap();
+    let tweaked_pk = alice_sk.public_key().add_tweak(&tweak).unwrap();
+
+    assert_eq!(tweaked_sk.public_key(), tweaked_pk);
+    assert!(tweaked_sk.verify_pubkey(&tweaked_pk));
+  }
+
+  #[rstest]
+  fn a_tweak_at_or_above_the_order_is_refused(alice_sk: EcdsaSecretKey) {
+    assert_eq!(alice_sk.add_tweak(ORDER), Err(EcdsaError::InvalidTweak));
+    assert_eq!(alice_sk.add_tweak(&[0xff; ECDSA_SK_LEN]), Err(EcdsaError::InvalidTweak));
+  }
+
+  #[rstest]
+  fn a_tweak_summing_to_zero_is_refused(alice_sk: EcdsaSecretKey) {
+    // order - a, so a + t == 0, which is no scalar a key can hold.
+    let mut tweak = *ORDER;
+    let mut borrow = 0i16;
+    let scalar = *alice_sk.to_bytes();
+
+    for i in (0..ECDSA_SK_LEN).rev() {
+      let diff = i16::from(tweak[i]) - i16::from(scalar[i]) - borrow;
+      borrow = i16::from(diff < 0);
+      tweak[i] = diff.rem_euclid(256) as u8;
+    }
+
+    assert_eq!(alice_sk.add_tweak(&tweak), Err(EcdsaError::InvalidTweak));
+  }
+
+  #[rstest]
+  fn multiplying_a_point_matches_multiplying_the_scalar(alice_sk: EcdsaSecretKey, bob_sk: EcdsaSecretKey) {
+    // t(aG) == a(tG). Multiplying a point commutes with multiplying the
+    // scalar that made it.
+    let factor = *bob_sk.to_bytes();
+    let product = alice_sk.public_key().mul_tweak(&factor).unwrap();
+    let expected = EcdsaSecretKey::from_bytes(&factor, Compression::Compressed)
+      .unwrap()
+      .public_key()
+      .mul_tweak(&alice_sk.to_bytes())
+      .unwrap();
+
+    assert_eq!(product, expected);
   }
 
   #[rstest]

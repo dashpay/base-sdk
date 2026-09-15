@@ -19,6 +19,8 @@ pub enum EcdsaError {
   InvalidSecretKey,
   /// signature bytes are malformed
   InvalidSignature,
+  /// tweak is not below the order, or the result is zero or infinity
+  InvalidTweak,
   /// DER-encoded private key has invalid structure
   MalformedDer,
   /// recovery failed; no valid public key for this signature and message
@@ -36,6 +38,7 @@ impl fmt::Display for EcdsaError {
       Self::InvalidRecoveryId => write!(f, "recovery id out of range (must be 0..4)"),
       Self::InvalidSecretKey => write!(f, "secret key bytes are not a valid scalar"),
       Self::InvalidSignature => write!(f, "signature bytes are malformed"),
+      Self::InvalidTweak => write!(f, "tweak is not below the order, or the result is zero or infinity"),
       Self::MalformedDer => write!(f, "DER-encoded private key has invalid structure"),
       Self::RecoveryFailed => write!(f, "recovery failed; no valid public key"),
       Self::SigningFailed => write!(f, "signing failed"),

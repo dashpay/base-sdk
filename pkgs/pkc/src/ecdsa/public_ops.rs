@@ -8,6 +8,8 @@
 
 use super::error::EcdsaError;
 use super::public_bytes::{EcdsaPkBytes, Sec1Byte, ECDSA_PK_LEN};
+use super::secret_bytes::ECDSA_SK_LEN;
+use super::secret_ops::tweak_scalar;
 use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
 use super::Compression;
@@ -21,6 +23,7 @@ use dash_types::type_cvrt;
 #[cfg(feature = "codec")]
 use dash_types::type_id::{TypeId, Unencodable};
 use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
+use k256::ProjectivePoint;
 
 use core::hash::{Hash, Hasher};
 
@@ -123,6 +126,44 @@ impl EcdsaPublicKey {
           .map_err(|_| EcdsaError::InvalidPublicKey)
       }
     }
+  }
+
+  /// Add `tweak * G` to the point.
+  ///
+  /// The serialization form carries over from `self`.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the curve
+  /// order, or when the sum is the point at infinity.
+  pub fn add_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
+    let scalar = tweak_scalar(tweak)?;
+    self.tweaked(ProjectivePoint::from(self.inner.as_affine()) + ProjectivePoint::GENERATOR * scalar)
+  }
+
+  /// Multiply the point by `tweak`.
+  ///
+  /// The serialization form carries over from `self`.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the curve
+  /// order, or when the product is the point at infinity.
+  pub fn mul_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
+    let scalar = tweak_scalar(tweak)?;
+    self.tweaked(ProjectivePoint::from(self.inner.as_affine()) * scalar)
+  }
+
+  /// Rewrap a tweaked point, keeping the serialization form.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when the point is at infinity, which
+  /// is no key: the tweak cancelled the one it was applied to.
+  fn tweaked(&self, point: ProjectivePoint) -> Result<Self, EcdsaError> {
+    let inner = VerifyingKey::from_affine(point.to_affine()).map_err(|_| EcdsaError::InvalidTweak)?;
+
+    Ok(Self { inner, form: self.form })
   }
 
   /// Whether this key serializes as compressed.
