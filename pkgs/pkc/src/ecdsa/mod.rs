@@ -13,18 +13,20 @@ mod secret_bytes;
 mod sig_bytes;
 mod sig_rec_bytes;
 
+#[cfg(feature = "codec")]
 use dash_types::type_id::Unencodable;
 
 pub use error::EcdsaError;
 pub use public_bytes::{EcdsaPkBytes, ECDSA_PK_LEN};
-pub use public_hash::PubKeyHash;
+pub use public_hash::EcdsaPkHash;
 pub use secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
 pub use sig_bytes::{EcdsaSigBytes, ECDSA_SIG_LEN};
 pub use sig_rec_bytes::EcdsaRecSigBytes;
 
 /// Whether a key's public counterpart serializes in compressed (33-byte) or
 /// uncompressed (65-byte) SEC1 form.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub enum Compression {
   /// The public key serializes compressed.
   Compressed,
@@ -51,6 +53,8 @@ impl From<bool> for Compression {
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "ecdsa")] {
+    #[allow(dead_code, reason = "curve constants")]
+    mod curve_consts;
     mod public_ops;
     mod secret_ops;
     mod sig_ops;

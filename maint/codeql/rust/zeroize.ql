@@ -71,10 +71,6 @@ predicate wipesSelf(TypeItem t) {
 predicate externalWiper(TypeItem t) {
   not isWorkspaceFile(fileOf(t)) and
   (
-    // `k256::ecdsa::SigningKey` derives `ZeroizeOnDrop`.
-    t.getName().getText() = "SigningKey" and
-    fileOf(t).getAbsolutePath().matches("%/ecdsa-%/src/signing.rs")
-    or
     // `blst::{min_pk,min_sig}::SecretKey` are declared `#[zeroize(drop)]`.
     t.getName().getText() = "SecretKey" and
     fileOf(t).getAbsolutePath().matches("%/blst-%/src/lib.rs")

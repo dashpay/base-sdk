@@ -12,13 +12,16 @@ use super::sig_ops::EcdsaSignature;
 use super::sig_rec_bytes::{CompactFlags, EcdsaRecSigBytes};
 use super::Compression;
 
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
-use dash_types::type_id::TypeId;
-use dash_types::{dlgt_codec, type_cvrt};
-use k256::ecdsa::{RecoveryId, Signature};
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
+use dash_types::{dlgt_codec, type_id::TypeId};
+use secp256k1::ecdsa::{RecoveryId, Signature};
 
 /// An ECDSA signature with recovery id and compression metadata.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, TypeId)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "EcdsaRecSigBytes", try_from = "EcdsaRecSigBytes"))]
 pub struct EcdsaRecSignature {
@@ -26,13 +29,14 @@ pub struct EcdsaRecSignature {
   flags: CompactFlags,
 }
 
+#[cfg(feature = "codec")]
 dlgt_codec!(EcdsaRecSignature => EcdsaRecSigBytes, Hash256, EcdsaError, ECDSA_SIG_LEN + 2);
 
 impl EcdsaRecSignature {
   pub(super) fn from_inner(inner: Signature, recovery_id: RecoveryId, compressed: Compression) -> Self {
     Self {
       sig: EcdsaSignature::from_inner(inner),
-      flags: CompactFlags::from_parts(recovery_id.to_byte(), compressed),
+      flags: CompactFlags::from_parts(recovery_id.to_u8(), compressed),
     }
   }
 
@@ -71,11 +75,10 @@ impl EcdsaRecSignature {
 
   /// The recovery id in the form the backend expects.
   ///
-  /// Infallible, unlike [`RecoveryId::from_byte`]: `CompactFlags` encodes only
-  /// ids in `0..=3`, so both bits are in range by construction.
+  /// Infallible, like the masked constructor it uses; `CompactFlags` encodes
+  /// only ids in `0..=3`, so nothing is ever masked away.
   pub(super) const fn backend_recovery_id(&self) -> RecoveryId {
-    let id = self.flags.recovery_id();
-    RecoveryId::new(id & 1 == 1, id & 2 == 2)
+    RecoveryId::from_u8_masked(self.flags.recovery_id())
   }
 
   /// The plain signature without recovery metadata.
@@ -85,7 +88,7 @@ impl EcdsaRecSignature {
 
   /// Serialize as 64-byte compact format (r || s).
   pub fn to_compact(&self) -> [u8; ECDSA_SIG_LEN] {
-    self.sig.to_compact()
+    self.sig.to_bytes()
   }
 }
 
@@ -130,7 +133,7 @@ mod tests {
   #[case(3)]
   fn backend_recovery_id_matches_byte(#[case] id: u8, alice_sig: EcdsaSignature) {
     let rec = EcdsaRecSignature::from_parts(alice_sig, id, Compression::Compressed).unwrap();
-    assert_eq!(rec.backend_recovery_id().to_byte(), id);
+    assert_eq!(rec.backend_recovery_id().to_u8(), id);
   }
 
   #[rstest]
@@ -181,7 +184,7 @@ mod tests {
     let mut high_bytes = [0u8; 64];
     high_bytes[..32].copy_from_slice(&compact[..32]);
     high_bytes[32..].copy_from_slice(&negate_scalar(&compact[32..]));
-    let high_sig = EcdsaSignature::from_compact(&high_bytes).unwrap();
+    let high_sig = EcdsaSignature::from_bytes(&high_bytes).unwrap();
 
     // The curve primitive rejects high-S signatures at recovery time (see
     // `EcdsaSignature::verify`), so only the invariant that normalizing

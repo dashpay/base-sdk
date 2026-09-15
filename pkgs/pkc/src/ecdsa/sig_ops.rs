@@ -10,16 +10,20 @@ use super::error::EcdsaError;
 use super::sig_bytes::ECDSA_SIG_LEN;
 use super::EcdsaSigBytes;
 
+#[cfg(feature = "codec")]
 use dash_num::Hash256;
+#[cfg(feature = "codec")]
+use dash_types::dlgt_codec;
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::{dlgt_codec, type_cvrt};
-use k256::ecdsa::{DerSignature, Signature};
-use k256::elliptic_curve::scalar::IsHigh;
+use secp256k1::ecdsa::{SerializedSignature, Signature};
 
 use core::hash::{Hash, Hasher};
 
 /// An ECDSA signature (64-byte compact r||s).
-#[derive(Clone, Debug, Eq, PartialEq, TypeId)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
   feature = "serde",
@@ -27,6 +31,7 @@ use core::hash::{Hash, Hasher};
 )]
 pub struct EcdsaSignature(Signature);
 
+#[cfg(feature = "codec")]
 dlgt_codec!(EcdsaSignature => EcdsaSigBytes, Hash256, EcdsaError, ECDSA_SIG_LEN + 1);
 
 impl EcdsaSignature {
@@ -38,17 +43,18 @@ impl EcdsaSignature {
     &self.0
   }
 
-  /// Parse from 64-byte compact format (r || s).
+  /// Parse from the 64-byte layout (r || s).
   ///
   /// Accepts high-S signatures; see [`is_low_s`](Self::is_low_s) to reject
-  /// otherwise.
+  /// otherwise. For the DER encoding use [`from_der`](Self::from_der); for
+  /// the wire image use the codec.
   ///
   /// # Errors
   ///
   /// Returns [`EcdsaError::InvalidSignature`] when `r` or `s` is zero or not
   /// a scalar below the curve order.
-  pub fn from_compact(bytes: &[u8; ECDSA_SIG_LEN]) -> Result<Self, EcdsaError> {
-    Signature::from_slice(bytes)
+  pub fn from_bytes(bytes: &[u8; ECDSA_SIG_LEN]) -> Result<Self, EcdsaError> {
+    Signature::from_compact(bytes)
       .map(Self)
       .map_err(|_| EcdsaError::InvalidSignature)
   }
@@ -66,31 +72,40 @@ impl EcdsaSignature {
   }
 
   /// Whether the S component is in the lower half of the curve order.
+  ///
+  /// Asked by normalising a copy; the backend offers no query of its own, and
+  /// normalisation is a no-op exactly when S is already low.
   pub fn is_low_s(&self) -> bool {
-    !bool::from(self.0.s().is_high())
+    self.normalized().is_none()
   }
 
   /// Return a signature with the S value normalised to the lower half of the
   /// curve order. Returns `None` if already normalised.
   pub fn normalize_s(&self) -> Option<Self> {
-    let normalized = self.0.normalize_s();
-    (normalized != self.0).then_some(Self(normalized))
+    self.normalized().map(Self)
   }
 
-  /// Serialize as 64-byte compact format (r || s).
-  pub fn to_compact(&self) -> [u8; ECDSA_SIG_LEN] {
-    self.0.to_bytes().into()
+  /// The low-S form of this signature, or `None` when it is already low.
+  fn normalized(&self) -> Option<Signature> {
+    let mut sig = self.0;
+    sig.normalize_s();
+    (sig != self.0).then_some(sig)
+  }
+
+  /// Emit the 64-byte layout (r || s).
+  pub fn to_bytes(&self) -> [u8; ECDSA_SIG_LEN] {
+    self.0.serialize_compact()
   }
 
   /// Encode as DER bytes.
   pub fn to_der(&self) -> EcdsaDerSig {
-    EcdsaDerSig(self.0.to_der())
+    EcdsaDerSig(self.0.serialize_der())
   }
 }
 
 impl Hash for EcdsaSignature {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.to_compact().hash(state);
+    self.to_bytes().hash(state);
   }
 }
 
@@ -101,23 +116,24 @@ impl AsRef<EcdsaSignature> for EcdsaSignature {
 }
 
 /// DER-encoded ECDSA signature (variable length, typically 70-72 bytes).
-#[derive(Clone, Debug, Unencodable)]
-pub struct EcdsaDerSig(DerSignature);
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
+pub struct EcdsaDerSig(SerializedSignature);
 
 impl EcdsaDerSig {
   /// Raw DER bytes.
   pub fn as_bytes(&self) -> &[u8] {
-    self.0.as_bytes()
+    self.0.as_ref()
   }
 
   /// Byte length.
   pub fn len(&self) -> usize {
-    self.0.as_bytes().len()
+    self.0.len()
   }
 
   /// Whether the DER encoding is empty (always false for valid signatures).
   pub fn is_empty(&self) -> bool {
-    self.0.as_bytes().is_empty()
+    self.len() == 0
   }
 }
 
@@ -136,11 +152,11 @@ impl PartialEq for EcdsaDerSig {
 }
 
 type_cvrt!(From<EcdsaSignature> for EcdsaSigBytes, |sig| {
-  Self::from(sig.to_compact())
+  Self::from(sig.to_bytes())
 });
 
 type_cvrt!(TryFrom<EcdsaSigBytes> for EcdsaSignature, EcdsaError, |bytes| {
-  Self::from_compact(bytes.as_bytes())
+  Self::from_bytes(bytes.as_bytes())
 });
 
 #[cfg(test)]
@@ -155,8 +171,8 @@ mod tests {
 
   #[rstest]
   fn compact_roundtrip(alice_sig: EcdsaSignature) {
-    let bytes = alice_sig.to_compact();
-    let restored = EcdsaSignature::from_compact(&bytes).unwrap();
+    let bytes = alice_sig.to_bytes();
+    let restored = EcdsaSignature::from_bytes(&bytes).unwrap();
     assert_eq!(restored, alice_sig);
   }
 
@@ -194,11 +210,11 @@ mod tests {
 
   #[rstest]
   fn normalize_s_flips_high_s_signature(alice_pk: EcdsaPublicKey, alice_sig: EcdsaSignature) {
-    let compact = alice_sig.to_compact();
+    let compact = alice_sig.to_bytes();
     let mut high_bytes = [0u8; 64];
     high_bytes[..32].copy_from_slice(&compact[..32]);
     high_bytes[32..].copy_from_slice(&negate_scalar(&compact[32..]));
-    let high_sig = EcdsaSignature::from_compact(&high_bytes).unwrap();
+    let high_sig = EcdsaSignature::from_bytes(&high_bytes).unwrap();
     assert!(!high_sig.is_low_s());
 
     let normalized = high_sig.normalize_s().unwrap();

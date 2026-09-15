@@ -7,8 +7,10 @@
 //! secp256k1 secret key byte bag.
 
 use super::Compression;
+#[cfg(feature = "codec")]
 use crate::prelude::*;
 
+#[cfg(feature = "codec")]
 use base58ck::{decode_check, encode_check};
 use dash_types::derive_sbytes;
 use subtle::ConstantTimeEq;
@@ -48,6 +50,7 @@ impl EcdsaSkBytes {
     self.compressed
   }
 
+  #[cfg(feature = "codec")]
   /// Decode a wallet import format-encoded private key.
   ///
   /// Returns `None` on a bad checksum, an unexpected version prefix, a length
@@ -75,6 +78,7 @@ impl EcdsaSkBytes {
     Zeroizing::new(self.inner)
   }
 
+  #[cfg(feature = "codec")]
   /// Encode as a wallet import format string.
   ///
   /// Returns `None` for the all-zero scalar, which [`from_wif`](Self::from_wif)

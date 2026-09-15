@@ -24,10 +24,9 @@ dash-types = { version = "0.1.0-beta", path = "../types", default-features = fal
 hex-conservative = { workspace = true, features = [
   "alloc",
 ] }
-k256 = { version = "0.14", default-features = false, features = [
-  "arithmetic",
-  "ecdsa",
-  "sha256",
+secp256k1 = { version = "0.33.1", default-features = false, features = [
+  "alloc",
+  "recovery",
 ], optional = true }
 rand_core = { workspace = true, optional = true }
 rstest = { version = "0.25", optional = true }
@@ -65,7 +64,7 @@ codec = [
   "dash-num/codec",
   "dash-types/codec",
 ]
-ecdsa = ["codec", "dep:k256", "dep:rand_core"]
+ecdsa = ["dep:rand_core", "dep:secp256k1"]
 serde = ["codec", "dep:serde", "dash-num/serde", "dash-types/serde"]
 full = ["bls", "codec", "ecdsa", "serde", "std", "tests"]
 tests = ["std", "dep:rstest"]

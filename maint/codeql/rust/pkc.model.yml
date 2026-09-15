@@ -1,0 +1,66 @@
+# List of known asymmetries in the APIs exposed for curves offered by dash-pkc
+extensions:
+  - addsTo:
+      pack: base-sdk/codeql-rust
+      extensible: armOnly
+    data:
+      # BLS
+      # Aggregation
+      - ["Bls", "SecretKey", "aggregate"]                 # Add secret keys
+      - ["Bls", "PublicKey", "aggregate"]                 # Add
+      - ["Bls", "PublicKey", "secure_aggregate"]          # Add w/ binding against rogue keys
+      - ["Bls", "Signature", "aggregate"]                 # Add
+      - ["Bls", "Signature", "secure_aggregate"]          # Add w/ binding against rogue keys
+      - ["Bls", "Signature", "sub_insecure"]              # Subtract
+      - ["Bls", "Signature", "verify_aggregates"]         # Verify multi-message, multiple signers
+      - ["Bls", "Signature", "fast_verify_aggregates"]    # Verify single-message, multiple signers
+      - ["Bls", "Signature", "secure_verify_aggregates"]  # Verify w/ binding against rogue keys
+      # Integrated Encryption Scheme
+      - ["Bls", "SecretKey", "dh_exchange"]               # Derive shared secret
+      - ["Bls", "SecretKey", "ies_decrypt"]               # Decrypt blob
+      - ["Bls", "SecretKey", "ies_decrypt_multi"]         # Decrypt multi
+      - ["Bls", "PublicKey", "ies_encrypt"]               # Encrypt blob
+      - ["Bls", "PublicKey", "ies_encrypt_multi"]         # Encrypt multi
+      # Key derivation
+      - ["Bls", "SecretKey", "from_ikm"]                  # Run key material through a KDF
+      # Scheme transform
+      - ["Bls", "SecretKey", "to_scheme"]
+      - ["Bls", "PublicKey", "to_scheme"]
+      - ["Bls", "Signature", "to_scheme"]
+      - ["Bls", "SecretKey", "sign_with"]                 # Specify non-type-native scheme
+      - ["Bls", "PublicKey", "verify_with"]               # Specify non-type-native scheme
+      # Proof of possession
+      - ["Bls", "SecretKey", "prove_possession"]          # Prove
+      - ["Bls", "PublicKey", "verify_possession"]         # Verify
+      # Threshold signatures
+      - ["Bls", "SecretKey", "split"]                     # Issue shares
+      - ["Bls", "SecretKey", "derive_share"]              # Get share from master keys
+      - ["Bls", "PublicKey", "derive_share"]              # Get share from master keys
+      - ["Bls", "Signature", "recover_shares"]            # Get signature
+      - ["Bls", "PublicKey", "recover_shares"]            # Get master public key
+      # ECDSA
+      # Compression
+      - ["Ecdsa", "SecretKey", "is_compressed"]           # Form the derived key will take
+      - ["Ecdsa", "PublicKey", "is_compressed"]           # Query
+      - ["Ecdsa", "PublicKey", "is_hybrid"]               # Query legacy parity hint
+      - ["Ecdsa", "PublicKey", "decompress"]              # Switch to uncompressed
+      - ["Ecdsa", "PublicKey", "to_compressed"]           # Emit 33-byte SEC1
+      - ["Ecdsa", "PublicKey", "to_uncompressed"]         # Emit 65-byte SEC1
+      - ["Ecdsa", "PublicKey", "to_hybrid"]               # Emit 65-byte SEC1 w/ parity hint
+      - ["Ecdsa", "SkBytes", "is_compressed"]             # Query
+      - ["Ecdsa", "PkBytes", "is_compressed"]             # Query
+      - ["Ecdsa", "PkBytes", "size"]                      # Live length, since SEC1 is not fixed width
+      # Encoding
+      - ["Ecdsa", "Signature", "from_der"]                # Read DER
+      - ["Ecdsa", "Signature", "to_der"]                  # Emit DER
+      - ["Ecdsa", "PkHash", "to_base58c"]                 # Emit Base58c address
+      - ["Ecdsa", "SkBytes", "from_wif"]                  # Read Base58c wallet import format
+      - ["Ecdsa", "SkBytes", "to_wif"]                    # Emit Base58c wallet import format
+      # Malleability
+      - ["Ecdsa", "Signature", "is_low_s"]                # Query whether S is in the lower half
+      - ["Ecdsa", "Signature", "normalize_s"]             # Move S into the lower half
+      # Misc.
+      - ["Ecdsa", "SecretKey", "negate"]                  # Flips the scalar
+      # Recoverable signatures
+      - ["Ecdsa", "SecretKey", "sign_recoverable"]        # Sign
+      - ["Ecdsa", "PublicKey", "recover"]                 # Get public key from a signature

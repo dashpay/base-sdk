@@ -6,19 +6,24 @@
 
 //! Hashed representation of secp256k1 public key.
 
+#[cfg(feature = "codec")]
 use crate::prelude::*;
 
+#[cfg(feature = "codec")]
 use base58ck::encode_check;
 use dash_num::make_hash;
+#[cfg(feature = "codec")]
 use dash_types::codec::{BaseCodec, EncodeBuf};
+#[cfg(feature = "codec")]
 use dash_types::ArrayBuf;
 
 make_hash! {
   /// 20-byte public key hash.
-  PubKeyHash, 20
+  EcdsaPkHash, 20
 }
 
-impl PubKeyHash {
+#[cfg(feature = "codec")]
+impl EcdsaPkHash {
   /// Encode as a Base58Check address with the given version prefix.
   pub fn to_base58c(&self, prefix: u8) -> String {
     let mut buf = ArrayBuf::<21>::new();

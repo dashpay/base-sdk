@@ -6,14 +6,18 @@
 
 //! secp256k1 signature byte bag.
 
+#[cfg(feature = "codec")]
 use crate::prelude::*;
 
 use bitcoin_hashes::sha256d;
 use cfg_if::cfg_if;
 use dash_num::Hash256;
-use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::type_id::TypeId;
-use dash_types::{impl_type, type_cvrt, CompactSize, Numeric};
+#[cfg(feature = "codec")]
+use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
+use dash_types::{impl_type, type_id::TypeId, CompactSize};
+use dash_types::{Hashable, Numeric};
 
 use core::fmt;
 
@@ -21,9 +25,11 @@ use core::fmt;
 pub const ECDSA_SIG_LEN: usize = 64;
 
 /// Raw compact ECDSA signature bytes (r || s, unvalidated scalars).
-#[derive(Clone, Copy, Eq, Hash, PartialEq, TypeId)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 pub struct EcdsaSigBytes([u8; ECDSA_SIG_LEN]);
 
+#[cfg(feature = "codec")]
 impl BaseCodec for EcdsaSigBytes {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let n = CompactSize::decode(data)?.into_len(ECDSA_SIG_LEN)?;
@@ -44,6 +50,7 @@ impl BaseCodec for EcdsaSigBytes {
   }
 }
 
+#[cfg(feature = "codec")]
 impl_type!(EcdsaSigBytes);
 
 impl Hashable for EcdsaSigBytes {
@@ -55,6 +62,11 @@ impl Hashable for EcdsaSigBytes {
 }
 
 impl EcdsaSigBytes {
+  /// Wraps raw bytes without validation.
+  pub const fn from_bytes(bytes: [u8; ECDSA_SIG_LEN]) -> Self {
+    Self(bytes)
+  }
+
   /// Borrow the raw inner bytes.
   pub const fn as_bytes(&self) -> &[u8; ECDSA_SIG_LEN] {
     &self.0

@@ -19,7 +19,7 @@ mod prelude;
 mod sigops;
 
 pub use addrs::{AddrParams, Recipient};
-pub use dash_pkc::__private::__PubKeyHash as PubKeyHash;
+pub use dash_pkc::__private::__EcdsaPkHash as PubKeyHash;
 pub use dash_types::__private::__ScriptHash as ScriptHash;
 pub use opcode::Opcode;
 pub use sigops::legacy_sigop_count;

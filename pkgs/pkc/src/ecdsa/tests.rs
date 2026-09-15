@@ -6,7 +6,7 @@
 
 //! Common test definitions.
 
-use super::secret_ops::ORDER;
+use super::curve_consts::ORDER;
 use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaRecSignature, EcdsaSecretKey, EcdsaSignature};
 
 use hex_conservative::hex;
@@ -55,10 +55,10 @@ pub fn bob_sk() -> EcdsaSecretKey {
 
 #[fixture]
 pub fn alice_rec_sig() -> EcdsaRecSignature {
-  alice_sk().sign_recoverable(&MSG).unwrap()
+  alice_sk().sign_recoverable(&MSG)
 }
 
 #[fixture]
 pub fn alice_sig() -> EcdsaSignature {
-  alice_sk().sign(&MSG).unwrap()
+  alice_sk().sign(&MSG)
 }

@@ -8,13 +8,22 @@
 
 use super::error::EcdsaError;
 use super::public_bytes::{EcdsaPkBytes, Sec1Byte, ECDSA_PK_LEN};
+use super::secret_bytes::ECDSA_SK_LEN;
+use super::secret_ops::tweak_scalar;
 use super::sig_ops::EcdsaSignature;
 use super::sig_rec_ops::EcdsaRecSignature;
-use super::{Compression, EcdsaRecSigBytes, PubKeyHash};
+use super::Compression;
+#[cfg(feature = "codec")]
+use super::EcdsaPkHash;
+use crate::prelude::*;
 
+#[cfg(feature = "codec")]
+use dash_types::dlgt_codec;
+use dash_types::type_cvrt;
+#[cfg(feature = "codec")]
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::{dlgt_codec, type_cvrt};
-use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
+use secp256k1::ecdsa::RecoverableSignature;
+use secp256k1::{Message, PublicKey, Scalar};
 
 use core::hash::{Hash, Hasher};
 
@@ -23,7 +32,8 @@ use core::hash::{Hash, Hasher};
 /// Retained separately from the curve point because the point alone cannot
 /// distinguish the uncompressed and hybrid encodings, and re-emitting one as
 /// the other would change the key's wire image and therefore its hash.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(Unencodable))]
 pub(super) enum PkForm {
   /// 33-byte `0x02`/`0x03` form.
   Compressed,
@@ -34,18 +44,20 @@ pub(super) enum PkForm {
 }
 
 /// A secp256k1 public key.
-#[derive(Clone, Debug, Eq, PartialEq, TypeId)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "EcdsaPkBytes", try_from = "EcdsaPkBytes"))]
 pub struct EcdsaPublicKey {
-  inner: VerifyingKey,
+  inner: PublicKey,
   form: PkForm,
 }
 
-dlgt_codec!(EcdsaPublicKey => EcdsaPkBytes, PubKeyHash, EcdsaError, ECDSA_PK_LEN + 2);
+#[cfg(feature = "codec")]
+dlgt_codec!(EcdsaPublicKey => EcdsaPkBytes, EcdsaPkHash, EcdsaError, ECDSA_PK_LEN + 2);
 
 impl EcdsaPublicKey {
-  pub(super) fn from_inner(inner: VerifyingKey, compressed: Compression) -> Self {
+  pub(super) fn from_inner(inner: PublicKey, compressed: Compression) -> Self {
     Self {
       inner,
       form: match compressed {
@@ -55,8 +67,8 @@ impl EcdsaPublicKey {
     }
   }
 
-  /// Borrow the inner verifying key.
-  pub(super) fn as_inner(&self) -> &VerifyingKey {
+  /// Borrow the inner curve point.
+  pub(super) fn as_inner(&self) -> &PublicKey {
     &self.inner
   }
 
@@ -100,7 +112,7 @@ impl EcdsaPublicKey {
         let mut buf = [0u8; ECDSA_PK_LEN + 1];
         buf.copy_from_slice(bytes);
         buf[0] = Sec1Byte::Uncomp.to_base();
-        VerifyingKey::from_sec1_bytes(&buf)
+        PublicKey::from_slice(&buf)
           .map(|key| Self {
             inner: key,
             form: PkForm::Hybrid,
@@ -109,11 +121,56 @@ impl EcdsaPublicKey {
       }
       _ => {
         let compressed = Compression::from(prefix.is_some_and(|s| s.is_compressed()));
-        VerifyingKey::from_sec1_bytes(bytes)
+        PublicKey::from_slice(bytes)
           .map(|key| Self::from_inner(key, compressed))
           .map_err(|_| EcdsaError::InvalidPublicKey)
       }
     }
+  }
+
+  /// Add `tweak * G` to the point.
+  ///
+  /// The serialization form carries over from `self`.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the curve
+  /// order, or when the sum is the point at infinity.
+  pub fn add_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
+    self.tweaked(tweak, PublicKey::add_exp_tweak)
+  }
+
+  /// Multiply the point by `tweak`.
+  ///
+  /// The serialization form carries over from `self`.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the curve
+  /// order, or when the product is the point at infinity.
+  pub fn mul_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
+    self.tweaked(tweak, PublicKey::mul_tweak)
+  }
+
+  /// Apply `op` to the point with `tweak`, keeping the serialization form.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the curve
+  /// order, or when the result is the point at infinity, which is no key; the
+  /// tweak cancelled the key it was applied to.
+  fn tweaked(
+    &self,
+    tweak: &[u8; ECDSA_SK_LEN],
+    op: impl Fn(PublicKey, &Scalar) -> Result<PublicKey, secp256k1::Error>,
+  ) -> Result<Self, EcdsaError> {
+    let scalar = tweak_scalar(tweak)?;
+    let point = op(self.inner, &scalar).map_err(|_| EcdsaError::InvalidTweak)?;
+
+    Ok(Self {
+      inner: point,
+      form: self.form,
+    })
   }
 
   /// Whether this key serializes as compressed.
@@ -126,12 +183,22 @@ impl EcdsaPublicKey {
     self.form == PkForm::Hybrid
   }
 
+  /// Emit the key's own SEC1 layout.
+  ///
+  /// The form is whichever the key was parsed in; to name a form outright, use
+  /// [`to_compressed`](Self::to_compressed) or a sibling of it. The wire
+  /// image goes through the codec.
+  pub fn to_bytes(&self) -> Vec<u8> {
+    match self.form {
+      PkForm::Compressed => self.to_compressed().to_vec(),
+      PkForm::Uncompressed => self.to_uncompressed().to_vec(),
+      PkForm::Hybrid => self.to_hybrid().to_vec(),
+    }
+  }
+
   /// Serialize as 33-byte compressed SEC1.
   pub fn to_compressed(&self) -> [u8; 33] {
-    let pt = self.inner.to_sec1_point(true);
-    let mut out = [0u8; 33];
-    out.copy_from_slice(pt.as_bytes());
-    out
+    self.inner.serialize()
   }
 
   /// Serialize as 65-byte hybrid SEC1, restating the Y parity in the header.
@@ -143,10 +210,7 @@ impl EcdsaPublicKey {
 
   /// Serialize as 65-byte uncompressed SEC1.
   pub fn to_uncompressed(&self) -> [u8; 65] {
-    let pt = self.inner.to_sec1_point(false);
-    let mut out = [0u8; 65];
-    out.copy_from_slice(pt.as_bytes());
-    out
+    self.inner.serialize_uncompressed()
   }
 
   /// Recover a public key from a signature and its embedded recovery metadata.
@@ -157,21 +221,12 @@ impl EcdsaPublicKey {
   /// signature and message. The embedded recovery id needs no check: it is in
   /// `0..=3` by construction.
   pub fn recover(msg_hash: &[u8; 32], sig: &EcdsaRecSignature) -> Result<Self, EcdsaError> {
-    VerifyingKey::recover_from_prehash(msg_hash, sig.signature().as_inner(), sig.backend_recovery_id())
+    // The compact form is the only way in; the recoverable signature is held
+    // as scalars plus metadata, so the backend's own type is assembled here.
+    RecoverableSignature::from_compact(&sig.to_compact(), sig.backend_recovery_id())
+      .and_then(|rec| rec.recover(Message::from_digest(*msg_hash)))
       .map(|key| Self::from_inner(key, Compression::from(sig.is_compressed())))
       .map_err(|_| EcdsaError::RecoveryFailed)
-  }
-
-  /// Recover a public key from a compact recoverable signature.
-  ///
-  /// # Errors
-  ///
-  /// Returns [`EcdsaError::InvalidSignature`] when the bag's scalars are not a
-  /// well-formed signature, plus every error listed for
-  /// [`recover`](Self::recover).
-  pub fn recover_compact(msg_hash: &[u8; 32], sig: &EcdsaRecSigBytes) -> Result<Self, EcdsaError> {
-    let parsed = EcdsaRecSignature::try_from(*sig)?;
-    Self::recover(msg_hash, &parsed)
   }
 
   /// Verify a signature over a 32-byte prehashed message.
@@ -188,7 +243,7 @@ impl EcdsaPublicKey {
   pub fn verify(&self, msg_hash: &[u8; 32], sig: impl AsRef<EcdsaSignature>) -> Result<(), EcdsaError> {
     self
       .inner
-      .verify_prehash(msg_hash, sig.as_ref().as_inner())
+      .verify(Message::from_digest(*msg_hash), sig.as_ref().as_inner())
       .map_err(|_| EcdsaError::VerifyFailed)
   }
 }
@@ -251,7 +306,8 @@ mod tests {
     for v in corpus.vectors::<RecoverVector>("recover") {
       let sig = EcdsaSigBytes::from(arr_from_hex::<64>(&v.sig));
       let compact = EcdsaRecSigBytes::from_parts(sig, v.recovery_id, Compression::Compressed).unwrap();
-      let pk = EcdsaPublicKey::recover_compact(&arr_from_hex::<32>(&v.msg), &compact).unwrap();
+      let parsed = EcdsaRecSignature::try_from(compact).unwrap();
+      let pk = EcdsaPublicKey::recover(&arr_from_hex::<32>(&v.msg), &parsed).unwrap();
       assert_eq!(pk.to_compressed(), arr_from_hex::<33>(&v.pk));
     }
   }
@@ -331,8 +387,9 @@ mod tests {
 
   #[rstest]
   fn recover_roundtrip(alice_pk: EcdsaPublicKey, alice_sk: EcdsaSecretKey, alice_rec_sig: EcdsaRecSignature) {
-    let compact_sig = alice_sk.sign_compact(&MSG).unwrap();
-    assert_eq!(EcdsaPublicKey::recover_compact(&MSG, &compact_sig).unwrap(), alice_pk);
+    let compact_sig = EcdsaRecSigBytes::from(alice_sk.sign_recoverable(&MSG));
+    let restored = EcdsaRecSignature::try_from(compact_sig).unwrap();
+    assert_eq!(EcdsaPublicKey::recover(&MSG, &restored).unwrap(), alice_pk);
     assert_eq!(EcdsaPublicKey::recover(&MSG, &alice_rec_sig).unwrap(), alice_pk);
   }
 

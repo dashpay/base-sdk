@@ -8,14 +8,18 @@
 
 use super::sig_bytes::{EcdsaSigBytes, ECDSA_SIG_LEN};
 use super::Compression;
+#[cfg(feature = "codec")]
 use crate::prelude::*;
 
 use bitcoin_hashes::sha256d;
 use cfg_if::cfg_if;
 use dash_num::Hash256;
-use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf, Hashable};
-use dash_types::type_id::TypeId;
-use dash_types::{enum_map, impl_type, type_cvrt, CompactSize, Numeric};
+#[cfg(feature = "codec")]
+use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{enum_map, type_cvrt};
+#[cfg(feature = "codec")]
+use dash_types::{impl_type, type_id::TypeId, CompactSize};
+use dash_types::{Hashable, Numeric};
 
 use core::fmt;
 
@@ -82,12 +86,14 @@ impl CompactFlags {
 
 /// Compact recoverable ECDSA signature bytes: one header byte carrying the
 /// recovery id and compression flag, then `r || s`.
-#[derive(Clone, Copy, Eq, Hash, PartialEq, TypeId)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "codec", derive(TypeId))]
 pub struct EcdsaRecSigBytes {
   flags: CompactFlags,
   sig: EcdsaSigBytes,
 }
 
+#[cfg(feature = "codec")]
 impl BaseCodec for EcdsaRecSigBytes {
   fn decode(data: &mut &[u8]) -> Result<Self, DecodeError> {
     let n = CompactSize::decode(data)?.into_len(ECDSA_SIG_LEN + 1)?;
@@ -121,6 +127,7 @@ impl BaseCodec for EcdsaRecSigBytes {
   }
 }
 
+#[cfg(feature = "codec")]
 impl_type!(EcdsaRecSigBytes);
 
 impl Hashable for EcdsaRecSigBytes {
