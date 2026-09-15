@@ -2,3 +2,5 @@
 [![dash-types](https://img.shields.io/codecov/c/github/dashpay/base-sdk/develop?flag=dash-types&style=flat&logo=codecov&logoColor=white&label=types)](https://app.codecov.io/github/dashpay/base-sdk/tree/develop/pkgs%2Ftypes)
 
 # dash-types-marker
+
+This crate supplies procedural macros to the `dash-types` crate.

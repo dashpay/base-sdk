@@ -126,10 +126,9 @@ impl ::serde::Serialize for AddrV1 {
 #[cfg(feature = "serde")]
 impl<'de> ::serde::Deserialize<'de> for AddrV1 {
   fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    use dash_types::__private::hex_conservative::decode_to_array;
     let s = <alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
-    <[u8; 16] as dash_types::__private::hex_conservative::FromHex>::from_hex(&s)
-      .map(Self)
-      .map_err(::serde::de::Error::custom)
+    decode_to_array::<16>(&s).map(Self).map_err(::serde::de::Error::custom)
   }
 }
 

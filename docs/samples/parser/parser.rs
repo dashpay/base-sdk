@@ -12,7 +12,7 @@ extern crate alloc;
 
 use dash_primitives::{Block, BlockHeader, Transaction};
 use dash_types::codec::BaseCodec;
-use hex_conservative::FromHex;
+use hex_conservative::decode_to_vec;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
@@ -68,7 +68,7 @@ fn envelope(data: Value, warnings: Vec<String>) -> Result<String, String> {
 /// decoded as a full block.
 #[wasm_bindgen]
 pub fn parse_block_hex(hex_str: &str) -> Result<String, String> {
-  let bytes = Vec::<u8>::from_hex(hex_str).map_err(|e| format!("invalid hex: {e}"))?;
+  let bytes = decode_to_vec(hex_str).map_err(|e| format!("invalid hex: {e}"))?;
 
   if bytes.is_empty() {
     return Err("no data provided".to_string());
@@ -90,7 +90,7 @@ pub fn parse_block_hex(hex_str: &str) -> Result<String, String> {
 /// Parses a hex-encoded raw transaction and returns a JSON string.
 #[wasm_bindgen]
 pub fn parse_tx_hex(hex_str: &str) -> Result<String, String> {
-  let bytes = Vec::<u8>::from_hex(hex_str).map_err(|e| format!("invalid hex: {e}"))?;
+  let bytes = decode_to_vec(hex_str).map_err(|e| format!("invalid hex: {e}"))?;
 
   if bytes.is_empty() {
     return Err("no data provided".to_string());

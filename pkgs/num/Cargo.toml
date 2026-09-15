@@ -1,6 +1,19 @@
 [package]
 name = "dash-num"
-version = "0.0.0"
+version = "0.1.0-beta"
+description = "Wide-integer blob and arithmetic types for the Dash Base SDK"
+keywords = ["base-sdk", "dash", "dashcore", "dashpay"]
+categories = [
+  "cryptography::cryptocurrencies",
+  "encoding",
+  "no-std",
+  "wasm",
+]
+exclude = [
+  "bench",
+  "corpus",
+  "tests",
+]
 readme = "README.md"
 authors.workspace = true
 edition.workspace = true
@@ -10,27 +23,39 @@ repository.workspace = true
 rust-version.workspace = true
 
 [features]
-default = []
+default = ["codec"]
 std = [
   "bitcoin-consensus-encoding?/std",
   "dash-types/std",
   "hex-conservative/std",
 ]
-full = ["std", "codec", "serde"]
-codec = ["dep:bitcoin-consensus-encoding", "dash-types/codec"]
-serde = ["dep:serde", "dash-types/serde"]
+
+codec = [
+  "dash-types/codec",
+  "dep:bitcoin-consensus-encoding",
+]
+full = [
+  "codec",
+  "serde",
+  "std",
+]
+serde = [
+  "codec",
+  "dash-types/serde",
+  "dep:serde",
+]
 
 [dependencies]
 bitcoin-consensus-encoding = { workspace = true, optional = true }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
-hex-conservative = { version = "0.3", default-features = false }
+dash-types = { version = "0.1.0-beta", path = "../types", default-features = false }
+hex-conservative = { workspace = true }
 serde = { version = "1", default-features = false, features = [
   "derive",
   "alloc",
 ], optional = true }
 
 [dev-dependencies]
-dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
+dash-dev = { path = "../dev", features = ["full"] }
 divan = "0.1"
 hex-literal = "0.4"
 rstest = "0.25"
@@ -60,3 +85,6 @@ harness = false
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

@@ -19,9 +19,9 @@ blst = { version = "0.3", default-features = false, optional = true }
 ff = { version = "0.14", default-features = false, optional = true }
 group = { version = "0.14", default-features = false, optional = true }
 cfg-if = "1"
-dash-num = { version = "0.0.0", path = "../num", default-features = false }
-dash-types = { version = "0.0.0", path = "../types", default-features = false }
-hex-conservative = { version = "0.3", default-features = false, features = [
+dash-num = { version = "0.1.0-beta", path = "../num", default-features = false }
+dash-types = { version = "0.1.0-beta", path = "../types", default-features = false }
+hex-conservative = { workspace = true, features = [
   "alloc",
 ] }
 k256 = { version = "0.14", default-features = false, features = [
@@ -29,26 +29,23 @@ k256 = { version = "0.14", default-features = false, features = [
   "ecdsa",
   "sha256",
 ], optional = true }
-rand_core = { version = "0.10", default-features = false, optional = true }
+rand_core = { workspace = true, optional = true }
 rstest = { version = "0.25", optional = true }
 serde = { version = "1", default-features = false, features = [
   "alloc",
   "derive",
 ], optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
-subtle = { version = "2", default-features = false }
-zeroize = { version = "1", default-features = false, features = [
-  "alloc",
-  "derive",
-] }
+subtle = { workspace = true }
+zeroize = { workspace = true, features = ["alloc", "derive"] }
 
 [dev-dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 divan = "0.1"
 getrandom = { version = "0.4", features = ["sys_rng"] }
-hex-conservative = "0.3"
-rand_core = { version = "0.10" }
+hex-conservative = { workspace = true, features = ["std"] }
+rand_core = { workspace = true }
 rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 

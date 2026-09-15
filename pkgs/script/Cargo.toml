@@ -23,11 +23,11 @@ serde = ["dep:serde", "dash-pkc/serde", "dash-types/serde"]
 [dependencies]
 base58ck = { workspace = true, features = ["alloc"] }
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
-dash-num = { version = "0.0.0", path = "../num", default-features = false }
+dash-num = { version = "0.1.0-beta", path = "../num", default-features = false }
 dash-pkc = { version = "0.0.0", path = "../pkc", default-features = false, features = [
   "codec",
 ] }
-dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+dash-types = { version = "0.1.0-beta", path = "../types", default-features = false, features = [
   "bitcoin-primitives",
   "codec",
 ] }
@@ -37,7 +37,7 @@ serde = { version = "1", default-features = false, features = [
 ], optional = true }
 
 [dev-dependencies]
-hex-conservative = "0.3"
+hex-conservative = { workspace = true, features = ["std"] }
 rstest = "0.25"
 
 [lints]

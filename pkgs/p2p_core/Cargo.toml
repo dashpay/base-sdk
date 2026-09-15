@@ -31,12 +31,12 @@ full = ["std", "serde"]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 bitcoin-internals = { workspace = true }
 cfg-if = "1"
-dash-num = { version = "0.0.0", path = "../num", features = ["codec"] }
+dash-num = { version = "0.1.0-beta", path = "../num", features = ["codec"] }
 dash-pkc = { version = "0.0.0", path = "../pkc", features = ["codec"] }
 dash-script = { version = "0.0.0", path = "../script" }
 dash-params = { version = "0.0.0", path = "../params" }
 dash-primitives = { version = "0.0.0", path = "../primitives" }
-dash-types = { version = "0.0.0", path = "../types", default-features = false, features = [
+dash-types = { version = "0.1.0-beta", path = "../types", default-features = false, features = [
   "codec",
 ] }
 serde = { version = "1", default-features = false, features = [
@@ -46,7 +46,7 @@ serde = { version = "1", default-features = false, features = [
 
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
-hex-conservative = "0.3"
+hex-conservative = { workspace = true, features = ["std"] }
 rstest = "0.25"
 
 [lints]

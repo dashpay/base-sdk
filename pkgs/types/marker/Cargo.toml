@@ -1,6 +1,14 @@
 [package]
 name = "dash-types-marker"
-version = "0.0.0"
+version = "0.1.0-beta"
+description = "Procedural macros for the Dash Base SDK"
+keywords = ["base-sdk", "dash", "dashcore", "dashpay"]
+categories = ["development-tools::procedural-macro-helpers"]
+exclude = [
+  "bench",
+  "corpus",
+  "tests",
+]
 readme = "README.md"
 authors.workspace = true
 edition.workspace = true
@@ -19,3 +27,6 @@ xxhash-rust = { version = "0.8", features = ["xxh32"] }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

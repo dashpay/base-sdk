@@ -363,10 +363,12 @@ cfg_if::cfg_if! {
   if #[cfg(feature = "serde")] {
     use serde::{Serialize, de::DeserializeOwned};
 
+    #[doc(hidden)]
     pub trait Codec<E = Infallible>: BaseCodec<E> + Hashable + TypeId + Serialize + DeserializeOwned {}
 
     impl<T: BaseCodec<E> + Hashable + TypeId + Serialize + DeserializeOwned, E> Codec<E> for T {}
   } else {
+    #[doc(hidden)]
     pub trait Codec<E = Infallible>: BaseCodec<E> + Hashable + TypeId {}
 
     impl<T: BaseCodec<E> + Hashable + TypeId, E> Codec<E> for T {}
