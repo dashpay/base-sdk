@@ -7,7 +7,7 @@
 //! secp256k1 secret key.
 
 #[cfg(feature = "codec")]
-use super::curve_consts::{DER_SIZES, OID_PRIME_FIELD, ORDER, PRIME};
+use super::curve_consts::{DER_SIZES, GENERATOR, GENERATOR_COMPRESSED, OID_PRIME_FIELD, ORDER, PRIME};
 use super::error::EcdsaError;
 use super::public_ops::EcdsaPublicKey;
 use super::secret_bytes::{EcdsaSkBytes, ECDSA_SK_LEN};
@@ -30,8 +30,6 @@ use k256::ecdsa::{signature::hazmat::PrehashSigner, SigningKey};
 use k256::elliptic_curve::ff::PrimeField;
 use k256::elliptic_curve::ops::Neg;
 use k256::elliptic_curve::Generate;
-#[cfg(feature = "codec")]
-use k256::{elliptic_curve::sec1::ToSec1Point, AffinePoint};
 use k256::{NonZeroScalar, Scalar};
 use rand_core::CryptoRng;
 use zeroize::{Zeroize, Zeroizing};
@@ -132,8 +130,11 @@ impl BaseCodec<EcdsaError> for EcdsaSecretKey {
     let scalar = self.to_bytes();
     let public = self.inner.verifying_key().to_sec1_point(self.compressed);
     let public = public.as_bytes();
-    let generator = AffinePoint::GENERATOR.to_sec1_point(self.compressed);
-    let generator = generator.as_bytes();
+    let generator: &[u8] = if self.compressed {
+      &GENERATOR_COMPRESSED
+    } else {
+      GENERATOR
+    };
     let point_len = public.len();
     let params_len = point_len + 97;
 
