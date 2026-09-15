@@ -16,7 +16,7 @@ use crate::aes_cbc::{self, AES_BLOCK_LEN, AES_KEY_LEN};
 use crate::prelude::*;
 
 use blst::BLST_ERROR;
-use ff::Field;
+use ff::{Field, PrimeField};
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
@@ -37,8 +37,15 @@ pub(crate) fn verify_ok(result: BLST_ERROR) -> Result<(), BlsError> {
   }
 }
 
+/// Keeps [`BlsScheme`] sealed to types defined in this crate.
+pub(crate) mod sealed {
+  /// Sealing marker for [`BlsScheme`](super::BlsScheme).
+  pub trait Sealed {}
+}
+
 /// BLS operations tied to a specific scheme.
-pub trait BlsScheme: BlsSchemeId + Sized {
+#[doc(hidden)]
+pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Inner secret key representation.
   type InnerSk: Clone + Send + Sync;
   /// Inner public key representation.
@@ -54,7 +61,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// Returns `InvalidKeyMaterial` when `ikm` is too short, or
   /// `InvalidSecretKey` when the derived scalar is invalid.
-  fn generate(ikm: &[u8]) -> Result<Self::InnerSk, BlsError>;
+  fn sk_from_ikm(ikm: &[u8]) -> Result<Self::InnerSk, BlsError>;
 
   /// Parse a secret key from a 32-byte big-endian scalar.
   ///
@@ -242,6 +249,68 @@ pub trait BlsScheme: BlsSchemeId + Sized {
     Self::g2_to_sig(difference)
   }
 
+  /// Add `tweak` to a secret scalar, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// sum is zero, which is the tweak that is this scalar's additive inverse.
+  fn add_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let mut current = Fr::from_bendian_reduce(&bytes)?;
+    let mut sum = current + scalar;
+    current.zeroize();
+
+    // A zero sum hands back a key whoever chose the tweak already knows.
+    if bool::from(sum.is_zero()) {
+      return Err(BlsError::InvalidTweak);
+    }
+
+    // `Fr` is `Copy`, so it cannot wipe itself on the way out of scope.
+    let tweaked = Self::sk_from_bytes(&sum.to_bendian());
+    sum.zeroize();
+    tweaked.map_err(|_| BlsError::InvalidTweak)
+  }
+
+  /// Add `tweak * G` to a public key's point.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// sum is the point at infinity, and `InvalidPublicKey` when the key does
+  /// not decode.
+  fn add_tweak_pk(pk: &Self::InnerPk, tweak: &[u8; 32]) -> Result<Self::InnerPk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    Self::tweaked_g1_to_pk(Self::pk_to_g1(pk)? + <G1 as group::Group>::mul_by_generator(&scalar))
+  }
+
+  /// Multiply a public key's point by `tweak`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// product is the point at infinity, and `InvalidPublicKey` when the key
+  /// does not decode.
+  fn mul_tweak_pk(pk: &Self::InnerPk, tweak: &[u8; 32]) -> Result<Self::InnerPk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    let blst_scalar = blst::blst_scalar::from(&scalar);
+    Self::tweaked_g1_to_pk(Self::pk_to_g1(pk)?.mul_scalar(&blst_scalar.b, FR_BITS))
+  }
+
+  /// Lower a tweaked point back to a public key, refusing the identity.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when the point is at infinity, which is no key;
+  /// the tweak cancelled the public key it was applied to.
+  fn tweaked_g1_to_pk(point: G1) -> Result<Self::InnerPk, BlsError> {
+    if point.is_inf() {
+      return Err(BlsError::InvalidTweak);
+    }
+    Self::g1_to_pk(point)
+  }
+
   /// Verify an aggregate signature where every signer signed `msg`.
   ///
   /// # Errors
@@ -361,9 +430,9 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `ThresholdTooLarge` when `threshold < 2` (a 1-of-n split hands
+  /// Returns `InvalidThreshold` when `threshold < 2` (a 1-of-n split hands
   /// the master key to every participant), `ids` is empty, or `threshold >
-  /// ids.len()`; `InvalidShareId`/`DuplicateShareId` on bad ids;
+  /// ids.len()`; `ZeroScalar`/`DuplicateShareId` on bad ids;
   /// `InvalidSecretKey` when share generation or parsing fails.
   fn split_sk<S>(
     sk: &Self::InnerSk,
@@ -373,7 +442,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
     mut into_share: impl FnMut(BlsShareId, Self::InnerSk) -> S,
   ) -> Result<Vec<S>, BlsError> {
     if threshold < 2 || ids.is_empty() || threshold > ids.len() {
-      return Err(BlsError::ThresholdTooLarge);
+      return Err(BlsError::InvalidThreshold);
     }
 
     // An id congruent to zero mod r would make the share equal the master
@@ -397,15 +466,18 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `InsufficientShares` when fewer than two shares are given or when
-  /// `ids` and `sigs` differ in length, `InvalidShareId`/`DuplicateShareId` on
-  /// bad ids, or `InvalidSignature` when a share or the recovered point fails
-  /// to decode.
+  /// Returns `InsufficientShares` when fewer than two shares are given,
+  /// `CountMismatch` when `ids` and `sigs` differ in length,
+  /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidSignature`
+  /// when a share fails to decode or the recovered point is the identity.
   fn recover_sig_shares(ids: &[&BlsShareId], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
+    if sigs.len() < 2 {
+      return Err(BlsError::InsufficientShares);
+    }
     // ids and sigs are paired; a length mismatch would desync interpolation
     // and could index out of bounds in interpolate_g2.
-    if sigs.len() < 2 || ids.len() != sigs.len() {
-      return Err(BlsError::InsufficientShares);
+    if ids.len() != sigs.len() {
+      return Err(BlsError::CountMismatch);
     }
 
     // Reduce and validate ids in the scalar field, rejecting zero-reducing
@@ -417,27 +489,64 @@ pub trait BlsScheme: BlsSchemeId + Sized {
       .collect::<Result<Vec<_>, BlsError>>()?;
 
     let recovered = interpolate_g2(&reduced, &points);
+    if recovered.is_inf() {
+      return Err(BlsError::InvalidSignature);
+    }
     Self::g2_to_sig(recovered)
+  }
+
+  /// Recover a full public key from threshold shares by interpolation.
+  ///
+  /// The G1 counterpart of [`Self::recover_sig_shares`] the same interpolation,
+  /// over the group public keys live in.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InsufficientShares` when fewer than two shares are given,
+  /// `CountMismatch` when `ids` and `pks` differ in length,
+  /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidPublicKey`
+  /// when a share fails to decode or the recovered point is the identity.
+  fn recover_pk_shares(ids: &[&BlsShareId], pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError> {
+    if pks.len() < 2 {
+      return Err(BlsError::InsufficientShares);
+    }
+    // ids and pks are paired; a length mismatch would desync interpolation
+    // and could index out of bounds in interpolate_g1.
+    if ids.len() != pks.len() {
+      return Err(BlsError::CountMismatch);
+    }
+
+    let reduced = reduce_share_ids(ids)?;
+    let points = pks
+      .iter()
+      .map(|pk| Self::pk_to_g1(pk))
+      .collect::<Result<Vec<_>, BlsError>>()?;
+
+    let recovered = interpolate_g1(&reduced, &points);
+    if recovered.is_inf() {
+      return Err(BlsError::InvalidPublicKey);
+    }
+    Self::g1_to_pk(recovered)
   }
 
   /// Derive a public key share from the master verification vector.
   ///
   /// # Errors
   ///
-  /// Returns `InvalidVerificationVector` when fewer than two keys are
-  /// given, `InvalidShareId` on a zero-reducing id, or `InvalidPublicKey`
+  /// Returns `InsufficientCoefficients` when fewer than two keys are
+  /// given, `ZeroScalar` on a zero-reducing id, or `InvalidPublicKey`
   /// when a coefficient or the result fails to decode.
   fn derive_pk_share(master_pks: &[&Self::InnerPk], id: &BlsShareId) -> Result<Self::InnerPk, BlsError> {
     // Evaluating the verification-vector polynomial needs >= 2 coefficients.
     if master_pks.len() < 2 {
-      return Err(BlsError::InvalidVerificationVector);
+      return Err(BlsError::InsufficientCoefficients);
     }
     let coeffs_g1 = master_pks
       .iter()
       .map(|pk| Self::pk_to_g1(pk))
       .collect::<Result<Vec<_>, BlsError>>()?;
 
-    let x = Fr::from_share_id(id)?;
+    let x = Fr::from_bendian_reduce(id.as_bytes())?;
     let result = eval_poly_g1(&coeffs_g1, &x);
 
     Self::g1_to_pk(result)
@@ -452,12 +561,12 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidVerificationVector` when fewer than two keys are given,
-  /// `InvalidShareId` on a zero-reducing id, or `InvalidSecretKey` when the
+  /// Returns `InsufficientCoefficients` when fewer than two keys are given,
+  /// `ZeroScalar` on a zero-reducing id, or `InvalidSecretKey` when the
   /// result is not a valid scalar.
   fn derive_sk_share(master_sks: &[&Self::InnerSk], id: &BlsShareId) -> Result<Self::InnerSk, BlsError> {
     if master_sks.len() < 2 {
-      return Err(BlsError::InvalidVerificationVector);
+      return Err(BlsError::InsufficientCoefficients);
     }
 
     let mut coeffs = Zeroizing::new(Vec::with_capacity(master_sks.len()));
@@ -468,7 +577,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
       scalar.b.zeroize();
     }
 
-    let x = Fr::from_share_id(id)?;
+    let x = Fr::from_bendian_reduce(id.as_bytes())?;
     let mut y = poly_eval(&coeffs, &x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
@@ -621,6 +730,26 @@ fn interpolate_g2(ids: &[Fr], points: &[G2]) -> G2 {
   result
 }
 
+/// Recover a G1 point from shares via Lagrange interpolation at x=0.
+///
+/// The G1 counterpart of [`interpolate_g2`], over the group public keys
+/// live in. Same coefficients, different group.
+fn interpolate_g1(ids: &[Fr], points: &[G1]) -> G1 {
+  let n = ids.len();
+
+  // Compute Lagrange coefficients at x=0:
+  //   L_i = prod_{j!=i} id_j / (id_j - id_i)
+  let coeffs = compute_lagrange_coeffs(ids);
+
+  let mut result = G1::identity();
+  for i in 0..n {
+    // Convert Fr coefficient to scalar for point multiplication.
+    let scalar = blst::blst_scalar::from(&coeffs[i]);
+    result += points[i].mul_scalar(&scalar.b, FR_BITS);
+  }
+  result
+}
+
 /// Lagrange coefficients at x=0 for the given evaluation points (ids).
 fn compute_lagrange_coeffs(ids: &[Fr]) -> Vec<Fr> {
   let n = ids.len();
@@ -665,6 +794,22 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
   result
 }
 
+/// Parse a tweak as a scalar below the group order.
+///
+/// [`Fr::from_bendian_reduce`] would fold an out-of-range tweak into the field
+/// behind the caller's back, so the canonical parse is used instead and a
+/// value at or above the order is refused.
+///
+/// # Errors
+///
+/// Returns `InvalidTweak` when `tweak` is not below the group order.
+fn tweak_scalar(tweak: &[u8; 32]) -> Result<Fr, BlsError> {
+  let mut lendian = *tweak;
+  lendian.reverse();
+
+  Fr::from_repr(lendian).into_option().ok_or(BlsError::InvalidTweak)
+}
+
 /// Reduce participant ids into the scalar field, rejecting ids that
 /// reduce to zero and duplicates after reduction.
 ///
@@ -674,7 +819,7 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
 fn reduce_share_ids(ids: &[&BlsShareId]) -> Result<Vec<Fr>, BlsError> {
   let fr_ids = ids
     .iter()
-    .map(|id| Fr::from_share_id(id))
+    .map(|id| Fr::from_bendian_reduce(id.as_bytes()))
     .collect::<Result<Vec<Fr>, BlsError>>()?;
   let mut reduced: Vec<[u8; 32]> = fr_ids.iter().map(|fr| *fr.to_lendian()).collect();
   reduced.sort_unstable();

@@ -70,7 +70,7 @@ fn iv_at_index(iv_seed: &[u8; IV_SEED_LEN], index: usize) -> Result<[u8; AES_BLO
 fn ephemeral<S: BlsScheme>(rng: &mut impl CryptoRng) -> Result<(BlsSecretKey<S>, [u8; IV_SEED_LEN]), BlsError> {
   let mut ikm = Zeroizing::new([0u8; 32]);
   rng.fill_bytes(ikm.as_mut());
-  let eph_sk = BlsSecretKey::<S>::generate(ikm.as_ref())?;
+  let eph_sk = BlsSecretKey::<S>::from_ikm(ikm.as_ref())?;
 
   let mut iv_seed = [0u8; IV_SEED_LEN];
   rng.fill_bytes(&mut iv_seed);
@@ -505,7 +505,7 @@ mod tests {
   }
 
   fn make_sk<S: BlsScheme>(seed: usize) -> BlsSecretKey<S> {
-    BlsSecretKey::generate(&RSEED[seed]).unwrap()
+    BlsSecretKey::from_ikm(&RSEED[seed]).unwrap()
   }
 
   /// The shared secret and the IV are the two inputs the ciphertext depends

@@ -73,7 +73,7 @@ pub const fn ietf_g1_encoding(mut chia: [u8; 48]) -> [u8; 48] {
 pub fn make_id(i: u32) -> BlsShareId {
   let mut bytes = [0u8; 32];
   bytes[28..32].copy_from_slice(&i.to_be_bytes());
-  BlsShareId::from_bendian(bytes)
+  BlsShareId::from_lendian(bytes)
 }
 
 /// Build `n` sequential participant ids `1..=n`.

@@ -456,7 +456,7 @@ mod tests {
 
       fn assert_codec_vectors<S: BlsScheme>(scheme: &str) {
         let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "bls_ies").scope(scheme);
-        let eph_pk = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap().public_key().to_bytes();
+        let eph_pk = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap().public_key().to_bytes();
 
         for v in corpus.vectors::<BlobVec>("blob") {
           let image = vec_from_hex(&v.image);

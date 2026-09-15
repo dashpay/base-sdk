@@ -20,9 +20,9 @@ impl<S: BlsScheme> BlsSignature<S> {
   /// # Errors
   ///
   /// Returns `InsufficientShares` if fewer than 2 shares are provided,
-  /// `InvalidShareId`/`DuplicateShareId` on bad ids, or `InvalidSignature`
+  /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidSignature`
   /// when a share fails to decode.
-  pub fn recover(shares: &[&BlsSigShare<S>]) -> Result<Self, BlsError> {
+  pub fn recover_shares(shares: &[&BlsSigShare<S>]) -> Result<Self, BlsError> {
     let ids: Vec<&BlsShareId> = shares.iter().map(|s| s.id()).collect();
     let sigs: Vec<&S::InnerSig> = shares.iter().map(|s| &s.signature().0).collect();
 
@@ -35,7 +35,7 @@ impl<S: BlsScheme> BlsSignature<S> {
 mod tests {
   use crate::bls::scheme_ops::BlsScheme;
   use crate::bls::tests::{make_id, sequential_ids, MSG_DEADBEEF, RSEED};
-  use crate::bls::{BlsError, BlsScChia, BlsScIetf, BlsSecretKey, BlsSigShare, BlsSignature, BlsSkShare};
+  use crate::bls::{BlsError, BlsScChia, BlsScIetf, BlsSecretKey, BlsShareId, BlsSigShare, BlsSignature, BlsSkShare};
   use crate::prelude::*;
 
   use dash_dev::{arr_from_hex, Corpus, Value};
@@ -45,7 +45,7 @@ mod tests {
   use rstest::rstest;
 
   fn assert_threshold_split_recover<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let pk = sk.public_key();
     let ids = sequential_ids(5);
 
@@ -58,14 +58,14 @@ mod tests {
     let msg = S::msg_ref(&MSG_DEADBEEF);
     let sig_shares: Vec<BlsSigShare<S>> = shares[..3].iter().map(|s| s.sign(msg)).collect();
     let refs: Vec<&BlsSigShare<S>> = sig_shares.iter().collect();
-    let recovered = BlsSignature::<S>::recover(&refs).unwrap();
-    assert!(recovered.verify(msg, &pk).is_ok());
+    let recovered = BlsSignature::<S>::recover_shares(&refs).unwrap();
+    assert!(pk.verify(msg, &recovered).is_ok());
     assert_eq!(recovered.to_bytes(), sk.sign(msg).to_bytes());
 
     // A different subset recovers the identical signature.
     let sig_shares2: Vec<BlsSigShare<S>> = shares[2..5].iter().map(|s| s.sign(msg)).collect();
     let refs2: Vec<&BlsSigShare<S>> = sig_shares2.iter().collect();
-    let recovered2 = BlsSignature::<S>::recover(&refs2).unwrap();
+    let recovered2 = BlsSignature::<S>::recover_shares(&refs2).unwrap();
     assert_eq!(recovered.to_bytes(), recovered2.to_bytes());
   }
 
@@ -79,17 +79,17 @@ mod tests {
   /// Interpolating fewer than `threshold` shares still yields a point, so the
   /// guard against a short quorum is that the result fails verification.
   fn assert_sub_threshold_does_not_verify<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let pk = sk.public_key();
     let shares = sk.split(3, &sequential_ids(5), &mut UnwrapErr(SysRng)).unwrap();
     let msg = S::msg_ref(&MSG_DEADBEEF);
     let signed: Vec<BlsSigShare<S>> = shares.iter().map(|s| s.sign(msg)).collect();
 
-    let below = BlsSignature::<S>::recover(&[&signed[0], &signed[1]]).unwrap();
-    assert!(below.verify(msg, &pk).is_err());
+    let below = BlsSignature::<S>::recover_shares(&[&signed[0], &signed[1]]).unwrap();
+    assert!(pk.verify(msg, &below).is_err());
 
-    let at = BlsSignature::<S>::recover(&[&signed[0], &signed[2], &signed[4]]).unwrap();
-    assert!(at.verify(msg, &pk).is_ok());
+    let at = BlsSignature::<S>::recover_shares(&[&signed[0], &signed[2], &signed[4]]).unwrap();
+    assert!(pk.verify(msg, &at).is_ok());
   }
 
   #[rstest]
@@ -101,16 +101,16 @@ mod tests {
 
   fn assert_insufficient_shares_rejected<S: BlsScheme>() {
     assert!(matches!(
-      BlsSignature::<S>::recover(&[]),
+      BlsSignature::<S>::recover_shares(&[]),
       Err(BlsError::InsufficientShares)
     ));
 
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let ids = sequential_ids(3);
     let shares = sk.split(2, &ids, &mut UnwrapErr(SysRng)).unwrap();
     let one = shares[0].sign(S::msg_ref(&MSG_DEADBEEF));
     assert!(matches!(
-      BlsSignature::<S>::recover(&[&one]),
+      BlsSignature::<S>::recover_shares(&[&one]),
       Err(BlsError::InsufficientShares)
     ));
   }
@@ -119,6 +119,26 @@ mod tests {
   #[case::chia(assert_insufficient_shares_rejected::<BlsScChia>)]
   #[case::ietf(assert_insufficient_shares_rejected::<BlsScIetf>)]
   fn recover_rejects_insufficient_shares(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// The two slices are paired, so a length mismatch is a fault of its own
+  /// rather than a short quorum.
+  fn assert_mismatched_id_count_rejected<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let ids = sequential_ids(3);
+    let shares = sk.split(2, &ids, &mut UnwrapErr(SysRng)).unwrap();
+    let signed: Vec<BlsSigShare<S>> = shares.iter().map(|s| s.sign(S::msg_ref(&MSG_DEADBEEF))).collect();
+
+    let id_refs: Vec<&BlsShareId> = ids.iter().collect();
+    let sig_refs: Vec<&S::InnerSig> = signed[..2].iter().map(|s| &s.signature().0).collect();
+    assert_eq!(S::recover_sig_shares(&id_refs, &sig_refs), Err(BlsError::CountMismatch));
+  }
+
+  #[rstest]
+  #[case::chia(assert_mismatched_id_count_rejected::<BlsScChia>)]
+  #[case::ietf(assert_mismatched_id_count_rejected::<BlsScIetf>)]
+  fn recover_rejects_mismatched_id_count(#[case] assertion: fn()) {
     assertion();
   }
 
@@ -168,7 +188,7 @@ mod tests {
         })
         .collect();
       let refs: Vec<&BlsSigShare<S>> = picked.iter().collect();
-      let recovered = BlsSignature::<S>::recover(&refs).unwrap();
+      let recovered = BlsSignature::<S>::recover_shares(&refs).unwrap();
 
       let expected = out["recovered_sig"].as_str().unwrap();
       assert_eq!(recovered.to_bytes().to_lower_hex_string(), expected);

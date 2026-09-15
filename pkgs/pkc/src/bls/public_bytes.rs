@@ -6,13 +6,12 @@
 
 //! BLS public key byte bag.
 
+use super::public_hash::BlsPkHash;
 use crate::bls::BlsSchemeId;
 
 use bitcoin_hashes::sha256d::Hash as Sha256d;
-use dash_num::Hash256;
 use dash_types::make_bytes;
 use dash_types::Hashable;
-use dash_types::Numeric;
 
 /// Raw BLS public key length (G1 compressed).
 pub const BLS_PK_LEN: usize = 48;
@@ -23,9 +22,9 @@ make_bytes! {
 }
 
 impl<S: BlsSchemeId> Hashable for BlsPkBytes<S> {
-  type Hash = Hash256;
+  type Hash = BlsPkHash<S>;
 
   fn hash(&self) -> Self::Hash {
-    Hash256::from_lendian(Sha256d::hash(self.as_bytes()).to_byte_array())
+    BlsPkHash::from_bytes(Sha256d::hash(self.as_bytes()).to_byte_array())
   }
 }

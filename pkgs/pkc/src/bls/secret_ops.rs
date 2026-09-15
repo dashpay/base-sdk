@@ -24,6 +24,7 @@ use dash_types::dlgt_scodec;
 #[cfg(feature = "codec")]
 use dash_types::type_id::TypeId;
 use dash_types::{qtypestr, type_cvrt};
+use rand_core::CryptoRng;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use core::fmt::{Debug, Formatter, Result as FmtResult};
@@ -40,10 +41,23 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   ///
   /// # Errors
   ///
-  /// Returns `InvalidKeyMaterial` or `InvalidSecretKey` when `ikm`
-  /// is shorter than 32 bytes.
-  pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
-    S::generate(ikm).map(Self)
+  /// Returns `InvalidKeyMaterial` when `ikm` is shorter than 32 bytes.
+  pub fn from_ikm(ikm: &[u8]) -> Result<Self, BlsError> {
+    S::sk_from_ikm(ikm).map(Self)
+  }
+
+  /// Generate a new random secret key.
+  ///
+  /// Draws the key material and hands it to [`from_ikm`](Self::from_ikm).
+  pub fn generate(rng: &mut impl CryptoRng) -> Self {
+    loop {
+      let mut ikm = Zeroizing::new([0u8; 32]);
+      rng.fill_bytes(&mut *ikm);
+
+      if let Ok(key) = Self::from_ikm(&*ikm) {
+        return key;
+      }
+    }
   }
 
   /// Parse from a 32-byte big-endian scalar.
@@ -73,9 +87,26 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     BlsSecretKey::<T>::from_bytes(&self.to_bytes())
   }
 
+  /// Add `tweak` to the secret scalar, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order, or when
+  /// the sum is zero. A zero sum means the tweak is this scalar's additive
+  /// inverse, so whoever chose the tweak already knows the key; the sum is
+  /// refused rather than returned as a key.
+  pub fn add_tweak(&self, tweak: &[u8; 32]) -> Result<Self, BlsError> {
+    S::add_tweak_sk(&self.0, tweak).map(Self::from_inner)
+  }
+
   /// Derive the corresponding public key.
   pub fn public_key(&self) -> BlsPublicKey<S> {
     BlsPublicKey(S::derive_pk(&self.0))
+  }
+
+  /// Whether `pubkey` is this key's public counterpart.
+  pub fn verify_pubkey(&self, pubkey: &BlsPublicKey<S>) -> bool {
+    self.public_key() == *pubkey
   }
 
   /// Sign a message of the scheme's message type.
@@ -160,8 +191,8 @@ type_cvrt!(for[S: BlsScheme] TryFrom<BlsSkBytes<S>> for BlsSecretKey<S>, BlsErro
   Self::from_bytes(bytes.as_bytes())
 });
 
-type_cvrt!(for[S: BlsScheme] From<BlsSecretKey<S>> for Zeroizing<Fr>, |sk| {
-  Zeroizing::new(Fr::from_bendian_reduce(&sk.to_bytes()))
+type_cvrt!(for[S: BlsScheme] TryFrom<BlsSecretKey<S>> for Zeroizing<Fr>, BlsError, |sk| {
+  Fr::from_bendian_reduce(&sk.to_bytes()).map(Zeroizing::new)
 });
 
 type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar| {
@@ -172,13 +203,93 @@ type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar|
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::RSEED;
-  use crate::bls::{BlsScChia, BlsScIetf};
+  use crate::bls::tests::{GROUP_ORDER, RSEED};
+  use crate::bls::{BlsError, BlsScChia, BlsScIetf};
 
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use rstest::rstest;
   use serde::Deserialize;
+
+  /// `(a + t)G` has to equal `aG + tG`, or the same tweak applied to the two
+  /// halves of a key pair would part them.
+  fn assert_tweaking_agrees_on_both_sides<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let tweak = *BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap().to_bytes();
+
+    let tweaked_sk = sk.add_tweak(&tweak).unwrap();
+    let tweaked_pk = sk.public_key().add_tweak(&tweak).unwrap();
+
+    assert_eq!(tweaked_sk.public_key(), tweaked_pk);
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweaking_agrees_on_both_sides::<BlsScChia>)]
+  #[case::ietf(assert_tweaking_agrees_on_both_sides::<BlsScIetf>)]
+  fn tweaking_agrees_on_both_sides(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_at_or_above_the_order_refused<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+
+    assert_eq!(sk.add_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.add_tweak(&[0xff; 32]), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.public_key().add_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.public_key().mul_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_at_or_above_the_order_refused::<BlsScChia>)]
+  #[case::ietf(assert_tweak_at_or_above_the_order_refused::<BlsScIetf>)]
+  fn a_tweak_at_or_above_the_order_is_refused(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// `order - a`, so `a + t == 0`. Whoever picks the tweak can compute it
+  /// from `aG` alone, so the sum has to be refused rather than handed back.
+  fn assert_tweak_summing_to_zero_refused<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let scalar = *sk.to_bytes();
+    let mut tweak = GROUP_ORDER;
+    let mut borrow = 0i16;
+
+    for i in (0..32).rev() {
+      let diff = i16::from(tweak[i]) - i16::from(scalar[i]) - borrow;
+      borrow = i16::from(diff < 0);
+      tweak[i] = diff.rem_euclid(256) as u8;
+    }
+
+    assert_eq!(sk.add_tweak(&tweak), Err(BlsError::InvalidTweak));
+    // The point at infinity is no key either.
+    assert_eq!(sk.public_key().add_tweak(&tweak), Err(BlsError::InvalidTweak));
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_summing_to_zero_refused::<BlsScChia>)]
+  #[case::ietf(assert_tweak_summing_to_zero_refused::<BlsScIetf>)]
+  fn a_tweak_summing_to_zero_is_refused(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// `t(aG) == a(tG)`, so multiplying a point commutes with multiplying the
+  /// scalar that made it.
+  fn assert_point_product_matches_scalar_product<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let factor_sk = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
+
+    let product = sk.public_key().mul_tweak(&factor_sk.to_bytes()).unwrap();
+    let expected = factor_sk.public_key().mul_tweak(&sk.to_bytes()).unwrap();
+
+    assert_eq!(product, expected);
+  }
+
+  #[rstest]
+  #[case::chia(assert_point_product_matches_scalar_product::<BlsScChia>)]
+  #[case::ietf(assert_point_product_matches_scalar_product::<BlsScIetf>)]
+  fn multiplying_a_point_matches_multiplying_the_scalar(#[case] assertion: fn()) {
+    assertion();
+  }
 
   #[derive(Deserialize)]
   struct KeygenVec {
@@ -195,7 +306,7 @@ mod tests {
   /// A retag moves no scalar, so the bytes survive and the derived public key
   /// is the converted one rather than a different key.
   fn assert_scheme_retag_keeps_the_scalar<S: BlsScheme, T: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let there = sk.to_scheme::<T>().unwrap();
 
     assert_eq!(*there.to_bytes(), *sk.to_bytes());
@@ -211,7 +322,7 @@ mod tests {
   }
 
   fn assert_roundtrip<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let bytes = sk.to_bytes();
     let decoded = BlsSecretKey::<S>::from_bytes(&bytes).unwrap();
     assert_eq!(decoded.to_bytes(), bytes);
@@ -243,7 +354,7 @@ mod tests {
   /// Key generation follows the KeyGen of draft-irtf-cfrg-bls-signature-03
   /// for both schemes; another variant would change these bytes.
   fn assert_keygen_draft03<S: BlsScheme>(ikm: &[u8], expected: &str) {
-    let sk = BlsSecretKey::<S>::generate(ikm).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(ikm).unwrap();
     assert_eq!(sk.to_bytes().to_lower_hex_string(), expected);
   }
 
@@ -258,7 +369,10 @@ mod tests {
 
   /// The keygen variant requires at least 32 bytes of input key material.
   fn assert_short_ikm_rejected<S: BlsScheme>() {
-    assert!(BlsSecretKey::<S>::generate(&[0u8; 31]).is_err());
+    assert_eq!(
+      BlsSecretKey::<S>::from_ikm(&[0u8; 31]).map(|_| ()),
+      Err(BlsError::InvalidKeyMaterial)
+    );
   }
 
   #[rstest]
@@ -272,7 +386,7 @@ mod tests {
   /// scheme mix-up cannot go unnoticed.
   #[rstest]
   fn public_key_formats_differ() {
-    let chia = BlsSecretKey::<BlsScChia>::generate(&RSEED[0]).unwrap();
+    let chia = BlsSecretKey::<BlsScChia>::from_ikm(&RSEED[0]).unwrap();
     let ietf = BlsSecretKey::<BlsScIetf>::from_bytes(&chia.to_bytes()).unwrap();
     assert_ne!(chia.public_key().to_bytes(), ietf.public_key().to_bytes());
   }
@@ -281,7 +395,7 @@ mod tests {
   fn assert_codec_roundtrip<S: BlsScheme>() {
     use dash_types::codec::BaseCodec;
 
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let mut buf = Vec::new();
     sk.encode(&mut buf);
     assert_eq!(buf.len(), 32);
