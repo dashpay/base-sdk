@@ -32,28 +32,14 @@ pub enum EcdsaError {
 impl fmt::Display for EcdsaError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Self::InvalidPublicKey => {
-        write!(f, "public key bytes are not a valid curve point")
-      }
-      Self::InvalidRecoveryId => {
-        write!(f, "recovery id out of range (must be 0..4)")
-      }
-      Self::InvalidSecretKey => {
-        write!(f, "secret key bytes are not a valid scalar")
-      }
-      Self::InvalidSignature => {
-        write!(f, "signature bytes are malformed")
-      }
-      Self::MalformedDer => {
-        write!(f, "DER-encoded private key has invalid structure")
-      }
-      Self::RecoveryFailed => {
-        write!(f, "recovery failed; no valid public key")
-      }
+      Self::InvalidPublicKey => write!(f, "public key bytes are not a valid curve point"),
+      Self::InvalidRecoveryId => write!(f, "recovery id out of range (must be 0..4)"),
+      Self::InvalidSecretKey => write!(f, "secret key bytes are not a valid scalar"),
+      Self::InvalidSignature => write!(f, "signature bytes are malformed"),
+      Self::MalformedDer => write!(f, "DER-encoded private key has invalid structure"),
+      Self::RecoveryFailed => write!(f, "recovery failed; no valid public key"),
       Self::SigningFailed => write!(f, "signing failed"),
-      Self::VerifyFailed => {
-        write!(f, "signature verification failed")
-      }
+      Self::VerifyFailed => write!(f, "signature verification failed"),
     }
   }
 }
