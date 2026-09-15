@@ -29,7 +29,7 @@ impl BlsScheme for BlsScIetf {
   type Msg = [u8];
 
   /// Derive via draft-03 keygen.
-  fn generate(ikm: &[u8]) -> Result<Self::InnerSk, BlsError> {
+  fn sk_from_ikm(ikm: &[u8]) -> Result<Self::InnerSk, BlsError> {
     SecretKey::key_gen_v3(ikm, &[]).map_err(|_| BlsError::InvalidKeyMaterial)
   }
 
@@ -281,8 +281,8 @@ mod tests {
 
   #[test]
   fn signing_verifies_and_rejects_mismatches() {
-    let sk0 = BlsScIetf::generate(&RSEED[0]).unwrap();
-    let sk1 = BlsScIetf::generate(&RSEED[1]).unwrap();
+    let sk0 = BlsScIetf::sk_from_ikm(&RSEED[0]).unwrap();
+    let sk1 = BlsScIetf::sk_from_ikm(&RSEED[1]).unwrap();
     let pk0 = BlsScIetf::derive_pk(&sk0);
     let pk1 = BlsScIetf::derive_pk(&sk1);
     let sig = BlsScIetf::sign(&sk0, &MSG_DEADBEEF);

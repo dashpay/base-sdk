@@ -195,8 +195,8 @@ mod tests {
   }
 
   fn assert_dh_roundtrip<S: BlsScheme>() {
-    let sk_a = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
-    let sk_b = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
+    let sk_a = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let sk_b = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
 
     let shared_ab = sk_a.dh_exchange(&sk_b.public_key()).unwrap();
     let shared_ba = sk_b.dh_exchange(&sk_a.public_key()).unwrap();
@@ -213,7 +213,7 @@ mod tests {
   /// In the Chia scheme, DH weighs whatever the decoder passed, which leaks
   /// the scalar mod the cofactor's small factors. IETF rejects this.
   fn assert_off_subgroup_peer_policy<S: BlsScheme>(encoded: &[u8; 48], reaches_dh: bool) {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
 
     match BlsPublicKey::<S>::from_bytes(encoded) {
       Ok(peer) => {
@@ -239,7 +239,7 @@ mod tests {
   /// Conversion re-encodes one point, so a round trip returns the original and
   /// the same-scheme case is a copy.
   fn assert_scheme_conversion_round_trips<S: BlsScheme, T: BlsScheme>() {
-    let pk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap().public_key();
+    let pk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap().public_key();
     let there = pk.to_scheme::<T>().unwrap();
 
     assert_eq!(there.to_scheme::<S>().unwrap().to_bytes(), pk.to_bytes());
@@ -282,7 +282,7 @@ mod tests {
   }
 
   fn assert_pk_roundtrip<S: BlsScheme>() {
-    let pk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap().public_key();
+    let pk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap().public_key();
     let bytes = pk.to_bytes();
     assert_eq!(BlsPublicKey::<S>::from_bytes(&bytes).unwrap().to_bytes(), bytes);
   }
@@ -366,7 +366,7 @@ mod tests {
   /// round-trips back to its canonical form.
   #[rstest]
   fn chia_masks_stray_public_key_bits() {
-    let clean = BlsSecretKey::<BlsScChia>::generate(&RSEED[0])
+    let clean = BlsSecretKey::<BlsScChia>::from_ikm(&RSEED[0])
       .unwrap()
       .public_key()
       .to_bytes();
@@ -477,7 +477,7 @@ mod tests {
   fn assert_secure_aggregate_follows_the_set<S: BlsScheme>() {
     let pks: Vec<BlsPublicKey<S>> = [&RSEED[0], &RSEED[1], &RSEED[2]]
       .iter()
-      .map(|ikm| BlsSecretKey::<S>::generate(*ikm).unwrap().public_key())
+      .map(|ikm| BlsSecretKey::<S>::from_ikm(*ikm).unwrap().public_key())
       .collect();
 
     let straight = BlsPublicKey::<S>::secure_aggregate(&[&pks[0], &pks[1], &pks[2]]).unwrap();
@@ -499,7 +499,7 @@ mod tests {
   /// key; nothing is left to weight for an empty set, which is refused as it
   /// is elsewhere.
   fn assert_secure_aggregate_edges<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let pk = sk.public_key();
 
     let alone = BlsPublicKey::<S>::secure_aggregate(&[&pk]).unwrap();

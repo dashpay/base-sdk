@@ -54,7 +54,7 @@ pub trait BlsScheme: BlsSchemeId + Sized {
   ///
   /// Returns `InvalidKeyMaterial` when `ikm` is too short, or
   /// `InvalidSecretKey` when the derived scalar is invalid.
-  fn generate(ikm: &[u8]) -> Result<Self::InnerSk, BlsError>;
+  fn sk_from_ikm(ikm: &[u8]) -> Result<Self::InnerSk, BlsError>;
 
   /// Parse a secret key from a 32-byte big-endian scalar.
   ///

@@ -41,8 +41,8 @@ impl<S: BlsScheme> BlsSecretKey<S> {
   /// # Errors
   ///
   /// Returns `InvalidKeyMaterial` when `ikm` is shorter than 32 bytes.
-  pub fn generate(ikm: &[u8]) -> Result<Self, BlsError> {
-    S::generate(ikm).map(Self)
+  pub fn from_ikm(ikm: &[u8]) -> Result<Self, BlsError> {
+    S::sk_from_ikm(ikm).map(Self)
   }
 
   /// Parse from a 32-byte big-endian scalar.
@@ -194,7 +194,7 @@ mod tests {
   /// A retag moves no scalar, so the bytes survive and the derived public key
   /// is the converted one rather than a different key.
   fn assert_scheme_retag_keeps_the_scalar<S: BlsScheme, T: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let there = sk.to_scheme::<T>().unwrap();
 
     assert_eq!(*there.to_bytes(), *sk.to_bytes());
@@ -210,7 +210,7 @@ mod tests {
   }
 
   fn assert_roundtrip<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let bytes = sk.to_bytes();
     let decoded = BlsSecretKey::<S>::from_bytes(&bytes).unwrap();
     assert_eq!(decoded.to_bytes(), bytes);
@@ -242,7 +242,7 @@ mod tests {
   /// Key generation follows the KeyGen of draft-irtf-cfrg-bls-signature-03
   /// for both schemes; another variant would change these bytes.
   fn assert_keygen_draft03<S: BlsScheme>(ikm: &[u8], expected: &str) {
-    let sk = BlsSecretKey::<S>::generate(ikm).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(ikm).unwrap();
     assert_eq!(sk.to_bytes().to_lower_hex_string(), expected);
   }
 
@@ -258,7 +258,7 @@ mod tests {
   /// The keygen variant requires at least 32 bytes of input key material.
   fn assert_short_ikm_rejected<S: BlsScheme>() {
     assert_eq!(
-      BlsSecretKey::<S>::generate(&[0u8; 31]).map(|_| ()),
+      BlsSecretKey::<S>::from_ikm(&[0u8; 31]).map(|_| ()),
       Err(BlsError::InvalidKeyMaterial)
     );
   }
@@ -274,7 +274,7 @@ mod tests {
   /// scheme mix-up cannot go unnoticed.
   #[rstest]
   fn public_key_formats_differ() {
-    let chia = BlsSecretKey::<BlsScChia>::generate(&RSEED[0]).unwrap();
+    let chia = BlsSecretKey::<BlsScChia>::from_ikm(&RSEED[0]).unwrap();
     let ietf = BlsSecretKey::<BlsScIetf>::from_bytes(&chia.to_bytes()).unwrap();
     assert_ne!(chia.public_key().to_bytes(), ietf.public_key().to_bytes());
   }
@@ -283,7 +283,7 @@ mod tests {
   fn assert_codec_roundtrip<S: BlsScheme>() {
     use dash_types::codec::BaseCodec;
 
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let mut buf = Vec::new();
     sk.encode(&mut buf);
     assert_eq!(buf.len(), 32);

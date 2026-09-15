@@ -31,7 +31,7 @@ impl BlsScheme for BlsScChia {
   type Msg = [u8; 32];
 
   /// Derive via draft-03 keygen, then range-check the scalar.
-  fn generate(ikm: &[u8]) -> Result<Self::InnerSk, BlsError> {
+  fn sk_from_ikm(ikm: &[u8]) -> Result<Self::InnerSk, BlsError> {
     let sk = min_pk::SecretKey::key_gen_v3(ikm, &[]).map_err(|_| BlsError::InvalidKeyMaterial)?;
     let mut bytes = sk.to_bytes();
     let res = Self::sk_from_bytes(&bytes);
@@ -343,8 +343,8 @@ mod tests {
 
   #[test]
   fn signing_verifies_and_rejects_mismatches() {
-    let sk0 = BlsScChia::generate(&RSEED[0]).unwrap();
-    let sk1 = BlsScChia::generate(&RSEED[1]).unwrap();
+    let sk0 = BlsScChia::sk_from_ikm(&RSEED[0]).unwrap();
+    let sk1 = BlsScChia::sk_from_ikm(&RSEED[1]).unwrap();
     let pk0 = BlsScChia::derive_pk(&sk0);
     let pk1 = BlsScChia::derive_pk(&sk1);
     let sig = BlsScChia::sign(&sk0, &MSG_DEADBEEF);
@@ -357,7 +357,7 @@ mod tests {
 
   #[test]
   fn secure_verify_rejects_infinity_input_key() {
-    let sk = BlsScChia::generate(&RSEED[0]).unwrap();
+    let sk = BlsScChia::sk_from_ikm(&RSEED[0]).unwrap();
     let real_pk = BlsScChia::derive_pk(&sk);
     let inf_pk = G1::identity().to_affine();
     // The identity key serializes to the infinity marker (bits 6-7 set).

@@ -209,7 +209,7 @@ mod tests {
   /// below 2 is rejected; one above the participant count yields a quorum that
   /// can never sign.
   fn assert_invalid_thresholds_rejected<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let ids = sequential_ids(5);
     for threshold in [0, 1, ids.len() + 1] {
       assert!(matches!(
@@ -233,7 +233,7 @@ mod tests {
   /// An id congruent to zero mod `r` would make the share equal the master key,
   /// so both the zero hash and the group order are rejected.
   fn assert_zero_reducing_id_rejected<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
 
     let zero = BlsShareId::from_bendian([0u8; 32]);
     let ids = [make_id(1), zero];
@@ -260,7 +260,7 @@ mod tests {
   /// Two ids congruent mod `r` collide during interpolation, and a raw-byte
   /// duplicate check would miss `1` and `r + 1`.
   fn assert_congruent_ids_rejected<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let ids = [make_id(1), group_order_plus_one()];
     assert!(matches!(
       sk.split(2, &ids, &mut UnwrapErr(SysRng)),
@@ -281,7 +281,7 @@ mod tests {
   fn assert_sk_share_matches_pk_share<S: BlsScheme>() {
     let master: Vec<BlsSecretKey<S>> = [&RSEED[0], &RSEED[1], &RSEED[2]]
       .iter()
-      .map(|ikm| BlsSecretKey::<S>::generate(*ikm).unwrap())
+      .map(|ikm| BlsSecretKey::<S>::from_ikm(*ikm).unwrap())
       .collect();
     let master_refs: Vec<&BlsSecretKey<S>> = master.iter().collect();
     let vvec: Vec<BlsPublicKey<S>> = master.iter().map(BlsSecretKey::public_key).collect();
@@ -314,7 +314,7 @@ mod tests {
   /// Evaluating the verification-vector polynomial needs at least two
   /// coefficients, so a single master key is rejected.
   fn assert_derive_share_rejects_short_vv<S: BlsScheme>() {
-    let pk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap().public_key();
+    let pk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap().public_key();
     assert!(matches!(
       BlsPublicKey::<S>::derive_share(&[&pk], &make_id(1)),
       Err(BlsError::InsufficientCoefficients)
@@ -682,8 +682,8 @@ mod tests {
   /// quietly dropping a field. Shares agreeing on id and signature compare and
   /// hash alike; changing either separates them.
   fn assert_share_eq_and_hash<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
-    let other_sk = BlsSecretKey::<S>::generate(&RSEED[1]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let other_sk = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
     let msg = S::msg_ref(&MSG_DEADBEEF);
 
     let share = BlsSkShare::new(make_id(1), sk.clone()).sign(msg);
@@ -716,7 +716,7 @@ mod tests {
       use dash_dev::assert_json_rt;
 
       fn assert_share_serde_roundtrip<S: BlsScheme>() {
-        let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+        let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
         assert_json_rt(&BlsSkShare::new(make_id(1), sk).sign(S::msg_ref(&MSG_DEADBEEF)));
       }
 

@@ -15,7 +15,7 @@ use rand_core::UnwrapErr;
 /// Single signature creation.
 #[divan::bench(types = [BlsScChia, BlsScIetf])]
 fn sign<S: BlsScheme>(bencher: Bencher) {
-  let sk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap();
+  let sk = BlsSecretKey::<S>::from_ikm(&test_ikm(1)).unwrap();
   bencher
     .counter(ItemsCount::new(1u32))
     .bench(|| sk.sign(S::msg_ref(&test_msg(42))));
@@ -24,7 +24,7 @@ fn sign<S: BlsScheme>(bencher: Bencher) {
 /// Single signature verification.
 #[divan::bench(types = [BlsScChia, BlsScIetf])]
 fn verify<S: BlsScheme>(bencher: Bencher) {
-  let sk = BlsSecretKey::<S>::generate(&test_ikm(2)).unwrap();
+  let sk = BlsSecretKey::<S>::from_ikm(&test_ikm(2)).unwrap();
   let msg = test_msg(99);
   let sig = sk.sign(S::msg_ref(&msg));
   let pk = sk.public_key();
@@ -37,7 +37,7 @@ fn verify<S: BlsScheme>(bencher: Bencher) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 5, 25, 50, 100])]
 fn aggregate_pk_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let pks: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap().public_key())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap().public_key())
     .collect();
   let pk_refs: Vec<_> = pks.iter().collect();
   bencher
@@ -49,7 +49,7 @@ fn aggregate_pk_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 10, 100])]
 fn aggregate_sig_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap())
     .collect();
   let sigs: Vec<_> = keys
     .iter()
@@ -66,7 +66,7 @@ fn aggregate_sig_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [100, 1000])]
 fn verify_n_individual<S: BlsScheme>(bencher: Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap())
     .collect();
   let msgs: Vec<[u8; 32]> = (0..n).map(test_msg).collect();
   let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
@@ -87,7 +87,7 @@ fn verify_n_individual<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [10, 100, 1000])]
 fn fast_verify_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap())
     .collect();
   let msg = test_msg(42);
   let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
@@ -104,14 +104,14 @@ fn fast_verify_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 /// Public key serialization.
 #[divan::bench(types = [BlsScChia, BlsScIetf])]
 fn ser_pk<S: BlsScheme>(bencher: Bencher) {
-  let pk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap().public_key();
+  let pk = BlsSecretKey::<S>::from_ikm(&test_ikm(1)).unwrap().public_key();
   bencher.bench(|| pk.to_bytes());
 }
 
 /// Public key deserialization.
 #[divan::bench(types = [BlsScChia, BlsScIetf])]
 fn deser_pk<S: BlsScheme>(bencher: Bencher) {
-  let bytes = BlsSecretKey::<S>::generate(&test_ikm(1))
+  let bytes = BlsSecretKey::<S>::from_ikm(&test_ikm(1))
     .unwrap()
     .public_key()
     .to_bytes();
@@ -121,7 +121,7 @@ fn deser_pk<S: BlsScheme>(bencher: Bencher) {
 /// Signature serialization.
 #[divan::bench(types = [BlsScChia, BlsScIetf])]
 fn ser_sig<S: BlsScheme>(bencher: Bencher) {
-  let sig = BlsSecretKey::<S>::generate(&test_ikm(1))
+  let sig = BlsSecretKey::<S>::from_ikm(&test_ikm(1))
     .unwrap()
     .sign(S::msg_ref(&test_msg(0)));
   bencher.bench(|| sig.to_bytes());
@@ -130,7 +130,7 @@ fn ser_sig<S: BlsScheme>(bencher: Bencher) {
 /// Signature deserialization.
 #[divan::bench(types = [BlsScChia, BlsScIetf])]
 fn deser_sig<S: BlsScheme>(bencher: Bencher) {
-  let bytes = BlsSecretKey::<S>::generate(&test_ikm(1))
+  let bytes = BlsSecretKey::<S>::from_ikm(&test_ikm(1))
     .unwrap()
     .sign(S::msg_ref(&test_msg(0)))
     .to_bytes();
@@ -140,7 +140,7 @@ fn deser_sig<S: BlsScheme>(bencher: Bencher) {
 /// Threshold secret key splitting at various quorum sizes.
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [5, 10, 50])]
 fn split_threshold<S: BlsScheme>(bencher: Bencher, n: usize) {
-  let sk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap();
+  let sk = BlsSecretKey::<S>::from_ikm(&test_ikm(1)).unwrap();
   let threshold = n.div_ceil(2);
   let ids = sequential_ids(n);
   bencher
@@ -151,7 +151,7 @@ fn split_threshold<S: BlsScheme>(bencher: Bencher, n: usize) {
 /// Threshold signature recovery via Lagrange interpolation.
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [3, 5, 10])]
 fn recover_threshold<S: BlsScheme>(bencher: Bencher, threshold: usize) {
-  let sk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap();
+  let sk = BlsSecretKey::<S>::from_ikm(&test_ikm(1)).unwrap();
   let ids = sequential_ids(threshold * 2);
   let shares = sk.split(threshold, &ids, &mut UnwrapErr(SysRng)).unwrap();
   let msg = test_msg(42);
@@ -169,7 +169,7 @@ where
   S::Msg: Sync,
 {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap())
     .collect();
   let msgs: Vec<[u8; 32]> = (0..n).map(test_msg).collect();
   let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
@@ -193,7 +193,7 @@ where
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 10, 100])]
 fn secure_aggregate_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let keys: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap())
     .collect();
   let msg = test_msg(42);
   let pks: Vec<_> = keys.iter().map(BlsSecretKey::public_key).collect();
@@ -211,7 +211,7 @@ fn secure_aggregate_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 5, 10])]
 fn derive_share_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let master: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap())
     .collect();
   let master_refs: Vec<&BlsSecretKey<S>> = master.iter().collect();
   let id = sequential_ids(1)[0];
@@ -224,7 +224,7 @@ fn derive_share_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 /// Sealing one blob to one recipient, over a plaintext of `n` blocks.
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [1, 2, 16])]
 fn ies_encrypt_n<S: BlsScheme>(bencher: Bencher, n: usize) {
-  let pk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap().public_key();
+  let pk = BlsSecretKey::<S>::from_ikm(&test_ikm(1)).unwrap().public_key();
   let plaintext = vec![0x42u8; n * 16];
   let mut rng = UnwrapErr(SysRng);
 
@@ -236,7 +236,7 @@ fn ies_encrypt_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 /// Opening one blob, paying for a DH exchange.
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [1, 2, 16])]
 fn ies_decrypt_n<S: BlsScheme>(bencher: Bencher, n: usize) {
-  let sk = BlsSecretKey::<S>::generate(&test_ikm(1)).unwrap();
+  let sk = BlsSecretKey::<S>::from_ikm(&test_ikm(1)).unwrap();
   let plaintext = vec![0x42u8; n * 16];
   let blob = sk.public_key().ies_encrypt(&plaintext, &mut UnwrapErr(SysRng)).unwrap();
 
@@ -247,7 +247,7 @@ fn ies_decrypt_n<S: BlsScheme>(bencher: Bencher, n: usize) {
 #[divan::bench(types = [BlsScChia, BlsScIetf], args = [2, 10, 100])]
 fn ies_encrypt_multi_n<S: BlsScheme>(bencher: Bencher, n: usize) {
   let pks: Vec<_> = (0..n)
-    .map(|i| BlsSecretKey::<S>::generate(&test_ikm(i)).unwrap().public_key())
+    .map(|i| BlsSecretKey::<S>::from_ikm(&test_ikm(i)).unwrap().public_key())
     .collect();
   let pk_refs: Vec<&BlsPublicKey<S>> = pks.iter().collect();
   let plaintexts = vec![[0x42u8; 32]; n];
@@ -266,14 +266,14 @@ mod ietf {
   /// Proof of possession creation.
   #[divan::bench]
   fn prove_pop(bencher: Bencher) {
-    let sk = BlsSecretKey::<BlsScIetf>::generate(&test_ikm(1)).unwrap();
+    let sk = BlsSecretKey::<BlsScIetf>::from_ikm(&test_ikm(1)).unwrap();
     bencher.bench(|| sk.prove_possession());
   }
 
   /// Proof of possession verification.
   #[divan::bench]
   fn verify_pop(bencher: Bencher) {
-    let sk = BlsSecretKey::<BlsScIetf>::generate(&test_ikm(1)).unwrap();
+    let sk = BlsSecretKey::<BlsScIetf>::from_ikm(&test_ikm(1)).unwrap();
     let pop = sk.prove_possession();
     let pk = sk.public_key();
     bencher.bench(|| pk.verify_possession(&pop));

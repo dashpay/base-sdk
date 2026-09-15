@@ -471,7 +471,7 @@ mod tests {
   fn assert_share_id_matches_the_engine<S: BlsScheme>() {
     let master: Vec<BlsSecretKey<S>> = RSEED[..3]
       .iter()
-      .map(|ikm| BlsSecretKey::<S>::generate(ikm).unwrap())
+      .map(|ikm| BlsSecretKey::<S>::from_ikm(ikm).unwrap())
       .collect();
     let refs: Vec<&BlsSecretKey<S>> = master.iter().collect();
     let coeffs: Vec<Fr> = master.iter().map(scalar_of).collect();

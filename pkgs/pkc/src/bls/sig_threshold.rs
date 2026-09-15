@@ -45,7 +45,7 @@ mod tests {
   use rstest::rstest;
 
   fn assert_threshold_split_recover<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let pk = sk.public_key();
     let ids = sequential_ids(5);
 
@@ -79,7 +79,7 @@ mod tests {
   /// Interpolating fewer than `threshold` shares still yields a point, so the
   /// guard against a short quorum is that the result fails verification.
   fn assert_sub_threshold_does_not_verify<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let pk = sk.public_key();
     let shares = sk.split(3, &sequential_ids(5), &mut UnwrapErr(SysRng)).unwrap();
     let msg = S::msg_ref(&MSG_DEADBEEF);
@@ -105,7 +105,7 @@ mod tests {
       Err(BlsError::InsufficientShares)
     ));
 
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let ids = sequential_ids(3);
     let shares = sk.split(2, &ids, &mut UnwrapErr(SysRng)).unwrap();
     let one = shares[0].sign(S::msg_ref(&MSG_DEADBEEF));
@@ -125,7 +125,7 @@ mod tests {
   /// The two slices are paired, so a length mismatch is a fault of its own
   /// rather than a short quorum.
   fn assert_mismatched_id_count_rejected<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let ids = sequential_ids(3);
     let shares = sk.split(2, &ids, &mut UnwrapErr(SysRng)).unwrap();
     let signed: Vec<BlsSigShare<S>> = shares.iter().map(|s| s.sign(S::msg_ref(&MSG_DEADBEEF))).collect();

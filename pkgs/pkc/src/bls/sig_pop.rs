@@ -46,15 +46,15 @@ mod tests {
 
   #[rstest]
   fn ietf_proof_of_possession_roundtrip() {
-    let sk = BlsSecretKey::<BlsScIetf>::generate(&RSEED[0]).unwrap();
+    let sk = BlsSecretKey::<BlsScIetf>::from_ikm(&RSEED[0]).unwrap();
     let proof = sk.prove_possession();
     assert!(sk.public_key().verify_possession(&proof).is_ok());
   }
 
   #[rstest]
   fn ietf_proof_of_possession_rejects_wrong_key() {
-    let sk0 = BlsSecretKey::<BlsScIetf>::generate(&RSEED[0]).unwrap();
-    let sk1 = BlsSecretKey::<BlsScIetf>::generate(&RSEED[1]).unwrap();
+    let sk0 = BlsSecretKey::<BlsScIetf>::from_ikm(&RSEED[0]).unwrap();
+    let sk1 = BlsSecretKey::<BlsScIetf>::from_ikm(&RSEED[1]).unwrap();
     let proof = sk0.prove_possession();
     assert!(sk1.public_key().verify_possession(&proof).is_err());
   }
