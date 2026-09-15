@@ -27,7 +27,7 @@ use dash_types::{impl_stype, type_id::TypeId, ArrayBuf};
 #[cfg(feature = "codec")]
 use dash_types::{Hashable, Numeric};
 use rand_core::CryptoRng;
-use secp256k1::ecdsa::RecoverableSignature;
+use secp256k1::ecdsa::{sign_low_r, RecoverableSignature};
 use secp256k1::{Message, PublicKey, Scalar, SecretKey};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -263,9 +263,12 @@ impl EcdsaSecretKey {
   }
 
   /// Produce an ECDSA signature over a 32-byte prehashed message (RFC 6979,
-  /// low-S normalised).
+  /// low-S normalised, low-R ground).
+  ///
+  /// [`sign_recoverable`](Self::sign_recoverable) is not ground; its form is
+  /// a fixed 64 bytes, with no prefix to save.
   pub fn sign(&self, msg_hash: &[u8; 32]) -> EcdsaSignature {
-    EcdsaSignature::from_inner(self.inner.sign_ecdsa(Message::from_digest(*msg_hash)))
+    EcdsaSignature::from_inner(sign_low_r(Message::from_digest(*msg_hash), &self.inner))
   }
 
   /// Sign and return a recoverable signature (RFC 6979, low-S normalised).
@@ -575,6 +578,21 @@ mod tests {
     let sig1 = alice_sk.sign(&MSG);
     let sig2 = alice_sk.sign(&MSG);
     assert_eq!(sig1, sig2);
+  }
+
+  #[rstest]
+  fn sign_grinds_r_low(alice_sk: EcdsaSecretKey) {
+    // R lands low half the time on its own, so one signature proves nothing.
+    for i in 0..20 {
+      let sig = alice_sk.sign(&message_hash(i));
+
+      assert!(sig.to_bytes()[0] < 0x80, "R is not low for message {i}");
+      assert!(
+        sig.to_der().len() <= 71,
+        "DER is {} bytes for message {i}",
+        sig.to_der().len()
+      );
+    }
   }
 
   #[rstest]
