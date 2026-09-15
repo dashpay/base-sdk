@@ -3,4 +3,4 @@
 
 # dash-types-marker
 
-This crate supplies procedural macros to the `dash-types` crate.
+This crate supplies procedural macros to the [`dash-types`](https://crates.io/crates/dash-types) crate.
