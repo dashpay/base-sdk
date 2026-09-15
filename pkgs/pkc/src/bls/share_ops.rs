@@ -253,6 +253,7 @@ impl<S: BlsScheme> BlsPublicKey<S> {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
+  use crate::bls::scalar::Fr;
   use crate::bls::tests::{make_id, sequential_ids, GROUP_ORDER, MSG_DEADBEEF, RSEED};
   use crate::bls::{BlsScChia, BlsScIetf};
 
@@ -438,6 +439,67 @@ mod tests {
   #[case::chia(assert_pk_shares_recover_master::<BlsScChia>)]
   #[case::ietf(assert_pk_shares_recover_master::<BlsScIetf>)]
   fn pk_shares_recover_master(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// Two shares whose Lagrange-weighted sum cancels recover the identity,
+  /// which is no public key.
+  fn assert_pk_shares_reject_identity<S: BlsScheme>() {
+    let (id0, id1) = (make_id(1), make_id(2));
+    let x0 = Fr::from_bendian_reduce(id0.as_bytes()).unwrap();
+    let x1 = Fr::from_bendian_reduce(id1.as_bytes()).unwrap();
+
+    let a = Fr::from_bendian_reduce(&RSEED[1]).unwrap();
+    let b = a * x1 * x0.inverse();
+
+    let sk0 = BlsSecretKey::<S>::from_bytes(&a.to_bendian()).unwrap();
+    let sk1 = BlsSecretKey::<S>::from_bytes(&b.to_bendian()).unwrap();
+
+    let share0 = BlsPkShare::new(id0, sk0.public_key());
+    let share1 = BlsPkShare::new(id1, sk1.public_key());
+
+    assert_ne!(share0.public_key(), share1.public_key());
+    assert!(matches!(
+      BlsPublicKey::<S>::recover_shares(&[&share0, &share1]),
+      Err(BlsError::InvalidPublicKey)
+    ));
+  }
+
+  #[rstest]
+  #[case::chia(assert_pk_shares_reject_identity::<BlsScChia>)]
+  #[case::ietf(assert_pk_shares_reject_identity::<BlsScIetf>)]
+  fn pk_shares_reject_identity(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// Two signature shares over one message whose weighted sum cancels recover
+  /// the identity, which signs nothing; the G2 mirror of the key case above.
+  fn assert_sig_shares_reject_identity<S: BlsScheme>() {
+    let (id0, id1) = (make_id(1), make_id(2));
+    let x0 = Fr::from_bendian_reduce(id0.as_bytes()).unwrap();
+    let x1 = Fr::from_bendian_reduce(id1.as_bytes()).unwrap();
+
+    let a = Fr::from_bendian_reduce(&RSEED[1]).unwrap();
+    let b = a * x1 * x0.inverse();
+
+    let sk0 = BlsSecretKey::<S>::from_bytes(&a.to_bendian()).unwrap();
+    let sk1 = BlsSecretKey::<S>::from_bytes(&b.to_bendian()).unwrap();
+
+    let msg = S::msg_ref(&MSG_DEADBEEF);
+    let share0 = BlsSigShare::new(id0, sk0.sign(msg));
+    let share1 = BlsSigShare::new(id1, sk1.sign(msg));
+
+    assert_ne!(share0.signature().to_bytes(), share1.signature().to_bytes());
+    assert!(matches!(
+      BlsSignature::<S>::recover_shares(&[&share0, &share1]),
+      Err(BlsError::InvalidSignature)
+    ));
+  }
+
+  #[rstest]
+  #[case::chia(assert_sig_shares_reject_identity::<BlsScChia>)]
+  #[case::ietf(assert_sig_shares_reject_identity::<BlsScIetf>)]
+  fn sig_shares_reject_identity(#[case] assertion: fn()) {
     assertion();
   }
 

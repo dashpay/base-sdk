@@ -469,7 +469,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InsufficientShares` when fewer than two shares are given,
   /// `CountMismatch` when `ids` and `sigs` differ in length,
   /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidSignature`
-  /// when a share or the recovered point fails to decode.
+  /// when a share fails to decode or the recovered point is the identity.
   fn recover_sig_shares(ids: &[&BlsShareId], sigs: &[&Self::InnerSig]) -> Result<Self::InnerSig, BlsError> {
     if sigs.len() < 2 {
       return Err(BlsError::InsufficientShares);
@@ -489,6 +489,9 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
       .collect::<Result<Vec<_>, BlsError>>()?;
 
     let recovered = interpolate_g2(&reduced, &points);
+    if recovered.is_inf() {
+      return Err(BlsError::InvalidSignature);
+    }
     Self::g2_to_sig(recovered)
   }
 
@@ -502,7 +505,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InsufficientShares` when fewer than two shares are given,
   /// `CountMismatch` when `ids` and `pks` differ in length,
   /// `ZeroScalar`/`DuplicateShareId` on bad ids, or `InvalidPublicKey`
-  /// when a share or the recovered point fails to decode.
+  /// when a share fails to decode or the recovered point is the identity.
   fn recover_pk_shares(ids: &[&BlsShareId], pks: &[&Self::InnerPk]) -> Result<Self::InnerPk, BlsError> {
     if pks.len() < 2 {
       return Err(BlsError::InsufficientShares);
@@ -520,6 +523,9 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
       .collect::<Result<Vec<_>, BlsError>>()?;
 
     let recovered = interpolate_g1(&reduced, &points);
+    if recovered.is_inf() {
+      return Err(BlsError::InvalidPublicKey);
+    }
     Self::g1_to_pk(recovered)
   }
 
