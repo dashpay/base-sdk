@@ -8,6 +8,8 @@
 
 use super::error::BlsError;
 use super::group::G1;
+#[cfg(feature = "codec")]
+use super::public_hash::BlsPkHash;
 use super::scheme_ops::BlsScheme;
 use super::sig_basic::BlsSignature;
 use super::BlsPkBytes;
@@ -17,11 +19,7 @@ use super::{BlsScIetf, BlsSigId};
 use crate::prelude::*;
 
 #[cfg(feature = "codec")]
-use dash_num::Hash256;
-#[cfg(feature = "codec")]
-use dash_types::dlgt_codec;
-#[cfg(feature = "codec")]
-use dash_types::type_id::TypeId;
+use dash_types::{dlgt_codec, type_id::TypeId};
 use dash_types::{qtypestr, type_cvrt};
 use hex_conservative::DisplayHex;
 
@@ -37,7 +35,7 @@ use core::hash::{Hash, Hasher};
 pub struct BlsPublicKey<S: BlsScheme>(pub(crate) S::InnerPk);
 
 #[cfg(feature = "codec")]
-dlgt_codec!(for[S: BlsScheme] BlsPublicKey<S> => BlsPkBytes<S>, Hash256, BlsError, BLS_PK_LEN);
+dlgt_codec!(for[S: BlsScheme] BlsPublicKey<S> => BlsPkBytes<S>, BlsPkHash<S>, BlsError, BLS_PK_LEN);
 
 impl<S: BlsScheme> BlsPublicKey<S> {
   /// Deserialize from 48 bytes.
