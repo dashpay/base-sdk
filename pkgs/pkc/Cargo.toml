@@ -1,6 +1,19 @@
 [package]
 name = "dash-pkc"
-version = "0.0.0"
+version = "0.1.0-beta"
+description = "Cryptographic primitives for the Dash Base SDK"
+keywords = ["base-sdk", "dash", "dashcore", "dashpay"]
+categories = [
+  "cryptography",
+  "cryptography::cryptocurrencies",
+  "no-std",
+  "wasm",
+]
+exclude = [
+  "bench",
+  "corpus",
+  "tests",
+]
 readme = "README.md"
 authors.workspace = true
 edition.workspace = true
@@ -45,7 +58,7 @@ zeroize = { workspace = true, features = ["alloc", "derive"] }
 
 [dev-dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
-dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
+dash-dev = { path = "../dev", features = ["full"] }
 divan = "0.1"
 getrandom = { version = "0.4", features = ["sys_rng"] }
 hex-conservative = { workspace = true, features = ["std"] }
@@ -104,3 +117,6 @@ workspace = true
 name = "pkc"
 path = "bench/main.rs"
 harness = false
+
+[package.metadata.docs.rs]
+all-features = true
