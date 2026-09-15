@@ -43,6 +43,8 @@ pub enum BlsError {
   InvalidSignature,
   /// threshold is below 2, exceeds id count or no ids supplied
   InvalidThreshold,
+  /// tweak is not below the group order, or the result is the identity
+  InvalidTweak,
   /// signature verification failed
   VerifyFailed,
   /// input reduces to zero in the scalar field
@@ -68,6 +70,7 @@ impl fmt::Display for BlsError {
       Self::InvalidSecretKey => write!(f, "invalid secret key bytes"),
       Self::InvalidSignature => write!(f, "invalid signature bytes"),
       Self::InvalidThreshold => write!(f, "threshold is below 2, exceeds id count or no ids supplied"),
+      Self::InvalidTweak => write!(f, "tweak is not below the group order, or the result is the identity"),
       Self::VerifyFailed => write!(f, "signature verification failed"),
       Self::ZeroScalar => write!(f, "input reduces to zero in the scalar field"),
     }

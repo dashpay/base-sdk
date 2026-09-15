@@ -66,6 +66,28 @@ impl<S: BlsScheme> BlsPublicKey<S> {
     T::g1_to_pk(S::pk_to_g1(&self.0)?).map(BlsPublicKey::from_inner)
   }
 
+  /// Add `tweak * G` to the point.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// sum is the point at infinity, and `InvalidPublicKey` when this key does
+  /// not decode to a point.
+  pub fn add_tweak(&self, tweak: &[u8; 32]) -> Result<Self, BlsError> {
+    S::add_tweak_pk(&self.0, tweak).map(Self::from_inner)
+  }
+
+  /// Multiply the point by `tweak`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// product is the point at infinity, and `InvalidPublicKey` when this key
+  /// does not decode to a point.
+  pub fn mul_tweak(&self, tweak: &[u8; 32]) -> Result<Self, BlsError> {
+    S::mul_tweak_pk(&self.0, tweak).map(Self::from_inner)
+  }
+
   /// Aggregate multiple public keys into one.
   ///
   /// # Errors

@@ -17,7 +17,7 @@ use crate::prelude::*;
 
 use blst::BLST_ERROR;
 use dash_types::Numeric;
-use ff::Field;
+use ff::{Field, PrimeField};
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
@@ -241,6 +241,68 @@ pub trait BlsScheme: BlsSchemeId + Sized {
       return Err(BlsError::InvalidSignature);
     }
     Self::g2_to_sig(difference)
+  }
+
+  /// Add `tweak` to a secret scalar, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// sum is zero, which is the tweak that is this scalar's additive inverse.
+  fn add_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let mut current = Fr::from_bendian_reduce(&bytes)?;
+    let mut sum = current + scalar;
+    current.zeroize();
+
+    // A zero sum hands back a key whoever chose the tweak already knows.
+    if bool::from(sum.is_zero()) {
+      return Err(BlsError::InvalidTweak);
+    }
+
+    // `Fr` is `Copy`, so it cannot wipe itself on the way out of scope.
+    let tweaked = Self::sk_from_bytes(&sum.to_bendian());
+    sum.zeroize();
+    tweaked.map_err(|_| BlsError::InvalidTweak)
+  }
+
+  /// Add `tweak * G` to a public key's point.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// sum is the point at infinity, and `InvalidPublicKey` when the key does
+  /// not decode.
+  fn add_tweak_pk(pk: &Self::InnerPk, tweak: &[u8; 32]) -> Result<Self::InnerPk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    Self::tweaked_g1_to_pk(Self::pk_to_g1(pk)? + <G1 as group::Group>::mul_by_generator(&scalar))
+  }
+
+  /// Multiply a public key's point by `tweak`.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or the
+  /// product is the point at infinity, and `InvalidPublicKey` when the key
+  /// does not decode.
+  fn mul_tweak_pk(pk: &Self::InnerPk, tweak: &[u8; 32]) -> Result<Self::InnerPk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    let blst_scalar = blst::blst_scalar::from(&scalar);
+    Self::tweaked_g1_to_pk(Self::pk_to_g1(pk)?.mul_scalar(&blst_scalar.b, FR_BITS))
+  }
+
+  /// Lower a tweaked point back to a public key, refusing the identity.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when the point is at infinity, which is no key;
+  /// the tweak cancelled the public key it was applied to.
+  fn tweaked_g1_to_pk(point: G1) -> Result<Self::InnerPk, BlsError> {
+    if point.is_inf() {
+      return Err(BlsError::InvalidTweak);
+    }
+    Self::g1_to_pk(point)
   }
 
   /// Verify an aggregate signature where every signer signed `msg`.
@@ -718,6 +780,22 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
     result = result.mul_scalar(&x_scalar.b, FR_BITS) + coeffs_g1[i];
   }
   result
+}
+
+/// Parse a tweak as a scalar below the group order.
+///
+/// [`Fr::from_bendian_reduce`] would fold an out-of-range tweak into the field
+/// behind the caller's back, so the canonical parse is used instead and a
+/// value at or above the order is refused.
+///
+/// # Errors
+///
+/// Returns `InvalidTweak` when `tweak` is not below the group order.
+fn tweak_scalar(tweak: &[u8; 32]) -> Result<Fr, BlsError> {
+  let mut lendian = *tweak;
+  lendian.reverse();
+
+  Fr::from_repr(lendian).into_option().ok_or(BlsError::InvalidTweak)
 }
 
 /// Reduce participant ids into the scalar field, rejecting ids that

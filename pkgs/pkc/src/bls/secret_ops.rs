@@ -72,6 +72,18 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     BlsSecretKey::<T>::from_bytes(&self.to_bytes())
   }
 
+  /// Add `tweak` to the secret scalar, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order, or when
+  /// the sum is zero. A zero sum means the tweak is this scalar's additive
+  /// inverse, so whoever chose the tweak already knows the key; the sum is
+  /// refused rather than returned as a key.
+  pub fn add_tweak(&self, tweak: &[u8; 32]) -> Result<Self, BlsError> {
+    S::add_tweak_sk(&self.0, tweak).map(Self::from_inner)
+  }
+
   /// Derive the corresponding public key.
   pub fn public_key(&self) -> BlsPublicKey<S> {
     BlsPublicKey(S::derive_pk(&self.0))
@@ -176,13 +188,93 @@ type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar|
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::RSEED;
+  use crate::bls::tests::{GROUP_ORDER, RSEED};
   use crate::bls::{BlsError, BlsScChia, BlsScIetf};
 
   use dash_dev::{arr_from_hex, Corpus};
   use hex_conservative::DisplayHex;
   use rstest::rstest;
   use serde::Deserialize;
+
+  /// `(a + t)G` has to equal `aG + tG`, or the same tweak applied to the two
+  /// halves of a key pair would part them.
+  fn assert_tweaking_agrees_on_both_sides<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let tweak = *BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap().to_bytes();
+
+    let tweaked_sk = sk.add_tweak(&tweak).unwrap();
+    let tweaked_pk = sk.public_key().add_tweak(&tweak).unwrap();
+
+    assert_eq!(tweaked_sk.public_key(), tweaked_pk);
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweaking_agrees_on_both_sides::<BlsScChia>)]
+  #[case::ietf(assert_tweaking_agrees_on_both_sides::<BlsScIetf>)]
+  fn tweaking_agrees_on_both_sides(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_at_or_above_the_order_refused<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+
+    assert_eq!(sk.add_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.add_tweak(&[0xff; 32]), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.public_key().add_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.public_key().mul_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_at_or_above_the_order_refused::<BlsScChia>)]
+  #[case::ietf(assert_tweak_at_or_above_the_order_refused::<BlsScIetf>)]
+  fn a_tweak_at_or_above_the_order_is_refused(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// `order - a`, so `a + t == 0`. Whoever picks the tweak can compute it
+  /// from `aG` alone, so the sum has to be refused rather than handed back.
+  fn assert_tweak_summing_to_zero_refused<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let scalar = *sk.to_bytes();
+    let mut tweak = GROUP_ORDER;
+    let mut borrow = 0i16;
+
+    for i in (0..32).rev() {
+      let diff = i16::from(tweak[i]) - i16::from(scalar[i]) - borrow;
+      borrow = i16::from(diff < 0);
+      tweak[i] = diff.rem_euclid(256) as u8;
+    }
+
+    assert_eq!(sk.add_tweak(&tweak), Err(BlsError::InvalidTweak));
+    // The point at infinity is no key either.
+    assert_eq!(sk.public_key().add_tweak(&tweak), Err(BlsError::InvalidTweak));
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_summing_to_zero_refused::<BlsScChia>)]
+  #[case::ietf(assert_tweak_summing_to_zero_refused::<BlsScIetf>)]
+  fn a_tweak_summing_to_zero_is_refused(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  /// `t(aG) == a(tG)`, so multiplying a point commutes with multiplying the
+  /// scalar that made it.
+  fn assert_point_product_matches_scalar_product<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let factor_sk = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
+
+    let product = sk.public_key().mul_tweak(&factor_sk.to_bytes()).unwrap();
+    let expected = factor_sk.public_key().mul_tweak(&sk.to_bytes()).unwrap();
+
+    assert_eq!(product, expected);
+  }
+
+  #[rstest]
+  #[case::chia(assert_point_product_matches_scalar_product::<BlsScChia>)]
+  #[case::ietf(assert_point_product_matches_scalar_product::<BlsScIetf>)]
+  fn multiplying_a_point_matches_multiplying_the_scalar(#[case] assertion: fn()) {
+    assertion();
+  }
 
   #[derive(Deserialize)]
   struct KeygenVec {
