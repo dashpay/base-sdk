@@ -100,6 +100,13 @@ private predicate isAllowlistedReexport(Use u) {
     usePrefix(u) = "zeroize"
   )
   or
+  fileOf(u).getAbsolutePath().matches("%pkgs/primitives/%") and
+  (
+    // `dash-pkc` names its hashes after the curve, the alias is the public API.
+    usePrefix(u) = "dash_pkc" and
+    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__EddsaPkHash"
+  )
+  or
   fileOf(u).getAbsolutePath().matches("%pkgs/script/%") and
   (
     // Workaround for the orphan rule, not part of public API

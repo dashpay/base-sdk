@@ -19,6 +19,7 @@ mod prelude;
 
 pub mod bls;
 pub mod ecdsa;
+pub mod eddsa;
 
 #[doc(hidden)]
 pub mod __deps {
@@ -43,4 +44,5 @@ pub mod __deps {
 #[doc(hidden)]
 pub mod __private {
   pub use crate::ecdsa::EcdsaPkHash as __EcdsaPkHash;
+  pub use crate::eddsa::EddsaPkHash as __EddsaPkHash;
 }

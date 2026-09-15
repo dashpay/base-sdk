@@ -11,12 +11,12 @@ use super::{
   PROTX_VERSION_EXT_ADDR,
 };
 use crate::codec::impl_payload;
+use crate::payload::PlatformNodeId;
 use crate::prelude::*;
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2, ServiceV1};
 use crate::{hash_impl, TxHash};
 
 use bitcoin_primitives::script::ScriptPubKeyBuf;
-use dash_num::make_hash;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
 use dash_script::{PubKeyHash, Recipient};
 use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
@@ -264,13 +264,6 @@ impl fmt::Display for ProRegTx {
     write!(f, "ProRegTx {{ v{}, mn_type: {} }}", self.version, self.mn_type)
   }
 }
-
-make_hash! {
-  /// Platform node identifier for Evo masternodes.
-  PlatformNodeId, 20
-}
-
-hash_impl!(PlatformNodeId);
 
 #[cfg(all(test, feature = "serde"))]
 mod tests {
