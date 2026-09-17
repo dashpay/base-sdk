@@ -74,6 +74,26 @@ private predicate isAllowlistedReexport(Use u) {
     u.getUseTree().getPath().getSegment().getIdentifier().getText() = "Numeric"
   )
   or
+  fileOf(u).getAbsolutePath().matches("%pkgs/pkc/%") and
+  (
+    // Crate emits types relying on types or traits defined by a dependency, part of public API
+    usePrefix(u) = "blst"
+    or
+    usePrefix(u) = "dash_num"
+    or
+    usePrefix(u) = "dash_types"
+    or
+    usePrefix(u) = "ff"
+    or
+    usePrefix(u) = "group"
+    or
+    usePrefix(u) = "rand_core"
+    or
+    usePrefix(u) = "subtle"
+    or
+    usePrefix(u) = "zeroize"
+  )
+  or
   fileOf(u).getAbsolutePath().matches("%pkgs/script/%") and
   (
     // Workaround for the orphan rule, not part of public API

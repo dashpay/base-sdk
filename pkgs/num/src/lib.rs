@@ -33,4 +33,5 @@ pub use crate::arith256::Arith256;
 pub use crate::compact::{CompactTarget, DecodedTarget};
 pub use crate::hash::{Hash160, Hash256, HashBlob, ParseHexError};
 
+// TODO(kwvg): move to mod __deps with crate-level export
 pub use dash_types::Numeric;

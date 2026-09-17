@@ -28,6 +28,7 @@ pub use crate::macros::qtypestr;
 pub use crate::numeric::Numeric;
 pub use crate::traits::{Checkable, Hashable};
 
+// TODO(kwvg): move to mod __deps
 pub use zeroize;
 
 cfg_if::cfg_if! {
