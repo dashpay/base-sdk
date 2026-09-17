@@ -74,9 +74,11 @@ impl<S: BlsScheme> BlsSignature<S> {
 
 impl<S: BlsScheme> Clone for BlsSignature<S> {
   fn clone(&self) -> Self {
-    Self(self.0.clone())
+    *self
   }
 }
+
+impl<S: BlsScheme> Copy for BlsSignature<S> {}
 
 impl<S: BlsScheme> Debug for BlsSignature<S> {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {

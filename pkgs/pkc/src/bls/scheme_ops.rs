@@ -49,9 +49,9 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Inner secret key representation.
   type InnerSk: Clone + Send + Sync;
   /// Inner public key representation.
-  type InnerPk: Clone + Debug + PartialEq + Eq + Send + Sync;
+  type InnerPk: Copy + Debug + PartialEq + Eq + Send + Sync;
   /// Inner signature representation.
-  type InnerSig: Clone + Debug + PartialEq + Eq + Send + Sync;
+  type InnerSig: Copy + Debug + PartialEq + Eq + Send + Sync;
   /// Message type accepted by signing and verification.
   type Msg: ?Sized;
 

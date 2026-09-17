@@ -141,7 +141,7 @@ impl<S: BlsScheme> BlsIesBlob<S> {
 impl<S: BlsScheme> Clone for BlsIesBlob<S> {
   fn clone(&self) -> Self {
     Self {
-      ephemeral_pk: self.ephemeral_pk.clone(),
+      ephemeral_pk: self.ephemeral_pk,
       iv_seed: self.iv_seed,
       data: self.data.clone(),
     }
@@ -241,7 +241,7 @@ impl<S: BlsScheme> BlsIesMulti<S> {
   /// recipient index.
   pub fn to_blob(&self, index: usize) -> Option<BlsIesBlob<S>> {
     Some(BlsIesBlob::new(
-      self.ephemeral_pk.clone(),
+      self.ephemeral_pk,
       self.iv_seed,
       self.blobs.get(index)?.clone(),
     ))
@@ -261,7 +261,7 @@ impl<S: BlsScheme> BlsIesMulti<S> {
 impl<S: BlsScheme> Clone for BlsIesMulti<S> {
   fn clone(&self) -> Self {
     Self {
-      ephemeral_pk: self.ephemeral_pk.clone(),
+      ephemeral_pk: self.ephemeral_pk,
       iv_seed: self.iv_seed,
       blobs: self.blobs.clone(),
     }
@@ -486,7 +486,7 @@ mod tests {
     /// The multi-recipient message the vectors record.
     fn message(&self) -> BlsIesMulti<S> {
       BlsIesMulti::new(
-        self.eph_pk.clone(),
+        self.eph_pk,
         self.iv_seed,
         self.recipients.iter().map(|r| vec_from_hex(&r.ciphertext)).collect(),
       )
@@ -710,9 +710,9 @@ mod tests {
     let kat = load_kat::<BlsScIetf>("ietf");
     let misaligned = vec![0u8; 17];
 
-    let blob = BlsIesBlob::new(kat.eph_pk.clone(), kat.iv_seed, misaligned.clone());
+    let blob = BlsIesBlob::new(kat.eph_pk, kat.iv_seed, misaligned.clone());
     assert_eq!(blob.data(), misaligned);
-    assert!(BlsIesMulti::new(kat.eph_pk.clone(), kat.iv_seed, vec![misaligned.clone()]).is_ok());
+    assert!(BlsIesMulti::new(kat.eph_pk, kat.iv_seed, vec![misaligned.clone()]).is_ok());
 
     let bag = BlsIesBlobBytes::new(BlsPkBytes::from(&kat.eph_pk), kat.iv_seed, misaligned.clone());
     assert_eq!(BlsIesBlob::<BlsScIetf>::try_from(&bag).unwrap().data(), misaligned);
