@@ -8,11 +8,11 @@
 
 use super::curve_consts::ORDER;
 use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaRecSignature, EcdsaSecretKey, EcdsaSignature};
+pub(crate) use crate::tests::ecdsa::{message_hash, ALICE_SK};
 
 use hex_conservative::hex;
 use rstest::fixture;
 
-pub const ALICE_SK: [u8; 32] = hex!("0123456789abcdef0123456789abcdeffedcba9876543210fedcba9876543210");
 pub const BOB_SK: [u8; 32] = hex!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 pub const MSG: [u8; 32] = hex!("deadbeefdeadbeefdeadbeefdeadbeefcafebabecafebabecafebabecafebabe");
 
@@ -28,14 +28,6 @@ pub(crate) fn negate_scalar(s: &[u8]) -> [u8; 32] {
     out[i] = diff.rem_euclid(256) as u8;
   }
   out
-}
-
-/// Derive a distinct 32-byte message digest from an index.
-pub fn message_hash(i: u16) -> [u8; 32] {
-  let mut h = [0u8; 32];
-  h[0] = i as u8;
-  h[31] = (i >> 8) as u8;
-  h
 }
 
 #[fixture]

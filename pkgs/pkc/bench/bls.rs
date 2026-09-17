@@ -6,7 +6,8 @@
 
 //! Benchmarks for BLS schemes.
 
-use dash_pkc::bls::tests::{sequential_ids, test_ikm, test_msg};
+use crate::common::bls::{sequential_ids, test_ikm, test_msg};
+
 use dash_pkc::bls::{BlsPublicKey, BlsScChia, BlsScIetf, BlsScheme, BlsSecretKey, BlsSigShare, BlsSignature};
 use divan::{counter::ItemsCount, Bencher};
 use getrandom::SysRng;

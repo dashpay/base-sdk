@@ -9,8 +9,13 @@
   expect(clippy::unwrap_used, reason = "benchmarks rely on trusted test vectors")
 )]
 
+extern crate alloc;
+
 #[cfg(feature = "bls")]
 mod bls;
+#[cfg(any(feature = "bls", feature = "ecdsa", feature = "eddsa"))]
+#[path = "../src/tests.rs"]
+mod common;
 #[cfg(feature = "ecdsa")]
 mod ecdsa;
 #[cfg(feature = "eddsa")]

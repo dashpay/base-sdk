@@ -6,11 +6,10 @@
 
 //! Shared test fixtures and constants.
 
-use crate::bls::BlsShareId;
 use crate::prelude::*;
+pub(crate) use crate::tests::bls::{make_id, sequential_ids, test_ikm, test_msg};
 
 use cfg_if::cfg_if;
-use dash_types::Numeric;
 use hex_conservative::hex;
 
 /// BLS12-381 scalar field order r, big-endian.
@@ -67,40 +66,6 @@ pub const G2_OFF_SUBGROUP_IETF: [u8; 96] = hex!(concat!(
 pub const fn ietf_g1_encoding(mut chia: [u8; 48]) -> [u8; 48] {
   chia[0] |= 0x80;
   chia
-}
-
-/// Build a participant id whose field element is `i`.
-pub fn make_id(i: u32) -> BlsShareId {
-  let mut bytes = [0u8; 32];
-  bytes[28..32].copy_from_slice(&i.to_be_bytes());
-  BlsShareId::from_lendian(bytes)
-}
-
-/// Build `n` sequential participant ids `1..=n`.
-pub fn sequential_ids(n: usize) -> Vec<BlsShareId> {
-  (1..=n).map(|i| make_id(i as u32)).collect()
-}
-
-/// Build a distinct 32-byte IKM from an index, for multi-signer tests.
-///
-/// The index is carried in full, so a run of more than 256 signers gets that
-/// many distinct keys instead of wrapping at 256.
-pub fn test_ikm(i: usize) -> [u8; 32] {
-  let mut ikm = [0u8; 32];
-  ikm[..8].copy_from_slice(&(i as u64).to_be_bytes());
-  ikm[24..].copy_from_slice(&(i as u64).wrapping_add(1).to_be_bytes());
-  ikm
-}
-
-/// Build a distinct 32-byte message from an index, for multi-signer tests.
-///
-/// As with [`test_ikm`], the index is carried in full to keep messages
-/// distinct past 256.
-pub fn test_msg(i: usize) -> [u8; 32] {
-  let mut m = [0u8; 32];
-  m[..8].copy_from_slice(&(i as u64).to_be_bytes());
-  m[8..16].copy_from_slice(&(i as u64).wrapping_mul(7).to_be_bytes());
-  m
 }
 
 cfg_if! {

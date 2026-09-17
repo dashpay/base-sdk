@@ -59,11 +59,10 @@ cfg_if::cfg_if! {
     mod secret_ops;
     mod sig_ops;
     mod sig_rec_ops;
-
-    #[cfg(any(test, feature = "tests"))]
+    #[cfg(test)]
     #[expect(clippy::unwrap_used, reason = "test code")]
     #[allow(dead_code, reason = "usage dependent on build flags")]
-    pub mod tests;
+    pub(crate) mod tests;
 
     pub use public_ops::EcdsaPublicKey;
     pub use secret_ops::EcdsaSecretKey;

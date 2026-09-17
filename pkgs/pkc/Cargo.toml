@@ -35,7 +35,6 @@ secp256k1 = { version = "0.33.1", default-features = false, features = [
   "recovery",
 ], optional = true }
 rand_core = { workspace = true, optional = true }
-rstest = { version = "0.25", optional = true }
 serde = { version = "1", default-features = false, features = [
   "alloc",
   "derive",
@@ -73,8 +72,7 @@ codec = [
 ecdsa = ["dep:rand_core", "dep:secp256k1"]
 eddsa = ["dep:ed25519-dalek", "dep:rand_core"]
 serde = ["codec", "dep:serde", "dash-num/serde", "dash-types/serde"]
-full = ["bls", "codec", "ecdsa", "eddsa", "serde", "std", "tests"]
-tests = ["std", "dep:rstest"]
+full = ["bls", "codec", "ecdsa", "eddsa", "serde", "std"]
 
 [lints]
 workspace = true
@@ -83,4 +81,3 @@ workspace = true
 name = "pkc"
 path = "bench/main.rs"
 harness = false
-required-features = ["tests"]
