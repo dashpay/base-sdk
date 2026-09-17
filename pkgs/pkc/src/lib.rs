@@ -20,6 +20,25 @@ mod prelude;
 pub mod bls;
 pub mod ecdsa;
 
+#[doc(hidden)]
+pub mod __deps {
+  #[cfg(feature = "bls")]
+  pub use blst;
+  pub use dash_num;
+  pub use dash_types;
+  #[cfg(feature = "bls")]
+  pub use ff;
+  #[cfg(feature = "bls")]
+  pub use group;
+  #[cfg(any(feature = "bls", feature = "ecdsa"))]
+  pub use rand_core;
+  #[cfg(feature = "ecdsa")]
+  pub use secp256k1;
+  #[cfg(feature = "bls")]
+  pub use subtle;
+  pub use zeroize;
+}
+
 #[cfg(feature = "codec")]
 #[doc(hidden)]
 pub mod __private {

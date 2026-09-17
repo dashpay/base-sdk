@@ -44,7 +44,7 @@ pub(super) enum PkForm {
 }
 
 /// A secp256k1 public key.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "EcdsaPkBytes", try_from = "EcdsaPkBytes"))]
@@ -267,6 +267,14 @@ type_cvrt!(TryFrom<EcdsaPkBytes> for EcdsaPublicKey, EcdsaError, |bytes| {
   Self::from_bytes(bytes.as_bytes())
 });
 
+type_cvrt!(From<EcdsaPublicKey> for PublicKey, |pk| {
+  pk.inner
+});
+
+type_cvrt!(From<PublicKey> for EcdsaPublicKey, |inner| {
+  Self::from_inner(*inner, Compression::Compressed)
+});
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
@@ -290,6 +298,22 @@ mod tests {
     sig: String,
     recovery_id: u8,
     pk: String,
+  }
+
+  #[rstest]
+  fn backend_roundtrip_keeps_point_and_defaults_to_compressed(alice_pk: EcdsaPublicKey) {
+    let inner = secp256k1::PublicKey::from(&alice_pk);
+    assert_eq!(inner.serialize(), alice_pk.to_compressed());
+
+    let mut lifted = EcdsaPublicKey::from(inner);
+    assert!(lifted.is_compressed());
+    assert_eq!(lifted, alice_pk);
+    lifted.decompress();
+    assert_eq!(
+      secp256k1::PublicKey::from(&lifted),
+      inner,
+      "the form does not touch the point"
+    );
   }
 
   #[rstest]
@@ -413,6 +437,6 @@ mod tests {
   fn verify_rejects_wrong_message(alice_pk: EcdsaPublicKey, alice_sig: EcdsaSignature) {
     let mut bad = MSG;
     bad[0] ^= 0xff;
-    assert!(alice_pk.verify(&bad, &alice_sig).is_err());
+    assert!(alice_pk.verify(&bad, alice_sig).is_err());
   }
 }

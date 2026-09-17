@@ -30,7 +30,7 @@ fn verify(bencher: divan::Bencher) {
   let pk = sk.public_key();
   bencher
     .counter(divan::counter::ItemsCount::new(1u32))
-    .bench(|| pk.verify(&msg, &sig));
+    .bench(|| pk.verify(&msg, sig));
 }
 
 #[divan::bench]

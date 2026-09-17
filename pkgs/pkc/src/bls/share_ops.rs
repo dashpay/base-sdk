@@ -100,7 +100,7 @@ impl<S: BlsScheme> Clone for BlsSigShare<S> {
   fn clone(&self) -> Self {
     Self {
       id: self.id,
-      sig: self.sig.clone(),
+      sig: self.sig,
     }
   }
 }
@@ -157,7 +157,7 @@ impl<S: BlsScheme> Clone for BlsPkShare<S> {
   fn clone(&self) -> Self {
     Self {
       id: self.id,
-      pk: self.pk.clone(),
+      pk: self.pk,
     }
   }
 }

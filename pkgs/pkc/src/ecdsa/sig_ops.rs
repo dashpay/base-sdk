@@ -22,7 +22,7 @@ use secp256k1::ecdsa::{SerializedSignature, Signature};
 use core::hash::{Hash, Hasher};
 
 /// An ECDSA signature (64-byte compact r||s).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
@@ -159,6 +159,14 @@ type_cvrt!(TryFrom<EcdsaSigBytes> for EcdsaSignature, EcdsaError, |bytes| {
   Self::from_bytes(bytes.as_bytes())
 });
 
+type_cvrt!(From<EcdsaSignature> for Signature, |sig| {
+  sig.0
+});
+
+type_cvrt!(From<Signature> for EcdsaSignature, |inner| {
+  Self(*inner)
+});
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
@@ -220,12 +228,19 @@ mod tests {
     let normalized = high_sig.normalize_s().unwrap();
     assert!(normalized.is_low_s());
     assert_eq!(normalized, alice_sig);
-    assert!(alice_pk.verify(&MSG, &normalized).is_ok());
+    assert!(alice_pk.verify(&MSG, normalized).is_ok());
   }
 
   #[cfg(feature = "serde")]
   #[rstest]
   fn serde_sig_roundtrip(alice_sig: EcdsaSignature) {
     assert_json_rt(&alice_sig);
+  }
+
+  #[rstest]
+  fn backend_roundtrip(alice_sig: EcdsaSignature) {
+    let inner = secp256k1::ecdsa::Signature::from(&alice_sig);
+    assert_eq!(inner.serialize_compact(), alice_sig.to_bytes());
+    assert_eq!(EcdsaSignature::from(inner), alice_sig);
   }
 }

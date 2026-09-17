@@ -140,9 +140,11 @@ impl BlsPublicKey<BlsScIetf> {
 
 impl<S: BlsScheme> Clone for BlsPublicKey<S> {
   fn clone(&self) -> Self {
-    Self(self.0.clone())
+    *self
   }
 }
+
+impl<S: BlsScheme> Copy for BlsPublicKey<S> {}
 
 impl<S: BlsScheme> Debug for BlsPublicKey<S> {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {

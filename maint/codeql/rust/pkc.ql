@@ -5,7 +5,7 @@
  *
  * @id base-sdk/pkc-rules
  * @name Rules for dash-pkc
- * @description The arms must offer the same operations under the same names.
+ * @description The arms must offer the same operations and carry the same traits.
  * @kind problem
  * @precision high
  * @problem.severity warning
@@ -77,6 +77,32 @@ predicate shapeGap(TypeItem lacks, string role, string name, string arm) {
   )
 }
 
-from TypeItem t, string role, string name, string arm
-where shapeGap(t, role, name, arm)
-select t, fmt("{0} offers {1}, {2} does not", arm + role, fmt("{0}()", name), t.getName().getText())
+/**
+ * Holds if `lacks` is missing `trait`, which `arm` carries for the same role
+ * inclusive of derives gated by `cfg_attr`.
+ */
+predicate traitGap(TypeItem lacks, string role, string trait, string arm) {
+  exists(TypeItem offers, string lacking |
+    armRole(offers, arm, role) and
+    armRole(lacks, lacking, role) and
+    lacking != arm and
+    implementsPlainTrait(offers, trait) and
+    not implementsPlainTrait(lacks, trait) and
+    not hasDerive(lacks, trait) and
+    not armLacksTrait(lacking, role, trait)
+  )
+}
+
+from TypeItem t, string message
+where
+  exists(string role, string name, string arm |
+    shapeGap(t, role, name, arm) and
+    message =
+      fmt("{0} offers {1}, {2} does not", arm + role, fmt("{0}()", name), t.getName().getText())
+  )
+  or
+  exists(string role, string trait, string arm |
+    traitGap(t, role, trait, arm) and
+    message = fmt("{0} implements {1}, {2} does not", arm + role, trait, t.getName().getText())
+  )
+select t, message

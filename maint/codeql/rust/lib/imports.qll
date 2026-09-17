@@ -53,17 +53,20 @@ predicate isPublicMod(Module m) {
   not exists(m.getVisibility().getPath())
 }
 
+/** Holds if `u` sits directly inside the crate-root module `name`. */
+private predicate isInRootModule(Use u, string name) {
+  exists(Module m |
+    m.getName().getText() = name and
+    u.getParentNode() = m.getItemList() and
+    isRootModule(m)
+  )
+}
+
 /**
  * Holds if `u` lives inside a crate-root `__private` module
  * (intentional crate-level re-exports for macro support).
  */
-predicate isMacroReexport(Use u) {
-  exists(Module priv |
-    priv.getName().getText() = "__private" and
-    u.getParentNode() = priv.getItemList() and
-    isRootModule(priv)
-  )
-}
+predicate isMacroReexport(Use u) { isInRootModule(u, "__private") }
 
 /** Holds if `u` is an allowlisted re-export from a foreign crate. */
 private predicate isAllowlistedReexport(Use u) {
@@ -72,6 +75,29 @@ private predicate isAllowlistedReexport(Use u) {
     // Crate emits types relying on traits defined by a dependency, part of public API
     usePrefix(u) = "dash_types" and
     u.getUseTree().getPath().getSegment().getIdentifier().getText() = "Numeric"
+  )
+  or
+  fileOf(u).getAbsolutePath().matches("%pkgs/pkc/%") and
+  // Crate emits types relying on types or traits defined by a dependency, part of public API
+  isInRootModule(u, "__deps") and
+  (
+    usePrefix(u) = "blst"
+    or
+    usePrefix(u) = "dash_num"
+    or
+    usePrefix(u) = "dash_types"
+    or
+    usePrefix(u) = "ff"
+    or
+    usePrefix(u) = "group"
+    or
+    usePrefix(u) = "rand_core"
+    or
+    usePrefix(u) = "secp256k1"
+    or
+    usePrefix(u) = "subtle"
+    or
+    usePrefix(u) = "zeroize"
   )
   or
   fileOf(u).getAbsolutePath().matches("%pkgs/script/%") and
