@@ -103,6 +103,32 @@ predicate implementsTrait(TypeItem t, string traitName) {
 }
 
 /**
+ * Holds if `i`'s trait reference carries a type or const argument, naming
+ * `From<Foo>` rather than `Copy`. A lifetime does not count, since
+ * `Deserialize<'de>` is still a property of the type.
+ */
+private predicate hasTraitTypeArg(Impl i) {
+  exists(GenericArg a |
+    a = implTraitPath(i).getSegment().getGenericArgList().getAGenericArg() and
+    not a instanceof LifetimeArg
+  )
+}
+
+/**
+ * Holds if `t` implements `traitName` and the trait takes no type argument,
+ * through a derive, a hand-written impl, or a macro. Parameterised traits are
+ * excluded.
+ */
+predicate implementsPlainTrait(TypeItem t, string traitName) {
+  exists(Impl i |
+    i.getSelf() = t and
+    fileOf(i).fromSource() and
+    not hasTraitTypeArg(i) and
+    traitName = implTraitName(i)
+  )
+}
+
+/**
  * Holds if `t` has a derived impl for `traitName` under `crate`
  * (i.e. the trait path is `::<crate>::<traitName>`).
  */
