@@ -51,26 +51,23 @@ impl EcdsaSkBytes {
   }
 
   #[cfg(feature = "codec")]
-  /// Decode a wallet import format-encoded private key.
+  /// Decode a wallet import format-encoded private key, returning the key
+  /// and the version prefix it was encoded under.
   ///
-  /// Returns `None` on a bad checksum, an unexpected version prefix, a length
-  /// outside 33 or 34 bytes, a malformed compression flag, or an all-zero
-  /// scalar. Scalars at or above the curve order still pass: range checking
-  /// belongs to [`EcdsaSecretKey`](crate::ecdsa::EcdsaSecretKey).
-  pub fn from_wif(s: &str, prefix: u8) -> Option<Self> {
+  /// Returns `None` on a bad checksum, a length outside 33 or 34 bytes, a
+  /// malformed compression flag, or an all-zero scalar. Scalars at or above the
+  /// curve order still pass: range checking belongs to
+  /// [`EcdsaSecretKey`](crate::ecdsa::EcdsaSecretKey).
+  pub fn from_wif(s: &str) -> Option<(Self, u8)> {
     let data = Zeroizing::new(decode_check(s).ok()?);
-    let result = match data.len() {
-      33 if data[0] == prefix => {
-        let key: [u8; ECDSA_SK_LEN] = data[1..33].try_into().ok()?;
-        Some(Self::from_bytes(key, Compression::Uncompressed))
-      }
-      34 if data[0] == prefix && data[33] == 0x01 => {
-        let key: [u8; ECDSA_SK_LEN] = data[1..33].try_into().ok()?;
-        Some(Self::from_bytes(key, Compression::Compressed))
-      }
-      _ => None,
+    let compressed = match data.len() {
+      33 => Compression::Uncompressed,
+      34 if data[33] == 0x01 => Compression::Compressed,
+      _ => return None,
     };
-    result.filter(|sk| !sk.is_null())
+    let key: [u8; ECDSA_SK_LEN] = data[1..33].try_into().ok()?;
+    let sk = Self::from_bytes(key, compressed);
+    (!sk.is_null()).then_some((sk, data[0]))
   }
 
   /// Copy out the raw inner bytes.
@@ -149,13 +146,15 @@ mod tests {
   }
 
   #[rstest]
-  #[case::compressed(Compression::Compressed)]
-  #[case::uncompressed(Compression::Uncompressed)]
-  fn wif_roundtrip(#[case] compressed: Compression) {
+  #[case::compressed(Compression::Compressed, 0x80)]
+  #[case::uncompressed(Compression::Uncompressed, 0x80)]
+  #[case::other_prefix(Compression::Compressed, 0xcc)]
+  fn wif_roundtrip(#[case] compressed: Compression, #[case] prefix: u8) {
     let sk = EcdsaSkBytes::from_bytes([0x11u8; ECDSA_SK_LEN], compressed);
-    let wif = sk.to_wif(0x80).unwrap();
-    let restored = EcdsaSkBytes::from_wif(&wif, 0x80).unwrap();
+    let wif = sk.to_wif(prefix).unwrap();
+    let (restored, found) = EcdsaSkBytes::from_wif(&wif).unwrap();
     assert_eq!(restored, sk);
+    assert_eq!(found, prefix, "prefix preserved");
   }
 
   /// The encoder must not emit a string the decoder refuses to read back.
@@ -183,11 +182,6 @@ mod tests {
     base58ck::encode(&raw)
   }
 
-  fn wif_wrong_prefix() -> String {
-    let sk = EcdsaSkBytes::from_bytes([0x33u8; ECDSA_SK_LEN], Compression::Compressed);
-    (*sk.to_wif(0x80).unwrap()).clone()
-  }
-
   fn wif_wrong_length() -> String {
     base58ck::encode_check(&[0x80u8; 32])
   }
@@ -201,12 +195,11 @@ mod tests {
   }
 
   #[rstest]
-  #[case::zero_key(wif_zero_key(), 0x80)]
-  #[case::bad_checksum(wif_bad_checksum(), 0x80)]
-  #[case::wrong_prefix(wif_wrong_prefix(), 0xef)]
-  #[case::wrong_length(wif_wrong_length(), 0x80)]
-  #[case::bad_compression_byte(wif_bad_compression_byte(), 0x80)]
-  fn wif_rejects(#[case] wif: String, #[case] prefix: u8) {
-    assert!(EcdsaSkBytes::from_wif(&wif, prefix).is_none());
+  #[case::zero_key(wif_zero_key())]
+  #[case::bad_checksum(wif_bad_checksum())]
+  #[case::wrong_length(wif_wrong_length())]
+  #[case::bad_compression_byte(wif_bad_compression_byte())]
+  fn wif_rejects(#[case] wif: String) {
+    assert!(EcdsaSkBytes::from_wif(&wif).is_none());
   }
 }
