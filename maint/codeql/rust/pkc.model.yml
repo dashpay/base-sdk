@@ -64,3 +64,7 @@ extensions:
       # Recoverable signatures
       - ["Ecdsa", "SecretKey", "sign_recoverable"]        # Sign
       - ["Ecdsa", "PublicKey", "recover"]                 # Get public key from a signature
+  - addsTo:
+      pack: base-sdk/codeql-rust
+      extensible: armLacksTrait
+    data: []

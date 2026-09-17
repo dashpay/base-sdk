@@ -88,7 +88,8 @@ predicate traitGap(TypeItem lacks, string role, string trait, string arm) {
     lacking != arm and
     implementsPlainTrait(offers, trait) and
     not implementsPlainTrait(lacks, trait) and
-    not hasDerive(lacks, trait)
+    not hasDerive(lacks, trait) and
+    not armLacksTrait(lacking, role, trait)
   )
 }
 
