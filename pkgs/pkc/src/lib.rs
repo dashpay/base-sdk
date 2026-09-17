@@ -9,6 +9,7 @@
 #![no_std]
 
 extern crate alloc;
+extern crate self as dash_pkc;
 #[cfg(feature = "std")]
 extern crate std;
 
@@ -16,6 +17,8 @@ extern crate std;
 mod aes_cbc;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
 mod prelude;
+#[cfg(test)]
+mod tests;
 
 pub mod bls;
 pub mod ecdsa;

@@ -7,17 +7,11 @@
 //! Common test definitions.
 
 use crate::eddsa::{EddsaPublicKey, EddsaSecretKey, EddsaSignature};
+pub(crate) use crate::tests::eddsa::{ALICE_PK, ALICE_SK, MSG};
 
 use hex_conservative::hex;
 use rstest::fixture;
 
-/// The message the signature fixtures cover.
-pub const MSG: &[u8] = b"dash platform node";
-
-/// The platform account secret at DIP-9 `m/9'/5'/3'/4'` for  the
-/// "abandon ... about" mnemonic.
-pub const ALICE_SK: [u8; 32] = hex!("80035d9c2f89971a9c9fad826bba8be9328f1686ae555e912949c2c32800c379");
-pub const ALICE_PK: [u8; 32] = hex!("c352476b459846a552263aef12d35ce05d03ae9c6cfa380747d3700cdbb5c75f");
 pub const ALICE_PK_HASH: &str = "834b7cd3bba35f514f36704b5a553423c39a8df8";
 
 /// An unrelated secret, for tests that need two distinct keys.

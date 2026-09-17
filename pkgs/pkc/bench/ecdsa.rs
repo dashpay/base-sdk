@@ -6,7 +6,8 @@
 
 //! Benchmarks for the ecdsa (secp256k1) feature
 
-use dash_pkc::ecdsa::tests::{message_hash, ALICE_SK};
+use crate::common::ecdsa::{message_hash, ALICE_SK};
+
 use dash_pkc::ecdsa::{Compression, EcdsaPublicKey, EcdsaSecretKey};
 
 fn test_key() -> EcdsaSecretKey {

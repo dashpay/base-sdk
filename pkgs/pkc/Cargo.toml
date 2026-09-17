@@ -1,6 +1,19 @@
 [package]
 name = "dash-pkc"
-version = "0.0.0"
+version = "0.1.0-beta"
+description = "Cryptographic primitives for the Dash Base SDK"
+keywords = ["base-sdk", "dash", "dashcore", "dashpay"]
+categories = [
+  "cryptography",
+  "cryptography::cryptocurrencies",
+  "no-std",
+  "wasm",
+]
+exclude = [
+  "bench",
+  "corpus",
+  "tests",
+]
 readme = "README.md"
 authors.workspace = true
 edition.workspace = true
@@ -16,8 +29,6 @@ aes = { version = "0.8", default-features = false, features = [
 base58ck = { workspace = true, optional = true, features = ["alloc"] }
 bitcoin_hashes = { workspace = true, features = ["alloc"] }
 blst = { version = "0.3", default-features = false, optional = true }
-ff = { version = "0.14", default-features = false, optional = true }
-group = { version = "0.14", default-features = false, optional = true }
 cfg-if = "1"
 dash-num = { version = "0.1.0-beta", path = "../num", default-features = false }
 dash-types = { version = "0.1.0-beta", path = "../types", default-features = false }
@@ -27,15 +38,16 @@ ed25519-dalek = { version = "3", default-features = false, features = [
   "signature",
   "zeroize",
 ], optional = true }
+ff = { version = "0.14", default-features = false, optional = true }
+group = { version = "0.14", default-features = false, optional = true }
 hex-conservative = { workspace = true, features = [
   "alloc",
 ] }
+rand_core = { workspace = true, optional = true }
 secp256k1 = { version = "0.33.1", default-features = false, features = [
   "alloc",
   "recovery",
 ], optional = true }
-rand_core = { workspace = true, optional = true }
-rstest = { version = "0.25", optional = true }
 serde = { version = "1", default-features = false, features = [
   "alloc",
   "derive",
@@ -46,7 +58,7 @@ zeroize = { workspace = true, features = ["alloc", "derive"] }
 
 [dev-dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
-dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
+dash-dev = { path = "../dev", features = ["full"] }
 divan = "0.1"
 getrandom = { version = "0.4", features = ["sys_rng"] }
 hex-conservative = { workspace = true, features = ["std"] }
@@ -55,8 +67,13 @@ rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 
 [features]
-default = []
-std = ["base58ck?/std", "bitcoin_hashes/std", "dash-types/std"]
+default = ["codec"]
+std = [
+  "base58ck?/std",
+  "bitcoin_hashes/std",
+  "dash-types/std",
+]
+
 bls = [
   "dep:aes",
   "dep:blst",
@@ -66,15 +83,32 @@ bls = [
   "dep:sha2",
 ]
 codec = [
-  "dep:base58ck",
   "dash-num/codec",
   "dash-types/codec",
+  "dep:base58ck",
 ]
-ecdsa = ["dep:rand_core", "dep:secp256k1"]
-eddsa = ["dep:ed25519-dalek", "dep:rand_core"]
-serde = ["codec", "dep:serde", "dash-num/serde", "dash-types/serde"]
-full = ["bls", "codec", "ecdsa", "eddsa", "serde", "std", "tests"]
-tests = ["std", "dep:rstest"]
+ecdsa = [
+  "dep:rand_core",
+  "dep:secp256k1",
+]
+eddsa = [
+  "dep:ed25519-dalek",
+  "dep:rand_core",
+]
+full = [
+  "bls",
+  "codec",
+  "ecdsa",
+  "eddsa",
+  "serde",
+  "std",
+]
+serde = [
+  "codec",
+  "dash-num/serde",
+  "dash-types/serde",
+  "dep:serde",
+]
 
 [lints]
 workspace = true
@@ -83,4 +117,6 @@ workspace = true
 name = "pkc"
 path = "bench/main.rs"
 harness = false
-required-features = ["tests"]
+
+[package.metadata.docs.rs]
+all-features = true

@@ -6,7 +6,8 @@
 
 //! Benchmarks for the `eddsa` (ed25519) feature
 
-use dash_pkc::eddsa::tests::{ALICE_PK, ALICE_SK, MSG};
+use crate::common::eddsa::{ALICE_PK, ALICE_SK, MSG};
+
 use dash_pkc::eddsa::{EddsaPkBytes, EddsaPublicKey, EddsaSecretKey};
 use dash_types::Hashable;
 

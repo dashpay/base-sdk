@@ -48,10 +48,8 @@ cfg_if::cfg_if! {
     pub(crate) mod group;
     pub(crate) mod scalar;
     pub(crate) mod scheme_ops;
-
-    #[cfg(any(test, feature = "tests"))]
-    #[doc(hidden)]
-    pub mod tests;
+    #[cfg(test)]
+    pub(crate) mod tests;
 
     pub use ies_ops::{BlsIesBlob, BlsIesMulti};
     pub use public_ops::BlsPublicKey;
