@@ -8,6 +8,7 @@
 
 use super::error::EddsaError;
 use super::public_bytes::{EddsaPkBytes, EDDSA_PK_LEN};
+use super::sig_ops::EddsaSignature;
 use super::EddsaPkHash;
 
 use dash_types::type_cvrt;
@@ -57,6 +58,18 @@ impl EddsaPublicKey {
   /// Emits the 32-byte encoding.
   pub fn to_bytes(&self) -> [u8; EDDSA_PK_LEN] {
     self.0.to_bytes()
+  }
+
+  /// Verifies a signature over a message.
+  ///
+  /// # Errors
+  ///
+  /// Returns `VerifyFailed` when the signature does not match.
+  pub fn verify(&self, msg: &[u8], sig: &EddsaSignature) -> Result<(), EddsaError> {
+    self
+      .0
+      .verify_strict(msg, sig.as_inner())
+      .map_err(|_| EddsaError::VerifyFailed)
   }
 }
 

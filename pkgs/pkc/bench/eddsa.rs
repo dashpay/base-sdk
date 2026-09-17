@@ -6,12 +6,30 @@
 
 //! Benchmarks for the `eddsa` (ed25519) feature
 
-use dash_pkc::eddsa::tests::{ALICE_PK, ALICE_SK};
+use dash_pkc::eddsa::tests::{ALICE_PK, ALICE_SK, MSG};
 use dash_pkc::eddsa::{EddsaPkBytes, EddsaPublicKey, EddsaSecretKey};
 use dash_types::Hashable;
 
 fn test_key() -> EddsaSecretKey {
   EddsaSecretKey::from_bytes(&ALICE_SK)
+}
+
+#[divan::bench]
+fn sign(bencher: divan::Bencher) {
+  let sk = test_key();
+  bencher
+    .counter(divan::counter::ItemsCount::new(1u32))
+    .bench(|| sk.sign(MSG));
+}
+
+#[divan::bench]
+fn verify(bencher: divan::Bencher) {
+  let sk = test_key();
+  let sig = sk.sign(MSG);
+  let pk = sk.public_key();
+  bencher
+    .counter(divan::counter::ItemsCount::new(1u32))
+    .bench(|| pk.verify(MSG, &sig));
 }
 
 #[divan::bench]

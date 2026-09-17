@@ -6,10 +6,13 @@
 
 //! Common test definitions.
 
-use crate::eddsa::{EddsaPublicKey, EddsaSecretKey};
+use crate::eddsa::{EddsaPublicKey, EddsaSecretKey, EddsaSignature};
 
 use hex_conservative::hex;
 use rstest::fixture;
+
+/// The message the signature fixtures cover.
+pub const MSG: &[u8] = b"dash platform node";
 
 /// The platform account secret at DIP-9 `m/9'/5'/3'/4'` for  the
 /// "abandon ... about" mnemonic.
@@ -49,4 +52,9 @@ pub fn alice_pk() -> EddsaPublicKey {
 #[fixture]
 pub fn bob_sk() -> EddsaSecretKey {
   EddsaSecretKey::from_bytes(&BOB_SK)
+}
+
+#[fixture]
+pub fn alice_sig() -> EddsaSignature {
+  alice_sk().sign(MSG)
 }

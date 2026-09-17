@@ -13,12 +13,15 @@ use core::fmt;
 pub enum EddsaError {
   /// public key bytes are not a usable curve point
   InvalidPublicKey,
+  /// signature verification failed
+  VerifyFailed,
 }
 
 impl fmt::Display for EddsaError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let text = match self {
       EddsaError::InvalidPublicKey => "public key bytes are not a usable curve point",
+      EddsaError::VerifyFailed => "signature verification failed",
     };
     f.write_str(text)
   }

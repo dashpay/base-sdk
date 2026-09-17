@@ -8,9 +8,10 @@
 
 use super::public_ops::EddsaPublicKey;
 use super::secret_bytes::{EddsaSkBytes, EDDSA_SK_LEN};
+use super::sig_ops::EddsaSignature;
 
 use dash_types::{qtypestr, type_cvrt};
-use ed25519_dalek::SigningKey;
+use ed25519_dalek::{Signer, SigningKey};
 use rand_core::CryptoRng;
 use subtle::ConstantTimeEq;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
@@ -44,6 +45,11 @@ impl EddsaSecretKey {
   /// Verify that a public key matches this secret key.
   pub fn verify_pubkey(&self, pubkey: &EddsaPublicKey) -> bool {
     self.public_key() == *pubkey
+  }
+
+  /// Signs a message.
+  pub fn sign(&self, msg: &[u8]) -> EddsaSignature {
+    EddsaSignature::from_inner(self.0.sign(msg))
   }
 }
 
@@ -161,6 +167,7 @@ mod tests {
     let sk = EddsaSecretKey::generate(&mut UnwrapErr(SysRng));
 
     assert!(sk.verify_pubkey(&sk.public_key()));
+    assert!(sk.public_key().verify(MSG, &sk.sign(MSG)).is_ok());
     assert_ne!(sk, EddsaSecretKey::generate(&mut UnwrapErr(SysRng)));
   }
 
@@ -168,6 +175,15 @@ mod tests {
   fn verify_pubkey_matches(alice_sk: EddsaSecretKey, bob_sk: EddsaSecretKey) {
     assert!(alice_sk.verify_pubkey(&alice_sk.public_key()));
     assert!(!alice_sk.verify_pubkey(&bob_sk.public_key()));
+  }
+
+  #[rstest]
+  fn signature_verifies_under_its_own_key(alice_sk: EddsaSecretKey, bob_sk: EddsaSecretKey) {
+    let sig = alice_sk.sign(MSG);
+
+    assert!(alice_sk.public_key().verify(MSG, &sig).is_ok());
+    assert!(alice_sk.public_key().verify(b"another message", &sig).is_err());
+    assert!(bob_sk.public_key().verify(MSG, &sig).is_err());
   }
 
   #[rstest]
