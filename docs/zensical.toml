@@ -32,6 +32,10 @@ nav = [
     { "Overview" = "num/README.md" },
     { "Changelog" = "num/changelog.md" },
   ] },
+  { "dash-pkc" = [
+    { "Overview" = "pkc/README.md" },
+    { "Changelog" = "pkc/changelog.md" },
+  ] },
   { "Samples" = [
     { "Genesis Solver" = "samples/solver/README.md" },
     { "Object Parser" = "samples/parser/README.md" },
