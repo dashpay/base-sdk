@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `dash-pkc` will be documented in this file.
+All notable changes to [`dash-pkc`](https://crates.io/crates/dash-pkc) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this crate adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -10,3 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [0.1.0-beta] - 2026-09-15
 
 - Initial release.
+
+[unreleased]: https://github.com/dashpay/base-sdk/compare/dash-pkc-0.1.0-beta...HEAD
+[0.1.0-beta]: https://github.com/dashpay/base-sdk/releases/tag/dash-pkc-0.1.0-beta
