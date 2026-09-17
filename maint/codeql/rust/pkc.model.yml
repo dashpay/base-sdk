@@ -67,4 +67,6 @@ extensions:
   - addsTo:
       pack: base-sdk/codeql-rust
       extensible: armLacksTrait
-    data: []
+    data:
+      - ["Bls", "PublicKey", "Copy"]
+      - ["Bls", "Signature", "Copy"]

@@ -20,7 +20,7 @@ use dash_types::{dlgt_codec, type_id::TypeId};
 use secp256k1::ecdsa::{RecoveryId, Signature};
 
 /// An ECDSA signature with recovery id and compression metadata.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "EcdsaRecSigBytes", try_from = "EcdsaRecSigBytes"))]
@@ -104,7 +104,7 @@ type_cvrt!(From<EcdsaRecSignature> for EcdsaRecSigBytes, |rec| {
 });
 
 type_cvrt!(From<EcdsaRecSignature> for EcdsaSignature, |rec| {
-  rec.signature().clone()
+  *rec.signature()
 });
 
 type_cvrt!(TryFrom<EcdsaRecSigBytes> for EcdsaRecSignature, EcdsaError, |bytes| {
@@ -147,14 +147,14 @@ mod tests {
   fn conversions_commute(alice_rec_sig: EcdsaRecSignature) {
     // Both paths to the plain bag must agree: drop metadata then serialize, or
     // serialize then strip the header.
-    let via_ops = EcdsaSigBytes::from(EcdsaSignature::from(alice_rec_sig.clone()));
+    let via_ops = EcdsaSigBytes::from(EcdsaSignature::from(alice_rec_sig));
     let via_bag = EcdsaSigBytes::from(EcdsaRecSigBytes::from(&alice_rec_sig));
     assert_eq!(via_ops, via_bag);
   }
 
   #[rstest]
   fn from_parts_rejects_out_of_range_id(alice_sig: EcdsaSignature) {
-    assert!(EcdsaRecSignature::from_parts(alice_sig.clone(), 4, Compression::Compressed).is_err());
+    assert!(EcdsaRecSignature::from_parts(alice_sig, 4, Compression::Compressed).is_err());
     assert!(EcdsaRecSignature::from_parts(alice_sig, 255, Compression::Compressed).is_err());
   }
 
@@ -201,7 +201,7 @@ mod tests {
 
   #[rstest]
   fn verifies_without_downcast(alice_pk: EcdsaPublicKey, alice_rec_sig: EcdsaRecSignature) {
-    assert!(alice_pk.verify(&MSG, &alice_rec_sig).is_ok());
+    assert!(alice_pk.verify(&MSG, alice_rec_sig).is_ok());
     assert!(alice_pk.verify(&MSG, alice_rec_sig.signature()).is_ok());
   }
 

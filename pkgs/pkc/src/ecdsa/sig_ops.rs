@@ -22,7 +22,7 @@ use secp256k1::ecdsa::{SerializedSignature, Signature};
 use core::hash::{Hash, Hasher};
 
 /// An ECDSA signature (64-byte compact r||s).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(
@@ -220,7 +220,7 @@ mod tests {
     let normalized = high_sig.normalize_s().unwrap();
     assert!(normalized.is_low_s());
     assert_eq!(normalized, alice_sig);
-    assert!(alice_pk.verify(&MSG, &normalized).is_ok());
+    assert!(alice_pk.verify(&MSG, normalized).is_ok());
   }
 
   #[cfg(feature = "serde")]

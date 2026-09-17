@@ -44,7 +44,7 @@ pub(super) enum PkForm {
 }
 
 /// A secp256k1 public key.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "codec", derive(TypeId))]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(into = "EcdsaPkBytes", try_from = "EcdsaPkBytes"))]
@@ -413,6 +413,6 @@ mod tests {
   fn verify_rejects_wrong_message(alice_pk: EcdsaPublicKey, alice_sig: EcdsaSignature) {
     let mut bad = MSG;
     bad[0] ^= 0xff;
-    assert!(alice_pk.verify(&bad, &alice_sig).is_err());
+    assert!(alice_pk.verify(&bad, alice_sig).is_err());
   }
 }

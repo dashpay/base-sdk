@@ -605,7 +605,7 @@ mod tests {
   #[rstest]
   fn sign_verify_roundtrip(alice_sk: EcdsaSecretKey) {
     let sig = alice_sk.sign(&MSG);
-    assert!(alice_sk.public_key().verify(&MSG, &sig).is_ok());
+    assert!(alice_sk.public_key().verify(&MSG, sig).is_ok());
   }
 
   #[rstest]
@@ -624,6 +624,6 @@ mod tests {
   fn verify_rejects_wrong_key(alice_sk: EcdsaSecretKey, bob_sk: EcdsaSecretKey) {
     assert!(!alice_sk.verify_pubkey(&bob_sk.public_key()));
     let sig = alice_sk.sign(&MSG);
-    assert!(bob_sk.public_key().verify(&MSG, &sig).is_err());
+    assert!(bob_sk.public_key().verify(&MSG, sig).is_err());
   }
 }
