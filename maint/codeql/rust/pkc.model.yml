@@ -66,5 +66,29 @@ extensions:
       - ["Ecdsa", "PublicKey", "recover"]                 # Get public key from a signature
   - addsTo:
       pack: base-sdk/codeql-rust
+      extensible: armLacks
+    data:
+      # Ed25519
+      # Tweaking
+      - ["Eddsa", "SecretKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010
+      - ["Eddsa", "PublicKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010
+      - ["Eddsa", "PublicKey", "mul_tweak"]               # Curve properties prevent this, see SLIP-0010
+  - addsTo:
+      pack: base-sdk/codeql-rust
       extensible: armLacksTrait
-    data: []
+    data:
+      # Ed25519
+      # Consensus wire format
+      - ["Eddsa", "PublicKey", "Decode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "PublicKey", "Encode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "PublicKey", "SerBound"]                # Follows from `Decode`
+      - ["Eddsa", "PublicKey", "TypeId"]                  # Follows from `Decode`
+      - ["Eddsa", "SecretKey", "Decode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "SecretKey", "Encode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "SecretKey", "Hashable"]                # Follows from `Decode`
+      - ["Eddsa", "SecretKey", "TypeId"]                  # Follows from `Decode`
+      - ["Eddsa", "Signature", "Decode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "Signature", "Encode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "Signature", "Hashable"]                # Follows from `Decode`
+      - ["Eddsa", "Signature", "SerBound"]                # Follows from `Decode`
+      - ["Eddsa", "Signature", "TypeId"]                  # Follows from `Decode`

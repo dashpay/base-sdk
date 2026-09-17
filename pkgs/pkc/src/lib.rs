@@ -19,6 +19,7 @@ mod prelude;
 
 pub mod bls;
 pub mod ecdsa;
+pub mod eddsa;
 
 #[doc(hidden)]
 pub mod __deps {
@@ -26,11 +27,13 @@ pub mod __deps {
   pub use blst;
   pub use dash_num;
   pub use dash_types;
+  #[cfg(feature = "eddsa")]
+  pub use ed25519_dalek;
   #[cfg(feature = "bls")]
   pub use ff;
   #[cfg(feature = "bls")]
   pub use group;
-  #[cfg(any(feature = "bls", feature = "ecdsa"))]
+  #[cfg(any(feature = "bls", feature = "ecdsa", feature = "eddsa"))]
   pub use rand_core;
   #[cfg(feature = "ecdsa")]
   pub use secp256k1;
@@ -43,4 +46,5 @@ pub mod __deps {
 #[doc(hidden)]
 pub mod __private {
   pub use crate::ecdsa::EcdsaPkHash as __EcdsaPkHash;
+  pub use crate::eddsa::EddsaPkHash as __EddsaPkHash;
 }

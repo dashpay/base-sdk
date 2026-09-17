@@ -1,0 +1,27 @@
+{
+  // The platform node key at DIP-9 `m/9'/5'/3'/4'/0'` for the "abandon ... about"
+  // mnemonic, as derived by dashwallet-ios and DashSync it. The secret is the seed,
+  // not the signing scalar.
+  "derive_id": [
+    {
+      "sk": "5fa238b12be77347abf9b5957bd902d16c6aaca28d25c4267ffacbd7458dceb1",
+      "pk": "3130c14339391cf26a68d86879e180ee9a16b660f5aa91f560f67c0abe8cf789",
+      "display": "302f2615e6955cce8ed3cff81e8011bfd3a2991f",
+      "wire": "1f99a2d3bf11801ef8cfd38ece5c95e615262f30"
+    }
+  ],
+  // The EDDSA hashed public key also serves as the Dash Platform Node ID, defined as
+  // `SHA256(pk)[0..20]`. There is an inconsistency in how the hashed result is displayed
+  // (see https://github.com/dashpay/rust-dashcore/issues/887) and this divergence needs
+  // to be pinned to avoid unexpected behavior.
+  "wire_order": [
+    {
+      "wire": "8cb97997a418f4814a63d3564b9574a393437968",
+      "display": "68794393a374954b56d3634a81f418a49779b98c"
+    },
+    {
+      "wire": "4cd2ca50b36e0a2bb1b6b29da140448b47eeb7a1",
+      "display": "a1b7ee478b4440a19db2b6b12b0a6eb350cad24c"
+    }
+  ]
+}

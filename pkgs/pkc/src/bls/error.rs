@@ -9,7 +9,7 @@
 use core::fmt;
 
 /// Errors produced by BLS operations.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BlsError {
   /// paired input counts do not match
   CountMismatch,

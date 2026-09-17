@@ -73,19 +73,24 @@ predicate shapeGap(TypeItem lacks, string role, string name, string arm) {
     lacking != arm and
     publicMethod(offers, name) and
     not publicMethod(lacks, name) and
-    not armOnly(arm, role, name)
+    not armOnly(arm, role, name) and
+    not armLacks(lacking, role, name)
   )
 }
 
 /**
  * Holds if `lacks` is missing `trait`, which `arm` carries for the same role
  * inclusive of derives gated by `cfg_attr`.
+ *
+ * Double-underscore traits are skipped, considered private implementation
+ * concerns not part of the public API.
  */
 predicate traitGap(TypeItem lacks, string role, string trait, string arm) {
   exists(TypeItem offers, string lacking |
     armRole(offers, arm, role) and
     armRole(lacks, lacking, role) and
     lacking != arm and
+    not trait.matches("\\_\\_%") and
     implementsPlainTrait(offers, trait) and
     not implementsPlainTrait(lacks, trait) and
     not hasDerive(lacks, trait) and

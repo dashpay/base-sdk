@@ -5,7 +5,7 @@
 //
 
 #![cfg_attr(
-  any(feature = "bls", feature = "ecdsa"),
+  any(feature = "bls", feature = "ecdsa", feature = "eddsa"),
   expect(clippy::unwrap_used, reason = "benchmarks rely on trusted test vectors")
 )]
 
@@ -13,6 +13,8 @@
 mod bls;
 #[cfg(feature = "ecdsa")]
 mod ecdsa;
+#[cfg(feature = "eddsa")]
+mod eddsa;
 
 fn main() {
   divan::main();

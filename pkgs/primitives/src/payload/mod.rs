@@ -30,6 +30,18 @@ use dash_types::{enum_map, impl_num};
 
 use core::fmt;
 
+pub use self::assetlock::{AssetLock, AssetLockInvalid};
+pub use self::assetunlock::{AssetUnlock, AssetUnlockInvalid};
+pub use self::cbtx::{CbTxInvalid, CoinbaseCommitment};
+pub use self::mnhftx::{MnHardFork, MnHardForkInvalid, VERSIONBITS_NUM_BITS};
+pub use self::proregtx::ProRegTx;
+pub use self::proupregtx::ProUpRegTx;
+pub use self::prouprevtx::ProUpRevTx;
+pub use self::proupservtx::ProUpServTx;
+pub use self::quorum::{Commitment, CommitmentInvalid, FinalCommitment, QuorumVvecHash};
+
+pub use dash_pkc::__private::__EddsaPkHash as PlatformNodeId;
+
 /// Maximum operator reward in basis points.
 pub(crate) const MAX_OPERATOR_REWARD: u16 = 10_000;
 
@@ -183,16 +195,6 @@ pub(crate) fn check_sptx_netinfo(ext: &NetInfoV2, version: u16, mn_type: MnType)
   }
   None
 }
-
-pub use assetlock::{AssetLock, AssetLockInvalid};
-pub use assetunlock::{AssetUnlock, AssetUnlockInvalid};
-pub use cbtx::{CbTxInvalid, CoinbaseCommitment};
-pub use mnhftx::{MnHardFork, MnHardForkInvalid, VERSIONBITS_NUM_BITS};
-pub use proregtx::{PlatformNodeId, ProRegTx};
-pub use proupregtx::ProUpRegTx;
-pub use prouprevtx::ProUpRevTx;
-pub use proupservtx::ProUpServTx;
-pub use quorum::{Commitment, CommitmentInvalid, FinalCommitment, QuorumVvecHash};
 
 /// A decoded special transaction payload.
 ///
