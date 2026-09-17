@@ -159,6 +159,14 @@ type_cvrt!(TryFrom<EcdsaSigBytes> for EcdsaSignature, EcdsaError, |bytes| {
   Self::from_bytes(bytes.as_bytes())
 });
 
+type_cvrt!(From<EcdsaSignature> for Signature, |sig| {
+  sig.0
+});
+
+type_cvrt!(From<Signature> for EcdsaSignature, |inner| {
+  Self(*inner)
+});
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
@@ -227,5 +235,12 @@ mod tests {
   #[rstest]
   fn serde_sig_roundtrip(alice_sig: EcdsaSignature) {
     assert_json_rt(&alice_sig);
+  }
+
+  #[rstest]
+  fn backend_roundtrip(alice_sig: EcdsaSignature) {
+    let inner = secp256k1::ecdsa::Signature::from(&alice_sig);
+    assert_eq!(inner.serialize_compact(), alice_sig.to_bytes());
+    assert_eq!(EcdsaSignature::from(inner), alice_sig);
   }
 }

@@ -333,6 +333,14 @@ type_cvrt!(TryFrom<EcdsaSkBytes> for EcdsaSecretKey, EcdsaError, |bytes| {
   Self::from_bytes(bytes.as_bytes(), Compression::from(bytes.is_compressed()))
 });
 
+type_cvrt!(From<EcdsaSecretKey> for SecretKey, |sk| {
+  sk.inner
+});
+
+type_cvrt!(From<SecretKey> for EcdsaSecretKey, |inner| {
+  Self::from_inner(*inner, Compression::Compressed)
+});
+
 #[cfg(test)]
 #[expect(clippy::ptr_arg, clippy::unwrap_used, reason = "test code")]
 mod tests {
@@ -625,5 +633,16 @@ mod tests {
     assert!(!alice_sk.verify_pubkey(&bob_sk.public_key()));
     let sig = alice_sk.sign(&MSG);
     assert!(bob_sk.public_key().verify(&MSG, sig).is_err());
+  }
+
+  #[rstest]
+  fn backend_roundtrip_keeps_scalar_and_defaults_to_compressed(alice_sk: EcdsaSecretKey) {
+    let inner = secp256k1::SecretKey::from(&alice_sk);
+    assert_eq!(inner.to_secret_bytes(), *alice_sk.to_bytes());
+
+    let lifted = EcdsaSecretKey::from(inner);
+    assert!(lifted.is_compressed());
+    assert_eq!(lifted, alice_sk);
+    assert!(lifted.verify_pubkey(&alice_sk.public_key()));
   }
 }

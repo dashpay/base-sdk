@@ -17,7 +17,7 @@ use dash_num::Hash256;
 use dash_types::type_cvrt;
 #[cfg(feature = "codec")]
 use dash_types::{dlgt_codec, type_id::TypeId};
-use secp256k1::ecdsa::{RecoveryId, Signature};
+use secp256k1::ecdsa::{RecoverableSignature, RecoveryId, Signature};
 
 /// An ECDSA signature with recovery id and compression metadata.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -114,11 +114,26 @@ type_cvrt!(TryFrom<EcdsaRecSigBytes> for EcdsaRecSignature, EcdsaError, |bytes| 
   })
 });
 
+type_cvrt!(TryFrom<EcdsaRecSignature> for RecoverableSignature, EcdsaError, |rec| {
+  RecoverableSignature::from_compact(&rec.to_compact(), rec.backend_recovery_id())
+    .map_err(|_| EcdsaError::InvalidSignature)
+});
+
+// The backend type holds only the scalars and the recovery id, the compression
+// flag doesn't make it through and it is assumed to be compressed. To preserve
+// the compression flag, use `from_parts`.
+type_cvrt!(From<RecoverableSignature> for EcdsaRecSignature, |rec| {
+  let (rid, _) = rec.serialize_compact();
+  Self::from_inner(rec.to_standard(), rid, Compression::Compressed)
+});
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::ecdsa::tests::*;
-  use crate::ecdsa::{Compression, EcdsaPublicKey, EcdsaRecSigBytes, EcdsaRecSignature, EcdsaSigBytes, EcdsaSignature};
+  use crate::ecdsa::{
+    Compression, EcdsaPublicKey, EcdsaRecSigBytes, EcdsaRecSignature, EcdsaSecretKey, EcdsaSigBytes, EcdsaSignature,
+  };
 
   #[cfg(feature = "serde")]
   use dash_dev::assert_json_rt;
@@ -209,5 +224,34 @@ mod tests {
   #[rstest]
   fn serde_roundtrip(alice_rec_sig: EcdsaRecSignature) {
     assert_json_rt(&alice_rec_sig);
+  }
+
+  #[rstest]
+  fn uncompressed_recsig_keeps_flag() {
+    let sk = EcdsaSecretKey::from_bytes(&ALICE_SK, Compression::Uncompressed).unwrap();
+    let rec = sk.sign_recoverable(&MSG);
+    assert!(!rec.is_compressed());
+
+    // Recovery carries the flag onto the key it rebuilds.
+    let pk = EcdsaPublicKey::recover(&MSG, &rec).unwrap();
+    assert!(!pk.is_compressed());
+    assert_eq!(pk, sk.public_key());
+
+    // The backend type doesn't store the flag, so the round trip comes back
+    // compressed.
+    let inner = secp256k1::ecdsa::RecoverableSignature::try_from(&rec).unwrap();
+    let back = EcdsaRecSignature::from(inner);
+    assert_eq!(back.signature(), rec.signature());
+    assert_eq!(back.recovery_id(), rec.recovery_id());
+    assert!(back.is_compressed());
+  }
+
+  #[rstest]
+  fn backend_roundtrip_keeps_recovery_id(alice_rec_sig: EcdsaRecSignature) {
+    let inner = secp256k1::ecdsa::RecoverableSignature::try_from(&alice_rec_sig).unwrap();
+    let (rid, compact) = inner.serialize_compact();
+    assert_eq!(compact, alice_rec_sig.to_compact());
+    assert_eq!(rid.to_u8(), alice_rec_sig.recovery_id());
+    assert_eq!(EcdsaRecSignature::from(inner), alice_rec_sig);
   }
 }
