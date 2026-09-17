@@ -23,6 +23,7 @@ dash-num = { version = "0.1.0-beta", path = "../num", default-features = false }
 dash-types = { version = "0.1.0-beta", path = "../types", default-features = false }
 ed25519-dalek = { version = "3", default-features = false, features = [
   "fast",
+  "rand_core",
   "signature",
   "zeroize",
 ], optional = true }
@@ -70,7 +71,7 @@ codec = [
   "dash-types/codec",
 ]
 ecdsa = ["dep:rand_core", "dep:secp256k1"]
-eddsa = ["dep:ed25519-dalek"]
+eddsa = ["dep:ed25519-dalek", "dep:rand_core"]
 serde = ["codec", "dep:serde", "dash-num/serde", "dash-types/serde"]
 full = ["bls", "codec", "ecdsa", "eddsa", "serde", "std", "tests"]
 tests = ["std", "dep:rstest"]

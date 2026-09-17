@@ -6,17 +6,19 @@
 
 //! Common test definitions.
 
-use crate::eddsa::EddsaPublicKey;
+use crate::eddsa::{EddsaPublicKey, EddsaSecretKey};
 
 use hex_conservative::hex;
 use rstest::fixture;
 
-/// The public half of the platform account key at DIP-9 `m/9'/5'/3'/4'` for
-/// the "abandon ... about" mnemonic.
+/// The platform account secret at DIP-9 `m/9'/5'/3'/4'` for  the
+/// "abandon ... about" mnemonic.
+pub const ALICE_SK: [u8; 32] = hex!("80035d9c2f89971a9c9fad826bba8be9328f1686ae555e912949c2c32800c379");
 pub const ALICE_PK: [u8; 32] = hex!("c352476b459846a552263aef12d35ce05d03ae9c6cfa380747d3700cdbb5c75f");
-
-/// The printed form of `ALICE_PK`'s hash.
 pub const ALICE_PK_HASH: &str = "834b7cd3bba35f514f36704b5a553423c39a8df8";
+
+/// An unrelated secret, for tests that need two distinct keys.
+pub const BOB_SK: [u8; 32] = hex!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 
 /// A y-coordinate the curve equation has no solution for, so the point cannot
 /// be decompressed.
@@ -35,6 +37,16 @@ pub const SMALL_ORDER_PKS: [[u8; 32]; 7] = [
 ];
 
 #[fixture]
+pub fn alice_sk() -> EddsaSecretKey {
+  EddsaSecretKey::from_bytes(&ALICE_SK)
+}
+
+#[fixture]
 pub fn alice_pk() -> EddsaPublicKey {
   EddsaPublicKey::from_bytes(&ALICE_PK).unwrap()
+}
+
+#[fixture]
+pub fn bob_sk() -> EddsaSecretKey {
+  EddsaSecretKey::from_bytes(&BOB_SK)
 }

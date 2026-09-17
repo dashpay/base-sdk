@@ -33,7 +33,7 @@ pub mod __deps {
   pub use ff;
   #[cfg(feature = "bls")]
   pub use group;
-  #[cfg(any(feature = "bls", feature = "ecdsa"))]
+  #[cfg(any(feature = "bls", feature = "ecdsa", feature = "eddsa"))]
   pub use rand_core;
   #[cfg(feature = "ecdsa")]
   pub use secp256k1;

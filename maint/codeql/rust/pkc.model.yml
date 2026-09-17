@@ -71,7 +71,9 @@ extensions:
       # Ed25519
       # Misc
       - ["Eddsa", "PublicKey", "verify"]                  # Check a signature
+      - ["Eddsa", "SecretKey", "sign"]                    # Sign a message
       # Tweaking
+      - ["Eddsa", "SecretKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010
       - ["Eddsa", "PublicKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010
       - ["Eddsa", "PublicKey", "mul_tweak"]               # Curve properties prevent this, see SLIP-0010
   - addsTo:
@@ -84,3 +86,7 @@ extensions:
       - ["Eddsa", "PublicKey", "Encode"]                  # Not a wire type, see `Unencodable`
       - ["Eddsa", "PublicKey", "SerBound"]                # Follows from `Decode`
       - ["Eddsa", "PublicKey", "TypeId"]                  # Follows from `Decode`
+      - ["Eddsa", "SecretKey", "Decode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "SecretKey", "Encode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "SecretKey", "Hashable"]                # Follows from `Decode`
+      - ["Eddsa", "SecretKey", "TypeId"]                  # Follows from `Decode`

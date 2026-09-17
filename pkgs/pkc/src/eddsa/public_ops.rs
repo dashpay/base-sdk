@@ -35,6 +35,10 @@ impl Hashable for EddsaPublicKey {
 }
 
 impl EddsaPublicKey {
+  pub(super) fn from_inner(inner: VerifyingKey) -> Self {
+    Self(inner)
+  }
+
   /// Parses a key from its 32-byte encoding.
   ///
   /// # Errors
