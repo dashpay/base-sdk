@@ -13,6 +13,12 @@
 extensible predicate armOnly(string arm, string role, string name);
 
 /**
+ * Holds if `arm` cannot carry `name` at `role`, though the other arms offer
+ * it. Rows live in `pkc.model.yml`.
+ */
+extensible predicate armLacks(string arm, string role, string name);
+
+/**
  * Holds if `arm` cannot carry `trait` at `role`, though the other arms do.
  * Rows live in `pkc.model.yml`.
  */

@@ -66,5 +66,9 @@ extensions:
       - ["Ecdsa", "PublicKey", "recover"]                 # Get public key from a signature
   - addsTo:
       pack: base-sdk/codeql-rust
+      extensible: armLacks
+    data: []
+  - addsTo:
+      pack: base-sdk/codeql-rust
       extensible: armLacksTrait
     data: []
