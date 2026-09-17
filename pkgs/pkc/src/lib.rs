@@ -27,6 +27,8 @@ pub mod __deps {
   pub use blst;
   pub use dash_num;
   pub use dash_types;
+  #[cfg(feature = "eddsa")]
+  pub use ed25519_dalek;
   #[cfg(feature = "bls")]
   pub use ff;
   #[cfg(feature = "bls")]

@@ -87,6 +87,8 @@ private predicate isAllowlistedReexport(Use u) {
     or
     usePrefix(u) = "dash_types"
     or
+    usePrefix(u) = "ed25519_dalek"
+    or
     usePrefix(u) = "ff"
     or
     usePrefix(u) = "group"

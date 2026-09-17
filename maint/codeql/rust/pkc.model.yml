@@ -67,8 +67,20 @@ extensions:
   - addsTo:
       pack: base-sdk/codeql-rust
       extensible: armLacks
-    data: []
+    data:
+      # Ed25519
+      # Misc
+      - ["Eddsa", "PublicKey", "verify"]                  # Check a signature
+      # Tweaking
+      - ["Eddsa", "PublicKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010
+      - ["Eddsa", "PublicKey", "mul_tweak"]               # Curve properties prevent this, see SLIP-0010
   - addsTo:
       pack: base-sdk/codeql-rust
       extensible: armLacksTrait
-    data: []
+    data:
+      # Ed25519
+      # Consensus wire format
+      - ["Eddsa", "PublicKey", "Decode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "PublicKey", "Encode"]                  # Not a wire type, see `Unencodable`
+      - ["Eddsa", "PublicKey", "SerBound"]                # Follows from `Decode`
+      - ["Eddsa", "PublicKey", "TypeId"]                  # Follows from `Decode`
