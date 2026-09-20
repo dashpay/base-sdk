@@ -6,6 +6,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
     pyproject-build-systems = {
       url = "github:pyproject-nix/build-system-pkgs";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -33,6 +35,7 @@
   outputs =
     {
       nixpkgs,
+      nixpkgs-unstable,
       rust-overlay,
       ...
     }@inputs:
@@ -50,21 +53,30 @@
         f:
         lib.genAttrs systems (
           system:
-          f (
-            import nixpkgs {
+          f {
+            pkgs = import nixpkgs {
               inherit system;
               config.allowUnfree = true;
               overlays = [ rust-overlay.overlays.default ];
-            }
-          )
+            };
+            unstable = import nixpkgs-unstable {
+              inherit system;
+              config.allowUnfree = true;
+            };
+          }
         );
     in
     {
       devShells = eachSystem (
-        pkgs:
+        { pkgs, unstable }:
         let
           ctx = import ./shell/common.nix {
-            inherit pkgs lib inputs;
+            inherit
+              pkgs
+              lib
+              inputs
+              unstable
+              ;
             root = ../..;
           };
           ci = import ./shell/ci.nix ctx;
@@ -75,6 +87,6 @@
         }
       );
 
-      formatter = eachSystem (pkgs: pkgs.nixfmt);
+      formatter = eachSystem ({ pkgs, ... }: pkgs.nixfmt);
     };
 }
