@@ -33,9 +33,8 @@ source .venv/bin/activate
 packages need to be additionally sourced.
 
 * [cargo-deny](https://github.com/EmbarkStudios/cargo-deny)
+* [CodeQL 2.27 or higher](https://github.com/github/codeql-cli-binaries/releases)
 * [Git](https://git-scm.com/install/)
-* [CodeQL 2.24 or higher](https://github.com/github/codeql-cli-binaries/releases) (Rust support was added in 2.23.3,
-  [source](https://github.blog/changelog/2025-10-23-codeql-2-23-3-adds-a-new-rust-query-rust-support-and-easier-c-c-scanning/))
 * [Node.js 24 or higher](https://nodejs.org/en/download) (current LTS,
   [source](https://nodejs.org/en/blog/release/v24.11.0))
 

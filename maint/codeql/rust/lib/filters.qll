@@ -37,7 +37,7 @@ private predicate testModuleSpan(File file, int mStart, int mEnd) {
     mStart = startLine(m) and
     mEnd = endLine(m) and
     m.getName().getText() = "tests" and
-    m.getAnAttr().getMeta().getPath().getSegment().getIdentifier().getText() = "cfg"
+    m.getAnAttr().getMeta() instanceof CfgMeta
   )
 }
 
@@ -60,7 +60,7 @@ predicate isTestCode(Locatable t) {
 predicate hasUnexpandedDerive(TypeItem t) {
   exists(Attr a |
     a = t.getAnAttr() and
-    a.getMeta().getPath().getSegment().getIdentifier().getText() = "derive"
+    a.getMeta().getMetaPath().getSegment().getIdentifier().getText() = "derive"
   ) and
   not exists(t.getADeriveMacroExpansion())
 }

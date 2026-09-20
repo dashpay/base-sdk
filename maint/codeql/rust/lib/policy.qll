@@ -19,8 +19,8 @@ predicate hasDerive(TypeItem t, string name) {
   exists(Attr a, int srcLine, string relPath, string content |
     a = t.getAnAttr() and
     (
-      a.getMeta().getPath().getText() = "derive" or
-      a.getMeta().getPath().getText() = "cfg_attr"
+      a.getMeta().getMetaPath().getText() = "derive" or
+      a.getMeta() instanceof CfgAttrMeta
     ) and
     fileRelPath(fileOf(t), relPath) and
     sourceLineContent(relPath, srcLine, content) and
