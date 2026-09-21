@@ -95,13 +95,10 @@ predicate isErrorType(TypeItem t) {
 /** Holds if `t` is a dispatch/message type (name ends with Message). */
 predicate isDispatchType(TypeItem t) { t.getName().getText().matches("%Message") }
 
-/** Holds if `t` is an opaque single-field wrapper in the pkc crate. */
+/** Holds if `t` is an opaque single-field wrapper. */
 predicate isOpaqueType(TypeItem t) {
   t instanceof Struct and
-  exists(string path |
-    path = fileOf(t).getAbsolutePath() and
-    path.matches("%/pkgs/pkc/%")
-  ) and
+  isOpaqueCrate(fileOf(t)) and
   isSingleTupleField(t)
 }
 

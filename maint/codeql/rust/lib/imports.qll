@@ -6,6 +6,7 @@
  * @description Preamble classification building blocks for import ordering.
  */
 
+import lib.crates
 import lib.files
 import rust
 
@@ -63,70 +64,23 @@ private predicate isInRootModule(Use u, string name) {
 }
 
 /**
- * Holds if `u` lives inside a crate-root `__private` module
- * (intentional crate-level re-exports for macro support).
+ * Holds if `crate` may re-export `symbol` from `dep` inside `scope`. A column
+ * left empty allows any of its kind. Rows live in `policy.model.yml`.
  */
-predicate isMacroReexport(Use u) { isInRootModule(u, "__private") }
+extensible private predicate allowedReexport(string crate, string scope, string dep, string symbol);
 
 /** Holds if `u` is an allowlisted re-export from a foreign crate. */
 private predicate isAllowlistedReexport(Use u) {
-  fileOf(u).getAbsolutePath().matches("%pkgs/num/%") and
-  (
-    // Crate emits types relying on traits defined by a dependency, part of public API
-    usePrefix(u) = "dash_types" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "Numeric"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/pkc/%") and
-  // Crate emits types relying on types or traits defined by a dependency, part of public API
-  isInRootModule(u, "__deps") and
-  (
-    usePrefix(u) = "blst"
-    or
-    usePrefix(u) = "dash_num"
-    or
-    usePrefix(u) = "dash_types"
-    or
-    usePrefix(u) = "ed25519_dalek"
-    or
-    usePrefix(u) = "ff"
-    or
-    usePrefix(u) = "group"
-    or
-    usePrefix(u) = "rand_core"
-    or
-    usePrefix(u) = "secp256k1"
-    or
-    usePrefix(u) = "subtle"
-    or
-    usePrefix(u) = "zeroize"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/primitives/%") and
-  (
-    // `dash-pkc` names its hashes after the curve, the alias is the public API.
-    usePrefix(u) = "dash_pkc" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__EddsaPkHash"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/script/%") and
-  (
-    // Workaround for the orphan rule, not part of public API
-    usePrefix(u) = "dash_pkc" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__EcdsaPkHash"
-    or
-    // Workaround for the orphan rule, not part of public API
-    usePrefix(u) = "dash_types" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__ScriptHash"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/types/%") and
-  (
-    // Sub-crate isolation demands re-exports, part of public API
-    usePrefix(u) = "dash_types_marker"
-    or
-    // Crate emits types relying on types or traits defined by a dependency, part of public API
-    usePrefix(u) = "zeroize"
+  exists(string crate, string scope, string dep, string symbol |
+    allowedReexport(crate, scope, dep, symbol) and
+    (crate = "" or crate = crateOf(fileOf(u))) and
+    (dep = "" or dep = usePrefix(u)) and
+    (scope = "" or isInRootModule(u, scope)) and
+    (
+      symbol = ""
+      or
+      symbol = u.getUseTree().getPath().getSegment().getIdentifier().getText()
+    )
   )
 }
 

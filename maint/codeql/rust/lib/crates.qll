@@ -31,7 +31,7 @@ private predicate encloses(string crate, File f) {
 }
 
 /** Gets the name of the crate holding `f`. */
-private string crateOf(File f) {
+string crateOf(File f) {
   encloses(result, f) and
   cratePolicyEnable(result, _) and
   not exists(string inner |
@@ -55,6 +55,9 @@ predicate isEnforcedCrate(File f) { hasPolicy(f, "enforced") }
 
 /** Holds if file `f` is in a crate that does not have a `serde` feature. */
 predicate isNonSerdeCrate(File f) { hasPolicy(f, "no-serde") }
+
+/** Holds if file `f` is in a crate whose single-field wrappers are opaque. */
+predicate isOpaqueCrate(File f) { hasPolicy(f, "opaque") }
 
 /** Holds if file `f` is in a crate with no public API. */
 predicate isPrivateCrate(File f) { hasPolicy(f, "private") }

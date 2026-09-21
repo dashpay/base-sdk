@@ -5,6 +5,7 @@ extensions:
   # Available policies:
   #   `enforced`    subject to the codec and declaration ordering rules
   #   `no-serde`    carries no `serde` feature
+  #   `opaque`      single-field wrappers hide their contents
   #   `private`     holds no public API, no derivations expected
   #   `unencodable` able to derive `Unencodable`, codec coverage expected
   - addsTo:
@@ -17,9 +18,41 @@ extensions:
       - ["dash-num",           "enforced"]
       - ["dash-p2p-core",      "enforced, unencodable"]
       - ["dash-params",        "no-serde"]
-      - ["dash-pkc",           "enforced, unencodable"]
+      - ["dash-pkc",           "enforced, unencodable, opaque"]
       - ["dash-pow",           "no-serde"]
       - ["dash-primitives",    "enforced, unencodable"]
       - ["dash-script",        "enforced, unencodable"]
       - ["dash-types-marker",  ""]
       - ["dash-types",         "enforced"]
+
+  # Re-exports of a foreign crate each crate is allowed to make
+  - addsTo:
+      pack: base-sdk/codeql-rust
+      extensible: allowedReexport
+    data:
+      # | name             | export mod | foreign crate      | foreign type          |
+      # | ---------------- | ---------- | ------------------ | --------------------- |
+      # Crate-level re-exports a macro expands into, kept out of the public API
+      - ["",                 "__private", "",                  ""]
+      # Emits types relying on traits defined by a dependency, part of public API
+      - ["dash-num",         "",          "dash_types",        "Numeric"]
+      # Emits types relying on types or traits defined by a dependency, part of public API
+      - ["dash-pkc",         "__deps",    "blst",              ""]
+      - ["dash-pkc",         "__deps",    "dash_num",          ""]
+      - ["dash-pkc",         "__deps",    "dash_types",        ""]
+      - ["dash-pkc",         "__deps",    "ed25519_dalek",     ""]
+      - ["dash-pkc",         "__deps",    "ff",                ""]
+      - ["dash-pkc",         "__deps",    "group",             ""]
+      - ["dash-pkc",         "__deps",    "rand_core",         ""]
+      - ["dash-pkc",         "__deps",    "secp256k1",         ""]
+      - ["dash-pkc",         "__deps",    "subtle",            ""]
+      - ["dash-pkc",         "__deps",    "zeroize",           ""]
+      # `dash-pkc` names its hashes after the curve, the alias is the public API
+      - ["dash-primitives",  "",          "dash_pkc",          "__EddsaPkHash"]
+      # Workaround for the orphan rule, not part of public API
+      - ["dash-script",      "",          "dash_pkc",          "__EcdsaPkHash"]
+      - ["dash-script",      "",          "dash_types",        "__ScriptHash"]
+      # Sub-crate isolation demands re-exports, part of public API
+      - ["dash-types",       "",          "dash_types_marker", ""]
+      # Emits types relying on types or traits defined by a dependency, part of public API
+      - ["dash-types",       "",          "zeroize",           ""]
