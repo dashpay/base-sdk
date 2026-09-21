@@ -1,0 +1,25 @@
+# Code-specific enforcement policy
+extensions:
+  # Policies enabled for each crate in the workspace
+  #
+  # Available policies:
+  #   `enforced`    subject to the codec and declaration ordering rules
+  #   `no-serde`    carries no `serde` feature
+  #   `private`     holds no public API, no derivations expected
+  #   `unencodable` able to derive `Unencodable`, codec coverage expected
+  - addsTo:
+      pack: base-sdk/codeql-rust
+      extensible: cratePolicyEnable
+    data:
+      # | name               | policies                 |
+      # | ------------------ | ------------------------ |
+      - ["dash-dev",           "private"]
+      - ["dash-num",           "enforced"]
+      - ["dash-p2p-core",      "enforced, unencodable"]
+      - ["dash-params",        "no-serde"]
+      - ["dash-pkc",           "enforced, unencodable"]
+      - ["dash-pow",           "no-serde"]
+      - ["dash-primitives",    "enforced, unencodable"]
+      - ["dash-script",        "enforced, unencodable"]
+      - ["dash-types-marker",  ""]
+      - ["dash-types",         "enforced"]

@@ -6,6 +6,7 @@
  * @description Rule-specific policy predicates for type classification.
  */
 
+import lib.crates
 import lib.files
 import lib.filters
 import lib.source_lines
@@ -156,14 +157,6 @@ predicate isCodecType(TypeItem t) {
 /** Holds if `name` is a trait whose methods must have a body in exactly one layer. */
 predicate isMutexTrait(string name) { name = "BlsScheme" }
 
-/** Holds if `t` lives in a crate with no public API. */
-predicate isPrivateCrate(TypeItem t) {
-  exists(string path |
-    path = fileOf(t).getAbsolutePath() and
-    path.matches("%/pkgs/dev/%")
-  )
-}
-
 /** Holds if `t` is a source type eligible for the "must derive" check. */
 predicate isCheckableType(TypeItem t) {
   isSourceType(t) and
@@ -171,16 +164,8 @@ predicate isCheckableType(TypeItem t) {
   not isCodecType(t) and
   not isSecretType(t) and
   not isIteratorType(t) and
-  not isPrivateCrate(t) and
+  not isPrivateCrate(fileOf(t)) and
   not hasUnexpandedDerive(t)
-}
-
-/** Holds if `t` lives in a crate that does not have a `serde` feature. */
-predicate isNonSerdeCrate(TypeItem t) {
-  exists(string path |
-    path = fileOf(t).getAbsolutePath() and
-    (path.matches("%/pkgs/params/%") or path.matches("%/pkgs/pow/%"))
-  )
 }
 
 /**
@@ -250,7 +235,7 @@ predicate isSuppressed(TypeItem t, string trait) {
 
 /** Holds if `t` is exempt from serde derivation requirements. */
 predicate isSerdeExempt(TypeItem t) {
-  isNonSerdeCrate(t)
+  isNonSerdeCrate(fileOf(t))
   or
   isNotEncodable(t)
   or
@@ -269,30 +254,6 @@ predicate isSerdeExempt(TypeItem t) {
   // Single-field wrappers without PartialEq are exempt.
   isSingleTupleField(t) and
   not implementsTrait(t, "PartialEq")
-}
-
-/** Holds if file `f` is in a crate subject to codec and ordering rules. */
-predicate isEnforcedCrate(File f) {
-  f.getAbsolutePath().matches("%/pkgs/num/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/types/%") and
-  not f.getAbsolutePath().matches("%/pkgs/types/marker/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/primitives/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/pkc/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/script/%")
-}
-
-/** Holds if file `f` is in a crate that can derive `Unencodable`. */
-predicate isUnencodableCrate(File f) {
-  f.getAbsolutePath().matches("%/pkgs/primitives/%") or
-  f.getAbsolutePath().matches("%/pkgs/p2p_core/%") or
-  f.getAbsolutePath().matches("%/pkgs/pkc/%") or
-  f.getAbsolutePath().matches("%/pkgs/script/%")
 }
 
 /** Declaration slots that define the required source ordering. */
