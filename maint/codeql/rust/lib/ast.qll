@@ -3,12 +3,46 @@
  * SPDX-License-Identifier: MIT
  * See the accompanying file LICENSE or https://opensource.org/license/MIT
  *
- * @description Helpers for reading and resolving written type positions.
+ * @description AST node accessors and navigation.
  */
 
+import lib.files
 import rust
 private import codeql.rust.internal.typeinference.Type as T
 private import codeql.rust.internal.typeinference.TypeMention
+
+/** Gets an attribute of a preamble item (Use, Module, or ExternCrate). */
+private Attr itemAttr(Item item) {
+  result = item.(Use).getAnAttr() or
+  result = item.(Module).getAnAttr() or
+  result = item.(ExternCrate).getAnAttr()
+}
+
+/**
+ * Gets the effective start line of `item`, accounting for leading
+ * attributes (e.g. `#[cfg(...)]`).
+ */
+int effectiveStart(Item item) {
+  if exists(itemAttr(item))
+  then result = min(Attr a | a = itemAttr(item) | startLine(a))
+  else result = startLine(item)
+}
+
+/** Gets the root (qualifier-less) segment of path `p`. */
+private Path rootPath(Path p) {
+  result = p.getQualifier*() and
+  not exists(result.getQualifier())
+}
+
+/** Holds if module `m` is not nested inside another module. */
+predicate isRootModule(Module m) {
+  not exists(Module enclosing | m.getParentNode() = enclosing.getItemList())
+}
+
+/** Gets the first path segment of use declaration `u`. */
+string usePrefix(Use u) {
+  result = rootPath(u.getUseTree().getPath()).getSegment().getIdentifier().getText()
+}
 
 /** Gets the head identifier of `tr`, e.g. `Vec` for `Vec<u8>`. */
 string typeHead(TypeRepr tr) {

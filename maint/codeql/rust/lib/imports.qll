@@ -6,8 +6,8 @@
  * @description Preamble classification building blocks for import ordering.
  */
 
+import lib.ast
 import lib.crates
-import lib.files
 import rust
 
 /** Gets the human-readable label for group `g`. */

@@ -6,8 +6,7 @@
  * @description Common predicates for filtering types by context.
  */
 
-import lib.files
-import lib.types
+import lib.ast
 import rust
 
 /** Materialises function spans per file for containment checks. */

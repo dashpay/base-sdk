@@ -6,12 +6,11 @@
  * @description Rule-specific policy predicates for type classification.
  */
 
+import lib.ast
 import lib.crates
-import lib.files
 import lib.filters
 import lib.source_lines
 import lib.traits
-import lib.types
 import rust
 
 /** Holds if `t` carries `#[derive(...name...)]` detected via source-line scanning. */
