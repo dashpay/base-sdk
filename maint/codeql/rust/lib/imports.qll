@@ -33,27 +33,6 @@ string groupLabel(int g) {
   g = 8 and result = "pub use alloc/core/std"
 }
 
-/**
- * Holds if use declaration `u` has `pub` visibility.
- *
- * Bare `pub` has a Visibility node with no path; `pub(crate)` and
- * `pub(super)` carry a path whose segment is "crate" or "super".
- */
-private predicate isPublicUse(Use u) {
-  exists(u.getVisibility()) and
-  not exists(u.getVisibility().getPath())
-}
-
-/**
- * Holds if module declaration `m` has `pub` visibility.
- *
- * See `isPublicUse` for the visibility encoding rationale.
- */
-private predicate isPublicMod(Module m) {
-  exists(m.getVisibility()) and
-  not exists(m.getVisibility().getPath())
-}
-
 /** Holds if `u` sits directly inside the crate-root module `name`. */
 private predicate isInRootModule(Use u, string name) {
   exists(Module m |
@@ -92,7 +71,7 @@ private predicate isAllowlistedReexport(Use u) {
  * AST parent differs from the use site.
  */
 predicate isForeignReexport(Use u) {
-  isPublicUse(u) and
+  isBarePublic(u.getVisibility()) and
   not isAllowlistedReexport(u) and
   exists(string prefix |
     prefix = usePrefix(u) and
@@ -137,18 +116,18 @@ private int useBaseGroup(Use u) {
 
 /** Gets the preamble group of use declaration `u`. */
 private int useGroup(Use u) {
-  isPublicUse(u) and result = useBaseGroup(u) + 4
+  isBarePublic(u.getVisibility()) and result = useBaseGroup(u) + 4
   or
-  not isPublicUse(u) and result = useBaseGroup(u)
+  not isBarePublic(u.getVisibility()) and result = useBaseGroup(u)
 }
 
 /** Gets the preamble group of a file-level module declaration `m`. */
 private int modGroup(Module m) {
   not exists(m.getItemList()) and
   (
-    isPublicMod(m) and result = 5
+    isBarePublic(m.getVisibility()) and result = 5
     or
-    not isPublicMod(m) and result = 1
+    not isBarePublic(m.getVisibility()) and result = 1
   )
 }
 

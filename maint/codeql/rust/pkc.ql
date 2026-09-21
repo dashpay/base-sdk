@@ -34,12 +34,6 @@ predicate armRole(TypeItem t, string arm, string role) {
   )
 }
 
-/** Holds if `f` is `pub`, rather than restricted to a scope. */
-predicate isBarePub(Function f) {
-  exists(f.getVisibility()) and
-  not exists(f.getVisibility().getPath())
-}
-
 /**
  * Holds if `t` offers `name` as a public inherent method.
  *
@@ -57,7 +51,7 @@ predicate publicMethod(TypeItem t, string name) {
     not exists(implTraitName(i)) and
     isEnforcedCrate(fileOf(i)) and
     f = i.getAssocItemList().getAnAssocItem() and
-    isBarePub(f) and
+    isBarePublic(f.getVisibility()) and
     not isTestCode(f) and
     name = nameOf(f)
   )

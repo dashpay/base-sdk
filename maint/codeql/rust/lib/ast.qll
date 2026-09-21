@@ -36,6 +36,12 @@ class Named extends Item {
 /** Gets the name of `n`. */
 string nameOf(Named n) { result = n.getNameText() }
 
+/**
+ * Holds if `v` is a bare `pub`. A scoped `pub(crate)` or `pub(super)` carries
+ * a path while bare `pub` does not.
+ */
+predicate isBarePublic(Visibility v) { not exists(v.getPath()) }
+
 /** Gets the identifier of `p`'s final segment, e.g. `c` for `a::b::c`. */
 string pathName(Path p) { result = p.getSegment().getIdentifier().getText() }
 
