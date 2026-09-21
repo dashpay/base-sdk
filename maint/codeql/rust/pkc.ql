@@ -46,7 +46,7 @@ predicate armRole(TypeItem t, string arm, string role) {
  */
 predicate publicMethod(TypeItem t, string name) {
   exists(Impl i, Function f |
-    not exists(MacroItems m | i = m.getItem(_)) and
+    not isMacroGenerated(i) and
     implSelfName(i) = nameOf(t) and
     not exists(implTraitName(i)) and
     isEnforcedCrate(fileOf(i)) and

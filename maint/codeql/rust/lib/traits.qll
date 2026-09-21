@@ -75,7 +75,7 @@ private predicate manualImplInfo(Impl i, File f, string selfName, string traitNa
   f = fileOf(i) and
   selfName = implSelfName(i) and
   traitName = implTraitName(i) and
-  not exists(MacroItems m | i = m.getItem(_)) and
+  not isMacroGenerated(i) and
   scope = i.(AstNode).getParentNode()
 }
 
@@ -146,7 +146,7 @@ private predicate hasManualImplInCrate(TypeItem t, string traitName, string crat
   exists(Impl i |
     fileOf(i) = fileOf(t) and
     implSelfName(i) = nameOf(t) and
-    not exists(MacroItems m | i = m.getItem(_)) and
+    not isMacroGenerated(i) and
     implTraitHasCrate(i, traitName, crate) and
     i.(AstNode).getParentNode() = t.(AstNode).getParentNode()
   )
@@ -201,7 +201,7 @@ predicate macroTraitImpl(TypeItem t, string trait, Impl i, int line) {
 /** Binds an inherent impl (no trait) for `t`. */
 pragma[nomagic]
 predicate inherentImpl(TypeItem t, Impl i, int line) {
-  not exists(MacroItems m | i = m.getItem(_)) and
+  not isMacroGenerated(i) and
   fileOf(i) = fileOf(t) and
   implSelfName(i) = nameOf(t) and
   not exists(implTraitName(i)) and

@@ -177,7 +177,7 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
   // hand-written impl is always outside that span).
   (traitName = "Serialize" or traitName = "Deserialize") and
   exists(Impl i |
-    not exists(MacroItems m | i = m.getItem(_)) and
+    not isMacroGenerated(i) and
     fileOf(i) = fileOf(t) and
     implSelfName(i) = nameOf(t) and
     implTraitName(i) = traitName and

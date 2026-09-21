@@ -36,6 +36,9 @@ class Named extends Item {
 /** Gets the name of `n`. */
 string nameOf(Named n) { result = n.getNameText() }
 
+/** Holds if `i` was produced by a macro expansion. */
+predicate isMacroGenerated(Item i) { exists(MacroItems m | i = m.getItem(_)) }
+
 /**
  * Holds if `v` is a bare `pub`. A scoped `pub(crate)` or `pub(super)` carries
  * a path while bare `pub` does not.
