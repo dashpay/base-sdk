@@ -33,7 +33,7 @@ predicate callsZeroize(Function f) {
   or
   exists(PathExpr pe |
     pe.getEnclosingCallable() = f and
-    pe.getPath().getSegment().getIdentifier().getText().matches("zeroize%")
+    pathName(pe.getPath()).matches("zeroize%")
   )
 }
 
@@ -157,8 +157,8 @@ predicate wipesInBody(Function f) {
   exists(PathExpr pe, Path p |
     pe.getEnclosingCallable() = f and
     p = pe.getPath() and
-    p.getSegment().getIdentifier().getText() = "new" and
-    p.getQualifier().getSegment().getIdentifier().getText() = "Zeroizing"
+    pathName(p) = "new" and
+    pathQualifierName(p) = "Zeroizing"
   )
 }
 
@@ -207,7 +207,7 @@ predicate callsCtEq(Function f) {
   or
   exists(PathExpr pe |
     pe.getEnclosingCallable() = f and
-    pe.getPath().getSegment().getIdentifier().getText() = "ct_eq"
+    pathName(pe.getPath()) = "ct_eq"
   )
 }
 

@@ -59,7 +59,7 @@ predicate isTestCode(Locatable t) {
 predicate hasUnexpandedDerive(TypeItem t) {
   exists(Attr a |
     a = t.getAnAttr() and
-    a.getMeta().getMetaPath().getSegment().getIdentifier().getText() = "derive"
+    pathName(a.getMeta().getMetaPath()) = "derive"
   ) and
   not exists(t.getADeriveMacroExpansion())
 }

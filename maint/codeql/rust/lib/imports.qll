@@ -79,7 +79,7 @@ private predicate isAllowlistedReexport(Use u) {
     (
       symbol = ""
       or
-      symbol = u.getUseTree().getPath().getSegment().getIdentifier().getText()
+      symbol = pathName(u.getUseTree().getPath())
     )
   )
 }

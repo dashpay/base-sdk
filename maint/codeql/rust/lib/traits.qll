@@ -6,7 +6,7 @@
  * @description Helpers for inspecting trait impls and derive macros.
  */
 
-import lib.files
+import lib.ast
 import rust
 
 /** Gets the path from an impl block's trait reference. */
@@ -19,8 +19,8 @@ private Path implTraitPath(Impl i) { result = i.getTraitTy().(PathTypeRepr).getP
 private predicate implTraitHasCrate(Impl i, string traitName, string crate) {
   exists(Path p |
     p = implTraitPath(i) and
-    p.getSegment().getIdentifier().getText() = traitName and
-    p.getQualifier().getSegment().getIdentifier().getText() = crate
+    pathName(p) = traitName and
+    pathQualifierName(p) = crate
   )
 }
 
@@ -35,13 +35,11 @@ string implTraitName(Impl i) {
   result = i.getTrait().getName().getText()
   or
   not exists(i.getTrait()) and
-  result = implTraitPath(i).getSegment().getIdentifier().getText()
+  result = pathName(implTraitPath(i))
 }
 
 /** Gets the type name from an impl block's self type. */
-string implSelfName(Impl i) {
-  result = i.getSelfTy().(PathTypeRepr).getPath().getSegment().getIdentifier().getText()
-}
+string implSelfName(Impl i) { result = pathName(i.getSelfTy().(PathTypeRepr).getPath()) }
 
 /** Gets a method defined in `i`'s associated item list. */
 private Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocItem() }

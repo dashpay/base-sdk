@@ -11,6 +11,12 @@ import rust
 private import codeql.rust.internal.typeinference.Type as T
 private import codeql.rust.internal.typeinference.TypeMention
 
+/** Gets the identifier of `p`'s final segment, e.g. `c` for `a::b::c`. */
+string pathName(Path p) { result = p.getSegment().getIdentifier().getText() }
+
+/** Gets the identifier of `p`'s qualifier, e.g. `b` for `a::b::c`. */
+string pathQualifierName(Path p) { result = pathName(p.getQualifier()) }
+
 /** Gets an attribute of a preamble item (Use, Module, or ExternCrate). */
 private Attr itemAttr(Item item) {
   result = item.(Use).getAnAttr() or
@@ -40,14 +46,10 @@ predicate isRootModule(Module m) {
 }
 
 /** Gets the first path segment of use declaration `u`. */
-string usePrefix(Use u) {
-  result = rootPath(u.getUseTree().getPath()).getSegment().getIdentifier().getText()
-}
+string usePrefix(Use u) { result = pathName(rootPath(u.getUseTree().getPath())) }
 
 /** Gets the head identifier of `tr`, e.g. `Vec` for `Vec<u8>`. */
-string typeHead(TypeRepr tr) {
-  result = tr.(PathTypeRepr).getPath().getSegment().getIdentifier().getText()
-}
+string typeHead(TypeRepr tr) { result = pathName(tr.(PathTypeRepr).getPath()) }
 
 /** Gets the type item `tr` names, resolved through the type layer. */
 TypeItem namedTypeItem(TypeRepr tr) {
