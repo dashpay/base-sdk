@@ -54,7 +54,7 @@ predicate wipesSelf(TypeItem t) {
     i.getSelf() = t and
     implTraitName(i) = "Drop" and
     isWorkspaceFile(fileOf(i)) and
-    d = i.getAssocItemList().getAnAssocItem() and
+    d = implItem(i) and
     nameOf(d) = "drop" and
     callsZeroize(d)
   )
@@ -144,7 +144,7 @@ predicate usesSecretBridge(TypeItem t) {
   exists(Impl i, TypeAlias ta |
     i.getSelf() = t and
     implTraitName(i) = "Encodable" and
-    ta = i.getAssocItemList().getAnAssocItem() and
+    ta = implItem(i) and
     nameOf(ta) = "Encoder" and
     typeHead(ta.getTypeRepr()) = "ArrEncoder"
   )
@@ -192,7 +192,7 @@ predicate constantTimeEq(TypeItem t) {
   exists(Impl i, Function eq |
     i.getSelf() = t and
     implTraitName(i) = "PartialEq" and
-    eq = i.getAssocItemList().getAnAssocItem() and
+    eq = implItem(i) and
     nameOf(eq) = "eq" and
     callsCtEq(eq)
   )
@@ -277,7 +277,7 @@ predicate variableTimeSecretTest(Function f, string how) {
   exists(TypeItem t, Impl i |
     enforcedSecretType(t) and
     i.getSelf() = t and
-    f = i.getAssocItemList().getAnAssocItem() and
+    f = implItem(i) and
     not isTestCode(f) and
     not nameOf(f) = "eq" and
     typeHead(f.getRetType().getTypeRepr()) = "bool" and

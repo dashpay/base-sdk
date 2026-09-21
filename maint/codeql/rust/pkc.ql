@@ -50,7 +50,7 @@ predicate publicMethod(TypeItem t, string name) {
     implSelfName(i) = nameOf(t) and
     not exists(implTraitName(i)) and
     isEnforcedCrate(fileOf(i)) and
-    f = i.getAssocItemList().getAnAssocItem() and
+    f = implItem(i) and
     isBarePublic(f.getVisibility()) and
     not isTestCode(f) and
     name = nameOf(f)

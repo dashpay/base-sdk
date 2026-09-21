@@ -41,8 +41,11 @@ string implTraitName(Impl i) {
 /** Gets the type name from an impl block's self type. */
 string implSelfName(Impl i) { result = pathName(i.getSelfTy().(PathTypeRepr).getPath()) }
 
+/** Gets an item declared in `i`'s associated item list. */
+AssocItem implItem(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
+
 /** Gets a method defined in `i`'s associated item list. */
-private Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
+private Function implMethod(Impl i) { result = implItem(i) }
 
 /**
  * Holds if `over` in `i` overrides the default body that `decl` supplies
