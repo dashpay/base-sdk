@@ -26,8 +26,7 @@ predicate hasDerive(TypeItem t, string name) {
     fileRelPath(fileOf(t), relPath) and
     sourceLineContent(relPath, srcLine, content) and
     content.regexpMatch(".*\\b" + name + "\\b.*") and
-    srcLine >= a.getLocation().getStartLine() and
-    srcLine <= a.getLocation().getEndLine()
+    lineWithin(srcLine, a)
   )
 }
 
@@ -183,8 +182,7 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
     fileOf(i) = fileOf(t) and
     implSelfName(i) = t.getName().getText() and
     implTraitName(i) = traitName and
-    startLine(i) >= startLine(t) and
-    startLine(i) <= endLine(t)
+    lineWithin(startLine(i), t)
   )
   or
   // Derive mention inside an attribute range (cfg_attr, cfg, or derive).
@@ -193,8 +191,7 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
     fileRelPath(fileOf(t), relPath) and
     sourceLineContent(relPath, srcLine, content) and
     content.regexpMatch(".*\\b" + traitName + "\\b.*") and
-    srcLine >= a.getLocation().getStartLine() and
-    srcLine <= a.getLocation().getEndLine()
+    lineWithin(srcLine, a)
   )
   or
   // Manual impl behind #[cfg(feature = "serde")] that the

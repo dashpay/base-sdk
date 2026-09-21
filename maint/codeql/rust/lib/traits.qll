@@ -187,7 +187,7 @@ pragma[nomagic]
 predicate manualTraitImpl(TypeItem t, string trait, Impl i, int line) {
   manualImplInfo(i, fileOf(t), t.getName().getText(), trait, t.(AstNode).getParentNode()) and
   line = startLine(i) and
-  not (line >= startLine(t) and line <= endLine(t))
+  not lineWithin(line, t)
 }
 
 /** Binds a macro-generated (non-derive) `impl Trait for t`. */

@@ -16,6 +16,16 @@ int startLine(Locatable n) { result = n.getLocation().getStartLine() }
 pragma[inline]
 int endLine(Locatable n) { result = n.getLocation().getEndLine() }
 
+/**
+ * Holds if `line` falls within the span of `outer`, inclusive of both ends.
+ */
+bindingset[line]
+pragma[inline]
+predicate lineWithin(int line, Locatable outer) {
+  line >= startLine(outer) and
+  line <= endLine(outer)
+}
+
 /** Gets the file containing `n`. */
 pragma[inline]
 File fileOf(Locatable n) { result = n.getLocation().getFile() }
