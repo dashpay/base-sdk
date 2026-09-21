@@ -44,7 +44,7 @@ string implSelfName(Impl i) {
 }
 
 /** Gets a method defined in `i`'s associated item list. */
-Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
+private Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
 
 /**
  * Holds if `over` in `i` overrides the default body that `decl` supplies
@@ -60,7 +60,7 @@ predicate overridesDefault(Trait t, Function decl, Impl i, Function over) {
 }
 
 /** Gets a method declared directly in `t`'s associated item list. */
-Function traitMethod(Trait t) { result = t.getAssocItemList().getAnAssocItem() }
+private Function traitMethod(Trait t) { result = t.getAssocItemList().getAnAssocItem() }
 
 /** Holds if `t` has a derived impl for `traitName`. */
 predicate hasDerivedImpl(TypeItem t, string traitName) {
@@ -132,7 +132,7 @@ predicate implementsPlainTrait(TypeItem t, string traitName) {
  * Holds if `t` has a derived impl for `traitName` under `crate`
  * (i.e. the trait path is `::<crate>::<traitName>`).
  */
-predicate hasDerivedImplInCrate(TypeItem t, string traitName, string crate) {
+private predicate hasDerivedImplInCrate(TypeItem t, string traitName, string crate) {
   exists(MacroItems expansion, Impl i |
     expansion = t.getADeriveMacroExpansion() and
     i = expansion.getItem(_) and
@@ -144,7 +144,7 @@ predicate hasDerivedImplInCrate(TypeItem t, string traitName, string crate) {
  * Holds if `t` has a manual impl for `traitName` under `crate`
  * (i.e. the trait path is `<crate>::<traitName>`).
  */
-predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
+private predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
   exists(Impl i |
     fileOf(i) = fileOf(t) and
     implSelfName(i) = t.getName().getText() and
@@ -158,7 +158,7 @@ predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
  * Holds if `t` has a macro-generated (non-derive) impl for `traitName`
  * under `crate` (e.g. from `impl_num!`).
  */
-predicate hasMacroImplInCrate(TypeItem t, string traitName, string crate) {
+private predicate hasMacroImplInCrate(TypeItem t, string traitName, string crate) {
   exists(MacroItems m, Impl i |
     i = m.getItem(_) and
     not m = t.getADeriveMacroExpansion() and

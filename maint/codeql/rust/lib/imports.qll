@@ -39,7 +39,7 @@ string groupLabel(int g) {
  * Bare `pub` has a Visibility node with no path; `pub(crate)` and
  * `pub(super)` carry a path whose segment is "crate" or "super".
  */
-predicate isPublicUse(Use u) {
+private predicate isPublicUse(Use u) {
   exists(u.getVisibility()) and
   not exists(u.getVisibility().getPath())
 }
@@ -49,7 +49,7 @@ predicate isPublicUse(Use u) {
  *
  * See `isPublicUse` for the visibility encoding rationale.
  */
-predicate isPublicMod(Module m) {
+private predicate isPublicMod(Module m) {
   exists(m.getVisibility()) and
   not exists(m.getVisibility().getPath())
 }
@@ -117,7 +117,7 @@ predicate isForeignReexport(Use u) {
  * Gets the use-declaration base group (ignoring pub/priv).
  * 2 = crate/super, 3 = external, 4 = alloc/core/std.
  */
-int useBaseGroup(Use u) {
+private int useBaseGroup(Use u) {
   exists(string prefix | prefix = usePrefix(u) |
     (prefix = "crate" or prefix = "super" or prefix = "self") and
     result = 2
@@ -136,14 +136,14 @@ int useBaseGroup(Use u) {
 }
 
 /** Gets the preamble group of use declaration `u`. */
-int useGroup(Use u) {
+private int useGroup(Use u) {
   isPublicUse(u) and result = useBaseGroup(u) + 4
   or
   not isPublicUse(u) and result = useBaseGroup(u)
 }
 
 /** Gets the preamble group of a file-level module declaration `m`. */
-int modGroup(Module m) {
+private int modGroup(Module m) {
   not exists(m.getItemList()) and
   (
     isPublicMod(m) and result = 5
@@ -157,7 +157,7 @@ int modGroup(Module m) {
  * tuples for ordering analysis.
  */
 pragma[noinline]
-predicate preambleItem(Locatable item, File f, int group, int effStart, int end) {
+private predicate preambleItem(Locatable item, File f, int group, int effStart, int end) {
   exists(Use u |
     item = u and
     f = fileOf(u) and

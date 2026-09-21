@@ -38,7 +38,7 @@ int effectiveStart(Item item) {
 }
 
 /** Gets the root (qualifier-less) segment of path `p`. */
-Path rootPath(Path p) {
+private Path rootPath(Path p) {
   result = p.getQualifier*() and
   not exists(result.getQualifier())
 }

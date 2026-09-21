@@ -93,17 +93,17 @@ predicate isErrorType(TypeItem t) {
 }
 
 /** Holds if `t` is a dispatch/message type (name ends with Message). */
-predicate isDispatchType(TypeItem t) { t.getName().getText().matches("%Message") }
+private predicate isDispatchType(TypeItem t) { t.getName().getText().matches("%Message") }
 
 /** Holds if `t` is an opaque single-field wrapper. */
-predicate isOpaqueType(TypeItem t) {
+private predicate isOpaqueType(TypeItem t) {
   t instanceof Struct and
   isOpaqueCrate(fileOf(t)) and
   isSingleTupleField(t)
 }
 
 /** Holds if `t` is a compile-time marker type (empty enum, zero-sized). */
-predicate isMarkerType(TypeItem t) {
+private predicate isMarkerType(TypeItem t) {
   t instanceof Enum and
   t.(Enum).hasVariantList() and
   count(t.(Enum).getVariantList().getAVariant()) = 0
@@ -122,7 +122,7 @@ private predicate typeNameInCrate(TypeItem t, string name, string crate) {
 }
 
 /** Holds if struct `s` contains a float field, directly or transitively. */
-predicate hasFloatField(TypeItem t) {
+private predicate hasFloatField(TypeItem t) {
   typeFieldName(t) = ["f32", "f64"]
   or
   exists(TypeItem inner, string name, string crate |
@@ -145,7 +145,7 @@ string requiredTrait() { result = ["Clone", "Debug", "Eq", "Hash", "PartialEq"] 
 string requiredSerdeTrait() { result = ["Serialize", "Deserialize"] }
 
 /** Holds if `t` is codec infrastructure (decoder, encoder, or buffer types). */
-predicate isCodecType(TypeItem t) {
+private predicate isCodecType(TypeItem t) {
   t.getName().getText().matches("%Decoder%") or
   t.getName().getText().matches("%Encoder%") or
   t.getName().getText() = "ArrayBuf"
@@ -254,7 +254,7 @@ predicate isSerdeExempt(TypeItem t) {
 }
 
 /** Declaration slots that define the required source ordering. */
-newtype TDeclSlot =
+private newtype TDeclSlot =
   TDefinition() or
   TNumericImpl() or
   TBaseCodecImpl() or
@@ -302,7 +302,7 @@ class DeclSlot extends TDeclSlot {
 }
 
 /** Maps a trait name to its declaration slot. */
-DeclSlot traitSlot(string traitName) {
+private DeclSlot traitSlot(string traitName) {
   traitName = "Numeric" and result = TNumericImpl()
   or
   traitName = "BaseCodec" and result = TBaseCodecImpl()
@@ -319,7 +319,7 @@ DeclSlot traitSlot(string traitName) {
 /** Gets the slot for trait `trait`. */
 bindingset[trait]
 pragma[inline]
-DeclSlot traitImplSlot(string trait) {
+private DeclSlot traitImplSlot(string trait) {
   result = traitSlot(trait)
   or
   not exists(traitSlot(trait)) and result = TTraitImpl()
