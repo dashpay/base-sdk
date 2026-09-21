@@ -44,7 +44,7 @@ where
     not isSerdeInternalType(t) and
     not isNotEncodable(t) and
     isEnforcedCrate(fileOf(t)) and
-    name = t.getName().getText() and
+    name = nameOf(t) and
     exists(DeclSlot badSlot, int badLine, DeclSlot priorSlot |
       outOfOrder(t, badSlot, badLine, priorSlot, item) and
       message =

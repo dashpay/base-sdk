@@ -35,7 +35,7 @@ private predicate testModuleSpan(File file, int mStart, int mEnd) {
     file = fileOf(m) and
     mStart = startLine(m) and
     mEnd = endLine(m) and
-    m.getName().getText() = "tests" and
+    nameOf(m) = "tests" and
     m.getAnAttr().getMeta() instanceof CfgMeta
   )
 }

@@ -55,7 +55,7 @@ predicate wipesSelf(TypeItem t) {
     implTraitName(i) = "Drop" and
     isWorkspaceFile(fileOf(i)) and
     d = i.getAssocItemList().getAnAssocItem() and
-    d.getName().getText() = "drop" and
+    nameOf(d) = "drop" and
     callsZeroize(d)
   )
 }
@@ -70,7 +70,7 @@ predicate externalWiper(TypeItem t) {
   not isWorkspaceFile(fileOf(t)) and
   (
     // `blst::{min_pk,min_sig}::SecretKey` are declared `#[zeroize(drop)]`.
-    t.getName().getText() = "SecretKey" and
+    nameOf(t) = "SecretKey" and
     fileOf(t).getAbsolutePath().matches("%/blst-%/src/lib.rs")
   )
 }
@@ -145,7 +145,7 @@ predicate usesSecretBridge(TypeItem t) {
     i.getSelf() = t and
     implTraitName(i) = "Encodable" and
     ta = i.getAssocItemList().getAnAssocItem() and
-    ta.getName().getText() = "Encoder" and
+    nameOf(ta) = "Encoder" and
     typeHead(ta.getTypeRepr()) = "ArrEncoder"
   )
 }
@@ -193,7 +193,7 @@ predicate constantTimeEq(TypeItem t) {
     i.getSelf() = t and
     implTraitName(i) = "PartialEq" and
     eq = i.getAssocItemList().getAnAssocItem() and
-    eq.getName().getText() = "eq" and
+    nameOf(eq) = "eq" and
     callsCtEq(eq)
   )
 }
@@ -279,7 +279,7 @@ predicate variableTimeSecretTest(Function f, string how) {
     i.getSelf() = t and
     f = i.getAssocItemList().getAnAssocItem() and
     not isTestCode(f) and
-    not f.getName().getText() = "eq" and
+    not nameOf(f) = "eq" and
     typeHead(f.getRetType().getTypeRepr()) = "bool" and
     (
       stopsEarly(f, how)

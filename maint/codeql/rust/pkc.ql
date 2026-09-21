@@ -28,7 +28,7 @@ predicate armRole(TypeItem t, string arm, string role) {
   isSourceType(t) and
   isEnforcedCrate(fileOf(t)) and
   exists(string name |
-    name = t.getName().getText() and
+    name = nameOf(t) and
     arm = name.regexpCapture("^(Bls|Ecdsa|Eddsa)([A-Z].*)$", 1) and
     role = name.regexpCapture("^(Bls|Ecdsa|Eddsa)([A-Z].*)$", 2)
   )
@@ -53,13 +53,13 @@ predicate isBarePub(Function f) {
 predicate publicMethod(TypeItem t, string name) {
   exists(Impl i, Function f |
     not exists(MacroItems m | i = m.getItem(_)) and
-    implSelfName(i) = t.getName().getText() and
+    implSelfName(i) = nameOf(t) and
     not exists(implTraitName(i)) and
     isEnforcedCrate(fileOf(i)) and
     f = i.getAssocItemList().getAnAssocItem() and
     isBarePub(f) and
     not isTestCode(f) and
-    name = f.getName().getText()
+    name = nameOf(f)
   )
 }
 
@@ -102,12 +102,11 @@ from TypeItem t, string message
 where
   exists(string role, string name, string arm |
     shapeGap(t, role, name, arm) and
-    message =
-      fmt("{0} offers {1}, {2} does not", arm + role, fmt("{0}()", name), t.getName().getText())
+    message = fmt("{0} offers {1}, {2} does not", arm + role, fmt("{0}()", name), nameOf(t))
   )
   or
   exists(string role, string trait, string arm |
     traitGap(t, role, trait, arm) and
-    message = fmt("{0} implements {1}, {2} does not", arm + role, trait, t.getName().getText())
+    message = fmt("{0} implements {1}, {2} does not", arm + role, trait, nameOf(t))
   )
 select t, message

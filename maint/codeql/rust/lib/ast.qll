@@ -11,6 +11,31 @@ import rust
 private import codeql.rust.internal.typeinference.Type as T
 private import codeql.rust.internal.typeinference.TypeMention
 
+/**
+ * An item that carries a name.
+ */
+class Named extends Item {
+  Named() {
+    this instanceof TypeItem or
+    this instanceof Function or
+    this instanceof Trait or
+    this instanceof Module or
+    this instanceof TypeAlias
+  }
+
+  /** Gets this item's name. */
+  string getNameText() {
+    result = this.(TypeItem).getName().getText() or
+    result = this.(Function).getName().getText() or
+    result = this.(Trait).getName().getText() or
+    result = this.(Module).getName().getText() or
+    result = this.(TypeAlias).getName().getText()
+  }
+}
+
+/** Gets the name of `n`. */
+string nameOf(Named n) { result = n.getNameText() }
+
 /** Gets the identifier of `p`'s final segment, e.g. `c` for `a::b::c`. */
 string pathName(Path p) { result = p.getSegment().getIdentifier().getText() }
 

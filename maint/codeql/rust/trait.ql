@@ -20,10 +20,10 @@ import rust
 from Function over, string message
 where
   exists(Trait t, Function decl, Impl i |
-    isMutexTrait(t.getName().getText()) and
+    isMutexTrait(nameOf(t)) and
     overridesDefault(t, decl, i, over) and
     message =
-      fmt("{0} overrides the default {1} provides for {2}", implSelfName(i), t.getName().getText(),
-        fmt("{0}()", decl.getName().getText()))
+      fmt("{0} overrides the default {1} provides for {2}", implSelfName(i), nameOf(t),
+        fmt("{0}()", nameOf(decl)))
   )
 select over, message

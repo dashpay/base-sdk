@@ -32,7 +32,7 @@ private predicate implTraitHasCrate(Impl i, string traitName, string crate) {
  * the trait lives in a crate the extractor did not resolve.
  */
 string implTraitName(Impl i) {
-  result = i.getTrait().getName().getText()
+  result = nameOf(i.getTrait())
   or
   not exists(i.getTrait()) and
   result = pathName(implTraitPath(i))
@@ -52,9 +52,9 @@ private Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocIt
 predicate overridesDefault(Trait t, Function decl, Impl i, Function over) {
   decl = traitMethod(t) and
   decl.hasBody() and
-  implTraitName(i) = t.getName().getText() and
+  implTraitName(i) = nameOf(t) and
   over = implMethod(i) and
-  over.getName().getText() = decl.getName().getText()
+  nameOf(over) = nameOf(decl)
 }
 
 /** Gets a method declared directly in `t`'s associated item list. */
@@ -145,7 +145,7 @@ private predicate hasDerivedImplInCrate(TypeItem t, string traitName, string cra
 private predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
   exists(Impl i |
     fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
+    implSelfName(i) = nameOf(t) and
     not exists(MacroItems m | i = m.getItem(_)) and
     implTraitHasCrate(i, traitName, crate) and
     i.(AstNode).getParentNode() = t.(AstNode).getParentNode()
@@ -161,7 +161,7 @@ private predicate hasMacroImplInCrate(TypeItem t, string traitName, string crate
     i = m.getItem(_) and
     not m = t.getADeriveMacroExpansion() and
     fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
+    implSelfName(i) = nameOf(t) and
     implTraitHasCrate(i, traitName, crate)
   )
 }
@@ -183,7 +183,7 @@ predicate implementsTraitInCrate(TypeItem t, string traitName, string crate) {
  */
 pragma[nomagic]
 predicate manualTraitImpl(TypeItem t, string trait, Impl i, int line) {
-  manualImplInfo(i, fileOf(t), t.getName().getText(), trait, t.(AstNode).getParentNode()) and
+  manualImplInfo(i, fileOf(t), nameOf(t), trait, t.(AstNode).getParentNode()) and
   line = startLine(i) and
   not lineWithin(line, t)
 }
@@ -192,7 +192,7 @@ predicate manualTraitImpl(TypeItem t, string trait, Impl i, int line) {
 pragma[nomagic]
 predicate macroTraitImpl(TypeItem t, string trait, Impl i, int line) {
   exists(MacroItems m |
-    macroImplInfo(m, i, fileOf(t), t.getName().getText(), trait) and
+    macroImplInfo(m, i, fileOf(t), nameOf(t), trait) and
     not m = t.getADeriveMacroExpansion() and
     line = startLine(i)
   )
@@ -203,7 +203,7 @@ pragma[nomagic]
 predicate inherentImpl(TypeItem t, Impl i, int line) {
   not exists(MacroItems m | i = m.getItem(_)) and
   fileOf(i) = fileOf(t) and
-  implSelfName(i) = t.getName().getText() and
+  implSelfName(i) = nameOf(t) and
   not exists(implTraitName(i)) and
   i.(AstNode).getParentNode() = t.(AstNode).getParentNode() and
   line = startLine(i)

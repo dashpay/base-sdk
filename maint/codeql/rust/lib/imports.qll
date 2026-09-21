@@ -57,7 +57,7 @@ private predicate isPublicMod(Module m) {
 /** Holds if `u` sits directly inside the crate-root module `name`. */
 private predicate isInRootModule(Use u, string name) {
   exists(Module m |
-    m.getName().getText() = name and
+    nameOf(m) = name and
     u.getParentNode() = m.getItemList() and
     isRootModule(m)
   )
@@ -100,7 +100,7 @@ predicate isForeignReexport(Use u) {
     not prefix = "self" and
     not prefix = "super" and
     not exists(Module m |
-      m.getName().getText() = prefix and
+      nameOf(m) = prefix and
       (
         // Direct sibling in the same scope.
         m.getParentNode() = u.getParentNode()

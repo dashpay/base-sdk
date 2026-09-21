@@ -40,17 +40,17 @@ predicate isNotEncodable(TypeItem t) {
 /** Holds if `t` holds secret or security-sensitive material. */
 predicate isSecretType(TypeItem t) {
   (
-    t.getName().getText().regexpMatch(".*(Secret|Private|Seed|Password|Mnemonic|SkBytes|DhBytes).*")
+    nameOf(t).regexpMatch(".*(Secret|Private|Seed|Password|Mnemonic|SkBytes|DhBytes).*")
     or
     // "Share" is the one keyword that "Shared" (e.g. SharedState) matches without holding a secret,
     // so the guard applies to it alone, exceptions to this rule are explicitly enumerated.
-    t.getName().getText().regexpMatch(".*Share.*") and
-    not t.getName().getText().regexpMatch(".*Shared.*")
+    nameOf(t).regexpMatch(".*Share.*") and
+    not nameOf(t).regexpMatch(".*Shared.*")
     or
     // Scalar field wrapper holding secret key material
-    t.getName().getText() = "Fr"
+    nameOf(t) = "Fr"
   ) and
-  not t.getName().getText() =
+  not nameOf(t) =
     [
       // A share *of a signature* is published, so it's non-secret. Excluded by exact name because
       // `BlsSkShare` and `RawShare` match the same Share substring and do carry secret scalars.
@@ -78,20 +78,20 @@ predicate isGrowableType(TypeRepr tr) {
 
 /** Holds if `t` is an iterator type (name ends with Iterator or Iter). */
 predicate isIteratorType(TypeItem t) {
-  t.getName().getText().matches("%Iterator") or
-  t.getName().getText().matches("%Iter")
+  nameOf(t).matches("%Iterator") or
+  nameOf(t).matches("%Iter")
 }
 
 /** Holds if `t` is an error type (name ends with Error, Invalid, TooLong, or TooShort). */
 predicate isErrorType(TypeItem t) {
-  t.getName().getText().matches("%Error") or
-  t.getName().getText().matches("%Invalid") or
-  t.getName().getText().matches("%TooLong") or
-  t.getName().getText().matches("%TooShort")
+  nameOf(t).matches("%Error") or
+  nameOf(t).matches("%Invalid") or
+  nameOf(t).matches("%TooLong") or
+  nameOf(t).matches("%TooShort")
 }
 
 /** Holds if `t` is a dispatch/message type (name ends with Message). */
-private predicate isDispatchType(TypeItem t) { t.getName().getText().matches("%Message") }
+private predicate isDispatchType(TypeItem t) { nameOf(t).matches("%Message") }
 
 /** Holds if `t` is an opaque single-field wrapper. */
 private predicate isOpaqueType(TypeItem t) {
@@ -116,7 +116,7 @@ private predicate fieldTypeInCrate(TypeItem t, string fieldTypeName, string crat
 /** Materialises (TypeItem, name, crate) for join efficiency. */
 pragma[nomagic]
 private predicate typeNameInCrate(TypeItem t, string name, string crate) {
-  name = t.getName().getText() and crate = cratePrefix(t)
+  name = nameOf(t) and crate = cratePrefix(t)
 }
 
 /** Holds if struct `s` contains a float field, directly or transitively. */
@@ -134,7 +134,7 @@ private predicate hasFloatField(TypeItem t) {
  * Holds if `t` is a serde internal generated type
  * (e.g. __FieldVisitor, __Visitor, __Field).
  */
-predicate isSerdeInternalType(TypeItem t) { t.getName().getText().matches("\\_\\_%") }
+predicate isSerdeInternalType(TypeItem t) { nameOf(t).matches("\\_\\_%") }
 
 /** Gets a required trait name. */
 string requiredTrait() { result = ["Clone", "Debug", "Eq", "Hash", "PartialEq"] }
@@ -144,9 +144,9 @@ string requiredSerdeTrait() { result = ["Serialize", "Deserialize"] }
 
 /** Holds if `t` is codec infrastructure (decoder, encoder, or buffer types). */
 private predicate isCodecType(TypeItem t) {
-  t.getName().getText().matches("%Decoder%") or
-  t.getName().getText().matches("%Encoder%") or
-  t.getName().getText() = "ArrayBuf"
+  nameOf(t).matches("%Decoder%") or
+  nameOf(t).matches("%Encoder%") or
+  nameOf(t) = "ArrayBuf"
 }
 
 /** Holds if `name` is a trait whose methods must have a body in exactly one layer. */
@@ -179,7 +179,7 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
   exists(Impl i |
     not exists(MacroItems m | i = m.getItem(_)) and
     fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
+    implSelfName(i) = nameOf(t) and
     implTraitName(i) = traitName and
     lineWithin(startLine(i), t)
   )
@@ -198,9 +198,7 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
   exists(string relPath, string content |
     fileRelPath(fileOf(t), relPath) and
     sourceLineContent(relPath, _, content) and
-    content
-        .regexpMatch("impl\\b.*\\bserde::" + traitName + "\\b.*\\bfor\\s+" + t.getName().getText() +
-            "\\b.*")
+    content.regexpMatch("impl\\b.*\\bserde::" + traitName + "\\b.*\\bfor\\s+" + nameOf(t) + "\\b.*")
   )
 }
 
@@ -222,7 +220,7 @@ predicate isSuppressed(TypeItem t, string trait) {
   or
   // Projective point wrappers hold non-canonical coordinates: suppress Eq and PartialEq
   isOpaqueType(t) and
-  t.getName().getText() = ["G1", "G2"] and
+  nameOf(t) = ["G1", "G2"] and
   trait = ["Eq", "PartialEq"]
 }
 
