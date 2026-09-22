@@ -6,7 +6,7 @@
  * @description Helpers for inspecting trait impls and derive macros.
  */
 
-import lib.files
+import lib.ast
 import rust
 
 /** Gets the path from an impl block's trait reference. */
@@ -19,8 +19,8 @@ private Path implTraitPath(Impl i) { result = i.getTraitTy().(PathTypeRepr).getP
 private predicate implTraitHasCrate(Impl i, string traitName, string crate) {
   exists(Path p |
     p = implTraitPath(i) and
-    p.getSegment().getIdentifier().getText() = traitName and
-    p.getQualifier().getSegment().getIdentifier().getText() = crate
+    pathName(p) = traitName and
+    pathQualifierName(p) = crate
   )
 }
 
@@ -32,19 +32,20 @@ private predicate implTraitHasCrate(Impl i, string traitName, string crate) {
  * the trait lives in a crate the extractor did not resolve.
  */
 string implTraitName(Impl i) {
-  result = i.getTrait().getName().getText()
+  result = nameOf(i.getTrait())
   or
   not exists(i.getTrait()) and
-  result = implTraitPath(i).getSegment().getIdentifier().getText()
+  result = pathName(implTraitPath(i))
 }
 
 /** Gets the type name from an impl block's self type. */
-string implSelfName(Impl i) {
-  result = i.getSelfTy().(PathTypeRepr).getPath().getSegment().getIdentifier().getText()
-}
+string implSelfName(Impl i) { result = pathName(i.getSelfTy().(PathTypeRepr).getPath()) }
+
+/** Gets an item declared in `i`'s associated item list. */
+AssocItem implItem(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
 
 /** Gets a method defined in `i`'s associated item list. */
-Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
+private Function implMethod(Impl i) { result = implItem(i) }
 
 /**
  * Holds if `over` in `i` overrides the default body that `decl` supplies
@@ -54,13 +55,13 @@ Function implMethod(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
 predicate overridesDefault(Trait t, Function decl, Impl i, Function over) {
   decl = traitMethod(t) and
   decl.hasBody() and
-  implTraitName(i) = t.getName().getText() and
+  implTraitName(i) = nameOf(t) and
   over = implMethod(i) and
-  over.getName().getText() = decl.getName().getText()
+  nameOf(over) = nameOf(decl)
 }
 
 /** Gets a method declared directly in `t`'s associated item list. */
-Function traitMethod(Trait t) { result = t.getAssocItemList().getAnAssocItem() }
+private Function traitMethod(Trait t) { result = t.getAssocItemList().getAnAssocItem() }
 
 /** Holds if `t` has a derived impl for `traitName`. */
 predicate hasDerivedImpl(TypeItem t, string traitName) {
@@ -77,7 +78,7 @@ private predicate manualImplInfo(Impl i, File f, string selfName, string traitNa
   f = fileOf(i) and
   selfName = implSelfName(i) and
   traitName = implTraitName(i) and
-  not exists(MacroItems m | i = m.getItem(_)) and
+  not isMacroGenerated(i) and
   scope = i.(AstNode).getParentNode()
 }
 
@@ -132,7 +133,7 @@ predicate implementsPlainTrait(TypeItem t, string traitName) {
  * Holds if `t` has a derived impl for `traitName` under `crate`
  * (i.e. the trait path is `::<crate>::<traitName>`).
  */
-predicate hasDerivedImplInCrate(TypeItem t, string traitName, string crate) {
+private predicate hasDerivedImplInCrate(TypeItem t, string traitName, string crate) {
   exists(MacroItems expansion, Impl i |
     expansion = t.getADeriveMacroExpansion() and
     i = expansion.getItem(_) and
@@ -144,11 +145,11 @@ predicate hasDerivedImplInCrate(TypeItem t, string traitName, string crate) {
  * Holds if `t` has a manual impl for `traitName` under `crate`
  * (i.e. the trait path is `<crate>::<traitName>`).
  */
-predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
+private predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
   exists(Impl i |
     fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
-    not exists(MacroItems m | i = m.getItem(_)) and
+    implSelfName(i) = nameOf(t) and
+    not isMacroGenerated(i) and
     implTraitHasCrate(i, traitName, crate) and
     i.(AstNode).getParentNode() = t.(AstNode).getParentNode()
   )
@@ -158,12 +159,12 @@ predicate hasManualImplInCrate(TypeItem t, string traitName, string crate) {
  * Holds if `t` has a macro-generated (non-derive) impl for `traitName`
  * under `crate` (e.g. from `impl_num!`).
  */
-predicate hasMacroImplInCrate(TypeItem t, string traitName, string crate) {
+private predicate hasMacroImplInCrate(TypeItem t, string traitName, string crate) {
   exists(MacroItems m, Impl i |
     i = m.getItem(_) and
     not m = t.getADeriveMacroExpansion() and
     fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
+    implSelfName(i) = nameOf(t) and
     implTraitHasCrate(i, traitName, crate)
   )
 }
@@ -185,16 +186,16 @@ predicate implementsTraitInCrate(TypeItem t, string traitName, string crate) {
  */
 pragma[nomagic]
 predicate manualTraitImpl(TypeItem t, string trait, Impl i, int line) {
-  manualImplInfo(i, fileOf(t), t.getName().getText(), trait, t.(AstNode).getParentNode()) and
+  manualImplInfo(i, fileOf(t), nameOf(t), trait, t.(AstNode).getParentNode()) and
   line = startLine(i) and
-  not (line >= startLine(t) and line <= endLine(t))
+  not lineWithin(line, t)
 }
 
 /** Binds a macro-generated (non-derive) `impl Trait for t`. */
 pragma[nomagic]
 predicate macroTraitImpl(TypeItem t, string trait, Impl i, int line) {
   exists(MacroItems m |
-    macroImplInfo(m, i, fileOf(t), t.getName().getText(), trait) and
+    macroImplInfo(m, i, fileOf(t), nameOf(t), trait) and
     not m = t.getADeriveMacroExpansion() and
     line = startLine(i)
   )
@@ -203,9 +204,9 @@ predicate macroTraitImpl(TypeItem t, string trait, Impl i, int line) {
 /** Binds an inherent impl (no trait) for `t`. */
 pragma[nomagic]
 predicate inherentImpl(TypeItem t, Impl i, int line) {
-  not exists(MacroItems m | i = m.getItem(_)) and
+  not isMacroGenerated(i) and
   fileOf(i) = fileOf(t) and
-  implSelfName(i) = t.getName().getText() and
+  implSelfName(i) = nameOf(t) and
   not exists(implTraitName(i)) and
   i.(AstNode).getParentNode() = t.(AstNode).getParentNode() and
   line = startLine(i)

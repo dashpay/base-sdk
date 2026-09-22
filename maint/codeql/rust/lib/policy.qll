@@ -6,11 +6,11 @@
  * @description Rule-specific policy predicates for type classification.
  */
 
-import lib.files
+import lib.ast
+import lib.crates
 import lib.filters
 import lib.source_lines
 import lib.traits
-import lib.types
 import rust
 
 /** Holds if `t` carries `#[derive(...name...)]` detected via source-line scanning. */
@@ -19,14 +19,13 @@ predicate hasDerive(TypeItem t, string name) {
   exists(Attr a, int srcLine, string relPath, string content |
     a = t.getAnAttr() and
     (
-      a.getMeta().getPath().getText() = "derive" or
-      a.getMeta().getPath().getText() = "cfg_attr"
+      a.getMeta().getMetaPath().getText() = "derive" or
+      a.getMeta() instanceof CfgAttrMeta
     ) and
     fileRelPath(fileOf(t), relPath) and
     sourceLineContent(relPath, srcLine, content) and
     content.regexpMatch(".*\\b" + name + "\\b.*") and
-    srcLine >= a.getLocation().getStartLine() and
-    srcLine <= a.getLocation().getEndLine()
+    lineWithin(srcLine, a)
   )
 }
 
@@ -41,17 +40,17 @@ predicate isNotEncodable(TypeItem t) {
 /** Holds if `t` holds secret or security-sensitive material. */
 predicate isSecretType(TypeItem t) {
   (
-    t.getName().getText().regexpMatch(".*(Secret|Private|Seed|Password|Mnemonic|SkBytes|DhBytes).*")
+    nameOf(t).regexpMatch(".*(Secret|Private|Seed|Password|Mnemonic|SkBytes|DhBytes).*")
     or
     // "Share" is the one keyword that "Shared" (e.g. SharedState) matches without holding a secret,
     // so the guard applies to it alone, exceptions to this rule are explicitly enumerated.
-    t.getName().getText().regexpMatch(".*Share.*") and
-    not t.getName().getText().regexpMatch(".*Shared.*")
+    nameOf(t).regexpMatch(".*Share.*") and
+    not nameOf(t).regexpMatch(".*Shared.*")
     or
     // Scalar field wrapper holding secret key material
-    t.getName().getText() = "Fr"
+    nameOf(t) = "Fr"
   ) and
-  not t.getName().getText() =
+  not nameOf(t) =
     [
       // A share *of a signature* is published, so it's non-secret. Excluded by exact name because
       // `BlsSkShare` and `RawShare` match the same Share substring and do carry secret scalars.
@@ -79,33 +78,30 @@ predicate isGrowableType(TypeRepr tr) {
 
 /** Holds if `t` is an iterator type (name ends with Iterator or Iter). */
 predicate isIteratorType(TypeItem t) {
-  t.getName().getText().matches("%Iterator") or
-  t.getName().getText().matches("%Iter")
+  nameOf(t).matches("%Iterator") or
+  nameOf(t).matches("%Iter")
 }
 
 /** Holds if `t` is an error type (name ends with Error, Invalid, TooLong, or TooShort). */
 predicate isErrorType(TypeItem t) {
-  t.getName().getText().matches("%Error") or
-  t.getName().getText().matches("%Invalid") or
-  t.getName().getText().matches("%TooLong") or
-  t.getName().getText().matches("%TooShort")
+  nameOf(t).matches("%Error") or
+  nameOf(t).matches("%Invalid") or
+  nameOf(t).matches("%TooLong") or
+  nameOf(t).matches("%TooShort")
 }
 
 /** Holds if `t` is a dispatch/message type (name ends with Message). */
-predicate isDispatchType(TypeItem t) { t.getName().getText().matches("%Message") }
+private predicate isDispatchType(TypeItem t) { nameOf(t).matches("%Message") }
 
-/** Holds if `t` is an opaque single-field wrapper in the pkc crate. */
-predicate isOpaqueType(TypeItem t) {
+/** Holds if `t` is an opaque single-field wrapper. */
+private predicate isOpaqueType(TypeItem t) {
   t instanceof Struct and
-  exists(string path |
-    path = fileOf(t).getAbsolutePath() and
-    path.matches("%/pkgs/pkc/%")
-  ) and
+  isOpaqueCrate(fileOf(t)) and
   isSingleTupleField(t)
 }
 
 /** Holds if `t` is a compile-time marker type (empty enum, zero-sized). */
-predicate isMarkerType(TypeItem t) {
+private predicate isMarkerType(TypeItem t) {
   t instanceof Enum and
   t.(Enum).hasVariantList() and
   count(t.(Enum).getVariantList().getAVariant()) = 0
@@ -120,11 +116,11 @@ private predicate fieldTypeInCrate(TypeItem t, string fieldTypeName, string crat
 /** Materialises (TypeItem, name, crate) for join efficiency. */
 pragma[nomagic]
 private predicate typeNameInCrate(TypeItem t, string name, string crate) {
-  name = t.getName().getText() and crate = cratePrefix(t)
+  name = nameOf(t) and crate = cratePrefix(t)
 }
 
 /** Holds if struct `s` contains a float field, directly or transitively. */
-predicate hasFloatField(TypeItem t) {
+private predicate hasFloatField(TypeItem t) {
   typeFieldName(t) = ["f32", "f64"]
   or
   exists(TypeItem inner, string name, string crate |
@@ -138,7 +134,7 @@ predicate hasFloatField(TypeItem t) {
  * Holds if `t` is a serde internal generated type
  * (e.g. __FieldVisitor, __Visitor, __Field).
  */
-predicate isSerdeInternalType(TypeItem t) { t.getName().getText().matches("\\_\\_%") }
+predicate isSerdeInternalType(TypeItem t) { nameOf(t).matches("\\_\\_%") }
 
 /** Gets a required trait name. */
 string requiredTrait() { result = ["Clone", "Debug", "Eq", "Hash", "PartialEq"] }
@@ -147,22 +143,14 @@ string requiredTrait() { result = ["Clone", "Debug", "Eq", "Hash", "PartialEq"] 
 string requiredSerdeTrait() { result = ["Serialize", "Deserialize"] }
 
 /** Holds if `t` is codec infrastructure (decoder, encoder, or buffer types). */
-predicate isCodecType(TypeItem t) {
-  t.getName().getText().matches("%Decoder%") or
-  t.getName().getText().matches("%Encoder%") or
-  t.getName().getText() = "ArrayBuf"
+private predicate isCodecType(TypeItem t) {
+  nameOf(t).matches("%Decoder%") or
+  nameOf(t).matches("%Encoder%") or
+  nameOf(t) = "ArrayBuf"
 }
 
 /** Holds if `name` is a trait whose methods must have a body in exactly one layer. */
 predicate isMutexTrait(string name) { name = "BlsScheme" }
-
-/** Holds if `t` lives in a crate with no public API. */
-predicate isPrivateCrate(TypeItem t) {
-  exists(string path |
-    path = fileOf(t).getAbsolutePath() and
-    path.matches("%/pkgs/dev/%")
-  )
-}
 
 /** Holds if `t` is a source type eligible for the "must derive" check. */
 predicate isCheckableType(TypeItem t) {
@@ -171,16 +159,8 @@ predicate isCheckableType(TypeItem t) {
   not isCodecType(t) and
   not isSecretType(t) and
   not isIteratorType(t) and
-  not isPrivateCrate(t) and
+  not isPrivateCrate(fileOf(t)) and
   not hasUnexpandedDerive(t)
-}
-
-/** Holds if `t` lives in a crate that does not have a `serde` feature. */
-predicate isNonSerdeCrate(TypeItem t) {
-  exists(string path |
-    path = fileOf(t).getAbsolutePath() and
-    (path.matches("%/pkgs/params/%") or path.matches("%/pkgs/pow/%"))
-  )
 }
 
 /**
@@ -197,12 +177,11 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
   // hand-written impl is always outside that span).
   (traitName = "Serialize" or traitName = "Deserialize") and
   exists(Impl i |
-    not exists(MacroItems m | i = m.getItem(_)) and
+    not isMacroGenerated(i) and
     fileOf(i) = fileOf(t) and
-    implSelfName(i) = t.getName().getText() and
+    implSelfName(i) = nameOf(t) and
     implTraitName(i) = traitName and
-    startLine(i) >= startLine(t) and
-    startLine(i) <= endLine(t)
+    lineWithin(startLine(i), t)
   )
   or
   // Derive mention inside an attribute range (cfg_attr, cfg, or derive).
@@ -211,8 +190,7 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
     fileRelPath(fileOf(t), relPath) and
     sourceLineContent(relPath, srcLine, content) and
     content.regexpMatch(".*\\b" + traitName + "\\b.*") and
-    srcLine >= a.getLocation().getStartLine() and
-    srcLine <= a.getLocation().getEndLine()
+    lineWithin(srcLine, a)
   )
   or
   // Manual impl behind #[cfg(feature = "serde")] that the
@@ -220,9 +198,7 @@ predicate implementsSerdeTrait(TypeItem t, string traitName) {
   exists(string relPath, string content |
     fileRelPath(fileOf(t), relPath) and
     sourceLineContent(relPath, _, content) and
-    content
-        .regexpMatch("impl\\b.*\\bserde::" + traitName + "\\b.*\\bfor\\s+" + t.getName().getText() +
-            "\\b.*")
+    content.regexpMatch("impl\\b.*\\bserde::" + traitName + "\\b.*\\bfor\\s+" + nameOf(t) + "\\b.*")
   )
 }
 
@@ -244,13 +220,13 @@ predicate isSuppressed(TypeItem t, string trait) {
   or
   // Projective point wrappers hold non-canonical coordinates: suppress Eq and PartialEq
   isOpaqueType(t) and
-  t.getName().getText() = ["G1", "G2"] and
+  nameOf(t) = ["G1", "G2"] and
   trait = ["Eq", "PartialEq"]
 }
 
 /** Holds if `t` is exempt from serde derivation requirements. */
 predicate isSerdeExempt(TypeItem t) {
-  isNonSerdeCrate(t)
+  isNonSerdeCrate(fileOf(t))
   or
   isNotEncodable(t)
   or
@@ -271,32 +247,8 @@ predicate isSerdeExempt(TypeItem t) {
   not implementsTrait(t, "PartialEq")
 }
 
-/** Holds if file `f` is in a crate subject to codec and ordering rules. */
-predicate isEnforcedCrate(File f) {
-  f.getAbsolutePath().matches("%/pkgs/num/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/types/%") and
-  not f.getAbsolutePath().matches("%/pkgs/types/marker/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/primitives/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/p2p_core/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/pkc/%")
-  or
-  f.getAbsolutePath().matches("%/pkgs/script/%")
-}
-
-/** Holds if file `f` is in a crate that can derive `Unencodable`. */
-predicate isUnencodableCrate(File f) {
-  f.getAbsolutePath().matches("%/pkgs/primitives/%") or
-  f.getAbsolutePath().matches("%/pkgs/p2p_core/%") or
-  f.getAbsolutePath().matches("%/pkgs/pkc/%") or
-  f.getAbsolutePath().matches("%/pkgs/script/%")
-}
-
 /** Declaration slots that define the required source ordering. */
-newtype TDeclSlot =
+private newtype TDeclSlot =
   TDefinition() or
   TNumericImpl() or
   TBaseCodecImpl() or
@@ -344,7 +296,7 @@ class DeclSlot extends TDeclSlot {
 }
 
 /** Maps a trait name to its declaration slot. */
-DeclSlot traitSlot(string traitName) {
+private DeclSlot traitSlot(string traitName) {
   traitName = "Numeric" and result = TNumericImpl()
   or
   traitName = "BaseCodec" and result = TBaseCodecImpl()
@@ -361,7 +313,7 @@ DeclSlot traitSlot(string traitName) {
 /** Gets the slot for trait `trait`. */
 bindingset[trait]
 pragma[inline]
-DeclSlot traitImplSlot(string trait) {
+private DeclSlot traitImplSlot(string trait) {
   result = traitSlot(trait)
   or
   not exists(traitSlot(trait)) and result = TTraitImpl()

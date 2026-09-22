@@ -6,7 +6,8 @@
  * @description Preamble classification building blocks for import ordering.
  */
 
-import lib.files
+import lib.ast
+import lib.crates
 import rust
 
 /** Gets the human-readable label for group `g`. */
@@ -32,101 +33,33 @@ string groupLabel(int g) {
   g = 8 and result = "pub use alloc/core/std"
 }
 
-/**
- * Holds if use declaration `u` has `pub` visibility.
- *
- * Bare `pub` has a Visibility node with no path; `pub(crate)` and
- * `pub(super)` carry a path whose segment is "crate" or "super".
- */
-predicate isPublicUse(Use u) {
-  exists(u.getVisibility()) and
-  not exists(u.getVisibility().getPath())
-}
-
-/**
- * Holds if module declaration `m` has `pub` visibility.
- *
- * See `isPublicUse` for the visibility encoding rationale.
- */
-predicate isPublicMod(Module m) {
-  exists(m.getVisibility()) and
-  not exists(m.getVisibility().getPath())
-}
-
 /** Holds if `u` sits directly inside the crate-root module `name`. */
 private predicate isInRootModule(Use u, string name) {
   exists(Module m |
-    m.getName().getText() = name and
+    nameOf(m) = name and
     u.getParentNode() = m.getItemList() and
     isRootModule(m)
   )
 }
 
 /**
- * Holds if `u` lives inside a crate-root `__private` module
- * (intentional crate-level re-exports for macro support).
+ * Holds if `crate` may re-export `symbol` from `dep` inside `scope`. A column
+ * left empty allows any of its kind. Rows live in `policy.model.yml`.
  */
-predicate isMacroReexport(Use u) { isInRootModule(u, "__private") }
+extensible private predicate allowedReexport(string crate, string scope, string dep, string symbol);
 
 /** Holds if `u` is an allowlisted re-export from a foreign crate. */
 private predicate isAllowlistedReexport(Use u) {
-  fileOf(u).getAbsolutePath().matches("%pkgs/num/%") and
-  (
-    // Crate emits types relying on traits defined by a dependency, part of public API
-    usePrefix(u) = "dash_types" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "Numeric"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/pkc/%") and
-  // Crate emits types relying on types or traits defined by a dependency, part of public API
-  isInRootModule(u, "__deps") and
-  (
-    usePrefix(u) = "blst"
-    or
-    usePrefix(u) = "dash_num"
-    or
-    usePrefix(u) = "dash_types"
-    or
-    usePrefix(u) = "ed25519_dalek"
-    or
-    usePrefix(u) = "ff"
-    or
-    usePrefix(u) = "group"
-    or
-    usePrefix(u) = "rand_core"
-    or
-    usePrefix(u) = "secp256k1"
-    or
-    usePrefix(u) = "subtle"
-    or
-    usePrefix(u) = "zeroize"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/primitives/%") and
-  (
-    // `dash-pkc` names its hashes after the curve, the alias is the public API.
-    usePrefix(u) = "dash_pkc" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__EddsaPkHash"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/script/%") and
-  (
-    // Workaround for the orphan rule, not part of public API
-    usePrefix(u) = "dash_pkc" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__EcdsaPkHash"
-    or
-    // Workaround for the orphan rule, not part of public API
-    usePrefix(u) = "dash_types" and
-    u.getUseTree().getPath().getSegment().getIdentifier().getText() = "__ScriptHash"
-  )
-  or
-  fileOf(u).getAbsolutePath().matches("%pkgs/types/%") and
-  (
-    // Sub-crate isolation demands re-exports, part of public API
-    usePrefix(u) = "dash_types_marker"
-    or
-    // Crate emits types relying on types or traits defined by a dependency, part of public API
-    usePrefix(u) = "zeroize"
+  exists(string crate, string scope, string dep, string symbol |
+    allowedReexport(crate, scope, dep, symbol) and
+    (crate = "" or crate = crateOf(fileOf(u))) and
+    (dep = "" or dep = usePrefix(u)) and
+    (scope = "" or isInRootModule(u, scope)) and
+    (
+      symbol = ""
+      or
+      symbol = pathName(u.getUseTree().getPath())
+    )
   )
 }
 
@@ -138,7 +71,7 @@ private predicate isAllowlistedReexport(Use u) {
  * AST parent differs from the use site.
  */
 predicate isForeignReexport(Use u) {
-  isPublicUse(u) and
+  isBarePublic(u.getVisibility()) and
   not isAllowlistedReexport(u) and
   exists(string prefix |
     prefix = usePrefix(u) and
@@ -146,7 +79,7 @@ predicate isForeignReexport(Use u) {
     not prefix = "self" and
     not prefix = "super" and
     not exists(Module m |
-      m.getName().getText() = prefix and
+      nameOf(m) = prefix and
       (
         // Direct sibling in the same scope.
         m.getParentNode() = u.getParentNode()
@@ -163,7 +96,7 @@ predicate isForeignReexport(Use u) {
  * Gets the use-declaration base group (ignoring pub/priv).
  * 2 = crate/super, 3 = external, 4 = alloc/core/std.
  */
-int useBaseGroup(Use u) {
+private int useBaseGroup(Use u) {
   exists(string prefix | prefix = usePrefix(u) |
     (prefix = "crate" or prefix = "super" or prefix = "self") and
     result = 2
@@ -182,19 +115,19 @@ int useBaseGroup(Use u) {
 }
 
 /** Gets the preamble group of use declaration `u`. */
-int useGroup(Use u) {
-  isPublicUse(u) and result = useBaseGroup(u) + 4
+private int useGroup(Use u) {
+  isBarePublic(u.getVisibility()) and result = useBaseGroup(u) + 4
   or
-  not isPublicUse(u) and result = useBaseGroup(u)
+  not isBarePublic(u.getVisibility()) and result = useBaseGroup(u)
 }
 
 /** Gets the preamble group of a file-level module declaration `m`. */
-int modGroup(Module m) {
+private int modGroup(Module m) {
   not exists(m.getItemList()) and
   (
-    isPublicMod(m) and result = 5
+    isBarePublic(m.getVisibility()) and result = 5
     or
-    not isPublicMod(m) and result = 1
+    not isBarePublic(m.getVisibility()) and result = 1
   )
 }
 
@@ -203,7 +136,7 @@ int modGroup(Module m) {
  * tuples for ordering analysis.
  */
 pragma[noinline]
-predicate preambleItem(Locatable item, File f, int group, int effStart, int end) {
+private predicate preambleItem(Locatable item, File f, int group, int effStart, int end) {
   exists(Use u |
     item = u and
     f = fileOf(u) and

@@ -12,12 +12,10 @@
  * @tags security
  */
 
-import lib.files
 import lib.filters
 import lib.fmt
 import lib.policy
 import lib.traits
-import lib.types
 import rust
 
 /**
@@ -35,7 +33,7 @@ predicate callsZeroize(Function f) {
   or
   exists(PathExpr pe |
     pe.getEnclosingCallable() = f and
-    pe.getPath().getSegment().getIdentifier().getText().matches("zeroize%")
+    pathName(pe.getPath()).matches("zeroize%")
   )
 }
 
@@ -56,8 +54,8 @@ predicate wipesSelf(TypeItem t) {
     i.getSelf() = t and
     implTraitName(i) = "Drop" and
     isWorkspaceFile(fileOf(i)) and
-    d = i.getAssocItemList().getAnAssocItem() and
-    d.getName().getText() = "drop" and
+    d = implItem(i) and
+    nameOf(d) = "drop" and
     callsZeroize(d)
   )
 }
@@ -72,7 +70,7 @@ predicate externalWiper(TypeItem t) {
   not isWorkspaceFile(fileOf(t)) and
   (
     // `blst::{min_pk,min_sig}::SecretKey` are declared `#[zeroize(drop)]`.
-    t.getName().getText() = "SecretKey" and
+    nameOf(t) = "SecretKey" and
     fileOf(t).getAbsolutePath().matches("%/blst-%/src/lib.rs")
   )
 }
@@ -146,8 +144,8 @@ predicate usesSecretBridge(TypeItem t) {
   exists(Impl i, TypeAlias ta |
     i.getSelf() = t and
     implTraitName(i) = "Encodable" and
-    ta = i.getAssocItemList().getAnAssocItem() and
-    ta.getName().getText() = "Encoder" and
+    ta = implItem(i) and
+    nameOf(ta) = "Encoder" and
     typeHead(ta.getTypeRepr()) = "ArrEncoder"
   )
 }
@@ -159,8 +157,8 @@ predicate wipesInBody(Function f) {
   exists(PathExpr pe, Path p |
     pe.getEnclosingCallable() = f and
     p = pe.getPath() and
-    p.getSegment().getIdentifier().getText() = "new" and
-    p.getQualifier().getSegment().getIdentifier().getText() = "Zeroizing"
+    pathName(p) = "new" and
+    pathQualifierName(p) = "Zeroizing"
   )
 }
 
@@ -194,8 +192,8 @@ predicate constantTimeEq(TypeItem t) {
   exists(Impl i, Function eq |
     i.getSelf() = t and
     implTraitName(i) = "PartialEq" and
-    eq = i.getAssocItemList().getAnAssocItem() and
-    eq.getName().getText() = "eq" and
+    eq = implItem(i) and
+    nameOf(eq) = "eq" and
     callsCtEq(eq)
   )
 }
@@ -209,7 +207,7 @@ predicate callsCtEq(Function f) {
   or
   exists(PathExpr pe |
     pe.getEnclosingCallable() = f and
-    pe.getPath().getSegment().getIdentifier().getText() = "ct_eq"
+    pathName(pe.getPath()) = "ct_eq"
   )
 }
 
@@ -279,9 +277,9 @@ predicate variableTimeSecretTest(Function f, string how) {
   exists(TypeItem t, Impl i |
     enforcedSecretType(t) and
     i.getSelf() = t and
-    f = i.getAssocItemList().getAnAssocItem() and
+    f = implItem(i) and
     not isTestCode(f) and
-    not f.getName().getText() = "eq" and
+    not nameOf(f) = "eq" and
     typeHead(f.getRetType().getTypeRepr()) = "bool" and
     (
       stopsEarly(f, how)

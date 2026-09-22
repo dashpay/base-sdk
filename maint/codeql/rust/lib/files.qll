@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  * See the accompanying file LICENSE or https://opensource.org/license/MIT
  *
- * @description Location, file, and path helpers.
+ * @description Location and file helpers.
  */
 
 import rust
@@ -16,32 +16,19 @@ int startLine(Locatable n) { result = n.getLocation().getStartLine() }
 pragma[inline]
 int endLine(Locatable n) { result = n.getLocation().getEndLine() }
 
+/**
+ * Holds if `line` falls within the span of `outer`, inclusive of both ends.
+ */
+bindingset[line]
+pragma[inline]
+predicate lineWithin(int line, Locatable outer) {
+  line >= startLine(outer) and
+  line <= endLine(outer)
+}
+
 /** Gets the file containing `n`. */
 pragma[inline]
 File fileOf(Locatable n) { result = n.getLocation().getFile() }
-
-/** Gets an attribute of a preamble item (Use, Module, or ExternCrate). */
-private Attr itemAttr(Item item) {
-  result = item.(Use).getAnAttr() or
-  result = item.(Module).getAnAttr() or
-  result = item.(ExternCrate).getAnAttr()
-}
-
-/**
- * Gets the effective start line of `item`, accounting for leading
- * attributes (e.g. `#[cfg(...)]`).
- */
-int effectiveStart(Item item) {
-  if exists(itemAttr(item))
-  then result = min(Attr a | a = itemAttr(item) | startLine(a))
-  else result = startLine(item)
-}
-
-/** Gets the root (qualifier-less) segment of path `p`. */
-Path rootPath(Path p) {
-  result = p.getQualifier*() and
-  not exists(result.getQualifier())
-}
 
 /** Materialises the repo-root-relative path for source files. */
 pragma[nomagic]
@@ -51,13 +38,3 @@ predicate fileRelPath(File f, string relPath) {
 
 /** Holds if `f` belongs to a crate in this workspace. */
 predicate isWorkspaceFile(File f) { fileRelPath(f, _) }
-
-/** Holds if module `m` is not nested inside another module. */
-predicate isRootModule(Module m) {
-  not exists(Module enclosing | m.getParentNode() = enclosing.getItemList())
-}
-
-/** Gets the first path segment of use declaration `u`. */
-string usePrefix(Use u) {
-  result = rootPath(u.getUseTree().getPath()).getSegment().getIdentifier().getText()
-}

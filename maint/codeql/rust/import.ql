@@ -71,7 +71,6 @@ where
     item = u and
     fileRelPath(fileOf(u), _) and
     isForeignReexport(u) and
-    not isMacroReexport(u) and
     message = "pub use " + usePrefix(u) + ":: re-exports from a foreign crate"
   )
 select item, message
