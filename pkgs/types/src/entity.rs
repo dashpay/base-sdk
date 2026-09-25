@@ -243,10 +243,11 @@ macro_rules! impl_bytes {
 /// Emits `Clone`, `Copy`, `Default`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`,
 /// `Hash`, `is_null`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for
 /// [u8; N]`, hex `Debug`/`Display`/`LowerHex`/`UpperHex`/`FromStr`, and the
-/// hex `serde` pair.
+/// `serde` pair.
 ///
-/// A trailing `rev` renders and parses the hex in reverse storage order, the
-/// default `fwd` in storage order.
+/// The `serde` pair writes the `Display` hex to human-readable formats and the
+/// raw storage bytes to machine-readable formats. A trailing `rev` renders and
+/// parses the hex in reverse storage order, the default `fwd` in storage order.
 ///
 /// For a newtype holding secrets use [`derive_sbytes!`](crate::derive_sbytes),
 /// which withholds everything that would read or copy out the plaintext.
@@ -354,7 +355,7 @@ macro_rules! derive_bytes {
         where
           Z: $crate::__private::serde::Serializer,
         {
-          serializer.serialize_str(&::alloc::format!("{self}"))
+          $crate::serialize::hex::serialize_as(self.as_bytes(), self, serializer)
         }
       }
 
@@ -363,9 +364,10 @@ macro_rules! derive_bytes {
         where
           D: $crate::__private::serde::Deserializer<'de>,
         {
-          use $crate::__private::serde::de::Error as _;
-          let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
-          $crate::__private::__read_hex::<$n>(&s, $rev).map(Self::from_bytes).map_err(D::Error::custom)
+          $crate::serialize::hex::deserialize_as(deserializer, |s: &str| {
+            $crate::__private::__read_hex::<$n>(s, $rev)
+          })
+          .map(Self::from_bytes)
         }
       }
     }
