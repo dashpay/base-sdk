@@ -6,11 +6,11 @@
 
 //! Compact difficulty target encoding.
 
-use crate::{Arith256, ParseHexError};
+use crate::Arith256;
 
 #[cfg(feature = "codec")]
 use dash_types::impl_num;
-use dash_types::Numeric;
+use dash_types::{Numeric, ParseHexError};
 
 use core::fmt;
 use core::str::FromStr;

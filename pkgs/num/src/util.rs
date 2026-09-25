@@ -118,7 +118,7 @@ macro_rules! make_hash {
 
       /// Parse from a big-endian hex string.
       #[inline]
-      pub fn from_hex(s: &str) -> Result<Self, $crate::ParseHexError> {
+      pub fn from_hex(s: &str) -> Result<Self, $crate::__private::dash_types::ParseHexError> {
         <$crate::HashBlob<$len>>::from_hex(s).map(Self)
       }
     }
@@ -191,7 +191,7 @@ macro_rules! make_hash {
     }
 
     impl ::core::str::FromStr for $name {
-      type Err = $crate::ParseHexError;
+      type Err = $crate::__private::dash_types::ParseHexError;
 
       fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_hex(s)

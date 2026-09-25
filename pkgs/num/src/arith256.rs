@@ -6,9 +6,9 @@
 
 //! 256-bit unsigned arithmetic integer.
 
-use crate::{Hash256, ParseHexError};
+use crate::Hash256;
 
-use dash_types::Numeric;
+use dash_types::{Numeric, ParseHexError};
 
 use core::cmp::Ordering;
 use core::fmt;

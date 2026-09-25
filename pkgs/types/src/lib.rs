@@ -14,6 +14,7 @@ extern crate self as dash_types;
 extern crate std;
 
 mod entity;
+mod hex;
 mod macros;
 mod numeric;
 #[allow(unused_imports, reason = "ergonomic shim, exports may be unused")]
@@ -24,6 +25,7 @@ mod traits;
 #[cfg(feature = "serde")]
 pub mod serialize;
 
+pub use crate::hex::ParseHexError;
 pub use crate::macros::qtypestr;
 pub use crate::numeric::Numeric;
 pub use crate::traits::{Checkable, Hashable};
@@ -50,6 +52,7 @@ cfg_if::cfg_if! {
 pub mod __private {
   #[cfg(feature = "bitcoin-primitives")]
   pub use crate::adapters::bitcoin_primitives::ScriptHash as __ScriptHash;
+  pub use crate::hex::write_hex as __write_hex;
 
   #[cfg(feature = "codec")]
   pub use bitcoin_consensus_encoding;
