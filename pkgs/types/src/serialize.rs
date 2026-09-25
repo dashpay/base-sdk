@@ -195,20 +195,21 @@ pub mod utf8 {
 pub mod utf8_lossy {
   use crate::prelude::*;
 
-  use ::serde::de::{Error as DeError, SeqAccess, Visitor};
+  use ::serde::de::{Error as DeError, SeqAccess};
 
   use core::fmt;
   use core::str::from_utf8;
 
-  /// Serializes bytes as a string when valid UTF-8, otherwise as raw bytes.
+  /// Serializes bytes as raw bytes, or as a string when the format is
+  /// human-readable and the bytes are valid UTF-8.
   ///
   /// # Errors
   ///
   /// Returns a serialization error when the serializer rejects the value.
   pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
     match from_utf8(data) {
-      Ok(text) => serializer.serialize_str(text),
-      Err(_) => serializer.serialize_bytes(data),
+      Ok(text) if serializer.is_human_readable() => serializer.serialize_str(text),
+      _ => serializer.serialize_bytes(data),
     }
   }
 
@@ -221,9 +222,9 @@ pub mod utf8_lossy {
   ///
   /// Returns a deserialization error when the input is none of those forms.
   pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
-    struct BytesVisitor;
+    struct Visitor;
 
-    impl<'de> Visitor<'de> for BytesVisitor {
+    impl<'de> ::serde::de::Visitor<'de> for Visitor {
       type Value = Vec<u8>;
 
       fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -248,9 +249,9 @@ pub mod utf8_lossy {
     }
 
     if deserializer.is_human_readable() {
-      deserializer.deserialize_any(BytesVisitor)
+      deserializer.deserialize_any(Visitor)
     } else {
-      deserializer.deserialize_byte_buf(BytesVisitor)
+      deserializer.deserialize_byte_buf(Visitor)
     }
   }
 }
@@ -323,5 +324,19 @@ mod tests {
     ciborium::into_writer(&nonce, &mut wire).unwrap();
     assert_eq!(wire, hex!("1b0102030405060708"));
     assert_eq!(ciborium::from_reader::<Nonce, _>(wire.as_slice()).unwrap(), nonce);
+  }
+
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  struct Lossy(#[serde(with = "super::utf8_lossy")] Vec<u8>);
+
+  #[rstest]
+  #[case::utf8(b"abc", &hex!("43616263"))]
+  #[case::non_utf8(&[0xff], &hex!("41ff"))]
+  fn utf8_lossy_carries_bytes_through_cbor(#[case] data: &[u8], #[case] raw: &[u8]) {
+    let lossy = Lossy(data.to_vec());
+    let mut wire = Vec::new();
+    ciborium::into_writer(&lossy, &mut wire).unwrap();
+    assert_eq!(wire, raw);
+    assert_eq!(ciborium::from_reader::<Lossy, _>(wire.as_slice()).unwrap(), lossy);
   }
 }
