@@ -120,11 +120,17 @@ pub mod hex {
   }
 }
 
-/// Serializes `u64` as a decimal string to avoid JSON precision loss.
+/// Serializes `u64` as a decimal string in human-readable formats to avoid
+/// JSON precision loss, and as a native integer in machine-readable formats.
 pub mod str_u64 {
-  /// Serializes a `u64` as a decimal string.
+  /// Serializes a `u64` as a decimal string, or as an integer when the format
+  /// is machine-readable.
   pub fn serialize<S: ::serde::Serializer>(val: &u64, s: S) -> Result<S::Ok, S::Error> {
-    s.serialize_str(&alloc::format!("{val}"))
+    if s.is_human_readable() {
+      s.collect_str(val)
+    } else {
+      s.serialize_u64(*val)
+    }
   }
 
   /// Deserializes a `u64` from a decimal string or a number.
@@ -147,7 +153,11 @@ pub mod str_u64 {
       }
     }
 
-    d.deserialize_any(Visitor)
+    if d.is_human_readable() {
+      d.deserialize_any(Visitor)
+    } else {
+      d.deserialize_u64(Visitor)
+    }
   }
 }
 
@@ -251,6 +261,7 @@ mod tests {
   use crate::prelude::*;
 
   use ::serde::{Deserialize, Serialize};
+  use hex_conservative::hex;
   use rstest::rstest;
 
   #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -300,5 +311,17 @@ mod tests {
       ciborium::from_reader::<Flattened, _>(wire.as_slice()).unwrap(),
       flattened
     );
+  }
+
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  struct Nonce(#[serde(with = "super::str_u64")] u64);
+
+  #[rstest]
+  fn str_u64_carries_integer_through_cbor() {
+    let nonce = Nonce(0x0102_0304_0506_0708);
+    let mut wire = Vec::new();
+    ciborium::into_writer(&nonce, &mut wire).unwrap();
+    assert_eq!(wire, hex!("1b0102030405060708"));
+    assert_eq!(ciborium::from_reader::<Nonce, _>(wire.as_slice()).unwrap(), nonce);
   }
 }
