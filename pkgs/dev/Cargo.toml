@@ -26,11 +26,15 @@ std = [
   "hex-conservative/std",
 ]
 full = ["std", "serde"]
-serde = ["dep:serde", "dash-primitives/serde", "dash-types/serde"]
+serde = [
+  "dep:ciborium",
+  "dep:serde",
+  "dash-primitives/serde",
+  "dash-types/serde",
+]
 bin = [
   "full",
   "dep:chrono",
-  "dep:ciborium",
   "dep:clap",
   "dep:dash-num",
   "dep:dash-params",

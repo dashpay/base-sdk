@@ -111,7 +111,7 @@ cfg_if! {
 
     impl<'de> ::serde::Deserialize<'de> for EcdsaSigBytes {
       fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        serde_hex::deserialize(deserializer)?
+        serde_hex::deserialize::<_, Vec<u8>>(deserializer)?
           .as_slice()
           .try_into()
           .map(Self)

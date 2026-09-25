@@ -68,6 +68,7 @@ serde = { version = "1", default-features = false, features = [
 zeroize = { workspace = true }
 
 [dev-dependencies]
+ciborium = "0.2"
 rstest = "0.25"
 serde = { version = "1", features = ["derive"] }
 

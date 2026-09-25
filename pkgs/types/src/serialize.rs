@@ -6,30 +6,117 @@
 
 //! Reusable serde helpers for `#[serde(with = "...")]`.
 
-/// Wire-order hex for `Vec<u8>`.
+/// Hex strings for human-readable formats and raw bytes for machine-readable
+/// formats.
 pub mod hex {
   use crate::prelude::*;
 
+  use ::serde::de::Error as DeError;
   use hex_conservative::{decode_to_vec, DisplayHex};
 
-  /// Serializes bytes as a wire-order hex string.
+  use core::fmt;
+  use core::marker::PhantomData;
+
+  /// Serializes bytes as a wire-order hex string, or as raw bytes when the
+  /// format is machine-readable.
   ///
   /// # Errors
   ///
-  /// Returns a serialization error when the serializer rejects the string.
+  /// Returns a serialization error when the serializer rejects the value.
   pub fn serialize<S: ::serde::Serializer>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_str(&data.to_lower_hex_string())
+    serialize_as(data, &data.as_hex(), serializer)
   }
 
-  /// Deserializes a hex string into bytes.
+  /// Deserializes a hex string or raw bytes into any `T` built from a byte
+  /// slice, such as `Vec<u8>` or a fixed-width array.
   ///
   /// # Errors
   ///
-  /// Returns a deserialization error when the input is not a string, or when
-  /// it is not valid hex.
-  pub fn deserialize<'de, D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
-    let s = <String as ::serde::Deserialize>::deserialize(deserializer)?;
-    decode_to_vec(&s).map_err(::serde::de::Error::custom)
+  /// Returns a deserialization error when the input is neither form, when a
+  /// string is not valid hex, or when the bytes do not convert to `T`.
+  pub fn deserialize<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+  where
+    D: ::serde::Deserializer<'de>,
+    T: for<'a> TryFrom<&'a [u8]>,
+  {
+    deserialize_as(deserializer, |s: &str| {
+      let bytes = decode_to_vec(s).map_err(|e| e.to_string())?;
+      // For the byte arrays and bags this serves, the size of `T` is its width.
+      T::try_from(bytes.as_slice()).map_err(|_| {
+        format!(
+          "hex decode length mismatch (expected: {}, got: {})",
+          size_of::<T>(),
+          bytes.len()
+        )
+      })
+    })
+  }
+
+  /// Serializes `text` in human-readable formats and `data` as raw bytes in
+  /// all others.
+  ///
+  /// # Errors
+  ///
+  /// Returns a serialization error when the serializer rejects the value.
+  pub fn serialize_as<S, T>(data: &[u8], text: &T, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: ::serde::Serializer,
+    T: fmt::Display + ?Sized,
+  {
+    if serializer.is_human_readable() {
+      serializer.collect_str(text)
+    } else {
+      serializer.serialize_bytes(data)
+    }
+  }
+
+  /// Deserializes a string through `parse` or raw bytes through `TryFrom`.
+  ///
+  /// Human-readable mode takes raw bytes as well, because serde replays input
+  /// buffered for untagged enums and `flatten` as human-readable.
+  ///
+  /// # Errors
+  ///
+  /// Returns a deserialization error when the input is neither form, when
+  /// `parse` fails, or when the raw bytes do not convert.
+  pub fn deserialize_as<'de, D, T, F, E>(deserializer: D, parse: F) -> Result<T, D::Error>
+  where
+    D: ::serde::Deserializer<'de>,
+    T: for<'a> TryFrom<&'a [u8]>,
+    F: FnOnce(&str) -> Result<T, E>,
+    E: fmt::Display,
+  {
+    struct Visitor<T, F>(F, PhantomData<fn() -> T>);
+
+    impl<T, F, E> ::serde::de::Visitor<'_> for Visitor<T, F>
+    where
+      T: for<'a> TryFrom<&'a [u8]>,
+      F: FnOnce(&str) -> Result<T, E>,
+      E: fmt::Display,
+    {
+      type Value = T;
+
+      fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("a hex string or raw bytes")
+      }
+
+      fn visit_str<Er: DeError>(self, v: &str) -> Result<Self::Value, Er> {
+        (self.0)(v).map_err(Er::custom)
+      }
+
+      fn visit_bytes<Er: DeError>(self, v: &[u8]) -> Result<Self::Value, Er> {
+        T::try_from(v).map_err(|_| {
+          let width = format!("{} raw bytes", size_of::<T>());
+          Er::invalid_length(v.len(), &width.as_str())
+        })
+      }
+    }
+
+    if deserializer.is_human_readable() {
+      deserializer.deserialize_str(Visitor(parse, PhantomData))
+    } else {
+      deserializer.deserialize_byte_buf(Visitor(parse, PhantomData))
+    }
   }
 }
 
@@ -155,5 +242,63 @@ pub mod utf8_lossy {
     } else {
       deserializer.deserialize_byte_buf(BytesVisitor)
     }
+  }
+}
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "test code")]
+mod tests {
+  use crate::prelude::*;
+
+  use ::serde::{Deserialize, Serialize};
+  use rstest::rstest;
+
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  struct Blob(#[serde(with = "super::hex")] Vec<u8>);
+
+  #[rstest]
+  #[case::inline(16)]
+  #[case::beyond_scratch(8192)]
+  fn hex_vec_roundtrips_through_cbor(#[case] len: usize) {
+    let blob = Blob(vec![0xa5; len]);
+    let mut wire = Vec::new();
+    ciborium::into_writer(&blob, &mut wire).unwrap();
+    assert_eq!(ciborium::from_reader::<Blob, _>(wire.as_slice()).unwrap(), blob);
+  }
+
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  #[serde(untagged)]
+  enum Untagged {
+    Blob(Blob),
+  }
+
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  struct Flattened {
+    #[serde(flatten)]
+    inner: Inner,
+  }
+
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  struct Inner {
+    #[serde(with = "super::hex")]
+    blob: Vec<u8>,
+  }
+
+  #[rstest]
+  fn buffered_input_roundtrips_through_cbor() {
+    let untagged = Untagged::Blob(Blob(vec![0xa5; 4]));
+    let mut wire = Vec::new();
+    ciborium::into_writer(&untagged, &mut wire).unwrap();
+    assert_eq!(ciborium::from_reader::<Untagged, _>(wire.as_slice()).unwrap(), untagged);
+
+    let flattened = Flattened {
+      inner: Inner { blob: vec![0xa5; 4] },
+    };
+    let mut wire = Vec::new();
+    ciborium::into_writer(&flattened, &mut wire).unwrap();
+    assert_eq!(
+      ciborium::from_reader::<Flattened, _>(wire.as_slice()).unwrap(),
+      flattened
+    );
   }
 }

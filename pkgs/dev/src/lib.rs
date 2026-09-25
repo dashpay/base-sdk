@@ -32,6 +32,7 @@ cfg_if::cfg_if! {
 
     pub use __private::Value;
     pub use corpus::{assert_serde_rt, Corpus};
+    pub use encode::assert_cbor_raw;
     pub use json::{assert_json_rt, from_json, from_json_slice, json_rejects, to_json};
   }
 }
