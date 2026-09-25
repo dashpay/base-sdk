@@ -10,7 +10,6 @@
 use crate::prelude::*;
 
 use bitcoin_hashes::sha256d;
-use cfg_if::cfg_if;
 use dash_num::Hash256;
 #[cfg(feature = "codec")]
 use dash_types::codec::{read_bytes, BaseCodec, DecodeError, EncodeBuf};
@@ -27,7 +26,14 @@ pub const ECDSA_SIG_LEN: usize = 64;
 /// Raw compact ECDSA signature bytes (r || s, unvalidated scalars).
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "codec", derive(TypeId))]
-pub struct EcdsaSigBytes([u8; ECDSA_SIG_LEN]);
+#[cfg_attr(
+  feature = "serde",
+  derive(::serde::Serialize, ::serde::Deserialize),
+  serde(transparent)
+)]
+pub struct EcdsaSigBytes(
+  #[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))] [u8; ECDSA_SIG_LEN],
+);
 
 #[cfg(feature = "codec")]
 impl BaseCodec for EcdsaSigBytes {
@@ -96,30 +102,6 @@ impl fmt::Display for EcdsaSigBytes {
 type_cvrt!(From<[u8; ECDSA_SIG_LEN]> for EcdsaSigBytes, |bytes| {
   Self(*bytes)
 });
-
-cfg_if! {
-  if #[cfg(feature = "serde")] {
-    use dash_types::serialize::hex as serde_hex;
-    use serde::de::Error as DeError;
-    use serde::{Deserializer, Serializer};
-
-    impl ::serde::Serialize for EcdsaSigBytes {
-      fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serde_hex::serialize(&self.0, serializer)
-      }
-    }
-
-    impl<'de> ::serde::Deserialize<'de> for EcdsaSigBytes {
-      fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        serde_hex::deserialize::<_, Vec<u8>>(deserializer)?
-          .as_slice()
-          .try_into()
-          .map(Self)
-          .map_err(|_| DeError::custom("invalid compact signature length"))
-      }
-    }
-  }
-}
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "test code")]
