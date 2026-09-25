@@ -203,6 +203,8 @@ impl FromStr for AddrV1 {
   }
 }
 
+type_cvrt!(From<[u8; 16]> for AddrV1, |bytes| Self(*bytes));
+
 type_cvrt!(TryFrom<AddrV2> for AddrV1, NetAddrError, |addr| {
   match addr {
     AddrV2::Ipv4(b) => {

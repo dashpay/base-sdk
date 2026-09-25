@@ -302,10 +302,17 @@ macro_rules! impl_stype {
 #[cfg(feature = "codec")]
 #[macro_export]
 macro_rules! impl_sbytes {
-  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+  (@wire [$($g:tt)*] $ty:ty, $n:expr) => {
     $crate::impl_bytes!(@codec [$($g)*] $ty, $n);
 
     $crate::impl_stype!(@parse [$($g)*] $ty, $n);
+  };
+  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+    $crate::impl_sbytes!(@wire [$($g)*] $ty, $n);
+
+    impl<$($g)*> ::core::convert::From<[u8; $n]> for $ty {
+      fn from(bytes: [u8; $n]) -> Self { Self::from_bytes(bytes) }
+    }
   };
   (for[$($generic:tt)*] $($args:tt)*) => {
     $crate::impl_sbytes!(@parse [$($generic)*] $($args)*);
@@ -401,6 +408,12 @@ macro_rules! make_sbytes {
         $crate::zeroize::Zeroizing::new(self.inner)
       }
     });
+
+    impl<$($g)*> ::core::convert::From<[u8; $n]> for $name $(<$($param),+>)? {
+      fn from(bytes: [u8; $n]) -> Self {
+        Self::from_bytes(bytes)
+      }
+    }
 
     impl<$($g)*> $crate::zeroize::Zeroize for $name $(<$($param),+>)? {
       fn zeroize(&mut self) {

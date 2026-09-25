@@ -22,7 +22,7 @@ make_bytes! { // nosemgrep: bytes-rev-means-hash
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use crate::bls::tests::RSEED;
-  use crate::bls::{BlsScChia, BlsScIetf, BlsSecretKey};
+  use crate::bls::{BlsPkHash, BlsScChia, BlsScIetf, BlsSecretKey};
 
   use dash_types::Hashable;
   use rstest::rstest;
@@ -34,5 +34,17 @@ mod tests {
 
     assert_ne!(chia.to_bytes(), ietf.to_bytes());
     assert_ne!(Hashable::hash(&chia).as_bytes(), Hashable::hash(&ietf).as_bytes());
+  }
+
+  #[rstest]
+  fn slice_conversion_checks_length() {
+    let bytes = [7u8; 33];
+
+    assert_eq!(
+      BlsPkHash::<BlsScChia>::try_from(&bytes[..32]).unwrap().as_bytes(),
+      &[7u8; 32]
+    );
+    assert!(BlsPkHash::<BlsScChia>::try_from(&bytes[..]).is_err());
+    assert!(BlsPkHash::<BlsScChia>::try_from(&bytes[..31]).is_err());
   }
 }
