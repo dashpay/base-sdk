@@ -9,6 +9,8 @@
 use dash_types::__private::__write_hex as write_hex;
 #[cfg(feature = "codec")]
 use dash_types::impl_type;
+#[cfg(feature = "serde")]
+use dash_types::serialize::hex as serde_hex;
 use dash_types::{type_cvrt, Numeric, ParseHexError};
 use hex_conservative::{Case, HexSliceToBytesIter};
 
@@ -192,18 +194,20 @@ impl<const N: usize> AsRef<[u8; N]> for HashBlob<N> {
   }
 }
 
+/// Hex encoded big-endian string or little-endian bytes.
 #[cfg(feature = "serde")]
 impl<const N: usize> ::serde::Serialize for HashBlob<N> {
   fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_str(&::alloc::format!("{}", self))
+    serde_hex::serialize_as(self.as_bytes(), self, serializer)
   }
 }
 
+/// Hex encoded big-endian string through [`HashBlob::from_hex`], or `N`
+/// little-endian bytes.
 #[cfg(feature = "serde")]
 impl<'de, const N: usize> ::serde::Deserialize<'de> for HashBlob<N> {
   fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
-    Self::from_hex(&s).map_err(::serde::de::Error::custom)
+    serde_hex::deserialize_as(deserializer, |s: &str| Self::from_hex(s).map(|h| h.0)).map(Self)
   }
 }
 
