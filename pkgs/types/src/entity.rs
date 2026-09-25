@@ -242,10 +242,11 @@ macro_rules! impl_bytes {
 ///
 /// Emits `Clone`, `Copy`, `Default`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`,
 /// `Hash`, `is_null`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for
-/// [u8; N]`, a hex `Debug`/`Display`, and the hex `serde` pair.
+/// [u8; N]`, hex `Debug`/`Display`/`LowerHex`/`UpperHex`/`FromStr`, and the
+/// hex `serde` pair.
 ///
-/// A trailing `rev` renders the hex in reverse storage order, the default `fwd`
-/// renders storage order.
+/// A trailing `rev` renders and parses the hex in reverse storage order, the
+/// default `fwd` in storage order.
 ///
 /// For a newtype holding secrets use [`derive_sbytes!`](crate::derive_sbytes),
 /// which withholds everything that would read or copy out the plaintext.
@@ -306,9 +307,7 @@ macro_rules! derive_bytes {
     impl<$($g)*> ::core::fmt::Debug for $ty {
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
-        f.write_str("(")?;
-        ::core::fmt::Display::fmt(self, f)?;
-        f.write_str(")")
+        ::core::write!(f, "({self})")
       }
     }
 
@@ -323,12 +322,29 @@ macro_rules! derive_bytes {
   (@hex [$($g:tt)*] $ty:ty, $n:expr, $rev:expr) => {
     impl<$($g)*> ::core::fmt::Display for $ty {
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        let bytes = self.as_bytes();
-        for i in 0..$n {
-          let byte = if $rev { bytes[$n - 1 - i] } else { bytes[i] };
-          ::core::write!(f, "{byte:02x}")?;
-        }
-        ::core::result::Result::Ok(())
+        // A fresh formatter drops `{:#}`, reserving the prefix for `{:#x}`.
+        ::core::write!(f, "{self:x}")
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::LowerHex for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        $crate::__private::__write_hex(self.as_bytes(), $rev, $crate::__private::hex_conservative::Case::Lower, f)
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::UpperHex for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        $crate::__private::__write_hex(self.as_bytes(), $rev, $crate::__private::hex_conservative::Case::Upper, f)
+      }
+    }
+
+    impl<$($g)*> ::core::str::FromStr for $ty {
+      type Err = $crate::ParseHexError;
+
+      /// Parses `2 * N` hex digits in the order `Display` writes.
+      fn from_str(s: &str) -> ::core::result::Result<Self, Self::Err> {
+        $crate::__private::__read_hex::<$n>(s, $rev).map(Self::from_bytes)
       }
     }
 
@@ -349,12 +365,7 @@ macro_rules! derive_bytes {
         {
           use $crate::__private::serde::de::Error as _;
           let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
-          let mut bytes = $crate::__private::hex_conservative::decode_to_array::<$n>(&s)
-            .map_err(D::Error::custom)?;
-          if $rev {
-            bytes.reverse();
-          }
-          ::core::result::Result::Ok(Self::from_bytes(bytes))
+          $crate::__private::__read_hex::<$n>(&s, $rev).map(Self::from_bytes).map_err(D::Error::custom)
         }
       }
     }

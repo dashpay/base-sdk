@@ -52,11 +52,10 @@ cfg_if::cfg_if! {
 pub mod __private {
   #[cfg(feature = "bitcoin-primitives")]
   pub use crate::adapters::bitcoin_primitives::ScriptHash as __ScriptHash;
-  pub use crate::hex::write_hex as __write_hex;
+  pub use crate::hex::{read_hex as __read_hex, write_hex as __write_hex};
 
   #[cfg(feature = "codec")]
   pub use bitcoin_consensus_encoding;
-  #[cfg(feature = "serde")]
   pub use hex_conservative;
   #[cfg(feature = "serde")]
   pub use serde;

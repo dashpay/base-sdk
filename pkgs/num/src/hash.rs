@@ -145,21 +145,21 @@ impl<const N: usize> Default for HashBlob<N> {
 /// Reversed hex (big-endian display, consensus format).
 impl<const N: usize> fmt::Display for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write_hex(self.as_bytes(), Case::Lower, f)
+    write_hex(self.as_bytes(), true, Case::Lower, f)
   }
 }
 
 /// Big-endian hex, `N * 2` chars zero-padded.
 impl<const N: usize> fmt::LowerHex for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write_hex(self.as_bytes(), Case::Lower, f)
+    write_hex(self.as_bytes(), true, Case::Lower, f)
   }
 }
 
 /// Big-endian hex (uppercase), `N * 2` chars zero-padded.
 impl<const N: usize> fmt::UpperHex for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write_hex(self.as_bytes(), Case::Upper, f)
+    write_hex(self.as_bytes(), true, Case::Upper, f)
   }
 }
 
