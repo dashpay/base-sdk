@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
    Callers of `impl_bytes!` without `derive_bytes!` must now write the conversion manually.
   - As a result, both `make_bytes!` and `make_sbytes!` carry it with `nocodec` tag and without the `codec` feature and
     callers that wrote the conversion manually for those configurations must drop it.
+- The `zeroize` export is moved from the crate root to `__deps`. Callers must switch to `dash_types::__deps::zeroize`.
 - Types using `derive_bytes!` that implemented `From<&[u8; N]>`, `TryFrom<&[u8]>`, `FromStr`, `LowerHex` or `UpperHex`
   manually must drop those implementations, as `derive_bytes!` now emits them.
 - `serialize::hex` writes raw bytes for machine-readable formats instead of emitting a hex-encoded string.
@@ -30,6 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `Vec<u8>` as the fixed return type must now mention it explicitly.
 - `serialize::str_u64` writes a native `u64` to machine-readable formats. `str_u64` is a workaround for number-precision
   limitations in JSON and is now contained only for human-readable formats.
+
+### Removed
+
+- The `codec::Checkable` and `codec::Hashable` compatibility aliases in favour of exports from the crate root.
 
 ### Fixed
 
