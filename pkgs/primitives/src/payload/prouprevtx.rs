@@ -12,8 +12,8 @@ use crate::support::RevocationReason;
 use crate::TxHash;
 
 use dash_pkc::bls::{BlsScIetf, BlsSigBytes};
-use dash_types::codec::Checkable;
 use dash_types::type_id::TypeId;
+use dash_types::Checkable;
 
 use core::fmt;
 

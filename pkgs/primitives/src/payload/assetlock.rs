@@ -11,8 +11,8 @@ use crate::prelude::*;
 use crate::transaction::TxOut;
 
 use dash_script::Recipient;
-use dash_types::codec::Checkable;
 use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::Checkable;
 
 use core::fmt;
 

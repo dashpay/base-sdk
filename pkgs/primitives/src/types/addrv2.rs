@@ -13,8 +13,8 @@ use crate::hash_impl;
 use crate::prelude::*;
 
 use bitcoin_hashes::sha3_256;
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
-use dash_types::{impl_type, type_cvrt, type_id::TypeId, CompactSize, Numeric};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
+use dash_types::{impl_type, type_cvrt, type_id::TypeId, Checkable, CompactSize, Numeric};
 
 use core::fmt;
 use core::net::{Ipv4Addr, Ipv6Addr};

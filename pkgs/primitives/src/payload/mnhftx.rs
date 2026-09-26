@@ -10,8 +10,8 @@ use super::QuorumHash;
 use crate::codec::codec_payload;
 
 use dash_pkc::bls::{BlsScIetf, BlsSigBytes};
-use dash_types::codec::Checkable;
 use dash_types::type_id::{TypeId, Unencodable};
+use dash_types::Checkable;
 
 use core::fmt;
 
