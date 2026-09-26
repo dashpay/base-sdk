@@ -34,7 +34,7 @@ pub mod bitcoin_primitives {
 
   // nosemgrep: macro-no-bare-foreign-crate
   use ::bitcoin_primitives::script::{ScriptBuf, ScriptHashableTag};
-  use base58ck::encode_check;
+  use base58ck::Base58CkString;
   use bitcoin_hashes::{ripemd160, sha256};
 
   adapt_codec!(<T>, ScriptBuf<T>);
@@ -55,7 +55,7 @@ pub mod bitcoin_primitives {
       let mut buf = ArrayBuf::<21>::new();
       buf.push(prefix);
       self.encode(&mut buf);
-      encode_check(&buf.into_array())
+      String::from(Base58CkString::encode_unbounded(&buf.into_array()).as_str())
     }
   }
 
