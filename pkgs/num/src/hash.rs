@@ -87,7 +87,7 @@ impl<const N: usize> HashBlob<N> {
 
   /// Construct from big-endian bytes (consensus display order).
   ///
-  /// This is the natural byte order produced by `hex_literal::hex!()` when
+  /// This is the natural byte order produced by `hex_conservative::hex!()` when
   /// given a block hash or other consensus hex value. Internally the bytes
   /// are stored little-endian, so this reverses the input.
   #[inline]

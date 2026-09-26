@@ -49,17 +49,16 @@ serde = [
 bitcoin-consensus-encoding = { workspace = true, optional = true }
 dash-types = { version = "0.1.0-beta", path = "../types", default-features = false }
 hex-conservative = { workspace = true }
-serde = { version = "1", default-features = false, features = [
+serde = { workspace = true, features = [
   "derive",
   "alloc",
 ], optional = true }
 
 [dev-dependencies]
 dash-dev = { path = "../dev", features = ["full"] }
-divan = "0.1"
-hex-literal = "0.4"
-rstest = "0.25"
-serde = { version = "1", features = ["derive"] }
+divan = { workspace = true }
+rstest = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [[test]]
 name = "hash"

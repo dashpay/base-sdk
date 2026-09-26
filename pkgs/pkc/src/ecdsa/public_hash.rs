@@ -10,7 +10,7 @@
 use crate::prelude::*;
 
 #[cfg(feature = "codec")]
-use base58ck::encode_check;
+use base58ck::Base58CkString;
 use dash_num::make_hash;
 #[cfg(feature = "codec")]
 use dash_types::codec::{BaseCodec, EncodeBuf};
@@ -29,6 +29,6 @@ impl EcdsaPkHash {
     let mut buf = ArrayBuf::<21>::new();
     buf.push(prefix);
     self.encode(&mut buf);
-    encode_check(&buf.into_array())
+    String::from(Base58CkString::encode_unbounded(&buf.into_array()).as_str())
   }
 }

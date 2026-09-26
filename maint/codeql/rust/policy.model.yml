@@ -35,7 +35,7 @@ extensions:
       # Crate-level re-exports a macro expands into, kept out of the public API
       - ["",                 "__private", "",                  ""]
       # Emits types relying on traits defined by a dependency, part of public API
-      - ["dash-num",         "",          "dash_types",        "Numeric"]
+      - ["dash-num",         "__deps",    "dash_types",        ""]
       # Emits types relying on types or traits defined by a dependency, part of public API
       - ["dash-pkc",         "__deps",    "blst",              ""]
       - ["dash-pkc",         "__deps",    "dash_num",          ""]
@@ -55,4 +55,4 @@ extensions:
       # Sub-crate isolation demands re-exports, part of public API
       - ["dash-types",       "",          "dash_types_marker", ""]
       # Emits types relying on types or traits defined by a dependency, part of public API
-      - ["dash-types",       "",          "zeroize",           ""]
+      - ["dash-types",       "__deps",    "zeroize",           ""]

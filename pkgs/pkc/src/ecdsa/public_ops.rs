@@ -288,7 +288,8 @@ mod tests {
   use dash_dev::{arr_from_hex, Corpus};
   #[cfg(feature = "serde")]
   use dash_dev::{assert_cbor_raw, assert_json_rt};
-  use dash_types::codec::{BaseCodec, Hashable};
+  use dash_types::codec::BaseCodec;
+  use dash_types::Hashable;
   use rstest::*;
   use serde::Deserialize;
 

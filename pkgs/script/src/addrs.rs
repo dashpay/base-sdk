@@ -12,8 +12,8 @@ use crate::{opcode::Opcode, PubKeyHash, ScriptHash};
 use base58ck::decode_check;
 use dash_num::Hash160;
 use dash_pkc::ecdsa::EcdsaPkBytes;
-use dash_types::codec::{BaseCodec, EncodeBuf, Hashable};
-use dash_types::{type_cvrt, type_id::Unencodable, Numeric};
+use dash_types::codec::{BaseCodec, EncodeBuf};
+use dash_types::{type_cvrt, type_id::Unencodable, Hashable, Numeric};
 
 /// Network address encoding parameters.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Unencodable)]

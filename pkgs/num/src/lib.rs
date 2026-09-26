@@ -21,17 +21,17 @@ mod hash;
 mod util;
 
 #[doc(hidden)]
+pub mod __deps {
+  pub use dash_types;
+}
+#[doc(hidden)]
 pub mod __private {
   #[cfg(feature = "codec")]
   pub use bitcoin_consensus_encoding;
-  pub use dash_types;
   #[cfg(feature = "serde")]
   pub use serde;
 }
 
-pub use crate::arith256::Arith256;
-pub use crate::compact::{CompactTarget, DecodedTarget};
-pub use crate::hash::{Hash160, Hash256, HashBlob};
-
-// TODO(kwvg): move to mod __deps with crate-level export
-pub use dash_types::Numeric;
+pub use arith256::Arith256;
+pub use compact::{CompactTarget, DecodedTarget};
+pub use hash::{Hash160, Hash256, HashBlob};

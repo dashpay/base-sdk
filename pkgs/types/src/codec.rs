@@ -8,13 +8,10 @@
 
 use crate::prelude::*;
 use crate::type_id::TypeId;
-use crate::CompactSize;
+use crate::{CompactSize, Hashable};
 
 use core::convert::Infallible;
 use core::fmt;
-
-// TODO(kwvg): remove compatibility alias
-pub use crate::traits::{Checkable, Hashable}; // nosemgrep: use-pub-roots-only
 
 /// Maximum bytes to pre-allocate per batch when deserializing vectors.
 const MAX_VECTOR_ALLOCATE: usize = 5_000_000;

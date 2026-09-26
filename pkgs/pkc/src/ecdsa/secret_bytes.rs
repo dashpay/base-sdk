@@ -11,7 +11,7 @@ use super::Compression;
 use crate::prelude::*;
 
 #[cfg(feature = "codec")]
-use base58ck::{decode_check, encode_check};
+use base58ck::{decode_check, Base58CkString};
 use dash_types::derive_sbytes;
 use subtle::ConstantTimeEq;
 use zeroize::{Zeroize, Zeroizing};
@@ -88,12 +88,14 @@ impl EcdsaSkBytes {
     let mut buf = Zeroizing::new([0u8; 34]);
     buf[0] = prefix;
     buf[1..33].copy_from_slice(&self.inner);
-    if self.compressed {
+    let len = if self.compressed {
       buf[33] = 0x01;
-      Some(Zeroizing::new(encode_check(&buf[..34])))
+      34
     } else {
-      Some(Zeroizing::new(encode_check(&buf[..33])))
-    }
+      33
+    };
+    let wif = Base58CkString::encode_unbounded(&buf[..len]);
+    Some(Zeroizing::new(String::from(wif.as_str())))
   }
 }
 
@@ -166,24 +168,35 @@ mod tests {
     assert!(zero.to_wif(0x80).is_none());
   }
 
+  fn encode_check(data: &[u8]) -> String {
+    String::from(base58ck::Base58CkString::encode_unbounded(data).as_str())
+  }
+
   /// A well-formed WIF carrying the zero scalar, assembled by hand because
   /// `to_wif` refuses to emit one; `from_wif` must still reject it.
   fn wif_zero_key() -> String {
     let mut payload = [0u8; 34];
     payload[0] = 0x80;
     payload[33] = 0x01;
-    base58ck::encode_check(&payload)
+    encode_check(&payload)
   }
 
   fn wif_bad_checksum() -> String {
     let sk = EcdsaSkBytes::from_bytes([0x22u8; ECDSA_SK_LEN], Compression::Compressed);
-    let mut raw = base58ck::decode(&sk.to_wif(0x80).unwrap()).unwrap();
-    *raw.last_mut().unwrap() ^= 0xff;
-    base58ck::encode(&raw)
+    let mut wif = String::from(sk.to_wif(0x80).unwrap().as_str());
+    let good = base58ck::decode(&wif).unwrap();
+    // Swapping the last digit disturbs the low bytes, where the checksum lives
+    let last = wif.pop().unwrap();
+    wif.push(if last == '1' { '2' } else { '1' });
+    let bad = base58ck::decode(&wif).unwrap();
+    assert_eq!(bad.len(), good.len());
+    assert_eq!(bad[..34], good[..34], "payload intact");
+    assert_ne!(bad[34..], good[34..], "checksum altered");
+    wif
   }
 
   fn wif_wrong_length() -> String {
-    base58ck::encode_check(&[0x80u8; 32])
+    encode_check(&[0x80u8; 32])
   }
 
   fn wif_bad_compression_byte() -> String {
@@ -191,7 +204,7 @@ mod tests {
     payload[0] = 0x80;
     payload[1..33].copy_from_slice(&[0x44u8; ECDSA_SK_LEN]);
     payload[33] = 0x02;
-    base58ck::encode_check(&payload)
+    encode_check(&payload)
   }
 
   #[rstest]

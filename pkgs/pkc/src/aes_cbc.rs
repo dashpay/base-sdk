@@ -8,7 +8,7 @@
 
 use crate::prelude::*;
 
-use aes::cipher::{BlockDecrypt, BlockEncrypt, KeyInit};
+use aes::cipher::{BlockCipherDecrypt, BlockCipherEncrypt, KeyInit};
 use aes::Aes256;
 use zeroize::{Zeroize, Zeroizing};
 

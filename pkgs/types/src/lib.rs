@@ -22,16 +22,17 @@ mod prelude;
 mod secret;
 mod traits;
 
+#[doc(hidden)]
+pub mod __deps {
+  pub use zeroize;
+}
 #[cfg(feature = "serde")]
 pub mod serialize;
 
-pub use crate::hex::ParseHexError;
-pub use crate::macros::qtypestr;
-pub use crate::numeric::Numeric;
-pub use crate::traits::{Checkable, Hashable};
-
-// TODO(kwvg): move to mod __deps
-pub use zeroize;
+pub use hex::ParseHexError;
+pub use macros::qtypestr;
+pub use numeric::Numeric;
+pub use traits::{Checkable, Hashable};
 
 cfg_if::cfg_if! {
   if #[cfg(feature = "codec")] {
