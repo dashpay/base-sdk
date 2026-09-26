@@ -55,4 +55,4 @@ extensions:
       # Sub-crate isolation demands re-exports, part of public API
       - ["dash-types",       "",          "dash_types_marker", ""]
       # Emits types relying on types or traits defined by a dependency, part of public API
-      - ["dash-types",       "",          "zeroize",           ""]
+      - ["dash-types",       "__deps",    "zeroize",           ""]
