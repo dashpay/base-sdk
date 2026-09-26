@@ -16,7 +16,7 @@ pub const MAX_SPTX_PAYLOAD_SIZE: usize = 10_240;
 #[macro_export]
 macro_rules! hash_impl {
   ($($ty:ty),* $(,)?) => { $(
-    impl $crate::__private::dash_types::codec::Hashable for $ty {
+    impl $crate::__private::dash_types::Hashable for $ty {
       type Hash = $crate::__private::dash_num::Hash256;
 
       fn hash(&self) -> Self::Hash {

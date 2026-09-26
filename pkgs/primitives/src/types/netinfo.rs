@@ -11,10 +11,10 @@ use super::{AddrV2, NetAddrError, ServiceV1, ServiceV2};
 use crate::hash_impl;
 use crate::prelude::*;
 
-use dash_types::codec::{self, BaseCodec, Checkable, DecodeError, EncodeBuf};
+use dash_types::codec::{self, BaseCodec, DecodeError, EncodeBuf};
 use dash_types::type_id::{TypeId, Unencodable};
 use dash_types::Numeric;
-use dash_types::{enum_map, impl_num, impl_type, CompactSize};
+use dash_types::{enum_map, impl_num, impl_type, Checkable, CompactSize};
 
 use core::fmt;
 
@@ -619,7 +619,8 @@ mod tests {
   use super::*;
   use crate::types::{AddrV1, AddrV2};
 
-  use dash_types::codec::{BaseCodec, Checkable};
+  use dash_types::codec::BaseCodec;
+  use dash_types::Checkable;
   use hex_conservative::hex;
   use rstest::rstest;
 

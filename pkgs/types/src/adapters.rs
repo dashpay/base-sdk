@@ -27,10 +27,10 @@ macro_rules! adapt_codec {
 
 #[cfg(feature = "bitcoin-primitives")]
 pub mod bitcoin_primitives {
-  use crate::codec::{BaseCodec, EncodeBuf, Hashable};
-  use crate::make_bytes;
+  use crate::codec::{BaseCodec, EncodeBuf};
   use crate::prelude::*;
   use crate::secret::ArrayBuf;
+  use crate::{make_bytes, Hashable};
 
   // nosemgrep: macro-no-bare-foreign-crate
   use ::bitcoin_primitives::script::{ScriptBuf, ScriptHashableTag};

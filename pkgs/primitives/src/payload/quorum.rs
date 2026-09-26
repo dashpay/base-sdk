@@ -13,9 +13,9 @@ use crate::support::{DynBitset, LlmqType};
 
 use dash_num::make_hash;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf, BlsSigBytes};
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
 use dash_types::type_id::{TypeId, Unencodable};
-use dash_types::Numeric;
+use dash_types::{Checkable, Numeric};
 
 use core::fmt;
 
