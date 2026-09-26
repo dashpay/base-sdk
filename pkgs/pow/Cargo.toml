@@ -18,9 +18,9 @@ simd = []
 
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
-divan = "0.1"
+divan = { workspace = true }
 hex-literal = "0.4"
-rstest = "0.25"
+rstest = { workspace = true }
 
 [[test]]
 name = "blake"

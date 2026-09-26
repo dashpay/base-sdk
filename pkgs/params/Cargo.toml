@@ -28,7 +28,7 @@ hex-literal = "0.4"
 [dev-dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 hex-literal = "0.4"
-rstest = "0.25"
+rstest = { workspace = true }
 
 [lints]
 workspace = true

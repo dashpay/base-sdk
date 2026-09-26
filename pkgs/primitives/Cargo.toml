@@ -55,7 +55,7 @@ hex-conservative = { workspace = true, features = [
   "alloc",
 ] }
 libm = { version = "0.2", default-features = false }
-serde = { version = "1", default-features = false, features = [
+serde = { workspace = true, features = [
   "alloc",
   "derive",
 ], optional = true }
@@ -63,8 +63,8 @@ serde = { version = "1", default-features = false, features = [
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 hex-literal = "0.4"
-rstest = "0.25"
-serde = { version = "1", features = ["derive"] }
+rstest = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [lints]
 workspace = true

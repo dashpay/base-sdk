@@ -48,7 +48,7 @@ secp256k1 = { version = "0.33.1", default-features = false, features = [
   "alloc",
   "recovery",
 ], optional = true }
-serde = { version = "1", default-features = false, features = [
+serde = { workspace = true, features = [
   "alloc",
   "derive",
 ], optional = true }
@@ -59,12 +59,12 @@ zeroize = { workspace = true, features = ["alloc", "derive"] }
 [dev-dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
 dash-dev = { path = "../dev", features = ["full"] }
-divan = "0.1"
+divan = { workspace = true }
 getrandom = { version = "0.4", features = ["sys_rng"] }
 hex-conservative = { workspace = true, features = ["std"] }
 rand_core = { workspace = true }
-rstest = "0.25"
-serde = { version = "1", features = ["derive"] }
+rstest = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [features]
 default = ["codec"]
