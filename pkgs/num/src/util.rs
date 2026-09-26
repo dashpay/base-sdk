@@ -50,20 +50,20 @@ macro_rules! make_hash {
   // The codec half, split out for gating with `cfg_codec!`.
   (@codec $len:literal, $name:ident) => {
     $crate::cfg_codec! {
-    impl $crate::__private::dash_types::codec::BaseCodec for $name {
+    impl $crate::__deps::dash_types::codec::BaseCodec for $name {
       fn decode(
         data: &mut &[u8],
-      ) -> Result<Self, $crate::__private::dash_types::codec::DecodeError> {
-        $crate::__private::dash_types::codec::take::<$len>(data)
-          .map(<Self as $crate::__private::dash_types::Numeric>::from_lendian)
+      ) -> Result<Self, $crate::__deps::dash_types::codec::DecodeError> {
+        $crate::__deps::dash_types::codec::take::<$len>(data)
+          .map(<Self as $crate::__deps::dash_types::Numeric>::from_lendian)
       }
 
-      fn encode(&self, buf: &mut impl $crate::__private::dash_types::codec::EncodeBuf) {
+      fn encode(&self, buf: &mut impl $crate::__deps::dash_types::codec::EncodeBuf) {
         buf.extend_from_slice(self.as_bytes());
       }
     }
 
-    $crate::__private::dash_types::impl_type!($name);
+    $crate::__deps::dash_types::impl_type!($name);
     }
   };
   (
@@ -75,7 +75,7 @@ macro_rules! make_hash {
         $(#[$attr])*
         #[derive(
           Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash,
-          $crate::__private::dash_types::type_id::TypeId,
+          $crate::__deps::dash_types::type_id::TypeId,
         )]
         pub struct $name($crate::HashBlob<$len>);
       } else {
@@ -118,17 +118,17 @@ macro_rules! make_hash {
 
       /// Parse from a big-endian hex string.
       #[inline]
-      pub fn from_hex(s: &str) -> Result<Self, $crate::__private::dash_types::ParseHexError> {
+      pub fn from_hex(s: &str) -> Result<Self, $crate::__deps::dash_types::ParseHexError> {
         <$crate::HashBlob<$len>>::from_hex(s).map(Self)
       }
     }
 
-    impl $crate::__private::dash_types::Numeric for $name {
+    impl $crate::__deps::dash_types::Numeric for $name {
       type Base = $crate::HashBlob<$len>;
 
       type Bytes = [u8; $len];
 
-      const ZERO: Self = Self(<$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::ZERO);
+      const ZERO: Self = Self(<$crate::HashBlob<$len> as $crate::__deps::dash_types::Numeric>::ZERO);
 
       #[inline]
       fn from_base(v: $crate::HashBlob<$len>) -> Self {
@@ -142,28 +142,28 @@ macro_rules! make_hash {
 
       #[inline]
       fn from_lendian(bytes: [u8; $len]) -> Self {
-        Self(<$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::from_lendian(bytes))
+        Self(<$crate::HashBlob<$len> as $crate::__deps::dash_types::Numeric>::from_lendian(bytes))
       }
 
       #[inline]
       fn to_lendian(&self) -> [u8; $len] {
-        <$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::to_lendian(&self.0)
+        <$crate::HashBlob<$len> as $crate::__deps::dash_types::Numeric>::to_lendian(&self.0)
       }
 
       #[inline]
       fn from_bendian(bytes: [u8; $len]) -> Self {
-        Self(<$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::from_bendian(bytes))
+        Self(<$crate::HashBlob<$len> as $crate::__deps::dash_types::Numeric>::from_bendian(bytes))
       }
 
       #[inline]
       fn to_bendian(&self) -> [u8; $len] {
-        <$crate::HashBlob<$len> as $crate::__private::dash_types::Numeric>::to_bendian(&self.0)
+        <$crate::HashBlob<$len> as $crate::__deps::dash_types::Numeric>::to_bendian(&self.0)
       }
     }
 
     impl Default for $name {
       #[inline]
-      fn default() -> Self { <Self as $crate::__private::dash_types::Numeric>::ZERO }
+      fn default() -> Self { <Self as $crate::__deps::dash_types::Numeric>::ZERO }
     }
 
     impl ::core::fmt::Display for $name {
@@ -191,17 +191,17 @@ macro_rules! make_hash {
     }
 
     impl ::core::str::FromStr for $name {
-      type Err = $crate::__private::dash_types::ParseHexError;
+      type Err = $crate::__deps::dash_types::ParseHexError;
 
       fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_hex(s)
       }
     }
 
-    $crate::__private::dash_types::type_cvrt!(From<[u8; $len]> for $name, |b| <Self as $crate::__private::dash_types::Numeric>::from_lendian(*b));
-    $crate::__private::dash_types::type_cvrt!(From<$name> for [u8; $len], |h| $crate::__private::dash_types::Numeric::to_lendian(h));
-    $crate::__private::dash_types::type_cvrt!(From<$crate::HashBlob<$len>> for $name, |h| Self(*h));
-    $crate::__private::dash_types::type_cvrt!(From<$name> for $crate::HashBlob<$len>, |h| h.0);
+    $crate::__deps::dash_types::type_cvrt!(From<[u8; $len]> for $name, |b| <Self as $crate::__deps::dash_types::Numeric>::from_lendian(*b));
+    $crate::__deps::dash_types::type_cvrt!(From<$name> for [u8; $len], |h| $crate::__deps::dash_types::Numeric::to_lendian(h));
+    $crate::__deps::dash_types::type_cvrt!(From<$crate::HashBlob<$len>> for $name, |h| Self(*h));
+    $crate::__deps::dash_types::type_cvrt!(From<$name> for $crate::HashBlob<$len>, |h| h.0);
 
     impl AsRef<[u8]> for $name {
       #[inline]
