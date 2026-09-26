@@ -301,7 +301,7 @@ cfg_if! {
 
         /// Decodes a whole hex image, rejecting any unconsumed tail.
         fn from_image<'de, T: BaseCodec, D: Deserializer<'de>>(deserializer: D) -> Result<T, D::Error> {
-          let bytes = serde_hex::deserialize(deserializer)?;
+          let bytes: Vec<u8> = serde_hex::deserialize(deserializer)?;
           let mut cursor = bytes.as_slice();
           let value = T::decode(&mut cursor).map_err(DeError::custom)?;
 

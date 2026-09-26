@@ -9,7 +9,7 @@
 use super::EddsaPkHash;
 
 use bitcoin_hashes::sha256::Hash as Sha256;
-use dash_types::{make_bytes, type_cvrt, Hashable};
+use dash_types::{make_bytes, Hashable};
 
 /// Raw Ed25519 public key length.
 pub const EDDSA_PK_LEN: usize = 32;
@@ -32,7 +32,3 @@ impl Hashable for EddsaPkBytes {
     EddsaPkHash::from(id)
   }
 }
-
-type_cvrt!(From<[u8; EDDSA_PK_LEN]> for EddsaPkBytes, |bytes| {
-  Self::from_bytes(*bytes)
-});

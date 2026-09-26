@@ -198,8 +198,8 @@ macro_rules! impl_type {
   };
 }
 
-/// Generates `BaseCodec` + `Encode` + `Decode` + `From<[u8; N]>` for a
-/// fixed-size byte newtype, expressed only through `from_bytes` / `as_bytes`.
+/// Generates `BaseCodec` + `Encode` + `Decode` for a fixed-size byte newtype,
+/// expressed only through `from_bytes` / `as_bytes`.
 ///
 /// Staged through the growable [`VecEncoder`]. For a newtype whose contents
 /// are secret use [`impl_sbytes!`](crate::impl_sbytes).
@@ -219,33 +219,26 @@ macro_rules! impl_bytes {
         buf.extend_from_slice(self.as_bytes());
       }
     }
-
-    impl<$($g)*> ::core::convert::From<[u8; $n]> for $ty {
-      fn from(bytes: [u8; $n]) -> Self { Self::from_bytes(bytes) }
-    }
   };
-  (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
+  (@wire [$($g:tt)*] $ty:ty, $n:expr) => {
     $crate::impl_bytes!(@codec [$($g)*] $ty, $n);
 
     $crate::impl_type!(@parse [$($g)*] $ty, $n);
   };
   (for[$($generic:tt)*] $($args:tt)*) => {
-    $crate::impl_bytes!(@parse [$($generic)*] $($args)*);
+    $crate::impl_bytes!(@wire [$($generic)*] $($args)*);
   };
   ($($args:tt)*) => {
-    $crate::impl_bytes!(@parse [] $($args)*);
+    $crate::impl_bytes!(@wire [] $($args)*);
   };
 }
 
 /// The standard trait set for a fixed-size byte newtype, expressed only
 /// through `from_bytes` / `as_bytes`.
 ///
-/// Emits `Clone`, `Copy`, `Default`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`,
-/// `Hash`, `is_null`, `AsRef<[u8]>`, `AsRef<[u8; N]>`, `From<Self> for
-/// [u8; N]`, a hex `Debug`/`Display`, and the hex `serde` pair.
-///
-/// A trailing `rev` renders the hex in reverse storage order, the default `fwd`
-/// renders storage order.
+/// The `serde` pair writes the `Display` hex to human-readable formats and the
+/// raw storage bytes to machine-readable formats. A trailing `rev` renders and
+/// parses the hex in reverse storage order, the default `fwd` in storage order.
 ///
 /// For a newtype holding secrets use [`derive_sbytes!`](crate::derive_sbytes),
 /// which withholds everything that would read or copy out the plaintext.
@@ -298,6 +291,16 @@ macro_rules! derive_bytes {
       fn from(val: $ty) -> Self { *val.as_bytes() }
     }
 
+    $crate::type_cvrt!(for[$($g)*] From<[u8; $n]> for $ty, |bytes| Self::from_bytes(*bytes));
+
+    impl<$($g)*> ::core::convert::TryFrom<&[u8]> for $ty {
+      type Error = ::core::array::TryFromSliceError;
+
+      fn try_from(slice: &[u8]) -> ::core::result::Result<Self, Self::Error> {
+        <[u8; $n]>::try_from(slice).map(Self::from_bytes)
+      }
+    }
+
     impl<$($g)*> $ty {
       /// Returns `true` when every byte is zero.
       pub fn is_null(&self) -> bool { self.as_bytes().iter().all(|&b| b == 0) }
@@ -306,9 +309,7 @@ macro_rules! derive_bytes {
     impl<$($g)*> ::core::fmt::Debug for $ty {
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         $crate::qtypestr(f, ::core::any::type_name::<Self>())?;
-        f.write_str("(")?;
-        ::core::fmt::Display::fmt(self, f)?;
-        f.write_str(")")
+        ::core::write!(f, "({self})")
       }
     }
 
@@ -323,12 +324,29 @@ macro_rules! derive_bytes {
   (@hex [$($g:tt)*] $ty:ty, $n:expr, $rev:expr) => {
     impl<$($g)*> ::core::fmt::Display for $ty {
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        let bytes = self.as_bytes();
-        for i in 0..$n {
-          let byte = if $rev { bytes[$n - 1 - i] } else { bytes[i] };
-          ::core::write!(f, "{byte:02x}")?;
-        }
-        ::core::result::Result::Ok(())
+        // A fresh formatter drops `{:#}`, reserving the prefix for `{:#x}`.
+        ::core::write!(f, "{self:x}")
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::LowerHex for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        $crate::__private::__write_hex(self.as_bytes(), $rev, $crate::__private::hex_conservative::Case::Lower, f)
+      }
+    }
+
+    impl<$($g)*> ::core::fmt::UpperHex for $ty {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        $crate::__private::__write_hex(self.as_bytes(), $rev, $crate::__private::hex_conservative::Case::Upper, f)
+      }
+    }
+
+    impl<$($g)*> ::core::str::FromStr for $ty {
+      type Err = $crate::ParseHexError;
+
+      /// Parses `2 * N` hex digits in the order `Display` writes.
+      fn from_str(s: &str) -> ::core::result::Result<Self, Self::Err> {
+        $crate::__private::__read_hex::<$n>(s, $rev).map(Self::from_bytes)
       }
     }
 
@@ -338,7 +356,7 @@ macro_rules! derive_bytes {
         where
           Z: $crate::__private::serde::Serializer,
         {
-          serializer.serialize_str(&::alloc::format!("{self}"))
+          $crate::serialize::hex::serialize_as(self.as_bytes(), self, serializer)
         }
       }
 
@@ -347,14 +365,10 @@ macro_rules! derive_bytes {
         where
           D: $crate::__private::serde::Deserializer<'de>,
         {
-          use $crate::__private::serde::de::Error as _;
-          let s = <::alloc::string::String as $crate::__private::serde::Deserialize>::deserialize(deserializer)?;
-          let mut bytes = $crate::__private::hex_conservative::decode_to_array::<$n>(&s)
-            .map_err(D::Error::custom)?;
-          if $rev {
-            bytes.reverse();
-          }
-          ::core::result::Result::Ok(Self::from_bytes(bytes))
+          $crate::serialize::hex::deserialize_as(deserializer, |s: &str| {
+            $crate::__private::__read_hex::<$n>(s, $rev)
+          })
+          .map(Self::from_bytes)
         }
       }
     }
@@ -407,7 +421,7 @@ macro_rules! make_bytes {
           @struct [$($g)*] $attrs #[derive($crate::type_id::TypeId)] $name $(<$($param),+>)?, $n
         );
 
-        $crate::$codec!(@parse [$($g)*] $name $(<$($param),+>)?, $n);
+        $crate::$codec!(@wire [$($g)*] $name $(<$($param),+>)?, $n);
       } else {
         $crate::make_bytes!(@struct [$($g)*] $attrs $name $(<$($param),+>)?, $n);
       }
@@ -514,4 +528,34 @@ macro_rules! dlgt_codec {
   ($($args:tt)*) => {
     $crate::dlgt_codec!(@parse [] $($args)*);
   };
+}
+
+#[cfg(all(test, feature = "codec"))]
+mod tests {
+  use hex_conservative::hex;
+  use rstest::rstest;
+
+  struct Paired([u8; 4]);
+
+  impl Paired {
+    const fn from_bytes(bytes: [u8; 4]) -> Self {
+      Self(bytes)
+    }
+
+    const fn as_bytes(&self) -> &[u8; 4] {
+      &self.0
+    }
+  }
+
+  // Pairs the two as `make_bytes!` documents for manual use.
+  crate::derive_bytes!(Paired, 4);
+  crate::impl_bytes!(Paired, 4);
+
+  #[rstest]
+  fn derive_and_impl_bytes_pair() {
+    let paired = Paired::from(hex!("ab000001"));
+
+    assert!(!paired.is_null());
+    assert_eq!(paired.as_bytes(), &hex!("ab000001"));
+  }
 }

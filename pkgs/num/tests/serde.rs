@@ -6,7 +6,7 @@
 
 //! Serde roundtrip tests for all types.
 
-use dash_dev::{assert_json_rt, from_json, json_rejects, to_json};
+use dash_dev::{assert_cbor_raw, assert_json_rt, from_json, json_rejects, to_json};
 use dash_num::{Arith256, CompactTarget, Hash160, Hash256};
 use dash_types::Numeric;
 use hex_literal::hex;
@@ -19,6 +19,13 @@ fn hash256_json_roundtrip() {
 
   assert_json_rt(&Hash256::ZERO);
   assert_json_rt(&Hash256::from_lendian([0xff; 32]));
+}
+
+#[test]
+fn hash_cbor_carries_storage_bytes() {
+  let bytes = hex!("9c524adbcf5611122b29125e5d35d2d22281aab533f00832d556b1f9eae51d7d");
+  assert_cbor_raw(&Hash256::from_lendian(bytes), &bytes);
+  assert_cbor_raw(&Arith256::from(Hash256::from_lendian(bytes)), &bytes);
 }
 
 #[test]

@@ -241,7 +241,7 @@ cfg_if! {
 
     impl<'de> ::serde::Deserialize<'de> for EcdsaRecSigBytes {
       fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let arr: [u8; ECDSA_SIG_LEN + 1] = serde_hex::deserialize(deserializer)?
+        let arr: [u8; ECDSA_SIG_LEN + 1] = serde_hex::deserialize::<_, Vec<u8>>(deserializer)?
           .as_slice()
           .try_into()
           .map_err(|_| DeError::custom("invalid compact recoverable signature length"))?;

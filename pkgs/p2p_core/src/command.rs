@@ -7,8 +7,8 @@
 //! Twelve-byte null-padded command string for P2P message dispatch.
 
 use dash_primitives::hash_impl;
-use dash_types::impl_bytes;
 use dash_types::type_id::TypeId;
+use dash_types::{impl_bytes, type_cvrt};
 
 use core::fmt;
 
@@ -58,6 +58,8 @@ impl CommandString {
     core::str::from_utf8(&self.0[..end]).unwrap_or("")
   }
 }
+
+type_cvrt!(From<[u8; 12]> for CommandString, |bytes| Self(*bytes));
 
 impl fmt::Debug for CommandString {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

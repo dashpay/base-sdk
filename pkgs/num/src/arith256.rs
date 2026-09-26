@@ -6,9 +6,9 @@
 
 //! 256-bit unsigned arithmetic integer.
 
-use crate::{Hash256, ParseHexError};
+use crate::Hash256;
 
-use dash_types::Numeric;
+use dash_types::{Numeric, ParseHexError};
 
 use core::cmp::Ordering;
 use core::fmt;
@@ -23,6 +23,11 @@ use core::str::FromStr;
 /// Stored as two `u128` limbs where `lo` holds bits \[0..128) and `hi` holds
 /// bits \[128..256).
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(
+  feature = "serde",
+  derive(::serde::Serialize, ::serde::Deserialize),
+  serde(from = "Hash256", into = "Hash256")
+)]
 pub struct Arith256 {
   lo: u128,
   hi: u128,
@@ -701,21 +706,5 @@ impl ShrAssign<u32> for Arith256 {
   #[inline]
   fn shr_assign(&mut self, rhs: u32) {
     *self = *self >> rhs;
-  }
-}
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for Arith256 {
-  fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    let h = Hash256::from(*self);
-    h.serialize(serializer)
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Arith256 {
-  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    let h = Hash256::deserialize(deserializer)?;
-    Ok(Self::from(h))
   }
 }

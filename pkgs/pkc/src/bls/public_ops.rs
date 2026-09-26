@@ -569,7 +569,8 @@ mod tests {
 
   cfg_if! {
     if #[cfg(feature = "serde")] {
-      use dash_dev::{assert_json_rt, to_json};
+      use dash_dev::{assert_cbor_raw, assert_json_rt, to_json};
+      use dash_types::Hashable;
 
       #[rstest]
       fn serde_emits_hex_string() {
@@ -587,6 +588,17 @@ mod tests {
 
         assert_json_rt(&BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&pk_legacy)).unwrap());
         assert_json_rt(&BlsPublicKey::<BlsScIetf>::from_bytes(&arr_from_hex(&pk_ietf)).unwrap());
+      }
+
+      #[rstest]
+      fn serde_carries_bytes_as_data() {
+        let (pk_legacy, _) = ser_pairs(SerType::PublicKey).swap_remove(0);
+        let pk = BlsPublicKey::<BlsScChia>::from_bytes(&arr_from_hex(&pk_legacy)).unwrap();
+        let hash = Hashable::hash(&pk);
+
+        // The hash renders reversed, but a binary format carries storage order.
+        assert_cbor_raw(&pk, &pk.to_bytes());
+        assert_cbor_raw(&hash, hash.as_bytes());
       }
     }
   }

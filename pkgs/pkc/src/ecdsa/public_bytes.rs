@@ -193,7 +193,8 @@ cfg_if! {
 
     impl<'de> ::serde::Deserialize<'de> for EcdsaPkBytes {
       fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Self::from_bytes(&serde_hex::deserialize(deserializer)?).ok_or_else(|| D::Error::custom("invalid public key"))
+        let bytes = serde_hex::deserialize::<_, Vec<u8>>(deserializer)?;
+        Self::from_bytes(&bytes).ok_or_else(|| D::Error::custom("invalid public key"))
       }
     }
   }

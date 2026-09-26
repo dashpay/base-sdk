@@ -285,9 +285,9 @@ mod tests {
   };
   use crate::prelude::*;
 
-  #[cfg(feature = "serde")]
-  use dash_dev::assert_json_rt;
   use dash_dev::{arr_from_hex, Corpus};
+  #[cfg(feature = "serde")]
+  use dash_dev::{assert_cbor_raw, assert_json_rt};
   use dash_types::codec::{BaseCodec, Hashable};
   use rstest::*;
   use serde::Deserialize;
@@ -421,6 +421,7 @@ mod tests {
   #[rstest]
   fn serde_roundtrip(alice_pk: EcdsaPublicKey) {
     assert_json_rt(&alice_pk);
+    assert_cbor_raw(&alice_pk, EcdsaPkBytes::from(&alice_pk).as_bytes());
   }
 
   #[rstest]

@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `HashBlob`, `make_hash!` types and `Arith256` serialize as their little-endian storage bytes for machine-readable
+  formats, JSON retains hex encoded big-endian string encoding.
+
+### Removed
+
+- `ParseHexError` has moved to `dash-types` as `dash_types::ParseHexError`.
+
 ## [0.1.0-beta] - 2026-09-14
 
 - Initial release.

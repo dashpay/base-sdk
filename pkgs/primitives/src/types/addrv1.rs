@@ -23,7 +23,12 @@ const IPV4_MAPPED_PREFIX: [u8; 12] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
 
 /// ADDRv1 IPv4-mapped IPv6 address (16 bytes).
 #[derive(Clone, Copy, Default, Eq, Hash, PartialEq, TypeId)]
-pub struct AddrV1(pub [u8; 16]);
+#[cfg_attr(
+  feature = "serde",
+  derive(::serde::Serialize, ::serde::Deserialize),
+  serde(transparent)
+)]
+pub struct AddrV1(#[cfg_attr(feature = "serde", serde(with = "dash_types::serialize::hex"))] pub [u8; 16]);
 
 impl_bytes!(AddrV1, 16);
 
@@ -115,23 +120,6 @@ impl fmt::Debug for AddrV1 {
   }
 }
 
-#[cfg(feature = "serde")]
-impl ::serde::Serialize for AddrV1 {
-  fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    use dash_types::__private::hex_conservative::DisplayHex;
-    serializer.serialize_str(&self.0.to_lower_hex_string())
-  }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> ::serde::Deserialize<'de> for AddrV1 {
-  fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    use dash_types::__private::hex_conservative::decode_to_array;
-    let s = <alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
-    decode_to_array::<16>(&s).map(Self).map_err(::serde::de::Error::custom)
-  }
-}
-
 impl NetAddr for AddrV1 {
   fn bytes(&self) -> &[u8] {
     if self.is_ipv4() {
@@ -202,6 +190,8 @@ impl FromStr for AddrV1 {
     Err(NetAddrError::BadEncode { pos: 0 })
   }
 }
+
+type_cvrt!(From<[u8; 16]> for AddrV1, |bytes| Self(*bytes));
 
 type_cvrt!(TryFrom<AddrV2> for AddrV1, NetAddrError, |addr| {
   match addr {
@@ -325,6 +315,13 @@ mod tests {
     let parsed: AddrV1 = s.parse().unwrap();
     assert_eq!(parsed, AddrV1(raw));
     assert_eq!(parsed.to_string(), s);
+  }
+
+  #[cfg(feature = "serde")]
+  #[rstest]
+  fn serde_carries_bytes_as_data() {
+    let raw = hex!("20010db8000000000000000000000001");
+    dash_dev::assert_cbor_raw(&AddrV1(raw), &raw);
   }
 
   #[rstest]

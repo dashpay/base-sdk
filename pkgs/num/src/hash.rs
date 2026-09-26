@@ -6,50 +6,20 @@
 
 //! Fixed-size opaque hash blob types.
 
+use dash_types::__private::__write_hex as write_hex;
 #[cfg(feature = "codec")]
 use dash_types::impl_type;
-use dash_types::{type_cvrt, Numeric};
-use hex_conservative::{BytesToHexIter, Case, HexSliceToBytesIter};
+#[cfg(feature = "serde")]
+use dash_types::serialize::hex as serde_hex;
+use dash_types::{type_cvrt, Numeric, ParseHexError};
+use hex_conservative::{Case, HexSliceToBytesIter};
 
-use core::fmt::{self, Write as _};
+use core::fmt;
 use core::hash::Hash;
 use core::str::FromStr;
 
 /// Whitespace skipped before a hex prefix.
 const WHITESPACE: [char; 6] = [' ', '\x0c', '\n', '\r', '\t', '\x0b'];
-
-/// Error returned when parsing a hex string fails.
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum ParseHexError {
-  /// The hex string has an odd number of characters.
-  OddLength,
-  /// The hex character count does not match the expected length.
-  InvalidLength {
-    /// Hex characters the target type accepts, twice its byte width.
-    expected: usize,
-    /// Hex characters supplied, after any prefix was stripped.
-    got: usize,
-  },
-  /// A non-hex character was encountered.
-  InvalidChar(u8),
-}
-
-impl fmt::Display for ParseHexError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::OddLength => write!(f, "hex string has odd length"),
-      Self::InvalidLength { expected, got } => {
-        write!(f, "expected {expected} hex chars, got {got}")
-      }
-      Self::InvalidChar(c) => {
-        write!(f, "invalid hex character: {:#04x}", c)
-      }
-    }
-  }
-}
-
-impl core::error::Error for ParseHexError {}
 
 /// Fixed-size opaque hash blob stored in little-endian byte order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -177,34 +147,22 @@ impl<const N: usize> Default for HashBlob<N> {
 /// Reversed hex (big-endian display, consensus format).
 impl<const N: usize> fmt::Display for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write_hex(self.as_bytes(), Case::Lower, f)
+    write_hex(self.as_bytes(), true, Case::Lower, f)
   }
 }
 
 /// Big-endian hex, `N * 2` chars zero-padded.
 impl<const N: usize> fmt::LowerHex for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write_hex(self.as_bytes(), Case::Lower, f)
+    write_hex(self.as_bytes(), true, Case::Lower, f)
   }
 }
 
 /// Big-endian hex (uppercase), `N * 2` chars zero-padded.
 impl<const N: usize> fmt::UpperHex for HashBlob<N> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write_hex(self.as_bytes(), Case::Upper, f)
+    write_hex(self.as_bytes(), true, Case::Upper, f)
   }
-}
-
-/// Writes little-endian storage as big-endian hex, honouring `{:#x}`.
-fn write_hex(bytes: &[u8], case: Case, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-  if f.alternate() {
-    f.write_str(if case == Case::Lower { "0x" } else { "0X" })?;
-  }
-  for [hi, lo] in BytesToHexIter::new(bytes.iter().rev().copied(), case) {
-    f.write_char(char::from(hi))?;
-    f.write_char(char::from(lo))?;
-  }
-  Ok(())
 }
 
 impl<const N: usize> fmt::Debug for HashBlob<N> {
@@ -236,18 +194,20 @@ impl<const N: usize> AsRef<[u8; N]> for HashBlob<N> {
   }
 }
 
+/// Hex encoded big-endian string or little-endian bytes.
 #[cfg(feature = "serde")]
 impl<const N: usize> ::serde::Serialize for HashBlob<N> {
   fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_str(&::alloc::format!("{}", self))
+    serde_hex::serialize_as(self.as_bytes(), self, serializer)
   }
 }
 
+/// Hex encoded big-endian string through [`HashBlob::from_hex`], or `N`
+/// little-endian bytes.
 #[cfg(feature = "serde")]
 impl<'de, const N: usize> ::serde::Deserialize<'de> for HashBlob<N> {
   fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-    let s = <::alloc::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
-    Self::from_hex(&s).map_err(::serde::de::Error::custom)
+    serde_hex::deserialize_as(deserializer, |s: &str| Self::from_hex(s).map(|h| h.0)).map(Self)
   }
 }
 

@@ -174,7 +174,7 @@ mod tests {
   use crate::ecdsa::{EcdsaPublicKey, EcdsaSigBytes, EcdsaSignature};
 
   #[cfg(feature = "serde")]
-  use dash_dev::assert_json_rt;
+  use dash_dev::{assert_cbor_raw, assert_json_rt};
   use rstest::*;
 
   #[rstest]
@@ -235,6 +235,7 @@ mod tests {
   #[rstest]
   fn serde_sig_roundtrip(alice_sig: EcdsaSignature) {
     assert_json_rt(&alice_sig);
+    assert_cbor_raw(&alice_sig, &alice_sig.to_bytes());
   }
 
   #[rstest]
