@@ -14,7 +14,7 @@ use dash_num::{Arith256, Hash256};
 use dash_primitives::{Block, BlockHash, BlockHeader, MerkleRoot, OutPoint, Transaction, TxHash, TxIn, TxOut, TxType};
 use dash_script::AddrParams;
 use dash_types::Numeric;
-use hex_literal::hex;
+use hex_conservative::hex;
 
 /// Returns the testnet genesis block.
 pub fn genesis() -> Block {
@@ -27,12 +27,12 @@ pub fn genesis() -> Block {
         index: 0xFFFF_FFFF,
       },
       script_sig: ScriptSigBuf::from_bytes(
-        hex!(
-          "04ffff001d01044c5957697265642030392f4a616e2f323031342054686520"
-          "4772616e64204578706572696d656e7420476f6573204c6976653a204f7665"
-          "7273746f636b2e636f6d204973204e6f7720416363657074696e6720426974"
+        hex!(concat!(
+          "04ffff001d01044c5957697265642030392f4a616e2f323031342054686520",
+          "4772616e64204578706572696d656e7420476f6573204c6976653a204f7665",
+          "7273746f636b2e636f6d204973204e6f7720416363657074696e6720426974",
           "636f696e73"
-        )
+        ))
         .to_vec(),
       ),
       sequence: 0xFFFF_FFFF,
@@ -40,11 +40,11 @@ pub fn genesis() -> Block {
     outputs: vec![TxOut {
       value: bitcoin_units::Amount::from_btc_u16(50),
       script_pubkey: ScriptPubKeyBuf::from_bytes(
-        hex!(
-          "41040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4"
-          "d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070"
+        hex!(concat!(
+          "41040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4",
+          "d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070",
           "ac7b03a9ac"
-        )
+        ))
         .to_vec(),
       ),
     }],

@@ -620,37 +620,37 @@ mod tests {
   use crate::types::{AddrV1, AddrV2};
 
   use dash_types::codec::{BaseCodec, Checkable};
-  use hex_literal::hex;
+  use hex_conservative::hex;
   use rstest::rstest;
 
   #[rstest]
   #[case::ipv4(
-    &hex!(
-      "01"       // entry_type=Service
-      "01"       // network=ipv4
-      "04"       // addr_len=4
-      "01020304" // addr 1.2.3.4
-      "270f"     // port=9999
-    ),
+    &hex!(concat!(
+      "01",       // entry_type=Service
+      "01",       // network=ipv4
+      "04",       // addr_len=4
+      "01020304", // addr 1.2.3.4
+      "270f",     // port=9999
+    )),
     NIEntry::Service(ServiceV2 { addr: AddrV2::Ipv4([1, 2, 3, 4]), port: 9999 }),
   )]
   #[case::ipv6(
-    &hex!(
-      "01"                               // entry_type=Service
-      "02"                               // network=ipv6
-      "10"                               // addr_len=16
-      "00000000000000000000000000000001" // addr ::1
-      "270f"                             // port=9999
-    ),
+    &hex!(concat!(
+      "01",                               // entry_type=Service
+      "02",                               // network=ipv6
+      "10",                               // addr_len=16
+      "00000000000000000000000000000001", // addr ::1
+      "270f",                             // port=9999
+    )),
     NIEntry::Service(ServiceV2 { addr: AddrV2::Ipv6([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]), port: 9999 }),
   )]
   #[case::domain(
-    &hex!(
-      "02"                     // entry_type=Domain
-      "0b"                     // name_len=11
-      "6578616d706c652e636f6d" // "example.com"
-      "01bb"                   // port=443
-    ),
+    &hex!(concat!(
+      "02",                     // entry_type=Domain
+      "0b",                     // name_len=11
+      "6578616d706c652e636f6d", // "example.com"
+      "01bb",                   // port=443
+    )),
     NIEntry::Domain { name: b"example.com".to_vec(), port: 443 },
   )]
   fn nientry_roundtrip(#[case] wire: &[u8], #[case] expected: NIEntry) {
@@ -669,15 +669,15 @@ mod tests {
 
   #[rstest]
   #[case::single_ipv4(
-    &hex!(
-      "01"            // version=1
-      "01"            // purpose_count=1
-      "00"            // purpose=CoreP2p
-      "01"            // entry_count=1
-      "01"            // entry_type=Service
-      "0104 01020304" // ipv4 1.2.3.4
-      "270f"          // port=9999
-    ),
+    &hex!(concat!(
+      "01",               // version=1
+      "01",               // purpose_count=1
+      "00",               // purpose=CoreP2p
+      "01",               // entry_count=1
+      "01",               // entry_type=Service
+      "0104", "01020304", // ipv4 1.2.3.4
+      "270f",             // port=9999
+    )),
     NetInfoV2 {
       version: 1,
       entries: vec![(
@@ -690,20 +690,20 @@ mod tests {
     },
   )]
   #[case::multi_purpose(
-    &hex!(
-      "01"                       // version=1
-      "02"                       // purpose_count=2
-      "00"                       // purpose=CoreP2p
-      "01"                       // entry_count=1
-      "01"                       // entry_type=Service
-      "0104 c0a80001"            // ipv4 192.168.0.1
-      "238e"                     // port=9102
-      "02"                       // purpose=PlatformHttps
-      "01"                       // entry_count=1
-      "02"                       // entry_type=Domain
-      "0b6578616d706c652e636f6d" // "example.com"
-      "01bb"                     // port=443
-    ),
+    &hex!(concat!(
+      "01",                       // version=1
+      "02",                       // purpose_count=2
+      "00",                       // purpose=CoreP2p
+      "01",                       // entry_count=1
+      "01",                       // entry_type=Service
+      "0104", "c0a80001",         // ipv4 192.168.0.1
+      "238e",                     // port=9102
+      "02",                       // purpose=PlatformHttps
+      "01",                       // entry_count=1
+      "02",                       // entry_type=Domain
+      "0b6578616d706c652e636f6d", // "example.com"
+      "01bb",                     // port=443
+    )),
     NetInfoV2 {
       version: 1,
       entries: vec![

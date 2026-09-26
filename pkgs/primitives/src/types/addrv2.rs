@@ -398,7 +398,7 @@ impl FromStr for ServiceV2 {
 mod tests {
   use super::*;
 
-  use hex_literal::hex;
+  use hex_conservative::hex;
   use rstest::rstest;
 
   #[rstest]

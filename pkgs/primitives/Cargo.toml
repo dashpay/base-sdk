@@ -62,7 +62,6 @@ serde = { workspace = true, features = [
 
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
-hex-literal = "0.4"
 rstest = { workspace = true }
 serde = { workspace = true, features = ["derive", "std"] }
 

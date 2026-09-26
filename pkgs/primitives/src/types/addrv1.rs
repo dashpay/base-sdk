@@ -303,7 +303,7 @@ mod tests {
   use super::*;
   use crate::prelude::*;
 
-  use hex_literal::hex;
+  use hex_conservative::hex;
   use rstest::rstest;
 
   #[rstest]

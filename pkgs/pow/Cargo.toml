@@ -19,7 +19,7 @@ simd = []
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 divan = { workspace = true }
-hex-literal = "0.4"
+hex-conservative = { workspace = true }
 rstest = { workspace = true }
 
 [[test]]
