@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 - `ParseHexError` has moved to `dash-types` as `dash_types::ParseHexError`.
+- The `dash_types::Numeric` re-export in favour of a wholesale crate re-export. `dash_num::Numeric` imports must switch
+  to `dash_num::__deps::dash_types::Numeric` or depend on `dash-types` directly.
 
 ## [0.1.0-beta] - 2026-09-14
 
