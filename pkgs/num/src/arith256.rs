@@ -108,7 +108,7 @@ impl Arith256 {
 
   /// Construct from big-endian bytes (consensus display order).
   ///
-  /// This is the natural byte order produced by `hex_literal::hex!()` when
+  /// This is the natural byte order produced by `hex_conservative::hex!()` when
   /// given a consensus hex value. Internally the value is stored
   /// little-endian, so this reverses the input before decoding.
   ///

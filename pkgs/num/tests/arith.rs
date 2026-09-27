@@ -10,7 +10,7 @@
 
 use dash_num::{Arith256, Hash256};
 use dash_types::Numeric;
-use hex_literal::hex;
+use hex_conservative::hex;
 use rstest::*;
 
 use core::str::FromStr;

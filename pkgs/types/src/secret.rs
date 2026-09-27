@@ -338,11 +338,11 @@ macro_rules! derive_sbytes {
   (@parse [$($g:tt)*] $ty:ty, $n:expr) => {
     impl<$($g)*> ::core::ops::Drop for $ty {
       fn drop(&mut self) {
-        <Self as $crate::zeroize::Zeroize>::zeroize(self);
+        <Self as $crate::__deps::zeroize::Zeroize>::zeroize(self);
       }
     }
 
-    impl<$($g)*> $crate::zeroize::ZeroizeOnDrop for $ty {}
+    impl<$($g)*> $crate::__deps::zeroize::ZeroizeOnDrop for $ty {}
 
     impl<$($g)*> $ty {
       /// Returns `true` when every byte is zero.
@@ -404,8 +404,8 @@ macro_rules! make_sbytes {
 
     $crate::make_bytes!(@accessors [$($g)*] $name $(<$($param),+>)?, $n, {
       /// Copies out the inner byte array.
-      pub fn to_bytes(&self) -> $crate::zeroize::Zeroizing<[u8; $n]> {
-        $crate::zeroize::Zeroizing::new(self.inner)
+      pub fn to_bytes(&self) -> $crate::__deps::zeroize::Zeroizing<[u8; $n]> {
+        $crate::__deps::zeroize::Zeroizing::new(self.inner)
       }
     });
 
@@ -415,9 +415,9 @@ macro_rules! make_sbytes {
       }
     }
 
-    impl<$($g)*> $crate::zeroize::Zeroize for $name $(<$($param),+>)? {
+    impl<$($g)*> $crate::__deps::zeroize::Zeroize for $name $(<$($param),+>)? {
       fn zeroize(&mut self) {
-        $crate::zeroize::Zeroize::zeroize(&mut self.inner);
+        $crate::__deps::zeroize::Zeroize::zeroize(&mut self.inner);
       }
     }
 

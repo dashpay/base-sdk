@@ -78,17 +78,17 @@ def _check_format(
   )
 
 
-def _check_yanked(repo_root: Path) -> int | None:
-  """Fail on a yanked release, or None when cargo-deny is absent."""
+def _check_deny(repo_root: Path) -> int | None:
+  """Fail on a yanked or banned crate, or None when cargo-deny is absent."""
   try:
     deny_bin = require_bin("cargo-deny")
   except FileNotFoundError as e:
-    print(f"{e}, skipping the yanked check", file=sys.stderr)
+    print(f"{e}, skipping the yanked and banned check", file=sys.stderr)
     return None
 
-  print("checking yanked: every crate the graph resolves")
+  print("checking yanked and banned: every crate the graph resolves")
   result = subprocess.run(  # noqa: S603
-    [deny_bin, "check", "advisories"],
+    [deny_bin, "check", "--hide-inclusion-graph", "advisories", "bans"],
     capture_output=True,
     check=False,
     cwd=str(repo_root),
@@ -101,7 +101,7 @@ def _check_yanked(repo_root: Path) -> int | None:
 
 def main() -> int:
   args = declare_verbs(
-    "Validate the crate graph against yanked releases.",
+    "Validate the crate graph against yanked releases and banned crates.",
     {
       "check": "report every fault, changing nothing",
       "apply": f"also rewrite TOML this branch changed vs {DEFAULT_BASE}",
@@ -114,7 +114,7 @@ def main() -> int:
 
   verdicts: list[int | None] = [
     _check_format(repo_root, fix=fix, only=only),
-    _check_yanked(repo_root),
+    _check_deny(repo_root),
   ]
   ran = [v for v in verdicts if v is not None]
   if not ran:

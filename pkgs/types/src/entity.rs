@@ -509,11 +509,11 @@ macro_rules! dlgt_codec {
       }
     }
 
-    impl<$($impl_generics)*> $crate::codec::Hashable for $ops {
+    impl<$($impl_generics)*> $crate::Hashable for $ops {
       type Hash = $hash;
 
       fn hash(&self) -> $hash {
-        $crate::codec::Hashable::hash(&<$bytes as ::core::convert::From<&Self>>::from(self))
+        $crate::Hashable::hash(&<$bytes as ::core::convert::From<&Self>>::from(self))
       }
     }
   };

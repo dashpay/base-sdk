@@ -9,7 +9,7 @@
 use dash_dev::{assert_cbor_raw, assert_json_rt, from_json, json_rejects, to_json};
 use dash_num::{Arith256, CompactTarget, Hash160, Hash256};
 use dash_types::Numeric;
-use hex_literal::hex;
+use hex_conservative::hex;
 
 #[test]
 fn hash256_json_roundtrip() {

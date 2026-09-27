@@ -10,7 +10,8 @@ use crate::prelude::*;
 
 use bitcoin_consensus_encoding::{decode_from_slice, encode_to_vec, Decode, Decoder, Encode};
 use dash_primitives::{Transaction, TxHash};
-use dash_types::codec::{BaseCodec, Checkable, Hashable};
+use dash_types::codec::BaseCodec;
+use dash_types::{Checkable, Hashable};
 
 use core::fmt::{Debug, Display};
 

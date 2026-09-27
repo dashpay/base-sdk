@@ -11,7 +11,8 @@ use crate::policy;
 use crate::Application;
 
 use dash_primitives::{Block, BlockHash, BlockInvalid};
-use dash_types::codec::{BaseCodec, Checkable, DecodeError};
+use dash_types::codec::{BaseCodec, DecodeError};
+use dash_types::Checkable;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 

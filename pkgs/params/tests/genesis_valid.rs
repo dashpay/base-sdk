@@ -9,7 +9,7 @@
 use dash_params::{ChainParams, Network};
 use dash_primitives::{Block, BlockHash, MerkleRoot};
 use dash_types::{Hashable, Numeric};
-use hex_literal::hex;
+use hex_conservative::hex;
 use rstest::rstest;
 
 #[rstest]

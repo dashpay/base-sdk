@@ -5,6 +5,9 @@ all-features = true
 yanked = "deny"
 
 [bans]
+deny = [
+  { crate = "hex-literal", reason = "use `hex_conservative` instead" },
+]
 multiple-versions = "warn"
 
 [licenses]

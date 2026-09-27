@@ -19,9 +19,9 @@ use crate::{hash_impl, TxHash};
 use bitcoin_primitives::script::ScriptPubKeyBuf;
 use dash_pkc::bls::{BlsPkBytes, BlsScIetf};
 use dash_script::{PubKeyHash, Recipient};
-use dash_types::codec::{BaseCodec, Checkable, DecodeError, EncodeBuf};
+use dash_types::codec::{BaseCodec, DecodeError, EncodeBuf};
 use dash_types::type_id::TypeId;
-use dash_types::Numeric;
+use dash_types::{Checkable, Numeric};
 
 use core::fmt;
 

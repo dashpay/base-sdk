@@ -39,7 +39,7 @@ dash-primitives = { version = "0.0.0", path = "../primitives" }
 dash-types = { version = "0.1.0-beta", path = "../types", default-features = false, features = [
   "codec",
 ] }
-serde = { version = "1", default-features = false, features = [
+serde = { workspace = true, features = [
   "alloc",
   "derive",
 ], optional = true }
@@ -47,7 +47,7 @@ serde = { version = "1", default-features = false, features = [
 [dev-dependencies]
 dash-dev = { version = "0.0.0", path = "../dev", features = ["full"] }
 hex-conservative = { workspace = true, features = ["std"] }
-rstest = "0.25"
+rstest = { workspace = true }
 
 [lints]
 workspace = true

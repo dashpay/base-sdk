@@ -61,7 +61,7 @@ cfg-if = "1"
 dash-types-marker = { version = "0.1.0-beta", path = "marker", optional = true }
 hex-conservative = { workspace = true }
 subtle = { workspace = true }
-serde = { version = "1", default-features = false, features = [
+serde = { workspace = true, features = [
   "derive",
   "alloc",
 ], optional = true }
@@ -69,8 +69,8 @@ zeroize = { workspace = true }
 
 [dev-dependencies]
 ciborium = "0.2"
-rstest = "0.25"
-serde = { version = "1", features = ["derive"] }
+rstest = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [lints]
 workspace = true
