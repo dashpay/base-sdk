@@ -8,37 +8,44 @@
 
 use crate::Hash256;
 
+use ambassador::{delegatable_trait_remote, Delegate};
+use bitcoin_internals::u256::U256;
 use dash_types::{type_cvrt, Numeric, ParseHexError};
 
-use core::cmp::Ordering;
-use core::fmt;
+use core::fmt::{self, LowerHex, UpperHex};
 use core::ops::{
   Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign, Neg,
   Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use core::str::FromStr;
 
+#[delegatable_trait_remote]
+trait LowerHex {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
+}
+
+#[delegatable_trait_remote]
+trait UpperHex {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
+}
+
 /// 256-bit unsigned arithmetic integer.
-///
-/// Stored as two `u128` limbs where `lo` holds bits \[0..128) and `hi` holds
-/// bits \[128..256).
-#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Delegate)]
+#[delegate(LowerHex)]
+#[delegate(UpperHex)]
 #[cfg_attr(
   feature = "serde",
   derive(::serde::Serialize, ::serde::Deserialize),
   serde(from = "Hash256", into = "Hash256")
 )]
-pub struct Arith256 {
-  lo: u128,
-  hi: u128,
-}
+pub struct Arith256(U256);
 
 impl Numeric for Arith256 {
   type Base = [u8; 32];
 
   type Bytes = [u8; 32];
 
-  const ZERO: Self = Self { lo: 0, hi: 0 };
+  const ZERO: Self = Self(U256::ZERO);
 
   #[inline]
   fn from_base(v: [u8; 32]) -> Self {
@@ -52,187 +59,108 @@ impl Numeric for Arith256 {
 
   #[inline]
   fn from_lendian(bytes: [u8; 32]) -> Self {
-    Self {
-      lo: u128::from_le_bytes(split_low(bytes)),
-      hi: u128::from_le_bytes(split_high(bytes)),
-    }
+    Self(U256::from_le_bytes(bytes))
   }
 
   #[inline]
   fn to_lendian(&self) -> [u8; 32] {
-    let lo = self.lo.to_le_bytes();
-    let hi = self.hi.to_le_bytes();
-    let mut out = [0u8; 32];
-    let mut i = 0;
-    while i < 16 {
-      out[i] = lo[i];
-      out[i + 16] = hi[i];
-      i += 1;
-    }
-    out
+    self.0.to_le_bytes()
   }
 
   #[inline]
   fn from_bendian(bytes: [u8; 32]) -> Self {
-    // Resolves to the inherent `const` form.
-    Self::from_bendian(bytes)
+    Self(U256::from_be_bytes(bytes))
   }
 
   #[inline]
   fn to_bendian(&self) -> [u8; 32] {
-    let mut out = self.to_lendian();
-    out.reverse();
-    out
+    self.0.to_be_bytes()
   }
 }
 
 impl Arith256 {
   /// The multiplicative identity.
-  pub const ONE: Self = Self { lo: 1, hi: 0 };
+  pub const ONE: Self = Self(U256::ONE);
   /// The largest representable value (all bits set).
-  pub const MAX: Self = Self {
-    lo: u128::MAX,
-    hi: u128::MAX,
-  };
+  pub const MAX: Self = Self(U256::MAX);
   /// Create from a `u64`, zero-extending the upper bits.
   #[inline]
   pub fn from_u64(v: u64) -> Self {
-    Self { lo: v as u128, hi: 0 }
+    Self(U256::from(v))
   }
 
   /// Create from a `u128`, zero-extending the upper bits.
   #[inline]
   pub fn from_u128(v: u128) -> Self {
-    Self { lo: v, hi: 0 }
+    Self(U256::from(v))
   }
 
   /// Construct from big-endian bytes (consensus display order).
   ///
   /// This is the natural byte order produced by `hex_conservative::hex!()` when
-  /// given a consensus hex value. Internally the value is stored
-  /// little-endian, so this reverses the input before decoding.
+  /// given a consensus hex value.
   ///
   /// Shadows [`Numeric::from_bendian`] with a `const` form.
   #[inline]
   pub const fn from_bendian(be: [u8; 32]) -> Self {
-    let mut le = [0u8; 32];
+    let mut high = [0u8; 16];
+    let mut low = [0u8; 16];
     let mut i = 0;
-    while i < 32 {
-      le[i] = be[31 - i];
+    while i < 16 {
+      high[i] = be[i];
+      low[i] = be[i + 16];
       i += 1;
     }
-    Self {
-      lo: u128::from_le_bytes(split_low(le)),
-      hi: u128::from_le_bytes(split_high(le)),
-    }
+    Self(U256::new(u128::from_be_bytes(high), u128::from_be_bytes(low)))
   }
 
   /// Returns the lowest 32 bits of the value.
   #[inline]
   pub fn low_u32(self) -> u32 {
-    self.lo as u32
+    self.0.low_u32()
   }
 
   /// Returns the lowest 64 bits of the value.
   #[inline]
   pub fn low_u64(self) -> u64 {
-    self.lo as u64
+    self.0.low_u64()
   }
 
   /// Returns the lowest 128 bits of the value.
   #[inline]
   pub fn low_u128(self) -> u128 {
-    self.lo
+    self.limbs().1
   }
 
   /// Saturating conversion to u128. Returns u128::MAX if value exceeds 128
   /// bits.
   #[inline]
   pub fn saturating_to_u128(self) -> u128 {
-    if self.hi != 0 {
-      u128::MAX
-    } else {
-      self.lo
-    }
+    self.0.saturating_to_u128()
   }
 
   /// Highest set bit position plus one, or zero if zero.
   #[inline]
   pub fn bits(self) -> u32 {
-    if self.hi != 0 {
-      256 - self.hi.leading_zeros()
-    } else if self.lo != 0 {
-      128 - self.lo.leading_zeros()
-    } else {
-      0
-    }
+    self.0.bits()
   }
 
   /// Wrapping addition.
   #[inline]
   pub fn wrapping_add(self, rhs: Self) -> Self {
-    let (lo, carry) = self.lo.overflowing_add(rhs.lo);
-    let hi = self.hi.wrapping_add(rhs.hi).wrapping_add(carry as u128);
-    Self { lo, hi }
+    Self(self.0.wrapping_add(rhs.0))
   }
 
   /// Wrapping subtraction.
   #[inline]
   pub fn wrapping_sub(self, rhs: Self) -> Self {
-    let (lo, borrow) = self.lo.overflowing_sub(rhs.lo);
-    let hi = self.hi.wrapping_sub(rhs.hi).wrapping_sub(borrow as u128);
-    Self { lo, hi }
+    Self(self.0.wrapping_sub(rhs.0))
   }
 
-  /// Wrapping multiply via 64-bit limb decomposition.
+  /// Wrapping multiply.
+  #[inline]
   pub fn wrapping_mul(self, rhs: Self) -> Self {
-    let a0 = self.lo as u64 as u128;
-    let a1 = (self.lo >> 64) as u64 as u128;
-    let a2 = self.hi as u64 as u128;
-    let a3 = (self.hi >> 64) as u64 as u128;
-
-    let b0 = rhs.lo as u64 as u128;
-    let b1 = (rhs.lo >> 64) as u64 as u128;
-    let b2 = rhs.hi as u64 as u128;
-    let b3 = (rhs.hi >> 64) as u64 as u128;
-
-    let p00 = a0 * b0;
-    let r0 = p00 as u64 as u128;
-    let mut carry = p00 >> 64;
-
-    let p10 = a1 * b0;
-    let p01 = a0 * b1;
-    let sum = carry + (p10 as u64 as u128) + (p01 as u64 as u128);
-    let r1 = sum as u64 as u128;
-    carry = (sum >> 64) + (p10 >> 64) + (p01 >> 64);
-
-    let p20 = a2 * b0;
-    let p11 = a1 * b1;
-    let p02 = a0 * b2;
-    let sum = carry
-      .wrapping_add(p20 as u64 as u128)
-      .wrapping_add(p11 as u64 as u128)
-      .wrapping_add(p02 as u64 as u128);
-    let r2 = sum as u64 as u128;
-    carry = (sum >> 64)
-      .wrapping_add(p20 >> 64)
-      .wrapping_add(p11 >> 64)
-      .wrapping_add(p02 >> 64);
-
-    let p30 = a3 * b0;
-    let p21 = a2 * b1;
-    let p12 = a1 * b2;
-    let p03 = a0 * b3;
-    let r3 = carry
-      .wrapping_add(p30 as u64 as u128)
-      .wrapping_add(p21 as u64 as u128)
-      .wrapping_add(p12 as u64 as u128)
-      .wrapping_add(p03 as u64 as u128) as u64 as u128;
-
-    Self {
-      lo: r0 | (r1 << 64),
-      hi: r2 | (r3 << 64),
-    }
+    Self(self.0.wrapping_mul(rhs.0))
   }
 
   /// Checked division. Returns `None` on divide-by-zero.
@@ -240,123 +168,46 @@ impl Arith256 {
     if rhs == Self::ZERO {
       return None;
     }
-    Some(self.div_rem(rhs).0)
+    Some(Self(self.0 / rhs.0))
   }
 
-  /// Quotient and remainder via bitwise long division.
+  /// Quotient and remainder.
   ///
   /// Returns `(ZERO, ZERO)` when `rhs` is zero.
   pub fn div_rem(self, rhs: Self) -> (Self, Self) {
     if rhs == Self::ZERO {
       return (Self::ZERO, Self::ZERO);
     }
-
-    let num_bits = self.bits();
-    let div_bits = rhs.bits();
-
-    if div_bits > num_bits {
-      return (Self::ZERO, self);
-    }
-
-    let mut quotient = Self::ZERO;
-    let mut remainder = self;
-    let mut divisor = rhs.wrapping_shl(num_bits - div_bits);
-    let mut shift = num_bits - div_bits;
-
-    loop {
-      if !is_less(remainder, divisor) {
-        remainder = remainder.wrapping_sub(divisor);
-        if shift < 128 {
-          quotient.lo |= 1u128 << shift;
-        } else {
-          quotient.hi |= 1u128 << (shift - 128);
-        }
-      }
-      if shift == 0 {
-        break;
-      }
-      divisor = divisor.wrapping_shr(1);
-      shift -= 1;
-    }
-
-    (quotient, remainder)
+    (Self(self.0 / rhs.0), Self(self.0 % rhs.0))
   }
 
   /// Wrapping left shift.
+  ///
+  /// Shifts of 256 or more yield zero.
   #[inline]
   pub fn wrapping_shl(self, shift: u32) -> Self {
     if shift >= 256 {
       return Self::ZERO;
     }
-    if shift >= 128 {
-      let bit_shift = shift - 128;
-      Self {
-        lo: 0,
-        hi: if bit_shift == 0 { self.lo } else { self.lo << bit_shift },
-      }
-    } else if shift == 0 {
-      self
-    } else {
-      Self {
-        lo: self.lo << shift,
-        hi: (self.hi << shift) | (self.lo >> (128 - shift)),
-      }
-    }
+    Self(self.0 << shift)
   }
 
   /// Wrapping right shift.
+  ///
+  /// Shifts of 256 or more yield zero.
   #[inline]
   pub fn wrapping_shr(self, shift: u32) -> Self {
     if shift >= 256 {
       return Self::ZERO;
     }
-    if shift >= 128 {
-      let bit_shift = shift - 128;
-      Self {
-        lo: if bit_shift == 0 { self.hi } else { self.hi >> bit_shift },
-        hi: 0,
-      }
-    } else if shift == 0 {
-      self
-    } else {
-      Self {
-        lo: (self.lo >> shift) | (self.hi << (128 - shift)),
-        hi: self.hi >> shift,
-      }
-    }
+    Self(self.0 >> shift)
   }
 
   /// Multiply by a `u64` scalar, returning the result and an overflow flag.
+  #[inline]
   pub fn mul_u64(self, b: u64) -> (Self, bool) {
-    let b = b as u128;
-    let a0 = self.lo as u64 as u128;
-    let a1 = (self.lo >> 64) as u64 as u128;
-    let a2 = self.hi as u64 as u128;
-    let a3 = (self.hi >> 64) as u64 as u128;
-
-    let n0 = a0 * b;
-    let r0 = n0 as u64 as u128;
-    let carry = n0 >> 64;
-
-    let n1 = carry + a1 * b;
-    let r1 = n1 as u64 as u128;
-    let carry = n1 >> 64;
-
-    let n2 = carry + a2 * b;
-    let r2 = n2 as u64 as u128;
-    let carry = n2 >> 64;
-
-    let n3 = carry + a3 * b;
-    let r3 = n3 as u64 as u128;
-    let overflow = (n3 >> 64) != 0;
-
-    (
-      Self {
-        lo: r0 | (r1 << 64),
-        hi: r2 | (r3 << 64),
-      },
-      overflow,
-    )
+    let (v, overflow) = self.0.mul_u64(b);
+    (Self(v), overflow)
   }
 
   /// Work contributed by this difficulty target, `2^256 / (self + 1)`.
@@ -368,16 +219,18 @@ impl Arith256 {
       return Self::ONE;
     }
     let d = self.wrapping_add(Self::ONE);
-    // !self = 2^256 - 1 - self, so (!self) / (self + 1) + 1 = 2^256 / (self + 1)
-    (!self).div_rem(d).0.wrapping_add(Self::ONE)
+    // !self is 2^256 - 1 - self, so (!self) / (self + 1) + 1 equals
+    // 2^256 / (self + 1) without needing a 257-bit numerator.
+    (!self / d).wrapping_add(Self::ONE)
   }
 
   /// Approximate conversion to `f64`.
   pub fn to_f64(self) -> f64 {
-    let a0 = self.lo as u64;
-    let a1 = (self.lo >> 64) as u64;
-    let a2 = self.hi as u64;
-    let a3 = (self.hi >> 64) as u64;
+    let (hi, lo) = self.limbs();
+    let a0 = lo as u64;
+    let a1 = (lo >> 64) as u64;
+    let a2 = hi as u64;
+    let a3 = (hi >> 64) as u64;
 
     let fact1 = 18_446_744_073_709_551_616.0_f64; // 2^64
     let fact2 = fact1 * fact1; // 2^128
@@ -385,53 +238,30 @@ impl Arith256 {
 
     (a0 as f64) + (a1 as f64) * fact1 + (a2 as f64) * fact2 + (a3 as f64) * fact3
   }
-}
 
-const fn is_less(a: Arith256, b: Arith256) -> bool {
-  if a.hi != b.hi {
-    a.hi < b.hi
-  } else {
-    a.lo < b.lo
-  }
-}
-
-const fn split_low(bytes: [u8; 32]) -> [u8; 16] {
-  let mut out = [0u8; 16];
-  let mut i = 0;
-  while i < 16 {
-    out[i] = bytes[i];
-    i += 1;
-  }
-  out
-}
-
-const fn split_high(bytes: [u8; 32]) -> [u8; 16] {
-  let mut out = [0u8; 16];
-  let mut i = 0;
-  while i < 16 {
-    out[i] = bytes[i + 16];
-    i += 1;
-  }
-  out
-}
-
-impl Ord for Arith256 {
+  /// Split into the `(high, low)` 128-bit halves.
   #[inline]
-  fn cmp(&self, other: &Self) -> Ordering {
-    self.hi.cmp(&other.hi).then(self.lo.cmp(&other.lo))
+  fn limbs(self) -> (u128, u128) {
+    let le = self.0.to_le_bytes();
+    let mut low = [0u8; 16];
+    let mut high = [0u8; 16];
+    low.copy_from_slice(&le[..16]);
+    high.copy_from_slice(&le[16..]);
+    (u128::from_le_bytes(high), u128::from_le_bytes(low))
   }
-}
 
-impl PartialOrd for Arith256 {
+  /// Apply `op` to the matching 128-bit halves of both operands.
   #[inline]
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.cmp(other))
+  fn zip_limbs(self, rhs: Self, op: impl Fn(u128, u128) -> u128) -> Self {
+    let (ah, al) = self.limbs();
+    let (bh, bl) = rhs.limbs();
+    Self(U256::new(op(ah, bh), op(al, bl)))
   }
 }
 
 impl fmt::Debug for Arith256 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "Arith256(0x{:032x}{:032x})", self.hi, self.lo)
+    write!(f, "Arith256({:#x})", self.0)
   }
 }
 
@@ -439,26 +269,6 @@ impl fmt::Debug for Arith256 {
 impl fmt::Display for Arith256 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     fmt::LowerHex::fmt(self, f)
-  }
-}
-
-/// Big-endian numeric hex, 64 chars zero-padded.
-impl fmt::LowerHex for Arith256 {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if f.alternate() {
-      f.write_str("0x")?;
-    }
-    write!(f, "{:032x}{:032x}", self.hi, self.lo)
-  }
-}
-
-/// Big-endian numeric hex (uppercase), 64 chars zero-padded.
-impl fmt::UpperHex for Arith256 {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if f.alternate() {
-      f.write_str("0x")?;
-    }
-    write!(f, "{:032X}{:032X}", self.hi, self.lo)
   }
 }
 
@@ -545,7 +355,7 @@ impl Div for Arith256 {
   type Output = Self;
   #[inline]
   fn div(self, rhs: Self) -> Self {
-    self.div_rem(rhs).0
+    self.checked_div(rhs).unwrap_or(Self::ZERO)
   }
 }
 
@@ -584,10 +394,7 @@ impl Not for Arith256 {
   type Output = Self;
   #[inline]
   fn not(self) -> Self {
-    Self {
-      lo: !self.lo,
-      hi: !self.hi,
-    }
+    Self(!self.0)
   }
 }
 
@@ -595,10 +402,7 @@ impl BitAnd for Arith256 {
   type Output = Self;
   #[inline]
   fn bitand(self, rhs: Self) -> Self {
-    Self {
-      lo: self.lo & rhs.lo,
-      hi: self.hi & rhs.hi,
-    }
+    self.zip_limbs(rhs, |a, b| a & b)
   }
 }
 
@@ -613,10 +417,7 @@ impl BitOr for Arith256 {
   type Output = Self;
   #[inline]
   fn bitor(self, rhs: Self) -> Self {
-    Self {
-      lo: self.lo | rhs.lo,
-      hi: self.hi | rhs.hi,
-    }
+    self.zip_limbs(rhs, |a, b| a | b)
   }
 }
 
@@ -631,10 +432,7 @@ impl BitXor for Arith256 {
   type Output = Self;
   #[inline]
   fn bitxor(self, rhs: Self) -> Self {
-    Self {
-      lo: self.lo ^ rhs.lo,
-      hi: self.hi ^ rhs.hi,
-    }
+    self.zip_limbs(rhs, |a, b| a ^ b)
   }
 }
 
