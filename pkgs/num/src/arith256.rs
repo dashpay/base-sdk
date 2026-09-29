@@ -157,7 +157,7 @@ impl Arith256 {
     self.limbs().1
   }
 
-  /// Checked division. Returns `None` on divide-by-zero.
+  /// Checked division. Returns `None` when `rhs` is zero.
   pub fn checked_div(self, rhs: Self) -> Option<Self> {
     if rhs == Self::ZERO {
       return None;
@@ -167,7 +167,8 @@ impl Arith256 {
 
   /// Quotient and remainder.
   ///
-  /// Returns `(ZERO, ZERO)` when `rhs` is zero.
+  /// Returns `(ZERO, ZERO)` when `rhs` is zero instead of panicking. Use
+  /// [`checked_div`](Self::checked_div) to detect a zero divisor.
   pub fn div_rem(self, rhs: Self) -> (Self, Self) {
     if rhs == Self::ZERO {
       return (Self::ZERO, Self::ZERO);
@@ -359,8 +360,8 @@ impl MulAssign<u32> for Arith256 {
   }
 }
 
-/// Returns `Arith256::ZERO` when `rhs` is zero. Use `checked_div`
-/// for an `Option` alternative.
+/// Returns `Arith256::ZERO` when `rhs` is zero instead of panicking. Use
+/// [`checked_div`](Arith256::checked_div) to detect a zero divisor.
 impl Div for Arith256 {
   type Output = Self;
   #[inline]
@@ -376,7 +377,8 @@ impl DivAssign for Arith256 {
   }
 }
 
-/// Returns `Arith256::ZERO` when `rhs` is zero.
+/// Returns `Arith256::ZERO` when `rhs` is zero instead of panicking. Use
+/// [`checked_div`](Arith256::checked_div) to detect a zero divisor.
 impl Div<u64> for Arith256 {
   type Output = Self;
   #[inline]
@@ -392,7 +394,8 @@ impl DivAssign<u64> for Arith256 {
   }
 }
 
-/// Returns `Arith256::ZERO` when `rhs` is zero.
+/// Returns `Arith256::ZERO` when `rhs` is zero instead of panicking. Use
+/// [`checked_div`](Arith256::checked_div) to detect a zero divisor.
 impl Rem for Arith256 {
   type Output = Self;
   #[inline]
