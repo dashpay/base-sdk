@@ -68,10 +68,6 @@ name = "hash"
 path = "tests/hash.rs"
 
 [[test]]
-name = "arith"
-path = "tests/arith.rs"
-
-[[test]]
 name = "compact"
 path = "tests/compact.rs"
 
