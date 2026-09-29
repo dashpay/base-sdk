@@ -8,6 +8,7 @@
 
 use crate::Arith256;
 
+use dash_types::__private::__read_hex as read_hex;
 #[cfg(feature = "codec")]
 use dash_types::impl_num;
 use dash_types::{Numeric, ParseHexError};
@@ -104,32 +105,13 @@ impl fmt::Display for CompactTarget {
   }
 }
 
-/// Parses the `0x`-prefixed hex rendered by [`Display`](fmt::Display).
+/// Parses the hex rendered by [`Display`](fmt::Display).
 impl FromStr for CompactTarget {
   type Err = ParseHexError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     let digits = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
-
-    if digits.is_empty() || digits.len() > 8 {
-      return Err(ParseHexError::InvalidLength {
-        expected: 8,
-        got: digits.len(),
-      });
-    }
-
-    let mut bits: u32 = 0;
-    for b in digits.bytes() {
-      let digit = match b {
-        b'0'..=b'9' => b - b'0',
-        b'a'..=b'f' => b - b'a' + 10,
-        b'A'..=b'F' => b - b'A' + 10,
-        _ => return Err(ParseHexError::InvalidChar(b)),
-      };
-      bits = (bits << 4) | u32::from(digit);
-    }
-
-    Ok(Self(bits))
+    read_hex::<4>(digits, false).map(Self::from_bendian)
   }
 }
 
@@ -308,7 +290,7 @@ mod tests {
   #[case("0x1d00ffff", 0x1d00_ffff)]
   #[case("1d00ffff", 0x1d00_ffff)]
   #[case("0X1D00FFFF", 0x1d00_ffff)]
-  #[case("1", 1)]
+  #[case("00000001", 1)]
   fn from_str_accepts(#[case] text: &str, #[case] want: u32) {
     let parsed = CompactTarget::from_str(text).unwrap();
     assert_eq!(parsed, CompactTarget::new(want));
@@ -317,8 +299,11 @@ mod tests {
   #[rstest]
   #[case("")]
   #[case("0x")]
+  #[case("1")]
+  #[case("1d00fff")]
   #[case("1d00ffff0")]
   #[case("1d00fffg")]
+  #[case(" 1d00ffff")]
   fn from_str_rejects(#[case] text: &str) {
     assert!(CompactTarget::from_str(text).is_err());
   }
