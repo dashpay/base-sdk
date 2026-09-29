@@ -6,6 +6,7 @@
 
 //! secp256k1 secret key.
 
+use super::curve_consts::ERASED_POINT;
 #[cfg(feature = "codec")]
 use super::curve_consts::{DER_SIZES, GENERATOR, GENERATOR_COMPRESSED, OID_PRIME_FIELD, ORDER, PRIME};
 use super::error::EcdsaError;
@@ -315,11 +316,12 @@ impl Zeroize for EcdsaSecretKey {
   /// Overwrites the scalar and the point it derives.
   ///
   /// The backend erases through a volatile write, which a plain assignment on
-  /// the drop path would be free to elide. Zero is no scalar, so the scalar
-  /// one is what it leaves, and the stored point follows it.
+  /// the drop path would be free to elide. Zero is no scalar, so every byte is
+  /// set to one instead, and the stored point follows it.
   fn zeroize(&mut self) {
     self.inner.non_secure_erase();
-    self.public = self.inner.public_key();
+    // Parsing the fixed point is far cheaper than deriving it on every drop.
+    self.public = PublicKey::from_byte_array_uncompressed(ERASED_POINT).unwrap_or_else(|_| self.inner.public_key());
   }
 }
 
@@ -526,6 +528,10 @@ mod tests {
     assert_ne!(sk.public_key(), held);
     assert!(sk.verify_pubkey(&sk.public_key()));
     assert!(!sk.verify_pubkey(&held));
+
+    // The stored point is a constant, so it must match the derived one.
+    let erased = EcdsaSecretKey::from_bytes(&WIPED, Compression::Compressed).unwrap();
+    assert_eq!(sk.public_key(), erased.public_key());
   }
 
   #[rstest]
