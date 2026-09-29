@@ -8,7 +8,7 @@
 
 use crate::Hash256;
 
-use dash_types::{Numeric, ParseHexError};
+use dash_types::{type_cvrt, Numeric, ParseHexError};
 
 use core::cmp::Ordering;
 use core::fmt;
@@ -471,47 +471,13 @@ impl FromStr for Arith256 {
   }
 }
 
-impl From<u8> for Arith256 {
-  fn from(v: u8) -> Self {
-    Self::from_u64(v as u64)
-  }
-}
-
-impl From<u16> for Arith256 {
-  fn from(v: u16) -> Self {
-    Self::from_u64(v as u64)
-  }
-}
-
-impl From<u32> for Arith256 {
-  fn from(v: u32) -> Self {
-    Self::from_u64(v as u64)
-  }
-}
-
-impl From<u64> for Arith256 {
-  fn from(v: u64) -> Self {
-    Self::from_u64(v)
-  }
-}
-
-impl From<u128> for Arith256 {
-  fn from(v: u128) -> Self {
-    Self::from_u128(v)
-  }
-}
-
-impl From<Hash256> for Arith256 {
-  fn from(h: Hash256) -> Self {
-    Self::from_lendian(h.to_lendian())
-  }
-}
-
-impl From<Arith256> for Hash256 {
-  fn from(a: Arith256) -> Self {
-    Hash256::from_lendian(a.to_lendian())
-  }
-}
+type_cvrt!(From<u8> for Arith256, |v| Self::from_u64(u64::from(*v)));
+type_cvrt!(From<u16> for Arith256, |v| Self::from_u64(u64::from(*v)));
+type_cvrt!(From<u32> for Arith256, |v| Self::from_u64(u64::from(*v)));
+type_cvrt!(From<u64> for Arith256, |v| Self::from_u64(*v));
+type_cvrt!(From<u128> for Arith256, |v| Self::from_u128(*v));
+type_cvrt!(From<Hash256> for Arith256, |h| Self::from_lendian(h.to_lendian()));
+type_cvrt!(From<Arith256> for Hash256, |a| Hash256::from_lendian(a.to_lendian()));
 
 impl Add for Arith256 {
   type Output = Self;
