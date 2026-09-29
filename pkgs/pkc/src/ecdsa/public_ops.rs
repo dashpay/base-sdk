@@ -431,6 +431,11 @@ mod tests {
   }
 
   #[rstest]
+  fn tweak_mul_keeps_form(alice_pk: EcdsaPublicKey, bob_sk: EcdsaSecretKey) {
+    assert_keeps_form(&alice_pk, |pk| pk.mul_tweak(&bob_sk.to_bytes()).unwrap());
+  }
+
+  #[rstest]
   fn rejects_garbage() {
     assert!(EcdsaPublicKey::from_bytes(&[0xff; 33]).is_err());
   }

@@ -243,6 +243,20 @@ impl EcdsaSecretKey {
     Ok(Self::from_inner(sum, Compression::from(self.compressed)))
   }
 
+  /// Multiply the scalar by `tweak`, modulo the curve order.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the curve
+  /// order, or when it is zero. The order is prime, so no other nonzero tweak
+  /// can bring the product to zero.
+  pub fn mul_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
+    let scalar = tweak_scalar(tweak)?;
+    let product = self.inner.mul_tweak(&scalar).map_err(|_| EcdsaError::InvalidTweak)?;
+
+    Ok(Self::from_inner(product, Compression::from(self.compressed)))
+  }
+
   /// Negate the secret scalar in place.
   ///
   /// The stored public key is negated with it rather than rederived; mirroring
@@ -520,25 +534,28 @@ mod tests {
   #[derive(Clone, Copy, Debug)]
   enum Tweak {
     Add,
+    Mul,
   }
 
   impl Tweak {
     fn on_sk(self, sk: &EcdsaSecretKey, tweak: &[u8; ECDSA_SK_LEN]) -> EcdsaSecretKey {
       match self {
         Tweak::Add => sk.add_tweak(tweak).unwrap(),
+        Tweak::Mul => sk.mul_tweak(tweak).unwrap(),
       }
     }
 
     fn on_pk(self, pk: &EcdsaPublicKey, tweak: &[u8; ECDSA_SK_LEN]) -> EcdsaPublicKey {
       match self {
         Tweak::Add => pk.add_tweak(tweak).unwrap(),
+        Tweak::Mul => pk.mul_tweak(tweak).unwrap(),
       }
     }
   }
 
   #[rstest]
   fn tweak_agrees_on_both_sides(
-    #[values(Tweak::Add)] op: Tweak,
+    #[values(Tweak::Add, Tweak::Mul)] op: Tweak,
     #[values(Compression::Compressed, Compression::Uncompressed)] compressed: Compression,
     bob_sk: EcdsaSecretKey,
   ) {
@@ -574,18 +591,35 @@ mod tests {
   }
 
   #[rstest]
-  fn multiplying_a_point_matches_multiplying_the_scalar(alice_sk: EcdsaSecretKey, bob_sk: EcdsaSecretKey) {
-    // t(aG) == a(tG). Multiplying a point commutes with multiplying the
-    // scalar that made it.
-    let factor = *bob_sk.to_bytes();
-    let product = alice_sk.public_key().mul_tweak(&factor).unwrap();
-    let expected = EcdsaSecretKey::from_bytes(&factor, Compression::Compressed)
-      .unwrap()
-      .public_key()
-      .mul_tweak(&alice_sk.to_bytes())
-      .unwrap();
+  fn tweak_mul_commutes(alice_sk: EcdsaSecretKey, bob_sk: EcdsaSecretKey) {
+    // at == ta, so t(aG) == a(tG).
+    let product = alice_sk.mul_tweak(&bob_sk.to_bytes()).unwrap();
+    let swapped = bob_sk.mul_tweak(&alice_sk.to_bytes()).unwrap();
 
-    assert_eq!(product, expected);
+    assert_eq!(*product.to_bytes(), *swapped.to_bytes());
+    assert_eq!(
+      alice_sk.public_key().mul_tweak(&bob_sk.to_bytes()).unwrap(),
+      bob_sk.public_key().mul_tweak(&alice_sk.to_bytes()).unwrap()
+    );
+  }
+
+  #[rstest]
+  fn tweak_mul_by_one_is_identity(alice_sk: EcdsaSecretKey) {
+    let mut one = [0u8; ECDSA_SK_LEN];
+    one[ECDSA_SK_LEN - 1] = 1;
+
+    assert_eq!(alice_sk.mul_tweak(&one).unwrap(), alice_sk);
+    assert_eq!(alice_sk.public_key().mul_tweak(&one).unwrap(), alice_sk.public_key());
+  }
+
+  #[rstest]
+  fn tweak_mul_refuses_bad_factor(alice_sk: EcdsaSecretKey) {
+    let zero = [0u8; ECDSA_SK_LEN];
+
+    assert_eq!(alice_sk.mul_tweak(&zero), Err(EcdsaError::InvalidTweak));
+    assert_eq!(alice_sk.mul_tweak(ORDER), Err(EcdsaError::InvalidTweak));
+    assert_eq!(alice_sk.public_key().mul_tweak(&zero), Err(EcdsaError::InvalidTweak));
+    assert_eq!(alice_sk.public_key().mul_tweak(ORDER), Err(EcdsaError::InvalidTweak));
   }
 
   #[rstest]
