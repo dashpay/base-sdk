@@ -59,11 +59,12 @@ extensions:
       # Malleability
       - ["Ecdsa", "Signature", "is_low_s"]                # Query whether S is in the lower half
       - ["Ecdsa", "Signature", "normalize_s"]             # Move S into the lower half
-      # Misc.
-      - ["Ecdsa", "SecretKey", "negate"]                  # Flips the scalar
       # Recoverable signatures
       - ["Ecdsa", "SecretKey", "sign_recoverable"]        # Sign
       - ["Ecdsa", "PublicKey", "recover"]                 # Get public key from a signature
+      # Tweaking
+      - ["Ecdsa", "SecretKey", "negate"]                  # Flip the scalar
+      - ["Ecdsa", "PublicKey", "negate"]                  # Flip the point
   - addsTo:
       pack: base-sdk/codeql-rust
       extensible: armLacks

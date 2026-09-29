@@ -257,13 +257,20 @@ impl EcdsaSecretKey {
     Ok(Self::from_inner(product, Compression::from(self.compressed)))
   }
 
-  /// Negate the secret scalar in place.
+  /// Negate the scalar, modulo the curve order.
   ///
   /// The stored public key is negated with it rather than rederived; mirroring
   /// the point costs nothing next to a scalar multiplication.
-  pub fn negate(&mut self) {
-    self.inner = self.inner.negate();
-    self.public = self.public.negate();
+  ///
+  /// # Errors
+  ///
+  /// Never returns an error.
+  pub fn negate(&self) -> Result<Self, EcdsaError> {
+    Ok(Self {
+      inner: self.inner.negate(),
+      public: self.public.negate(),
+      compressed: self.compressed,
+    })
   }
 
   /// Derive the corresponding public key.
@@ -535,6 +542,7 @@ mod tests {
   enum Tweak {
     Add,
     Mul,
+    Neg,
   }
 
   impl Tweak {
@@ -542,6 +550,7 @@ mod tests {
       match self {
         Tweak::Add => sk.add_tweak(tweak).unwrap(),
         Tweak::Mul => sk.mul_tweak(tweak).unwrap(),
+        Tweak::Neg => sk.negate().unwrap(),
       }
     }
 
@@ -549,13 +558,14 @@ mod tests {
       match self {
         Tweak::Add => pk.add_tweak(tweak).unwrap(),
         Tweak::Mul => pk.mul_tweak(tweak).unwrap(),
+        Tweak::Neg => pk.negate().unwrap(),
       }
     }
   }
 
   #[rstest]
   fn tweak_agrees_on_both_sides(
-    #[values(Tweak::Add, Tweak::Mul)] op: Tweak,
+    #[values(Tweak::Add, Tweak::Mul, Tweak::Neg)] op: Tweak,
     #[values(Compression::Compressed, Compression::Uncompressed)] compressed: Compression,
     bob_sk: EcdsaSecretKey,
   ) {
@@ -623,13 +633,23 @@ mod tests {
   }
 
   #[rstest]
-  fn negate_changes_key(alice_sk: EcdsaSecretKey) {
-    let original_bytes = alice_sk.to_bytes();
-    let mut negated = alice_sk.clone();
-    negated.negate();
-    assert_ne!(*negated.to_bytes(), *original_bytes);
-    negated.negate();
-    assert_eq!(*negated.to_bytes(), *original_bytes);
+  fn tweak_neg_is_order_minus_scalar(alice_sk: EcdsaSecretKey) {
+    assert_eq!(
+      *alice_sk.negate().unwrap().to_bytes(),
+      negate_scalar(&*alice_sk.to_bytes())
+    );
+  }
+
+  #[rstest]
+  fn tweak_neg_twice_is_identity(alice_sk: EcdsaSecretKey) {
+    let negated = alice_sk.negate().unwrap();
+
+    assert_ne!(negated, alice_sk);
+    assert_eq!(negated.negate().unwrap(), alice_sk);
+    assert_eq!(
+      alice_sk.public_key().negate().unwrap().negate().unwrap(),
+      alice_sk.public_key()
+    );
   }
 
   #[rstest]
