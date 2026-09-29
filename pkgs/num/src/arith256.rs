@@ -213,17 +213,13 @@ impl Arith256 {
 
   /// Approximate conversion to `f64`.
   pub fn to_f64(self) -> f64 {
-    let (hi, lo) = self.limbs();
-    let a0 = lo as u64;
-    let a1 = (lo >> 64) as u64;
-    let a2 = hi as u64;
-    let a3 = (hi >> 64) as u64;
-
-    let fact1 = 18_446_744_073_709_551_616.0_f64; // 2^64
-    let fact2 = fact1 * fact1; // 2^128
-    let fact3 = fact2 * fact1; // 2^192
-
-    (a0 as f64) + (a1 as f64) * fact1 + (a2 as f64) * fact2 + (a3 as f64) * fact3
+    let mut ret = 0.0_f64;
+    let mut fact = 1.0_f64;
+    for limb in self.0.to_le_bytes().chunks_exact(4) {
+      ret += fact * f64::from(u32::from_le_bytes([limb[0], limb[1], limb[2], limb[3]]));
+      fact *= 4_294_967_296.0; // 2^32
+    }
+    ret
   }
 
   /// Split into the `(high, low)` 128-bit halves.
@@ -933,6 +929,23 @@ mod tests {
         let actual = (r1 >> (256 - i)).to_f64();
         let expected = (r1_top64 >> (64 - i)) as f64;
         assert_eq!(actual, expected, "exact mismatch at i={i}");
+      }
+    }
+
+    #[derive(Deserialize)]
+    struct ToF64Vector {
+      a: String,
+      r: String,
+    }
+
+    #[test]
+    fn to_f64_matches_vectors() {
+      let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "arith256");
+      let vecs: Vec<ToF64Vector> = corpus.vectors("getdouble");
+
+      for v in &vecs {
+        let got = Arith256::from_str(&v.a).unwrap().to_f64().to_bits();
+        assert_eq!(got, u64::from_str_radix(&v.r, 16).unwrap(), "to_f64({})", v.a);
       }
     }
 
