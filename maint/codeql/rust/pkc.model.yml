@@ -69,9 +69,6 @@ extensions:
       pack: base-sdk/codeql-rust
       extensible: armLacks
     data:
-      # BLS
-      # Tweaking
-      - ["Bls", "SecretKey", "mul_tweak"]                 # Not yet implemented
       # Ed25519
       # Tweaking
       - ["Eddsa", "SecretKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010

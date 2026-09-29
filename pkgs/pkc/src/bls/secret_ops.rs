@@ -99,6 +99,16 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     S::add_tweak_sk(&self.0, tweak).map(Self::from_inner)
   }
 
+  /// Multiply the secret scalar by `tweak`, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order, or when
+  /// it is zero. The order is prime, so no other tweak can zero the product.
+  pub fn mul_tweak(&self, tweak: &[u8; 32]) -> Result<Self, BlsError> {
+    S::mul_tweak_sk(&self.0, tweak).map(Self::from_inner)
+  }
+
   /// Derive the corresponding public key.
   pub fn public_key(&self) -> BlsPublicKey<S> {
     BlsPublicKey(S::derive_pk(&self.0))
@@ -214,18 +224,21 @@ mod tests {
   #[derive(Clone, Copy, Debug)]
   enum Tweak {
     Add,
+    Mul,
   }
 
   impl Tweak {
     fn on_sk<S: BlsScheme>(self, sk: &BlsSecretKey<S>, tweak: &[u8; 32]) -> BlsSecretKey<S> {
       match self {
         Tweak::Add => sk.add_tweak(tweak).unwrap(),
+        Tweak::Mul => sk.mul_tweak(tweak).unwrap(),
       }
     }
 
     fn on_pk<S: BlsScheme>(self, pk: &BlsPublicKey<S>, tweak: &[u8; 32]) -> BlsPublicKey<S> {
       match self {
         Tweak::Add => pk.add_tweak(tweak).unwrap(),
+        Tweak::Mul => pk.mul_tweak(tweak).unwrap(),
       }
     }
   }
@@ -249,7 +262,7 @@ mod tests {
   #[rstest]
   #[case::chia(assert_tweak_agrees_on_both_sides::<BlsScChia>)]
   #[case::ietf(assert_tweak_agrees_on_both_sides::<BlsScIetf>)]
-  fn tweak_agrees_on_both_sides(#[case] assertion: fn(Tweak), #[values(Tweak::Add)] op: Tweak) {
+  fn tweak_agrees_on_both_sides(#[case] assertion: fn(Tweak), #[values(Tweak::Add, Tweak::Mul)] op: Tweak) {
     assertion(op);
   }
 
@@ -294,23 +307,55 @@ mod tests {
     assertion();
   }
 
-  /// `t(aG) == a(tG)`, so multiplying a point commutes with multiplying the
-  /// scalar that made it.
-  fn assert_point_product_matches_scalar_product<S: BlsScheme>() {
+  /// `at == ta`, so `t(aG) == a(tG)`.
+  fn assert_tweak_mul_commutes<S: BlsScheme>() {
+    let a = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let t = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
+
+    assert_eq!(a.mul_tweak(&t.to_bytes()).unwrap(), t.mul_tweak(&a.to_bytes()).unwrap());
+    assert_eq!(
+      a.public_key().mul_tweak(&t.to_bytes()).unwrap(),
+      t.public_key().mul_tweak(&a.to_bytes()).unwrap()
+    );
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_mul_commutes::<BlsScChia>)]
+  #[case::ietf(assert_tweak_mul_commutes::<BlsScIetf>)]
+  fn tweak_mul_commutes(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_mul_by_one_is_identity<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
-    let factor_sk = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
+    let mut one = [0u8; 32];
+    one[31] = 1;
 
-    let product = sk.public_key().mul_tweak(&factor_sk.to_bytes()).unwrap();
-    let expected = factor_sk.public_key().mul_tweak(&sk.to_bytes()).unwrap();
+    assert_eq!(sk.mul_tweak(&one).unwrap(), sk);
+    assert_eq!(sk.public_key().mul_tweak(&one).unwrap(), sk.public_key());
+  }
 
-    assert_eq!(product, expected);
+  #[rstest]
+  #[case::chia(assert_tweak_mul_by_one_is_identity::<BlsScChia>)]
+  #[case::ietf(assert_tweak_mul_by_one_is_identity::<BlsScIetf>)]
+  fn tweak_mul_by_one_is_identity(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_mul_refuses_bad_factor<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let zero = [0u8; 32];
+
+    assert_eq!(sk.mul_tweak(&zero), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.mul_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.public_key().mul_tweak(&zero), Err(BlsError::InvalidTweak));
     assert_eq!(sk.public_key().mul_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
   }
 
   #[rstest]
-  #[case::chia(assert_point_product_matches_scalar_product::<BlsScChia>)]
-  #[case::ietf(assert_point_product_matches_scalar_product::<BlsScIetf>)]
-  fn multiplying_a_point_matches_multiplying_the_scalar(#[case] assertion: fn()) {
+  #[case::chia(assert_tweak_mul_refuses_bad_factor::<BlsScChia>)]
+  #[case::ietf(assert_tweak_mul_refuses_bad_factor::<BlsScIetf>)]
+  fn tweak_mul_refuses_bad_factor(#[case] assertion: fn()) {
     assertion();
   }
 

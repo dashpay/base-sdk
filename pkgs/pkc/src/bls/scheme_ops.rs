@@ -273,6 +273,30 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     tweaked.map_err(|_| BlsError::InvalidTweak)
   }
 
+  /// Multiply a secret scalar by `tweak`, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or is
+  /// zero. The order is prime, so no other tweak can zero the product.
+  /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is.
+  fn mul_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
+    let mut product = current * scalar;
+    current.zeroize();
+
+    if bool::from(product.is_zero()) {
+      return Err(BlsError::InvalidTweak);
+    }
+
+    // `Fr` is `Copy`, so it cannot wipe itself on the way out of scope.
+    let tweaked = Self::sk_from_bytes(&product.to_bendian());
+    product.zeroize();
+    tweaked.map_err(|_| BlsError::InvalidTweak)
+  }
+
   /// Add `tweak * G` to a public key's point.
   ///
   /// # Errors
