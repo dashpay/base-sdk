@@ -405,6 +405,31 @@ mod tests {
     assert_eq!(EcdsaPkBytes::from(&parsed).as_bytes()[0], 0x04);
   }
 
+  /// `pk` reparsed from each of its three encodings.
+  fn in_every_form(pk: &EcdsaPublicKey) -> [EcdsaPublicKey; 3] {
+    [&pk.to_compressed()[..], &pk.to_uncompressed()[..], &pk.to_hybrid()[..]]
+      .map(|bytes| EcdsaPublicKey::from_bytes(bytes).unwrap())
+  }
+
+  /// Assert `op` keeps the serialization form of `pk` in every encoding.
+  ///
+  /// Only the prefix's parity bit may follow the new point; the length and the
+  /// rest of the prefix belong to the form.
+  fn assert_keeps_form(pk: &EcdsaPublicKey, op: impl Fn(&EcdsaPublicKey) -> EcdsaPublicKey) {
+    for pk in in_every_form(pk) {
+      let (before, after) = (pk.to_bytes(), op(&pk).to_bytes());
+
+      assert_eq!(after.len(), before.len());
+      assert_eq!(after[0] & !1, before[0] & !1);
+      assert_eq!(EcdsaPublicKey::from_bytes(&after).unwrap().to_bytes(), after);
+    }
+  }
+
+  #[rstest]
+  fn tweak_add_keeps_form(alice_pk: EcdsaPublicKey, bob_sk: EcdsaSecretKey) {
+    assert_keeps_form(&alice_pk, |pk| pk.add_tweak(&bob_sk.to_bytes()).unwrap());
+  }
+
   #[rstest]
   fn rejects_garbage() {
     assert!(EcdsaPublicKey::from_bytes(&[0xff; 33]).is_err());

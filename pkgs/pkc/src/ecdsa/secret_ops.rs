@@ -517,36 +517,58 @@ mod tests {
     );
   }
 
-  #[rstest]
-  fn tweaking_agrees_on_both_sides(alice_sk: EcdsaSecretKey, bob_sk: EcdsaSecretKey) {
-    // (a + t)G has to equal aG + tG, or the same tweak applied to the two
-    // halves of a key pair would part them.
-    let tweak = *bob_sk.to_bytes();
-    let tweaked_sk = alice_sk.add_tweak(&tweak).unwrap();
-    let tweaked_pk = alice_sk.public_key().add_tweak(&tweak).unwrap();
+  #[derive(Clone, Copy, Debug)]
+  enum Tweak {
+    Add,
+  }
 
-    assert_eq!(tweaked_sk.public_key(), tweaked_pk);
-    assert!(tweaked_sk.verify_pubkey(&tweaked_pk));
+  impl Tweak {
+    fn on_sk(self, sk: &EcdsaSecretKey, tweak: &[u8; ECDSA_SK_LEN]) -> EcdsaSecretKey {
+      match self {
+        Tweak::Add => sk.add_tweak(tweak).unwrap(),
+      }
+    }
+
+    fn on_pk(self, pk: &EcdsaPublicKey, tweak: &[u8; ECDSA_SK_LEN]) -> EcdsaPublicKey {
+      match self {
+        Tweak::Add => pk.add_tweak(tweak).unwrap(),
+      }
+    }
   }
 
   #[rstest]
-  fn a_tweak_at_or_above_the_order_is_refused(alice_sk: EcdsaSecretKey) {
+  fn tweak_agrees_on_both_sides(
+    #[values(Tweak::Add)] op: Tweak,
+    #[values(Compression::Compressed, Compression::Uncompressed)] compressed: Compression,
+    bob_sk: EcdsaSecretKey,
+  ) {
+    // A tweak on k has to land on the matching tweak on kG, or the same tweak
+    // applied to the two halves of a key pair would part them.
+    let sk = EcdsaSecretKey::from_bytes(&ALICE_SK, compressed).unwrap();
+    let tweak = *bob_sk.to_bytes();
+    let tweaked_sk = op.on_sk(&sk, &tweak);
+    let tweaked_pk = op.on_pk(&sk.public_key(), &tweak);
+
+    assert_eq!(tweaked_sk.public_key(), tweaked_pk);
+    assert!(tweaked_sk.verify_pubkey(&tweaked_pk));
+    assert_eq!(tweaked_pk.verify(&MSG, tweaked_sk.sign(&MSG)), Ok(()));
+    assert_eq!(tweaked_sk.is_compressed(), sk.is_compressed());
+
+    // The stored point has to match the one rederived from the new scalar.
+    let rederived = EcdsaSecretKey::from_bytes(&tweaked_sk.to_bytes(), compressed).unwrap();
+    assert_eq!(tweaked_sk.public_key(), rederived.public_key());
+  }
+
+  #[rstest]
+  fn tweak_add_refuses_order_or_above(alice_sk: EcdsaSecretKey) {
     assert_eq!(alice_sk.add_tweak(ORDER), Err(EcdsaError::InvalidTweak));
     assert_eq!(alice_sk.add_tweak(&[0xff; ECDSA_SK_LEN]), Err(EcdsaError::InvalidTweak));
   }
 
   #[rstest]
-  fn a_tweak_summing_to_zero_is_refused(alice_sk: EcdsaSecretKey) {
+  fn tweak_add_refuses_zero_sum(alice_sk: EcdsaSecretKey) {
     // order - a, so a + t == 0, which is no scalar a key can hold.
-    let mut tweak = *ORDER;
-    let mut borrow = 0i16;
-    let scalar = *alice_sk.to_bytes();
-
-    for i in (0..ECDSA_SK_LEN).rev() {
-      let diff = i16::from(tweak[i]) - i16::from(scalar[i]) - borrow;
-      borrow = i16::from(diff < 0);
-      tweak[i] = diff.rem_euclid(256) as u8;
-    }
+    let tweak = negate_scalar(&*alice_sk.to_bytes());
 
     assert_eq!(alice_sk.add_tweak(&tweak), Err(EcdsaError::InvalidTweak));
   }

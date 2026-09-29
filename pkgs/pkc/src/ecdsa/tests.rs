@@ -16,9 +16,10 @@ use rstest::fixture;
 pub const BOB_SK: [u8; 32] = hex!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 pub const MSG: [u8; 32] = hex!("deadbeefdeadbeefdeadbeefdeadbeefcafebabecafebabecafebabecafebabe");
 
-/// Negate a scalar modulo the curve order (`order - s`), used to turn a low-S
-/// signature into a high-S one for tests as the library itself only ever
-/// produces low-S signatures.
+/// Negate a scalar modulo the curve order (`order - s`).
+///
+/// Turns a low-S signature into a high-S one, which the library never makes,
+/// and builds the tweak that cancels a key.
 pub(crate) fn negate_scalar(s: &[u8]) -> [u8; 32] {
   let mut out = [0u8; 32];
   let mut borrow = 0i16;
