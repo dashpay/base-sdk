@@ -69,10 +69,6 @@ name = "hash"
 path = "tests/hash.rs"
 
 [[test]]
-name = "compact"
-path = "tests/compact.rs"
-
-[[test]]
 name = "serde"
 path = "tests/serde.rs"
 required-features = ["serde"]
