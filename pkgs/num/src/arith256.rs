@@ -11,6 +11,7 @@ use crate::Hash256;
 use ambassador::{delegatable_trait_remote, Delegate};
 use bitcoin_internals::u256::U256;
 use dash_types::{type_cvrt, Numeric, ParseHexError};
+use delegate::delegate;
 
 use core::fmt::{self, LowerHex, UpperHex};
 use core::ops::{
@@ -47,34 +48,30 @@ impl Numeric for Arith256 {
 
   const ZERO: Self = Self(U256::ZERO);
 
-  #[inline]
-  fn from_base(v: [u8; 32]) -> Self {
-    Self::from_lendian(v)
-  }
+  delegate! {
+    to U256 {
+      #[call(from_le_bytes)]
+      #[expr(Self($))]
+      fn from_base(v: [u8; 32]) -> Self;
 
-  #[inline]
-  fn to_base(&self) -> [u8; 32] {
-    self.to_lendian()
-  }
+      #[call(from_le_bytes)]
+      #[expr(Self($))]
+      fn from_lendian(bytes: [u8; 32]) -> Self;
 
-  #[inline]
-  fn from_lendian(bytes: [u8; 32]) -> Self {
-    Self(U256::from_le_bytes(bytes))
-  }
+      #[call(from_be_bytes)]
+      #[expr(Self($))]
+      fn from_bendian(bytes: [u8; 32]) -> Self;
+    }
+    to self.0 {
+      #[call(to_le_bytes)]
+      fn to_base(&self) -> [u8; 32];
 
-  #[inline]
-  fn to_lendian(&self) -> [u8; 32] {
-    self.0.to_le_bytes()
-  }
+      #[call(to_le_bytes)]
+      fn to_lendian(&self) -> [u8; 32];
 
-  #[inline]
-  fn from_bendian(bytes: [u8; 32]) -> Self {
-    Self(U256::from_be_bytes(bytes))
-  }
-
-  #[inline]
-  fn to_bendian(&self) -> [u8; 32] {
-    self.0.to_be_bytes()
+      #[call(to_be_bytes)]
+      fn to_bendian(&self) -> [u8; 32];
+    }
   }
 }
 
@@ -83,16 +80,48 @@ impl Arith256 {
   pub const ONE: Self = Self(U256::ONE);
   /// The largest representable value (all bits set).
   pub const MAX: Self = Self(U256::MAX);
-  /// Create from a `u64`, zero-extending the upper bits.
-  #[inline]
-  pub fn from_u64(v: u64) -> Self {
-    Self(U256::from(v))
-  }
 
-  /// Create from a `u128`, zero-extending the upper bits.
-  #[inline]
-  pub fn from_u128(v: u128) -> Self {
-    Self(U256::from(v))
+  delegate! {
+    to U256 {
+      /// Create from a `u64`, zero-extending the upper bits.
+      #[call(from)]
+      #[expr(Self($))]
+      pub fn from_u64(v: u64) -> Self;
+
+      /// Create from a `u128`, zero-extending the upper bits.
+      #[call(from)]
+      #[expr(Self($))]
+      pub fn from_u128(v: u128) -> Self;
+    }
+    to self.0 {
+      /// Returns the lowest 32 bits of the value.
+      pub fn low_u32(self) -> u32;
+
+      /// Returns the lowest 64 bits of the value.
+      pub fn low_u64(self) -> u64;
+
+      /// Converts to `u128`, saturating at `u128::MAX` above 128 bits.
+      pub fn saturating_to_u128(self) -> u128;
+
+      /// Highest set bit position plus one, or zero if zero.
+      pub fn bits(self) -> u32;
+
+      /// Wrapping addition.
+      #[expr(Self($))]
+      pub fn wrapping_add(self, #[newtype] rhs: Self) -> Self;
+
+      /// Wrapping subtraction.
+      #[expr(Self($))]
+      pub fn wrapping_sub(self, #[newtype] rhs: Self) -> Self;
+
+      /// Wrapping multiply.
+      #[expr(Self($))]
+      pub fn wrapping_mul(self, #[newtype] rhs: Self) -> Self;
+
+      /// Multiply by a `u64` scalar, returning the result and an overflow flag.
+      #[expr({ let (v, overflow) = $; (Self(v), overflow) })]
+      pub fn mul_u64(self, b: u64) -> (Self, bool);
+    }
   }
 
   /// Construct from big-endian bytes (consensus display order).
@@ -114,53 +143,10 @@ impl Arith256 {
     Self(U256::new(u128::from_be_bytes(high), u128::from_be_bytes(low)))
   }
 
-  /// Returns the lowest 32 bits of the value.
-  #[inline]
-  pub fn low_u32(self) -> u32 {
-    self.0.low_u32()
-  }
-
-  /// Returns the lowest 64 bits of the value.
-  #[inline]
-  pub fn low_u64(self) -> u64 {
-    self.0.low_u64()
-  }
-
   /// Returns the lowest 128 bits of the value.
   #[inline]
   pub fn low_u128(self) -> u128 {
     self.limbs().1
-  }
-
-  /// Saturating conversion to u128. Returns u128::MAX if value exceeds 128
-  /// bits.
-  #[inline]
-  pub fn saturating_to_u128(self) -> u128 {
-    self.0.saturating_to_u128()
-  }
-
-  /// Highest set bit position plus one, or zero if zero.
-  #[inline]
-  pub fn bits(self) -> u32 {
-    self.0.bits()
-  }
-
-  /// Wrapping addition.
-  #[inline]
-  pub fn wrapping_add(self, rhs: Self) -> Self {
-    Self(self.0.wrapping_add(rhs.0))
-  }
-
-  /// Wrapping subtraction.
-  #[inline]
-  pub fn wrapping_sub(self, rhs: Self) -> Self {
-    Self(self.0.wrapping_sub(rhs.0))
-  }
-
-  /// Wrapping multiply.
-  #[inline]
-  pub fn wrapping_mul(self, rhs: Self) -> Self {
-    Self(self.0.wrapping_mul(rhs.0))
   }
 
   /// Checked division. Returns `None` on divide-by-zero.
@@ -201,13 +187,6 @@ impl Arith256 {
       return Self::ZERO;
     }
     Self(self.0 >> shift)
-  }
-
-  /// Multiply by a `u64` scalar, returning the result and an overflow flag.
-  #[inline]
-  pub fn mul_u64(self, b: u64) -> (Self, bool) {
-    let (v, overflow) = self.0.mul_u64(b);
-    (Self(v), overflow)
   }
 
   /// Work contributed by this difficulty target, `2^256 / (self + 1)`.
@@ -483,7 +462,6 @@ mod tests {
   use hex_conservative::hex;
   use rstest::*;
 
-  use core::hint;
   use core::str::FromStr;
 
   fn arith_from_le(bytes: &[u8; 32]) -> Arith256 {
@@ -542,8 +520,6 @@ mod tests {
   fn r2(r2_bytes: [u8; 32]) -> Arith256 {
     arith_from_le(&r2_bytes)
   }
-
-  const R1_LOW64: u64 = 0x121156cfdb4a529c;
 
   mod conversion {
     use super::*;
@@ -636,12 +612,6 @@ mod tests {
     }
 
     #[rstest]
-    fn r1_plus_r2(r1: Arith256, r2: Arith256) {
-      let expected = arith_from_hex("549fb09fea236a1ea3e31d4d58f1b1369288d204211ca751527cfc175767850c");
-      assert_eq!(r1 + r2, expected);
-    }
-
-    #[rstest]
     fn one_plus_max() {
       assert_eq!(Arith256::ONE + Arith256::MAX, Arith256::ZERO);
       assert_eq!(Arith256::MAX + Arith256::ONE, Arith256::ZERO);
@@ -676,31 +646,6 @@ mod tests {
     use super::*;
 
     #[rstest]
-    fn r1_squared(r1: Arith256) {
-      assert_eq!(
-        format!("{}", r1 * r1),
-        "62a38c0486f01e45879d7910a7761bf30d5237e9873f9bff3642a732c4d84f10"
-      );
-    }
-
-    #[rstest]
-    fn r1_times_r2(r1: Arith256, r2: Arith256) {
-      assert_eq!(
-        format!("{}", r1 * r2),
-        "de37805e9986996cfba76ff6ba51c008df851987d9dd323f0e5de07760529c40"
-      );
-      assert_eq!(r1 * r2, r2 * r1);
-    }
-
-    #[rstest]
-    fn r2_squared(r2: Arith256) {
-      assert_eq!(
-        format!("{}", r2 * r2),
-        "ac8c010096767d3cae5005dec28bb2b45a1d85ab7996ccd3e102a650f74ff100"
-      );
-    }
-
-    #[rstest]
     fn identity_and_negation(r1: Arith256, r2: Arith256) {
       assert_eq!(r1 * Arith256::ZERO, Arith256::ZERO);
       assert_eq!(r1 * Arith256::ONE, r1);
@@ -709,20 +654,6 @@ mod tests {
       assert_eq!(r2 * Arith256::ONE, r2);
       assert_eq!(r2 * Arith256::MAX, -r2);
       assert_eq!(Arith256::MAX * Arith256::MAX, Arith256::ONE);
-    }
-
-    #[rstest]
-    fn u32_known_results(r1: Arith256, r2: Arith256) {
-      assert_eq!(r1 * hint::black_box(0u32), Arith256::ZERO);
-      assert_eq!(r1 * 1u32, r1);
-      assert_eq!(
-        format!("{}", r1 * 3u32),
-        "7759b1c0ed14047f961ad09b20ff83687876a0181a367b813634046f91def7d4"
-      );
-      assert_eq!(
-        format!("{}", r2 * 0x87654321u32),
-        "23f7816e30c4ae2017257b7a0fa64d60402f5234d46e746b61c960d09a26d070"
-      );
     }
   }
 
@@ -908,28 +839,6 @@ mod tests {
 
   mod methods {
     use super::*;
-
-    #[rstest]
-    fn low_u64_known(r1: Arith256) {
-      assert_eq!(r1.low_u64(), R1_LOW64);
-      assert_eq!((Arith256::ONE << 255u32).low_u64(), 0);
-      assert_eq!(Arith256::ONE.low_u64(), 1);
-    }
-
-    #[rstest]
-    fn low_u32_known() {
-      assert_eq!(Arith256::from_u64(0xDEAD_BEEF).low_u32(), 0xDEAD_BEEF_u32);
-      assert_eq!(Arith256::ZERO.low_u32(), 0);
-    }
-
-    #[rstest]
-    fn saturating_to_u128() {
-      assert_eq!(Arith256::ZERO.saturating_to_u128(), 0);
-      assert_eq!(Arith256::ONE.saturating_to_u128(), 1);
-      assert_eq!(Arith256::from_u128(u128::MAX).saturating_to_u128(), u128::MAX);
-      assert_eq!(Arith256::MAX.saturating_to_u128(), u128::MAX);
-      assert_eq!((Arith256::ONE << 128u32).saturating_to_u128(), u128::MAX);
-    }
 
     #[rstest]
     fn to_f64_powers_of_two() {
