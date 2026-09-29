@@ -198,6 +198,12 @@ impl Arith256 {
   }
 
   /// Work contributed by this difficulty target, `2^256 / (self + 1)`.
+  ///
+  /// Ignores the `nBits` sign and overflow flags, which
+  /// [`CompactTarget::block_proof`] applies. Returns `ONE` for `MAX`, which no
+  /// `nBits` expands to.
+  ///
+  /// [`CompactTarget::block_proof`]: crate::CompactTarget::block_proof
   pub fn block_proof(self) -> Self {
     if self == Self::ZERO {
       return Self::ZERO;

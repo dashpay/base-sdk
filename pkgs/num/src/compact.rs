@@ -97,6 +97,17 @@ impl CompactTarget {
       overflow,
     }
   }
+
+  /// Work contributed by a block with this target.
+  ///
+  /// Zero when the target is negative, overflows or is zero.
+  pub fn block_proof(self) -> Arith256 {
+    let target = self.expand();
+    if target.negative || target.overflow || target.value == Arith256::ZERO {
+      return Arith256::ZERO;
+    }
+    target.value.block_proof()
+  }
 }
 
 impl fmt::Display for CompactTarget {
@@ -149,8 +160,10 @@ mod tests {
   use crate::prelude::*;
   use crate::{Arith256, CompactTarget};
 
+  use dash_dev::Corpus;
   use dash_types::Numeric;
   use rstest::*;
+  use serde::Deserialize;
 
   use core::str::FromStr;
 
@@ -312,5 +325,37 @@ mod tests {
   fn display_round_trips() {
     let ct = CompactTarget::new(0x1d00_ffff);
     assert_eq!(CompactTarget::from_str(&format!("{ct}")).unwrap(), ct);
+  }
+
+  #[derive(Deserialize)]
+  struct BlockProofVector {
+    nbits: String,
+    r: String,
+  }
+
+  #[test]
+  fn block_proof_matches_vectors() {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "arith256");
+    let vecs: Vec<BlockProofVector> = corpus.vectors("block_proof");
+
+    for v in &vecs {
+      let nbits = u32::from_str_radix(&v.nbits, 16).unwrap();
+      let want = Arith256::from_str(&v.r).unwrap();
+      assert_eq!(
+        CompactTarget::new(nbits).block_proof(),
+        want,
+        "block_proof({})",
+        v.nbits
+      );
+    }
+  }
+
+  #[rstest]
+  #[case(0x0300_0001, Arith256::ONE << 255u32)]
+  #[case(0x1d00_ffff, Arith256::from_u64(0x1_0001_0001))]
+  #[case(0x207f_ffff, Arith256::from_u64(2))]
+  #[case(0x2100_ffff, Arith256::ONE)]
+  fn block_proof_valid_target(#[case] nbits: u32, #[case] want: Arith256) {
+    assert_eq!(CompactTarget::new(nbits).block_proof(), want);
   }
 }
