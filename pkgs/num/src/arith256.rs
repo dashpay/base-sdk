@@ -268,6 +268,13 @@ type_cvrt!(From<u128> for Arith256, |v| Self::from_u128(*v));
 type_cvrt!(From<Hash256> for Arith256, |h| Self::from_lendian(h.to_lendian()));
 type_cvrt!(From<Arith256> for Hash256, |a| Hash256::from_lendian(a.to_lendian()));
 
+impl PartialEq<u64> for Arith256 {
+  #[inline]
+  fn eq(&self, other: &u64) -> bool {
+    *self == Self::from_u64(*other)
+  }
+}
+
 impl Add for Arith256 {
   type Output = Self;
   #[inline]
@@ -283,6 +290,13 @@ impl AddAssign for Arith256 {
   }
 }
 
+impl AddAssign<u64> for Arith256 {
+  #[inline]
+  fn add_assign(&mut self, rhs: u64) {
+    *self += Self::from_u64(rhs);
+  }
+}
+
 impl Sub for Arith256 {
   type Output = Self;
   #[inline]
@@ -295,6 +309,13 @@ impl SubAssign for Arith256 {
   #[inline]
   fn sub_assign(&mut self, rhs: Self) {
     *self = *self - rhs;
+  }
+}
+
+impl SubAssign<u64> for Arith256 {
+  #[inline]
+  fn sub_assign(&mut self, rhs: u64) {
+    *self -= Self::from_u64(rhs);
   }
 }
 
@@ -341,6 +362,22 @@ impl Div for Arith256 {
 impl DivAssign for Arith256 {
   #[inline]
   fn div_assign(&mut self, rhs: Self) {
+    *self = *self / rhs;
+  }
+}
+
+/// Returns `Arith256::ZERO` when `rhs` is zero.
+impl Div<u64> for Arith256 {
+  type Output = Self;
+  #[inline]
+  fn div(self, rhs: u64) -> Self {
+    self / Self::from_u64(rhs)
+  }
+}
+
+impl DivAssign<u64> for Arith256 {
+  #[inline]
+  fn div_assign(&mut self, rhs: u64) {
     *self = *self / rhs;
   }
 }
@@ -407,6 +444,13 @@ impl BitOrAssign for Arith256 {
   }
 }
 
+impl BitOrAssign<u64> for Arith256 {
+  #[inline]
+  fn bitor_assign(&mut self, rhs: u64) {
+    *self |= Self::from_u64(rhs);
+  }
+}
+
 impl BitXor for Arith256 {
   type Output = Self;
   #[inline]
@@ -419,6 +463,13 @@ impl BitXorAssign for Arith256 {
   #[inline]
   fn bitxor_assign(&mut self, rhs: Self) {
     *self = *self ^ rhs;
+  }
+}
+
+impl BitXorAssign<u64> for Arith256 {
+  #[inline]
+  fn bitxor_assign(&mut self, rhs: u64) {
+    *self ^= Self::from_u64(rhs);
   }
 }
 
@@ -902,6 +953,56 @@ mod tests {
           Arith256::from_u64(tmp64)
         );
       }
+    }
+  }
+
+  mod u64_operand {
+    use super::*;
+
+    #[rstest]
+    fn add_sub_wrap() {
+      let mut v = Arith256::MAX;
+      v += 1u64;
+      assert_eq!(v, Arith256::ZERO);
+      v -= 1u64;
+      assert_eq!(v, Arith256::MAX);
+      v -= u64::MAX;
+      assert_eq!(v, Arith256::MAX - Arith256::from_u64(u64::MAX));
+    }
+
+    #[rstest]
+    fn or_xor_leave_high_limbs(r1: Arith256) {
+      let mut or = r1;
+      or |= 0xff00_ff00_ff00_ff00u64;
+      assert_eq!(or, r1 | Arith256::from_u64(0xff00_ff00_ff00_ff00));
+      let mut xor = r1;
+      xor ^= u64::MAX;
+      assert_eq!(xor >> 64u32, r1 >> 64u32);
+      assert_eq!(xor.low_u64(), !r1.low_u64());
+    }
+
+    #[rstest]
+    #[case(0x1234_5678)]
+    #[case(0x1_0000_0000)]
+    #[case(u64::MAX)]
+    fn div_matches_wide_divisor(r1: Arith256, #[case] d: u64) {
+      assert_eq!(r1 / d, r1 / Arith256::from_u64(d));
+      let mut v = r1;
+      v /= d;
+      assert_eq!(v, r1 / d);
+    }
+
+    #[rstest]
+    fn div_by_zero_returns_zero(r1: Arith256) {
+      assert_eq!(r1 / 0u64, Arith256::ZERO);
+    }
+
+    #[rstest]
+    fn eq_compares_all_limbs(r1: Arith256) {
+      assert!(Arith256::from_u64(42) == 42u64);
+      assert!(Arith256::ZERO == 0u64);
+      assert!(r1 != r1.low_u64());
+      assert!((Arith256::ONE << 64u32) != 0u64);
     }
   }
 
