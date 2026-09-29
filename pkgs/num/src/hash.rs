@@ -136,6 +136,25 @@ impl<const N: usize> HashBlob<N> {
 
     Ok(Self(bytes))
   }
+
+  /// Parse the leading hex digits of a big-endian hex string, never failing.
+  ///
+  /// Skips leading whitespace and an optional `0x`/`0X` prefix, then reads
+  /// digits up to the first non-hex character. Keeps the lowest `2 * N` digits
+  /// and zero-extends shorter runs; input without digits parses as zero.
+  pub fn from_hex_lossy(s: &str) -> Self {
+    let s = s.trim_start_matches(WHITESPACE);
+    let s = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
+    let len = s.bytes().position(|b| !b.is_ascii_hexdigit()).unwrap_or(s.len());
+
+    let mut bytes = [0u8; N];
+    for (slot, pair) in bytes.iter_mut().zip(s.as_bytes()[..len].rchunks(2)) {
+      *slot = pair.iter().fold(0, |acc, &d| {
+        (acc << 4) | char::from(d).to_digit(16).map_or(0, |v| v as u8)
+      });
+    }
+    Self(bytes)
+  }
 }
 
 impl<const N: usize> Default for HashBlob<N> {

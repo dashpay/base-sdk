@@ -143,6 +143,14 @@ impl Arith256 {
     Self(U256::new(u128::from_be_bytes(high), u128::from_be_bytes(low)))
   }
 
+  /// Parse the leading hex digits of a big-endian hex string, never failing,
+  /// by the rules of [`HashBlob::from_hex_lossy`].
+  ///
+  /// [`HashBlob::from_hex_lossy`]: crate::HashBlob::from_hex_lossy
+  pub fn from_hex_lossy(s: &str) -> Self {
+    Self::from(Hash256::from_hex_lossy(s))
+  }
+
   /// Returns the lowest 128 bits of the value.
   #[inline]
   pub fn low_u128(self) -> u128 {
@@ -509,9 +517,11 @@ mod tests {
   use crate::prelude::*;
   use crate::{Arith256, Hash256};
 
+  use dash_dev::Corpus;
   use dash_types::Numeric;
   use hex_conservative::hex;
   use rstest::*;
+  use serde::Deserialize;
 
   use core::str::FromStr;
 
@@ -1042,6 +1052,23 @@ mod tests {
     fn rejects_over_long() {
       let long = "0".repeat(66);
       assert!(Arith256::from_str(&long).is_err());
+    }
+
+    #[derive(Deserialize)]
+    struct LossyHexVector {
+      s: String,
+      r: String,
+    }
+
+    #[test]
+    fn from_hex_lossy_matches_vectors() {
+      let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "arith256");
+      let vecs: Vec<LossyHexVector> = corpus.vectors("set_hex");
+
+      for v in &vecs {
+        let want = Arith256::from_str(&v.r).unwrap();
+        assert_eq!(Arith256::from_hex_lossy(&v.s), want, "from_hex_lossy({:?})", v.s);
+      }
     }
   }
 }

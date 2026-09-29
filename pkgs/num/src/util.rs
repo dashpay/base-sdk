@@ -121,6 +121,13 @@ macro_rules! make_hash {
       pub fn from_hex(s: &str) -> Result<Self, $crate::__deps::dash_types::ParseHexError> {
         <$crate::HashBlob<$len>>::from_hex(s).map(Self)
       }
+
+      /// Parse the leading hex digits of a big-endian hex string, never
+      /// failing, by the rules of `HashBlob::from_hex_lossy`.
+      #[inline]
+      pub fn from_hex_lossy(s: &str) -> Self {
+        Self(<$crate::HashBlob<$len>>::from_hex_lossy(s))
+      }
     }
 
     impl $crate::__deps::dash_types::Numeric for $name {
