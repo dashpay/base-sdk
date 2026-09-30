@@ -255,10 +255,11 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   ///
   /// Returns `InvalidTweak` when `tweak` is not below the group order or the
   /// sum is zero, which is the tweak that is this scalar's additive inverse.
+  /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is.
   fn add_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
     let scalar = tweak_scalar(tweak)?;
     let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
-    let mut current = Fr::from_bendian_reduce(&bytes)?;
+    let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
     let mut sum = current + scalar;
     current.zeroize();
 
@@ -271,6 +272,48 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     let tweaked = Self::sk_from_bytes(&sum.to_bendian());
     sum.zeroize();
     tweaked.map_err(|_| BlsError::InvalidTweak)
+  }
+
+  /// Multiply a secret scalar by `tweak`, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order or is
+  /// zero. The order is prime, so no other tweak can zero the product.
+  /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is.
+  fn mul_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
+    let scalar = tweak_scalar(tweak)?;
+    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
+    let mut product = current * scalar;
+    current.zeroize();
+
+    if bool::from(product.is_zero()) {
+      return Err(BlsError::InvalidTweak);
+    }
+
+    // `Fr` is `Copy`, so it cannot wipe itself on the way out of scope.
+    let tweaked = Self::sk_from_bytes(&product.to_bendian());
+    product.zeroize();
+    tweaked.map_err(|_| BlsError::InvalidTweak)
+  }
+
+  /// Negate a secret scalar, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is. The
+  /// negation of a nonzero scalar is nonzero, so the backend takes it back.
+  fn negate_sk(sk: &Self::InnerSk) -> Result<Self::InnerSk, BlsError> {
+    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
+    let mut negated = -current;
+    current.zeroize();
+
+    // `Fr` is `Copy`, so it cannot wipe itself on the way out of scope.
+    let result = Self::sk_from_bytes(&negated.to_bendian());
+    negated.zeroize();
+    result
   }
 
   /// Add `tweak * G` to a public key's point.
@@ -296,6 +339,15 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     let scalar = tweak_scalar(tweak)?;
     let blst_scalar = blst::blst_scalar::from(&scalar);
     Self::tweaked_g1_to_pk(Self::pk_to_g1(pk)?.mul_scalar(&blst_scalar.b, FR_BITS))
+  }
+
+  /// Negate a public key's point.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidPublicKey` when the key does not decode.
+  fn negate_pk(pk: &Self::InnerPk) -> Result<Self::InnerPk, BlsError> {
+    Self::g1_to_pk(-Self::pk_to_g1(pk)?)
   }
 
   /// Lower a tweaked point back to a public key, refusing the identity.

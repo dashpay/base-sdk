@@ -152,6 +152,21 @@ impl EcdsaPublicKey {
     self.tweaked(tweak, PublicKey::mul_tweak)
   }
 
+  /// Negate the point, mirroring it across the X axis.
+  ///
+  /// The serialization form carries over from `self`; a hybrid key's parity
+  /// hint follows the new Y coordinate.
+  ///
+  /// # Errors
+  ///
+  /// Never returns an error.
+  pub fn negate(&self) -> Result<Self, EcdsaError> {
+    Ok(Self {
+      inner: self.inner.negate(),
+      form: self.form,
+    })
+  }
+
   /// Apply `op` to the point with `tweak`, keeping the serialization form.
   ///
   /// # Errors
@@ -397,12 +412,59 @@ mod tests {
   }
 
   #[rstest]
+  fn tweak_neg_keeps_form_and_flips_parity(alice_pk: EcdsaPublicKey) {
+    let hybrid = EcdsaPublicKey::from_bytes(&alice_pk.to_hybrid()).unwrap();
+    let negated = hybrid.negate().unwrap();
+    let bytes = negated.to_bytes();
+
+    // Same X, opposite Y parity, and the hybrid header restates the new one.
+    assert_eq!(bytes[1..33], alice_pk.to_uncompressed()[1..33]);
+    assert_ne!(bytes[64] & 1, alice_pk.to_uncompressed()[64] & 1);
+    assert_eq!(EcdsaPublicKey::from_bytes(&bytes).unwrap(), negated);
+    assert_ne!(
+      alice_pk.negate().unwrap().to_compressed()[0],
+      alice_pk.to_compressed()[0]
+    );
+    assert_keeps_form(&alice_pk, |pk| pk.negate().unwrap());
+  }
+
+  #[rstest]
   fn decompress_drops_hybrid_hint(alice_pk: EcdsaPublicKey) {
     let mut parsed = EcdsaPublicKey::from_bytes(&alice_pk.to_hybrid()).unwrap();
     assert!(parsed.is_hybrid());
     parsed.decompress();
     assert!(!parsed.is_hybrid());
     assert_eq!(EcdsaPkBytes::from(&parsed).as_bytes()[0], 0x04);
+  }
+
+  /// `pk` reparsed from each of its three encodings.
+  fn in_every_form(pk: &EcdsaPublicKey) -> [EcdsaPublicKey; 3] {
+    [&pk.to_compressed()[..], &pk.to_uncompressed()[..], &pk.to_hybrid()[..]]
+      .map(|bytes| EcdsaPublicKey::from_bytes(bytes).unwrap())
+  }
+
+  /// Assert `op` keeps the serialization form of `pk` in every encoding.
+  ///
+  /// Only the prefix's parity bit may follow the new point; the length and the
+  /// rest of the prefix belong to the form.
+  fn assert_keeps_form(pk: &EcdsaPublicKey, op: impl Fn(&EcdsaPublicKey) -> EcdsaPublicKey) {
+    for pk in in_every_form(pk) {
+      let (before, after) = (pk.to_bytes(), op(&pk).to_bytes());
+
+      assert_eq!(after.len(), before.len());
+      assert_eq!(after[0] & !1, before[0] & !1);
+      assert_eq!(EcdsaPublicKey::from_bytes(&after).unwrap().to_bytes(), after);
+    }
+  }
+
+  #[rstest]
+  fn tweak_add_keeps_form(alice_pk: EcdsaPublicKey, bob_sk: EcdsaSecretKey) {
+    assert_keeps_form(&alice_pk, |pk| pk.add_tweak(&bob_sk.to_bytes()).unwrap());
+  }
+
+  #[rstest]
+  fn tweak_mul_keeps_form(alice_pk: EcdsaPublicKey, bob_sk: EcdsaSecretKey) {
+    assert_keeps_form(&alice_pk, |pk| pk.mul_tweak(&bob_sk.to_bytes()).unwrap());
   }
 
   #[rstest]

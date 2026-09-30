@@ -59,8 +59,6 @@ extensions:
       # Malleability
       - ["Ecdsa", "Signature", "is_low_s"]                # Query whether S is in the lower half
       - ["Ecdsa", "Signature", "normalize_s"]             # Move S into the lower half
-      # Misc.
-      - ["Ecdsa", "SecretKey", "negate"]                  # Flips the scalar
       # Recoverable signatures
       - ["Ecdsa", "SecretKey", "sign_recoverable"]        # Sign
       - ["Ecdsa", "PublicKey", "recover"]                 # Get public key from a signature
@@ -71,8 +69,11 @@ extensions:
       # Ed25519
       # Tweaking
       - ["Eddsa", "SecretKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010
+      - ["Eddsa", "SecretKey", "mul_tweak"]               # Curve properties prevent this, see SLIP-0010
+      - ["Eddsa", "SecretKey", "negate"]                  # Curve properties prevent this, see SLIP-0010
       - ["Eddsa", "PublicKey", "add_tweak"]               # Curve properties prevent this, see SLIP-0010
       - ["Eddsa", "PublicKey", "mul_tweak"]               # Curve properties prevent this, see SLIP-0010
+      - ["Eddsa", "PublicKey", "negate"]                  # Curve properties prevent this, see SLIP-0010
   - addsTo:
       pack: base-sdk/codeql-rust
       extensible: armLacksTrait

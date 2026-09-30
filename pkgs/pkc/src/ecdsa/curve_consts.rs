@@ -32,3 +32,10 @@ pub(super) const GENERATOR: &[u8; 65] = &hex!(
 /// The generator point in SEC1 compressed form.
 pub(super) const GENERATOR_COMPRESSED: [u8; 33] =
   hex!("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
+
+/// The point of the scalar the backend's erase leaves, every byte `0x01`, in
+/// SEC1 uncompressed form.
+pub(super) const ERASED_POINT: [u8; 65] = hex!(
+  "041b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f\
+   70beaf8f588b541507fed6a642c5ab42dfdf8120a7f639de5122d47a69a8e8d1"
+);

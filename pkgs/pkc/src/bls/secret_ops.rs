@@ -99,6 +99,26 @@ impl<S: BlsScheme> BlsSecretKey<S> {
     S::add_tweak_sk(&self.0, tweak).map(Self::from_inner)
   }
 
+  /// Multiply the secret scalar by `tweak`, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidTweak` when `tweak` is not below the group order, or when
+  /// it is zero. The order is prime, so no other tweak can zero the product.
+  pub fn mul_tweak(&self, tweak: &[u8; 32]) -> Result<Self, BlsError> {
+    S::mul_tweak_sk(&self.0, tweak).map(Self::from_inner)
+  }
+
+  /// Negate the secret scalar, modulo the group order.
+  ///
+  /// # Errors
+  ///
+  /// Returns `InvalidSecretKey` when the scalar is zero, including after the
+  /// key has been zeroized.
+  pub fn negate(&self) -> Result<Self, BlsError> {
+    S::negate_sk(&self.0).map(Self::from_inner)
+  }
+
   /// Derive the corresponding public key.
   pub fn public_key(&self) -> BlsPublicKey<S> {
     BlsPublicKey(S::derive_pk(&self.0))
@@ -203,7 +223,7 @@ type_cvrt!(for[S: BlsScheme] TryFrom<Fr> for BlsSecretKey<S>, BlsError, |scalar|
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
-  use crate::bls::tests::{GROUP_ORDER, RSEED};
+  use crate::bls::tests::{negate_scalar, GROUP_ORDER, RSEED};
   use crate::bls::{BlsError, BlsScChia, BlsScIetf};
 
   use dash_dev::{arr_from_hex, Corpus};
@@ -211,54 +231,74 @@ mod tests {
   use rstest::rstest;
   use serde::Deserialize;
 
-  /// `(a + t)G` has to equal `aG + tG`, or the same tweak applied to the two
-  /// halves of a key pair would part them.
-  fn assert_tweaking_agrees_on_both_sides<S: BlsScheme>() {
+  #[derive(Clone, Copy, Debug)]
+  enum Tweak {
+    Add,
+    Mul,
+    Neg,
+  }
+
+  impl Tweak {
+    fn on_sk<S: BlsScheme>(self, sk: &BlsSecretKey<S>, tweak: &[u8; 32]) -> BlsSecretKey<S> {
+      match self {
+        Tweak::Add => sk.add_tweak(tweak).unwrap(),
+        Tweak::Mul => sk.mul_tweak(tweak).unwrap(),
+        Tweak::Neg => sk.negate().unwrap(),
+      }
+    }
+
+    fn on_pk<S: BlsScheme>(self, pk: &BlsPublicKey<S>, tweak: &[u8; 32]) -> BlsPublicKey<S> {
+      match self {
+        Tweak::Add => pk.add_tweak(tweak).unwrap(),
+        Tweak::Mul => pk.mul_tweak(tweak).unwrap(),
+        Tweak::Neg => pk.negate().unwrap(),
+      }
+    }
+  }
+
+  /// A tweak on `a` has to land on the matching tweak on `aG`, or the same
+  /// tweak applied to the two halves of a key pair would part them.
+  fn assert_tweak_agrees_on_both_sides<S: BlsScheme>(op: Tweak) {
     let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
     let tweak = *BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap().to_bytes();
 
-    let tweaked_sk = sk.add_tweak(&tweak).unwrap();
-    let tweaked_pk = sk.public_key().add_tweak(&tweak).unwrap();
+    let tweaked_sk = op.on_sk(&sk, &tweak);
+    let tweaked_pk = op.on_pk(&sk.public_key(), &tweak);
 
     assert_eq!(tweaked_sk.public_key(), tweaked_pk);
+    assert!(tweaked_sk.verify_pubkey(&tweaked_pk));
+
+    let msg = S::msg_ref(&[0x5a; 32]);
+    assert_eq!(tweaked_pk.verify(msg, &tweaked_sk.sign(msg)), Ok(()));
   }
 
   #[rstest]
-  #[case::chia(assert_tweaking_agrees_on_both_sides::<BlsScChia>)]
-  #[case::ietf(assert_tweaking_agrees_on_both_sides::<BlsScIetf>)]
-  fn tweaking_agrees_on_both_sides(#[case] assertion: fn()) {
-    assertion();
+  #[case::chia(assert_tweak_agrees_on_both_sides::<BlsScChia>)]
+  #[case::ietf(assert_tweak_agrees_on_both_sides::<BlsScIetf>)]
+  fn tweak_agrees_on_both_sides(#[case] assertion: fn(Tweak), #[values(Tweak::Add, Tweak::Mul, Tweak::Neg)] op: Tweak) {
+    assertion(op);
   }
 
-  fn assert_tweak_at_or_above_the_order_refused<S: BlsScheme>() {
+  fn assert_tweak_add_refuses_order_or_above<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
 
     assert_eq!(sk.add_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
     assert_eq!(sk.add_tweak(&[0xff; 32]), Err(BlsError::InvalidTweak));
     assert_eq!(sk.public_key().add_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
-    assert_eq!(sk.public_key().mul_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
   }
 
   #[rstest]
-  #[case::chia(assert_tweak_at_or_above_the_order_refused::<BlsScChia>)]
-  #[case::ietf(assert_tweak_at_or_above_the_order_refused::<BlsScIetf>)]
-  fn a_tweak_at_or_above_the_order_is_refused(#[case] assertion: fn()) {
+  #[case::chia(assert_tweak_add_refuses_order_or_above::<BlsScChia>)]
+  #[case::ietf(assert_tweak_add_refuses_order_or_above::<BlsScIetf>)]
+  fn tweak_add_refuses_order_or_above(#[case] assertion: fn()) {
     assertion();
   }
 
   /// `order - a`, so `a + t == 0`. Whoever picks the tweak can compute it
   /// from `aG` alone, so the sum has to be refused rather than handed back.
-  fn assert_tweak_summing_to_zero_refused<S: BlsScheme>() {
+  fn assert_tweak_add_refuses_zero_sum<S: BlsScheme>() {
     let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
-    let scalar = *sk.to_bytes();
-    let mut tweak = GROUP_ORDER;
-    let mut borrow = 0i16;
-
-    for i in (0..32).rev() {
-      let diff = i16::from(tweak[i]) - i16::from(scalar[i]) - borrow;
-      borrow = i16::from(diff < 0);
-      tweak[i] = diff.rem_euclid(256) as u8;
-    }
+    let tweak = negate_scalar(&sk.to_bytes());
 
     assert_eq!(sk.add_tweak(&tweak), Err(BlsError::InvalidTweak));
     // The point at infinity is no key either.
@@ -266,28 +306,91 @@ mod tests {
   }
 
   #[rstest]
-  #[case::chia(assert_tweak_summing_to_zero_refused::<BlsScChia>)]
-  #[case::ietf(assert_tweak_summing_to_zero_refused::<BlsScIetf>)]
-  fn a_tweak_summing_to_zero_is_refused(#[case] assertion: fn()) {
+  #[case::chia(assert_tweak_add_refuses_zero_sum::<BlsScChia>)]
+  #[case::ietf(assert_tweak_add_refuses_zero_sum::<BlsScIetf>)]
+  fn tweak_add_refuses_zero_sum(#[case] assertion: fn()) {
     assertion();
   }
 
-  /// `t(aG) == a(tG)`, so multiplying a point commutes with multiplying the
-  /// scalar that made it.
-  fn assert_point_product_matches_scalar_product<S: BlsScheme>() {
-    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
-    let factor_sk = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
+  /// `at == ta`, so `t(aG) == a(tG)`.
+  fn assert_tweak_mul_commutes<S: BlsScheme>() {
+    let a = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let t = BlsSecretKey::<S>::from_ikm(&RSEED[1]).unwrap();
 
-    let product = sk.public_key().mul_tweak(&factor_sk.to_bytes()).unwrap();
-    let expected = factor_sk.public_key().mul_tweak(&sk.to_bytes()).unwrap();
-
-    assert_eq!(product, expected);
+    assert_eq!(a.mul_tweak(&t.to_bytes()).unwrap(), t.mul_tweak(&a.to_bytes()).unwrap());
+    assert_eq!(
+      a.public_key().mul_tweak(&t.to_bytes()).unwrap(),
+      t.public_key().mul_tweak(&a.to_bytes()).unwrap()
+    );
   }
 
   #[rstest]
-  #[case::chia(assert_point_product_matches_scalar_product::<BlsScChia>)]
-  #[case::ietf(assert_point_product_matches_scalar_product::<BlsScIetf>)]
-  fn multiplying_a_point_matches_multiplying_the_scalar(#[case] assertion: fn()) {
+  #[case::chia(assert_tweak_mul_commutes::<BlsScChia>)]
+  #[case::ietf(assert_tweak_mul_commutes::<BlsScIetf>)]
+  fn tweak_mul_commutes(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_mul_by_one_is_identity<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let mut one = [0u8; 32];
+    one[31] = 1;
+
+    assert_eq!(sk.mul_tweak(&one).unwrap(), sk);
+    assert_eq!(sk.public_key().mul_tweak(&one).unwrap(), sk.public_key());
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_mul_by_one_is_identity::<BlsScChia>)]
+  #[case::ietf(assert_tweak_mul_by_one_is_identity::<BlsScIetf>)]
+  fn tweak_mul_by_one_is_identity(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_mul_refuses_bad_factor<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let zero = [0u8; 32];
+
+    assert_eq!(sk.mul_tweak(&zero), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.mul_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.public_key().mul_tweak(&zero), Err(BlsError::InvalidTweak));
+    assert_eq!(sk.public_key().mul_tweak(&GROUP_ORDER), Err(BlsError::InvalidTweak));
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_mul_refuses_bad_factor::<BlsScChia>)]
+  #[case::ietf(assert_tweak_mul_refuses_bad_factor::<BlsScIetf>)]
+  fn tweak_mul_refuses_bad_factor(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_neg_is_order_minus_scalar<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+
+    assert_eq!(*sk.negate().unwrap().to_bytes(), negate_scalar(&sk.to_bytes()));
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_neg_is_order_minus_scalar::<BlsScChia>)]
+  #[case::ietf(assert_tweak_neg_is_order_minus_scalar::<BlsScIetf>)]
+  fn tweak_neg_is_order_minus_scalar(#[case] assertion: fn()) {
+    assertion();
+  }
+
+  fn assert_tweak_neg_twice_is_identity<S: BlsScheme>() {
+    let sk = BlsSecretKey::<S>::from_ikm(&RSEED[0]).unwrap();
+    let negated = sk.negate().unwrap();
+
+    assert_ne!(negated, sk);
+    assert_eq!(negated.negate().unwrap(), sk);
+    assert_ne!(sk.public_key().negate().unwrap(), sk.public_key());
+    assert_eq!(sk.public_key().negate().unwrap().negate().unwrap(), sk.public_key());
+  }
+
+  #[rstest]
+  #[case::chia(assert_tweak_neg_twice_is_identity::<BlsScChia>)]
+  #[case::ietf(assert_tweak_neg_twice_is_identity::<BlsScIetf>)]
+  fn tweak_neg_twice_is_identity(#[case] assertion: fn()) {
     assertion();
   }
 
