@@ -7,16 +7,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `CompactTarget::block_proof`, the work contributed by a block with that target, zero for negative, overflowing or
+  zero targets.
+- `from_hex_lossy` for `HashBlob`, `make_hash!` types and `Arith256`, an infallible parse of the leading hex digits of
+  a string, matching the reference implementation.
+- `u64` operands for `Arith256`: `+=`, `-=`, `|=`, `^=`, `/`, `/=`, `==` and `!=`. Inferred operands such as
+  `a == x.into()` may now need a type annotation.
+- `From<&T>` conversions into `Arith256` from `&u8` through `&u128` and `&Hash256`, and `From<&Arith256>` for
+  `Hash256`.
+
 ### Changed
 
 - `HashBlob`, `make_hash!` types and `Arith256` serialize as their little-endian storage bytes for machine-readable
   formats, JSON retains hex encoded big-endian string encoding.
+- `CompactTarget::from_str` requires exactly 8 hex digits, optionally `0x`/`0X`-prefixed. Shorter input is now
+  rejected with `ParseHexError::OddLength` or `ParseHexError::InvalidLength`.
 
 ### Removed
 
 - `ParseHexError` has moved to `dash-types` as `dash_types::ParseHexError`.
 - The `dash_types::Numeric` re-export in favour of a wholesale crate re-export. `dash_num::Numeric` imports must switch
   to `dash_num::__deps::dash_types::Numeric` or depend on `dash-types` directly.
+
+### Fixed
+
+- `Arith256::to_f64` rounds like the reference implementation. It was one ULP off on roughly 1% of inputs.
 
 ## [0.1.0-beta] - 2026-09-14
 

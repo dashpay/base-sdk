@@ -13,7 +13,6 @@ rust-version.workspace = true
 default = []
 std = [
   "bitcoin-consensus-encoding/std",
-  "bitcoin-internals/std",
   "bitcoin-primitives/std",
   "bitcoin_hashes/std",
   "bitcoin-units/std",
@@ -36,7 +35,6 @@ full = ["std", "serde"]
 
 [dependencies]
 bitcoin-consensus-encoding = { workspace = true, features = ["alloc"] }
-bitcoin-internals = { workspace = true }
 bitcoin-primitives = { workspace = true, features = ["alloc"] }
 bitcoin_hashes = { workspace = true, features = ["alloc"] }
 bitcoin-units = { workspace = true, features = ["alloc"] }
