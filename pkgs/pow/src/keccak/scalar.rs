@@ -4,12 +4,12 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! Scalar Keccak-f[1600] permutation and sponge.
+//! Scalar Keccak-f\[1600\] permutation and sponge.
 
 use super::consts::{RATE, RC, ROTC};
 use crate::util::memops::{extract, load_u64_le, store_u64_le};
 
-/// Applies the Keccak-f[1600] permutation in place (24 rounds).
+/// Applies the Keccak-f\[1600\] permutation in place (24 rounds).
 ///
 /// State is a 5x5 matrix of 64-bit lanes stored in row-major order as
 /// `state[x + 5*y]`.

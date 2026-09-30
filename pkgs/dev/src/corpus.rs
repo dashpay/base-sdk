@@ -16,7 +16,7 @@ use std::fs;
 
 /// Verifies the serde round-trip for a set of corpus entries.
 ///
-/// Writes `items` to JSON via [`write_corpus`], reads them back through
+/// Writes `items` to JSON via `write_corpus`, reads them back through
 /// [`Corpus::entries`] (no-op check), and asserts equality.
 ///
 /// # Panics

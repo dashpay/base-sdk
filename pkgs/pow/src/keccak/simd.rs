@@ -4,7 +4,7 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 
-//! SIMD Keccak-f[1600] permutation and sponge.
+//! SIMD Keccak-f\[1600\] permutation and sponge.
 
 use super::consts::RC;
 
