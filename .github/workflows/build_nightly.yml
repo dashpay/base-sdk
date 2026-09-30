@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     env:
       RUSTFLAGS: -D warnings
+      HAS_CODECOV: ${{ secrets.CODECOV_TOKEN != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -81,7 +82,9 @@ jobs:
       - name: Manage build artifacts
         uses: actions/cache@v5
         with:
-          path: target
+          path: |
+            target
+            !target/nextest
           key: cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-${{ matrix.config.name }}-${{ github.sha }}
           restore-keys: |
             cargo-build-nightly-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package }}-${{ matrix.config.name }}-
@@ -94,7 +97,9 @@ jobs:
 
       - name: Test package
         if: matrix.config.name != 'full'
-        run: cargo test -p ${{ inputs.package }} ${{ matrix.config.args }}
+        run: |
+          cargo nextest run --config-file maint/nextest.toml --profile=ci -p ${{ inputs.package }} ${{ matrix.config.args }}
+          cargo test --doc -p ${{ inputs.package }} ${{ matrix.config.args }}
 
       - name: Check formatting
         if: matrix.config.name == 'full'
@@ -102,7 +107,11 @@ jobs:
 
       - name: Test package (with coverage)
         if: matrix.config.name == 'full'
-        run: cargo llvm-cov ${{ matrix.config.args }} --package ${{ inputs.package }} --lcov --output-path lcov.info
+        run: |
+          cargo llvm-cov clean --workspace
+          cargo llvm-cov --no-report nextest --config-file maint/nextest.toml --profile=ci ${{ matrix.config.args }} --package ${{ inputs.package }}
+          cargo llvm-cov report --lcov --output-path lcov.info
+          cargo test --doc -p ${{ inputs.package }} ${{ matrix.config.args }}
 
       - name: Upload coverage to Codecov
         if: matrix.config.name == 'full' && env.HAS_CODECOV == 'true'
@@ -111,8 +120,15 @@ jobs:
           files: lcov.info
           flags: ${{ inputs.package }}
           token: ${{ secrets.CODECOV_TOKEN }}
-        env:
-          HAS_CODECOV: ${{ secrets.CODECOV_TOKEN != '' }}
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() && matrix.config.name == 'full' && env.HAS_CODECOV == 'true' && hashFiles('target/nextest/ci/junit.xml') != '' }}
+        uses: codecov/codecov-action@v5
+        with:
+          files: target/nextest/ci/junit.xml
+          report_type: test_results
+          flags: ${{ inputs.package }}
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Sanity check benchmarks
         run: cargo bench ${{ matrix.config.args }} --package ${{ inputs.package }} --no-run

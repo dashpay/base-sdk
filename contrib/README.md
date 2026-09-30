@@ -33,6 +33,7 @@ source .venv/bin/activate
 packages need to be additionally sourced.
 
 * [cargo-deny](https://github.com/EmbarkStudios/cargo-deny)
+* [cargo-nextest](https://github.com/nextest-rs/nextest)
 * [CodeQL 2.27 or higher](https://github.com/github/codeql-cli-binaries/releases)
 * [Git](https://git-scm.com/install/)
 * [Node.js 24 or higher](https://nodejs.org/en/download) (current LTS,
@@ -46,7 +47,7 @@ packages need to be additionally sourced.
 > ([source](https://docs.brew.sh/FAQ#what-does-keg-only-mean)).
 
 ```bash
-brew install cargo-deny codeql git node@24
+brew install cargo-deny cargo-nextest codeql git node@24
 ```
 
 ### Linux/WSL
@@ -57,7 +58,11 @@ you may need to update your shell to add your installation path to `PATH` so tha
 lint script.
 
 Neither CodeQL nor taplo are available in official Debian or Fedora repositories and must be sourced per vendor
-guidance.
+guidance. `cargo-nextest` is likewise best installed as a Rust binary crate.
+
+```bash
+cargo install --locked cargo-nextest
+```
 
 #### Installing `taplo`
 
