@@ -1,0 +1,47 @@
+comment:
+  behavior: "default"
+  layout: "condensed_header, condensed_files, condensed_footer"
+  hide_project_coverage: true
+  require_changes: false
+  show_carryforward_flags: true
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+    patch:
+      default:
+        target: auto
+flags:
+  dash-num:
+    paths:
+      - pkgs/num/
+  dash-script:
+    paths:
+      - pkgs/script/
+  dash-p2p-core:
+    paths:
+      - pkgs/p2p_core/
+  dash-params:
+    paths:
+      - pkgs/params/
+  dash-pkc:
+    paths:
+      - pkgs/pkc/
+  dash-pow:
+    paths:
+      - pkgs/pow/
+  dash-primitives:
+    paths:
+      - pkgs/primitives/
+  dash-types:
+    paths:
+      - pkgs/types/
+      - pkgs/types/marker/
+flag_management:
+  default_rules:
+    carryforward: true
+ignore:
+  - "**/bench/**"
+  - "**/corpus/**"
+  - "**/tests/**"
