@@ -68,12 +68,7 @@ jobs:
           key: codeql-packs-${{ hashFiles('maint/codeql/*/codeql-pack.lock.yml') }}
 
       - name: Run linters
-        run: |
-          python3 maint/lint_all.py --exclude lint_codeql
-          python3 maint/lint/lint_codeql.py check
-
-      - name: Run CodeQL
-        run: python3 maint/lint/lint_codeql.py run --lang=rust --with-suite=rust-security-and-quality
+        run: just lint
 
       - name: Check PR commit messages
         if: github.event_name == 'pull_request'

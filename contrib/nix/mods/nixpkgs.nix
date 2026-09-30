@@ -28,6 +28,8 @@ in
     pkgs.cargo-llvm-cov
     pkgs.cargo-nextest
     pkgs.git
+    pkgs.just
+    pkgs.just-lsp
     pkgs.nixfmt
     pkgs.nodejs_24
     pkgs.wasm-pack

@@ -36,6 +36,8 @@ packages need to be additionally sourced.
 * [cargo-nextest](https://github.com/nextest-rs/nextest)
 * [CodeQL 2.27 or higher](https://github.com/github/codeql-cli-binaries/releases)
 * [Git](https://git-scm.com/install/)
+* [just](https://just.systems) (task runner, see [`Justfile`](../Justfile)) and optionally, its
+  language server, [`just-lsp`](https://www.just-lsp.systems)
 * [Node.js 24 or higher](https://nodejs.org/en/download) (current LTS,
   [source](https://nodejs.org/en/blog/release/v24.11.0))
 
@@ -47,7 +49,7 @@ packages need to be additionally sourced.
 > ([source](https://docs.brew.sh/FAQ#what-does-keg-only-mean)).
 
 ```bash
-brew install cargo-deny cargo-nextest codeql git node@24
+brew install cargo-deny cargo-nextest codeql git just just-lsp node@24
 ```
 
 ### Linux/WSL
@@ -58,10 +60,10 @@ you may need to update your shell to add your installation path to `PATH` so tha
 lint script.
 
 Neither CodeQL nor taplo are available in official Debian or Fedora repositories and must be sourced per vendor
-guidance. `cargo-nextest` is likewise best installed as a Rust binary crate.
+guidance. `cargo-nextest` and `just-lsp` are likewise best installed as Rust binary crates.
 
 ```bash
-cargo install --locked cargo-nextest
+cargo install --locked cargo-nextest just-lsp
 ```
 
 #### Installing `taplo`
@@ -83,7 +85,7 @@ cargo install --locked taplo-cli
 ```bash
 # Required because Debian trixie ships Node 20.x, deprecated in April 2026
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-sudo apt install git nodejs -y
+sudo apt install git just nodejs -y
 
 # `cargo-deny` is currently unavailable on Debian (https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=951368)
 cargo install --locked cargo-deny
@@ -92,7 +94,7 @@ cargo install --locked cargo-deny
 #### Fedora
 
 ```bash
-sudo dnf install -y cargo-deny git nodejs24
+sudo dnf install -y cargo-deny git just nodejs24
 ```
 
 <!-- [end:setup] -->
@@ -106,11 +108,7 @@ script, [`git_filter.py`](./git_filter.py) that creates a temporary worktree and
 commit in a specified range so the worktree isn't blocked by the validation run.
 
 ```bash
-# Replace 'branch_name' with the name of your branch
-./contrib/git_filter.py --fast-fail develop branch_name -- bash -c 'cargo clippy --all-targets --no-default-features -- -D warnings &&
-cargo clippy --all-targets --features full -- -D warnings &&
-cargo test --all-targets --features full &&
-./maint/lint_all.py'
+just comb
 ```
 
 <!-- [end:bisect] -->
