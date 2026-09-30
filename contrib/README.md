@@ -75,7 +75,7 @@ An alternative to procuring releases from the maintainers ([source](https://gith
 install it as a Rust binary crate.
 
 ```bash
-cargo install taplo-cli
+cargo install --locked taplo-cli
 ```
 
 #### Debian

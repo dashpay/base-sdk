@@ -22,6 +22,8 @@
   "editor.formatOnSave": true,
   "editor.minimap.enabled": true,
   "editor.rulers": [120],
+  "evenBetterToml.taplo.configFile.enabled": true,
+  "evenBetterToml.taplo.configFile.path": "maint/taplo.toml",
   "files.associations": {
     "*.json5": "jsonc"
   },
