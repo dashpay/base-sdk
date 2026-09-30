@@ -89,7 +89,14 @@ def _check_deny(repo_root: Path) -> int | None:
 
   print("checking yanked and banned: every crate the graph resolves")
   result = subprocess.run(  # noqa: S603
-    [deny_bin, "check", "--hide-inclusion-graph", "advisories", "bans"],
+    [
+      deny_bin,
+      "check",
+      "--hide-inclusion-graph",
+      "advisories",
+      "bans",
+      "licenses",
+    ],
     capture_output=True,
     check=False,
     cwd=str(repo_root),
