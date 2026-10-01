@@ -2,7 +2,7 @@ name: Tag PRs
 
 on:
   pull_request_target:
-    types: [synchronize, opened, reopened, closed]
+    types: [synchronize, opened, reopened, closed, labeled, unlabeled]
   schedule:
     - cron: "0 6 * * 1"
 
@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
 jobs:
@@ -35,3 +36,12 @@ jobs:
           script: |
             const script = require("./.github/scripts/pr_tag.js");
             await script({ github, context });
+
+      - name: Sync labels with the project board
+        uses: actions/github-script@v8
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        with:
+          script: |
+            const script = require("./.github/scripts/pr_board.js");
+            await script({ github, context, core });

@@ -24,15 +24,14 @@ function sleep(ms) {
  * @param {{ github: any, owner: string, repo: string }} params
  * @returns {Promise<any[]>}
  */
-async function listOpenPulls({ github, owner, repo }) {
-  const { data: pulls } = await github.rest.pulls.list({
+function listOpenPulls({ github, owner, repo }) {
+  return github.paginate(github.rest.pulls.list, {
     owner,
     repo,
     state: "open",
     base: BASE_BRANCH,
     per_page: 100,
   });
-  return pulls;
 }
 
 /**

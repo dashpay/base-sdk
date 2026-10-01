@@ -52,7 +52,9 @@ export default [
       ecmaVersion: 2022,
       sourceType: "commonjs",
       globals: {
+        __dirname: "readonly",
         console: "readonly",
+        fetch: "readonly",
         module: "readonly",
         process: "readonly",
         require: "readonly",
