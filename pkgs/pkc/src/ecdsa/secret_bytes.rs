@@ -65,8 +65,8 @@ impl EcdsaSkBytes {
       34 if data[33] == 0x01 => Compression::Compressed,
       _ => return None,
     };
-    let key: [u8; ECDSA_SK_LEN] = data[1..33].try_into().ok()?;
-    let sk = Self::from_bytes(key, compressed);
+    let key = Zeroizing::new(<[u8; ECDSA_SK_LEN]>::try_from(&data[1..33]).ok()?);
+    let sk = Self::from_bytes(*key, compressed);
     (!sk.is_null()).then_some((sk, data[0]))
   }
 
