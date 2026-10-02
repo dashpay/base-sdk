@@ -738,14 +738,14 @@ fn generate_shares(
     let mut y = poly_eval(&coeffs, x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
-    let y_bytes = blst_ffi::bendian_from_scalar(&y_scalar);
+    let y_bytes = Zeroizing::new(blst_ffi::bendian_from_scalar(&y_scalar));
     y_scalar.b.zeroize();
     y.zeroize();
 
-    // Wrap so unprocessed shares still zeroize if a later caller step fails.
+    // Wrapped so unprocessed shares still zeroize if a later caller step fails.
     shares.push(RawShare {
       id: *id,
-      secret: Zeroizing::new(y_bytes),
+      secret: y_bytes,
     });
   }
 
