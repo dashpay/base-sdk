@@ -71,7 +71,7 @@ impl<S: BlsScheme> BlsSecretKey<S> {
 
   /// Serialize to 32 bytes, wiped when the returned value drops.
   pub fn to_bytes(&self) -> Zeroizing<[u8; 32]> {
-    Zeroizing::new(S::sk_to_bytes(&self.0))
+    S::sk_to_bytes(&self.0)
   }
 
   /// Retag this key under another scheme.

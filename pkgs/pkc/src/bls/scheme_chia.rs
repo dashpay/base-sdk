@@ -17,7 +17,7 @@ use super::schemes::BlsScChia;
 use crate::prelude::*;
 
 use blst::min_pk;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 /// y.c1 > (p-1)/2, matching the legacy sign convention.
 fn y_c1_is_larger(y_c1: &[u8]) -> bool {
@@ -52,8 +52,8 @@ impl BlsScheme for BlsScChia {
   }
 
   /// Emit the scalar as big-endian bytes.
-  fn sk_to_bytes(sk: &Self::InnerSk) -> [u8; 32] {
-    blst_ffi::bendian_from_scalar(sk)
+  fn sk_to_bytes(sk: &Self::InnerSk) -> Zeroizing<[u8; 32]> {
+    Zeroizing::new(blst_ffi::bendian_from_scalar(sk))
   }
 
   /// Multiply the G1 generator by the secret scalar.

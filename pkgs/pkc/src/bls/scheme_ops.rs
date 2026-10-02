@@ -70,8 +70,8 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when the bytes are not a valid scalar.
   fn sk_from_bytes(b: &[u8; 32]) -> Result<Self::InnerSk, BlsError>;
 
-  /// Serialize a secret key to 32 big-endian bytes.
-  fn sk_to_bytes(sk: &Self::InnerSk) -> [u8; 32];
+  /// Serialize a secret key to 32 big-endian bytes, wiped when dropped.
+  fn sk_to_bytes(sk: &Self::InnerSk) -> Zeroizing<[u8; 32]>;
 
   /// Derive the public key corresponding to a secret key.
   fn derive_pk(sk: &Self::InnerSk) -> Self::InnerPk;
@@ -148,10 +148,9 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// is invalid.
   fn dh_exchange(sk: &Self::InnerSk, peer_pk: &Self::InnerPk) -> Result<Self::InnerPk, BlsError> {
     let point = Self::pk_to_g1(peer_pk)?;
-    let mut sk_bytes = Self::sk_to_bytes(sk);
+    let sk_bytes = Self::sk_to_bytes(sk);
     let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
     let product = point.mul_scalar(&sk_scalar.b, FR_BITS);
-    sk_bytes.zeroize();
     sk_scalar.b.zeroize();
     Self::g1_to_pk(product)
   }
@@ -258,7 +257,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is.
   fn add_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
     let scalar = tweak_scalar(tweak)?;
-    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let bytes = Self::sk_to_bytes(sk);
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
     // A borrow reads the tweak in place, where `*scalar` would copy it out of
     // its wrapper onto the stack unwiped.
@@ -286,7 +285,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is.
   fn mul_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
     let scalar = tweak_scalar(tweak)?;
-    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let bytes = Self::sk_to_bytes(sk);
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
     // A borrow reads the tweak in place, where `*scalar` would copy it out of
     // its wrapper onto the stack unwiped.
@@ -311,7 +310,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is. The
   /// negation of a nonzero scalar is nonzero, so the backend takes it back.
   fn negate_sk(sk: &Self::InnerSk) -> Result<Self::InnerSk, BlsError> {
-    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let bytes = Self::sk_to_bytes(sk);
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
     let mut negated = -current;
     current.zeroize();
@@ -480,8 +479,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     if sks.is_empty() {
       return Err(BlsError::EmptyAggregation);
     }
-    let byte_vecs = Zeroizing::new(sks.iter().map(|k| Self::sk_to_bytes(k)).collect::<Vec<[u8; 32]>>());
-    let out_bytes = sum_sk_scalars(&byte_vecs);
+    let out_bytes = sum_sk_scalars(sks.iter().map(|k| Self::sk_to_bytes(k)));
     Self::sk_from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
   }
 
@@ -510,7 +508,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     let id_refs: Vec<&BlsShareId> = ids.iter().collect();
     let xs = reduce_share_ids(&id_refs)?;
 
-    let sk_bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let sk_bytes = Self::sk_to_bytes(sk);
     let raw = generate_shares(&sk_bytes, threshold, ids, &xs, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
     raw
@@ -631,7 +629,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
 
     let mut coeffs = Zeroizing::new(Vec::with_capacity(master_sks.len()));
     for sk in master_sks {
-      let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+      let bytes = Self::sk_to_bytes(sk);
       let mut scalar = blst_ffi::scalar_from_bendian(&bytes);
       coeffs.push(Fr::from(&scalar));
       scalar.b.zeroize();
@@ -673,10 +671,10 @@ fn secure_weights(sorted_pks: &[[u8; 48]]) -> Vec<blst::blst_scalar> {
 }
 
 /// Sum secret key scalars (mod group order).
-fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
+fn sum_sk_scalars(key_bytes: impl Iterator<Item = Zeroizing<[u8; 32]>>) -> Zeroizing<[u8; 32]> {
   let mut acc = Fr::default();
   for bytes in key_bytes {
-    let mut scalar = blst_ffi::scalar_from_bendian(bytes);
+    let mut scalar = blst_ffi::scalar_from_bendian(&bytes);
     let mut term = Fr::from(&scalar);
     acc += term;
     term.zeroize();
