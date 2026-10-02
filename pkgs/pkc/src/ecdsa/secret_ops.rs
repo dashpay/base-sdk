@@ -198,9 +198,10 @@ impl EcdsaSecretKey {
   /// Returns [`EcdsaError::InvalidSecretKey`] when the scalar is zero or not
   /// below the curve order.
   pub fn from_bytes(bytes: &[u8; 32], compressed: Compression) -> Result<Self, EcdsaError> {
-    SecretKey::from_secret_bytes(*bytes)
-      .map(|key| Self::from_inner(key, compressed))
-      .map_err(|_| EcdsaError::InvalidSecretKey)
+    let mut key = SecretKey::from_secret_bytes(*bytes).map_err(|_| EcdsaError::InvalidSecretKey)?;
+    let out = Self::from_inner(key, compressed);
+    key.non_secure_erase();
+    Ok(out)
   }
 
   /// Generate a new random secret key.
@@ -213,19 +214,24 @@ impl EcdsaSecretKey {
       let mut bytes = Zeroizing::new([0u8; ECDSA_SK_LEN]);
       rng.fill_bytes(&mut *bytes);
 
-      if let Ok(key) = SecretKey::from_secret_bytes(*bytes) {
-        return Self::from_inner(key, compressed);
+      if let Ok(mut key) = SecretKey::from_secret_bytes(*bytes) {
+        let out = Self::from_inner(key, compressed);
+        key.non_secure_erase();
+        return out;
       }
     }
   }
 
   /// Pair a scalar with the public key it derives.
-  fn from_inner(inner: SecretKey, compressed: Compression) -> Self {
-    Self {
+  fn from_inner(mut inner: SecretKey, compressed: Compression) -> Self {
+    let key = Self {
       public: inner.public_key(),
       inner,
       compressed: compressed.is_compressed(),
-    }
+    };
+    // `SecretKey` is `Copy`, so the key takes a copy and `inner` stays behind.
+    inner.non_secure_erase();
+    key
   }
 
   /// Whether the corresponding public key should be compressed.
@@ -244,9 +250,12 @@ impl EcdsaSecretKey {
     let mut scalar = tweak_scalar(tweak)?;
     let sum = self.inner.add_tweak(&scalar);
     scalar.non_secure_erase();
-    let sum = sum.map_err(|_| EcdsaError::InvalidTweak)?;
+    let mut sum = sum.map_err(|_| EcdsaError::InvalidTweak)?;
 
-    Ok(Self::from_inner(sum, Compression::from(self.compressed)))
+    // `SecretKey` is `Copy`, so the key takes a copy and `sum` must be erased.
+    let key = Self::from_inner(sum, Compression::from(self.compressed));
+    sum.non_secure_erase();
+    Ok(key)
   }
 
   /// Multiply the scalar by `tweak`, modulo the curve order.
@@ -260,9 +269,12 @@ impl EcdsaSecretKey {
     let mut scalar = tweak_scalar(tweak)?;
     let product = self.inner.mul_tweak(&scalar);
     scalar.non_secure_erase();
-    let product = product.map_err(|_| EcdsaError::InvalidTweak)?;
+    let mut product = product.map_err(|_| EcdsaError::InvalidTweak)?;
 
-    Ok(Self::from_inner(product, Compression::from(self.compressed)))
+    // `SecretKey` is `Copy`, so the key takes a copy and leaves `product`.
+    let key = Self::from_inner(product, Compression::from(self.compressed));
+    product.non_secure_erase();
+    Ok(key)
   }
 
   /// Negate the scalar, modulo the curve order.
