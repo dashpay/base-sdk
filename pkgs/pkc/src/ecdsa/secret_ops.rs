@@ -180,6 +180,9 @@ impl Hashable for EcdsaSecretKey {
 /// is canonical, so a value at or above the order is refused rather than
 /// reduced into range behind the caller's back.
 ///
+/// A tweak and the child key it yields give back the parent key, so callers
+/// erase the scalar once it is applied.
+///
 /// # Errors
 ///
 /// Returns [`EcdsaError::InvalidTweak`] when `tweak` is not below the order.
@@ -238,8 +241,10 @@ impl EcdsaSecretKey {
   /// order, or when the sum is zero. Zero is not a valid secret key, so the
   /// sum is refused rather than returned as one.
   pub fn add_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
-    let scalar = tweak_scalar(tweak)?;
-    let sum = self.inner.add_tweak(&scalar).map_err(|_| EcdsaError::InvalidTweak)?;
+    let mut scalar = tweak_scalar(tweak)?;
+    let sum = self.inner.add_tweak(&scalar);
+    scalar.non_secure_erase();
+    let sum = sum.map_err(|_| EcdsaError::InvalidTweak)?;
 
     Ok(Self::from_inner(sum, Compression::from(self.compressed)))
   }
@@ -252,8 +257,10 @@ impl EcdsaSecretKey {
   /// order, or when it is zero. The order is prime, so no other nonzero tweak
   /// can bring the product to zero.
   pub fn mul_tweak(&self, tweak: &[u8; ECDSA_SK_LEN]) -> Result<Self, EcdsaError> {
-    let scalar = tweak_scalar(tweak)?;
-    let product = self.inner.mul_tweak(&scalar).map_err(|_| EcdsaError::InvalidTweak)?;
+    let mut scalar = tweak_scalar(tweak)?;
+    let product = self.inner.mul_tweak(&scalar);
+    scalar.non_secure_erase();
+    let product = product.map_err(|_| EcdsaError::InvalidTweak)?;
 
     Ok(Self::from_inner(product, Compression::from(self.compressed)))
   }
