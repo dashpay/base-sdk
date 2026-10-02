@@ -149,10 +149,11 @@ impl Field for Fr {
 
   fn try_random<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
     let mut wide = [0u8; WIDE_LEN];
-    rng.try_fill_bytes(&mut wide)?;
-    let sampled = Self::from_lendian_reduce(&wide);
+    // A failing generator may have written part of the buffer before it did.
+    let filled = rng.try_fill_bytes(&mut wide);
+    let sampled = filled.map(|()| Self::from_lendian_reduce(&wide));
     wide.zeroize();
-    Ok(sampled)
+    sampled
   }
 }
 
