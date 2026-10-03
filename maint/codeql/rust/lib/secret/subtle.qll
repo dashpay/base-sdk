@@ -7,6 +7,7 @@
  *              This covers constant-time comparison.
  */
 
+import lib.ast
 import lib.traits
 import rust
 
@@ -31,3 +32,6 @@ predicate callsCtEq(Function f) {
  * has guessed.
  */
 predicate constantTimeEq(TypeItem t) { callsCtEq(methodOf(t, "PartialEq", "eq")) }
+
+/** Holds if `p` spells `CtOption::new`, which carries an optional value. */
+predicate ctOptionNew(Path p) { pathName(p) = "new" and pathQualifierName(p) = "CtOption" }

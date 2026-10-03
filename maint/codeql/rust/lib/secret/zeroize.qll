@@ -9,6 +9,7 @@
 
 import lib.ast
 import lib.paths
+import lib.places
 import lib.policy
 import lib.traits
 import rust
@@ -81,4 +82,24 @@ predicate wipesInBody(Function f) {
   callsZeroize(f)
   or
   exists(PathExpr pe | pe.getEnclosingCallable() = f and zeroizingNew(pe.getPath()))
+}
+
+/**
+ * Holds if calling the method at `path` on a value erases it.
+ *
+ * This covers erases that are not named `zeroize`. Rows live in
+ * `secret.model.yml`.
+ */
+extensible predicate allowEraseMethods(string path);
+
+/** A path an `allowEraseMethods` row names. */
+private class EraseMethod extends ModelPath {
+  EraseMethod() { allowEraseMethods(this) }
+}
+
+/** Holds if the local bound by `p`, or part of it, is wiped by hand. */
+predicate wipedLocal(Pat p) {
+  callsOn(p, "zeroize")
+  or
+  callOn(p).getStaticTarget() = itemOf(any(EraseMethod m))
 }

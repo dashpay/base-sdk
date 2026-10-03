@@ -51,6 +51,12 @@ string pathName(Path p) { result = p.getSegment().getIdentifier().getText() }
 /** Gets the identifier of `p`'s qualifier, e.g. `b` for `a::b::c`. */
 string pathQualifierName(Path p) { result = pathName(p.getQualifier()) }
 
+/** Gets the path `c` calls, e.g. `a::b::c` for `a::b::c(x)`. */
+Path calledPath(CallExpr c) { result = c.getFunction().(PathExpr).getPath() }
+
+/** Gets the identifier of the path `c` calls, e.g. `c` for `a::b::c(x)`. */
+string calledName(CallExpr c) { result = pathName(calledPath(c)) }
+
 /** Gets an attribute of a preamble item (Use, Module, or ExternCrate). */
 private Attr itemAttr(Item item) {
   result = item.(Use).getAnAttr() or
