@@ -59,6 +59,23 @@ predicate plainDataStruct(Struct s) {
   isWorkspaceFile(fileOf(s)) and not zeroInvalidRepr(fieldTypeRepr(s))
 }
 
+/**
+ * Holds if `tr` spells an owned byte container of shape `kind`.
+ *
+ * Each owns its bytes outright, so a copy handed out in one of them is erased
+ * by nobody but its new holder.
+ */
+predicate byteContainer(TypeRepr tr, string kind) {
+  typeHead(tr.(ArrayTypeRepr).getElementTypeRepr()) = "u8" and kind = "[u8; N]"
+  or
+  typeHead(tr) = "String" and kind = typeHead(tr)
+  or
+  // Elements other than bytes erase themselves through their own types.
+  typeHead(tr) = "Vec" and
+  typeHead(firstTypeArg(tr)) = "u8" and
+  kind = typeHead(tr)
+}
+
 /** Gets the type item `n` resolves to, if it resolves to a nominal type. */
 TypeItem inferredItem(AstNode n) { result = TI::inferType(n).(T::DataType).getTypeItem() }
 

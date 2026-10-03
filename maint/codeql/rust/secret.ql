@@ -20,6 +20,7 @@ import lib.fmt
 import lib.paths
 import lib.policy
 import lib.secret
+import lib.secret.dataflow
 import lib.traits
 import lib.types
 import rust
@@ -34,6 +35,8 @@ module Policy implements SecretPolicySig {
 }
 
 module Secrets = Secret<Policy>;
+
+module Flow = SecretFlow<Policy>;
 
 /**
  * Holds if `t` reaches the wire through the erasing encoder.
@@ -131,6 +134,15 @@ where
     or
     Secrets::skippedWipe(_, e) and
     message = "secret material is held past a `?` that skips its wipe"
+    or
+    Flow::bareReturnEscape(e) and message = "secret material is returned as bare bytes"
+    or
+    Flow::unwipedLocalEscape(e) and message = "secret material is held in a local that never wipes"
+    or
+    Flow::copiedOutEscape(e) and message = "secret material is copied out of `Zeroizing` by value"
+    or
+    Flow::variableTimeCompareEscape(e) and
+    message = "secret material is compared with `==` or `!=`, which stops early"
     or
     exists(ModelPath p | not exists(itemOf(p)) |
       e = modelAnchor() and message = fmt("model row `{0}` names no item", p)

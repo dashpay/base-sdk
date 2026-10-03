@@ -45,25 +45,6 @@ predicate growableType(TypeRepr tr) {
 }
 
 /**
- * Holds if `f` hands back a bare byte container.
- *
- * A `Zeroizing<..>` return is the wanted shape and a reference borrows rather
- * than copies, so neither is reported.
- */
-predicate returnsBareBytes(Function f, string retType) {
-  exists(TypeRepr tr |
-    tr = f.getRetType().getTypeRepr() and
-    (
-      tr instanceof ArrayTypeRepr and
-      typeHead(tr.(ArrayTypeRepr).getElementTypeRepr()) = "u8" and
-      retType = "[u8; N]"
-      or
-      typeHead(tr) = ["Vec", "String"] and retType = typeHead(tr)
-    )
-  )
-}
-
-/**
  * Holds if `f` decides something with a short-circuiting adapter, named `how`.
  *
  * Such adapters walk only as far as the first byte that settles the answer.
@@ -317,13 +298,14 @@ module Secret<SecretPolicySig P> {
   /**
    * Holds if `f` erases internally but hands the caller a bare `retType`.
    *
-   * Erasing that copy is left to the caller.
+   * Erasing that copy is left to the caller. A `Zeroizing<..>` return is the
+   * wanted shape and a reference borrows, so neither is reported.
    */
   predicate leakedWipedBytes(Function f, string retType) {
     P::enforcedFile(fileOf(f)) and
     not isTestCode(f) and
     wipesInBody(f) and
-    returnsBareBytes(f, retType)
+    byteContainer(f.getRetType().getTypeRepr(), retType)
   }
 
   /** Holds if `t` can be compared in a time that depends on its contents. */
@@ -385,7 +367,7 @@ module Secret<SecretPolicySig P> {
    * A function parameter holds the caller's copy, which the caller's own
    * binding answers for.
    */
-  private predicate coveredLocal(IdentPat p) {
+  predicate coveredLocal(IdentPat p) {
     p = any(Variable v).getPat() and
     not p = any(Function f).getParamList().getAParam().getPat() and
     not derivedFunction(enclosingFunction(p)) and
@@ -411,7 +393,7 @@ module Secret<SecretPolicySig P> {
    * never moved out or is `Copy`, so a move leaves the original in place. A
    * `Copy` local handed to a type that erases passes a copy, so it too stays.
    */
-  private predicate keptLocal(Pat p) {
+  predicate keptLocal(Pat p) {
     (copyTyped(p) or not movedOut(p)) and
     not wipedLocal(p) and
     not returnedLocal(p) and
@@ -425,7 +407,7 @@ module Secret<SecretPolicySig P> {
    * included. `Zeroizing`, `Option` and `Result` answer for their contents. A
    * scalar has nothing worth erasing, and a borrow owns nothing.
    */
-  private predicate neverWipes(Pat p) {
+  predicate neverWipes(Pat p) {
     not borrowTyped(p) and
     (
       arrayTyped(p)

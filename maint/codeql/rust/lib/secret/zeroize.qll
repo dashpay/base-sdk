@@ -12,6 +12,7 @@ import lib.paths
 import lib.places
 import lib.policy
 import lib.traits
+import lib.types
 import rust
 
 /**
@@ -102,4 +103,17 @@ predicate wipedLocal(Pat p) {
   callsOn(p, "zeroize")
   or
   callOn(p).getStaticTarget() = itemOf(any(EraseMethod m))
+  or
+  // A helper that erases what it is lent, such as `erase_scalar(&mut scalar)`.
+  exists(CallExpr c |
+    calledName(c).matches(["zeroize%", "erase%"]) and
+    placeRoot(c.getArgList().getAnArg()) = accessOf(p)
+  )
+}
+
+/**
+ * Holds if `e` reads a local wrapped in `Zeroizing`, which declares it secret.
+ */
+predicate zeroizingTyped(Expr e) {
+  e instanceof VariableAccess and nameOf(inferredItem(e)) = "Zeroizing"
 }

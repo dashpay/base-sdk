@@ -58,6 +58,24 @@ Function methodOf(TypeItem t, string trait, string name) {
 }
 
 /**
+ * Holds if `f` is reachable from outside its crate.
+ *
+ * It is bare `pub`, or a method of a trait that is foreign, bare `pub` or
+ * unresolved.
+ */
+predicate exposedFunction(Function f) {
+  isBarePublic(f.getVisibility())
+  or
+  exists(Impl i | f = implMethod(i) and exists(i.getTraitTy()) |
+    not exists(implTrait(i))
+    or
+    exists(Trait t | t = implTrait(i) |
+      not isWorkspaceFile(fileOf(t)) or isBarePublic(t.getVisibility())
+    )
+  )
+}
+
+/**
  * Holds if `over` in `i` overrides the default body that `decl` supplies
  * in trait `t`, i.e. both layers define the same method name and the
  * trait's declaration carries a body of its own.

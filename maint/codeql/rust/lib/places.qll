@@ -101,3 +101,79 @@ TypeItem constructedWith(VariableAccess va) {
     va = se.getStructExprFieldList().getAField().getExpr() and result = inferredItem(se)
   )
 }
+
+/**
+ * Holds if `call` goes to a dependency, whose body the extractor leaves out,
+ * or to a target that inference cannot pin down.
+ *
+ * Its result is assumed to carry whatever its arguments carried.
+ */
+predicate opaqueCall(Call call) {
+  exists(Function f | f = call.getStaticTarget() | not isWorkspaceFile(fileOf(f)))
+  or
+  not exists(call.getStaticTarget())
+}
+
+/**
+ * Gets the place an out-parameter `arg` writes to.
+ *
+ * A raw pointer handed to a backend, `x.as_mut_ptr()`, writes into `x` as a
+ * `&mut x` would, so both lend the same place.
+ */
+private Expr outParamPlace(Expr arg) {
+  arg.(RefExpr).isMut() and result = arg.(RefExpr).getExpr()
+  or
+  arg.(MethodCallExpr).getIdentifier().getText() = ["as_mut_ptr", "as_mut"] and
+  result = arg.(MethodCallExpr).getReceiver()
+}
+
+/**
+ * Holds if the opaque call taking `arg` may carry it into `to`.
+ *
+ * `to` is the call's result, or a later read of a local lent to the call for
+ * writing. A local is lent through an out-parameter or as the receiver, as
+ * `copy_from_slice` does.
+ */
+predicate opaqueStep(Expr arg, Expr to) {
+  exists(Call call | opaqueCall(call) and arg = call.getAnArgument() |
+    to = call
+    or
+    // The write goes through another argument, never through `arg`.
+    exists(Expr lent, Expr place |
+      lent = call.getAnArgument() and
+      lent != arg and
+      (
+        place = outParamPlace(lent)
+        or
+        // Only when no other argument is lent for writing. A call such as
+        // `rng.fill_bytes(&mut buf)` fills the argument, not the receiver.
+        place = lent and
+        lent = call.(MethodCall).getReceiver() and
+        not exists(Expr other |
+          other = call.getAnArgument() and
+          other != lent and
+          exists(outParamPlace(other))
+        )
+      )
+    |
+      to = placeRoot(place).(VariableAccess).getVariable().getAnAccess()
+    )
+  )
+}
+
+/**
+ * Holds if the path call `c` goes to `f`.
+ *
+ * Inference leaves `c` unresolved, or pins it to a dependency's trait method,
+ * as it may for `Type::from_repr`. The method `f` has that name, in an impl for
+ * the type that the path spells.
+ */
+predicate pathCallTarget(CallExpr c, Function f) {
+  not isWorkspaceFile(fileOf(c.(Call).getStaticTarget())) and
+  isWorkspaceFile(fileOf(f)) and
+  nameOf(f) = calledName(c) and
+  exists(Impl i |
+    f = implItem(i) and
+    implSelfName(i) = pathQualifierName(calledPath(c))
+  )
+}
