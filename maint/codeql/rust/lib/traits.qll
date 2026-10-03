@@ -47,6 +47,16 @@ AssocItem implItem(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
 /** Gets a method defined in `i`'s associated item list. */
 private Function implMethod(Impl i) { result = implItem(i) }
 
+/** Gets the method `name` that `t`'s impl of `trait` defines. */
+Function methodOf(TypeItem t, string trait, string name) {
+  exists(Impl i |
+    i.getSelf() = t and
+    implTraitName(i) = trait and
+    result = implMethod(i) and
+    nameOf(result) = name
+  )
+}
+
 /**
  * Holds if `over` in `i` overrides the default body that `decl` supplies
  * in trait `t`, i.e. both layers define the same method name and the

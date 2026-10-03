@@ -13,11 +13,11 @@ import lib.traits
 import rust
 
 /**
- * Holds if `f` erases something, as a method call or a qualified path call.
+ * Holds if `f` erases something, by a method call or a path call.
  *
- * Matched on the `zeroize` prefix: `<Self as Zeroize>::zeroize(self)` is the
- * spelling a manual `Drop` needs to reach the trait method, and a backend
- * wipes through its own helper.
+ * The match is on the `zeroize` prefix. This covers the
+ * `<Self as Zeroize>::zeroize(self)` that a manual `Drop` needs, and a
+ * backend's own helper.
  */
 predicate callsZeroize(Function f) {
   exists(MethodCallExpr mc |
@@ -32,25 +32,15 @@ predicate callsZeroize(Function f) {
 }
 
 /**
- * Holds if `t` wipes its own storage.
+ * Holds if `t` erases its own storage.
  *
- * A bare `Drop` impl proves nothing on its own, so the body has to be seen
- * erasing something before the type counts as wiped.
+ * A bare `Drop` impl proves nothing, so its body must erase something.
  */
 predicate wipesSelf(TypeItem t) {
-  isWorkspaceFile(fileOf(t)) and
-  (
-    implementsTrait(t, ["Zeroize", "ZeroizeOnDrop"]) or
-    hasDerive(t, ["Zeroize", "ZeroizeOnDrop"])
-  )
+  isWorkspaceFile(fileOf(t)) and hasTrait(t, ["Zeroize", "ZeroizeOnDrop"])
   or
-  exists(Impl i, Function d |
-    i.getSelf() = t and
-    implTraitName(i) = "Drop" and
-    isWorkspaceFile(fileOf(i)) and
-    d = implItem(i) and
-    nameOf(d) = "drop" and
-    callsZeroize(d)
+  exists(Function d | d = methodOf(t, "Drop", "drop") |
+    isWorkspaceFile(fileOf(d)) and callsZeroize(d)
   )
 }
 
@@ -76,14 +66,12 @@ predicate wipesDirectly(TypeItem t) {
   externalWiper(t)
 }
 
+/** Holds if `p` spells `Zeroizing::new`. */
+predicate zeroizingNew(Path p) { pathName(p) = "new" and pathQualifierName(p) = "Zeroizing" }
+
 /** Holds if `f` stages secret material through a wiping wrapper. */
 predicate wipesInBody(Function f) {
   callsZeroize(f)
   or
-  exists(PathExpr pe, Path p |
-    pe.getEnclosingCallable() = f and
-    p = pe.getPath() and
-    pathName(p) = "new" and
-    pathQualifierName(p) = "Zeroizing"
-  )
+  exists(PathExpr pe | pe.getEnclosingCallable() = f and zeroizingNew(pe.getPath()))
 }

@@ -29,6 +29,13 @@ predicate hasDerive(TypeItem t, string name) {
   )
 }
 
+/**
+ * Holds if `t` implements `name`, through an impl the extractor saw or a
+ * derive read from source.
+ */
+bindingset[name]
+predicate hasTrait(TypeItem t, string name) { implementsTrait(t, name) or hasDerive(t, name) }
+
 /** Holds if `t` is a non-wire type (Unencodable derive, or has __CodecMarker w/o Hashable). */
 predicate isNotEncodable(TypeItem t) {
   hasDerive(t, "Unencodable")

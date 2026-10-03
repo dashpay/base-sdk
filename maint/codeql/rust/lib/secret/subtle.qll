@@ -26,16 +26,8 @@ predicate callsCtEq(Function f) {
 /**
  * Holds if `t` decides equality with `subtle`'s constant-time comparison.
  *
- * A derived `PartialEq` compares field by field and returns at the first
- * mismatch, so how long a comparison runs reveals how much of the secret the
- * caller already guessed.
+ * A derived `PartialEq` compares field by field and stops at the first
+ * mismatch. How long it runs then reveals how much of the secret the caller
+ * has guessed.
  */
-predicate constantTimeEq(TypeItem t) {
-  exists(Impl i, Function eq |
-    i.getSelf() = t and
-    implTraitName(i) = "PartialEq" and
-    eq = implItem(i) and
-    nameOf(eq) = "eq" and
-    callsCtEq(eq)
-  )
-}
+predicate constantTimeEq(TypeItem t) { callsCtEq(methodOf(t, "PartialEq", "eq")) }
