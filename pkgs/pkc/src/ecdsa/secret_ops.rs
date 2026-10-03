@@ -30,6 +30,7 @@ use dash_types::{Hashable, Numeric};
 use rand_core::CryptoRng;
 use secp256k1::ecdsa::{sign_low_r, RecoverableSignature};
 use secp256k1::{Message, PublicKey, Scalar, SecretKey};
+use subtle::ConstantTimeEq;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use core::fmt;
@@ -111,7 +112,7 @@ impl BaseCodec<EcdsaError> for EcdsaSecretKey {
     // including a public key that does not match the scalar, gets rejected.
     let mut expected = Zeroizing::new(ArrayBuf::<{ DER_SIZES[1] }>::new());
     candidate.encode(&mut *expected);
-    if expected.as_bytes() != &data[..len] {
+    if !bool::from(expected.as_bytes().ct_eq(&data[..len])) {
       return Err(DecodeError::DecError(EcdsaError::MalformedDer));
     }
 
@@ -362,7 +363,6 @@ impl Eq for EcdsaSecretKey {}
 
 impl PartialEq for EcdsaSecretKey {
   fn eq(&self, other: &Self) -> bool {
-    use subtle::ConstantTimeEq;
     (*self.to_bytes()).ct_eq(&*other.to_bytes()).into() && self.compressed == other.compressed
   }
 }
