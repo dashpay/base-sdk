@@ -27,6 +27,12 @@ from common import (
 # File in the repository root the accepted vocabulary is read from.
 CONFIG_FILENAME = "unconv.toml"
 
+# Maximum line width for a commit.
+MAX_WIDTH = 73
+
+# Maximum number of lines for a commit, subject inclusive.
+MAX_HEIGHT = 5
+
 # Matches a commit subject, 'namespace%type[(scope)][!]: description'.
 _PATTERN = re.compile(
   r"^(?P<namespace>[^\s%]+)"
@@ -80,11 +86,33 @@ def _allowed_types(namespace: str, config: Config) -> frozenset[str]:
   return base | ns.types
 
 
-def _lint_subject(subject: str, config: Config) -> list[str]:
-  """Return error strings for one commit subject line; empty list means valid"""
-  subject = subject.strip()
+def _lint_shape(lines: list[str]) -> list[str]:
+  """Return error strings for the width and height of a commit message."""
+  errors: list[str] = []
+  if len(lines) > MAX_HEIGHT:
+    errors.append(f"{len(lines)} lines tall, over {MAX_HEIGHT}")
+  wide = [n for n, line in enumerate(lines, 1) if len(line) > MAX_WIDTH]
+  if wide:
+    where = ", ".join(str(n) for n in wide)
+    errors.append(f"line {where} wider than {MAX_WIDTH} characters")
+  return errors
+
+
+def _lint_message(
+  message: str, config: Config, *, title: bool = False
+) -> list[str]:
+  """Return error strings for a commit message or, if *title*, a PR title"""
+  lines = message.strip().splitlines()
+  subject = lines[0].strip() if lines else ""
+  if title:
+    return _lint_subject(subject, config)
   if not subject or subject.startswith("#") or subject.startswith("Merge "):
     return []
+  return _lint_subject(subject, config) + _lint_shape(lines)
+
+
+def _lint_subject(subject: str, config: Config) -> list[str]:
+  """Return error strings for one commit subject line"""
 
   m = _PATTERN.match(subject)
   if m is None:
@@ -143,14 +171,20 @@ def _default_range() -> str:
   return "HEAD~1..HEAD"
 
 
-def _subjects_from_commit(ref: str) -> list[str]:
-  out = git_out(root_dir(), "log", "-1", "--format=%s", ref)
-  return [line for line in out.splitlines() if line.strip()]
+def _messages(*args: str) -> list[str]:
+  out = git_out(root_dir(), "log", "--no-merges", "--format=%B%x00", *args)
+  return [m.strip() for m in out.split("\0") if m.strip()]
 
 
-def _subjects_from_range(git_range: str) -> list[str]:
-  out = git_out(root_dir(), "log", "--format=%s", git_range)
-  return [line for line in out.splitlines() if line.strip()]
+def _messages_from_commit(ref: str) -> list[str]:
+  parents = git_out(root_dir(), "rev-list", "--parents", "-n", "1", ref)
+  if len(parents.split()) > 2:
+    return []
+  return _messages("-1", ref)
+
+
+def _messages_from_range(git_range: str) -> list[str]:
+  return _messages(git_range)
 
 
 def main() -> int:
@@ -200,18 +234,20 @@ def main() -> int:
   config = Config.load(config_path)
 
   if args.m is not None:
-    subjects = [args.m]
+    messages = [args.m]
   elif args.r is not None:
-    subjects = _subjects_from_range(args.r)
+    messages = _messages_from_range(args.r)
   elif args.c is not None:
-    subjects = _subjects_from_commit(args.c)
+    messages = _messages_from_commit(args.c)
   else:
-    subjects = _subjects_from_range(_default_range())
+    messages = _messages_from_range(_default_range())
 
-  results = [(s, _lint_subject(s, config)) for s in subjects]
+  title = args.m is not None
+  results = [(m, _lint_message(m, config, title=title)) for m in messages]
   failed = False
 
-  for subject, errors in results:
+  for message, errors in results:
+    subject = message.strip().splitlines()[0] if message.strip() else ""
     if errors:
       print(f"[FAIL] {subject} (reason: {'; '.join(errors)})")
       failed = True

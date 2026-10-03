@@ -70,10 +70,16 @@ jobs:
       - name: Run linters
         run: just lint
 
+      - name: Check PR title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: python3 maint/lint/lint_commit.py -m "${PR_TITLE}"
+
       - name: Check PR commit messages
         if: github.event_name == 'pull_request'
         run: >
-          python3 maint/lint/lint_unconv.py
+          python3 maint/lint/lint_commit.py
           -r "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
 
   build:
