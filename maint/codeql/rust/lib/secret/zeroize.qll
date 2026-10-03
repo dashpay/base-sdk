@@ -31,13 +31,19 @@ predicate callsZeroize(Function f) {
   )
 }
 
+/** Holds if `t` declares that it erases, through `Zeroize` or `ZeroizeOnDrop`. */
+predicate declaresErase(TypeItem t) {
+  isWorkspaceFile(fileOf(t)) and hasTrait(t, ["Zeroize", "ZeroizeOnDrop"])
+}
+
 /**
- * Holds if `t` erases its own storage.
+ * Holds if `t` erases its own storage on drop.
  *
- * A bare `Drop` impl proves nothing, so its body must erase something.
+ * `Zeroize` alone offers the method and wipes nothing by itself. A bare `Drop`
+ * impl proves nothing either, so its body must erase something.
  */
 predicate wipesSelf(TypeItem t) {
-  isWorkspaceFile(fileOf(t)) and hasTrait(t, ["Zeroize", "ZeroizeOnDrop"])
+  isWorkspaceFile(fileOf(t)) and hasTrait(t, "ZeroizeOnDrop")
   or
   exists(Function d | d = methodOf(t, "Drop", "drop") |
     isWorkspaceFile(fileOf(d)) and callsZeroize(d)

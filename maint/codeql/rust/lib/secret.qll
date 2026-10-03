@@ -81,7 +81,7 @@ module Secret<SecretPolicySig P> {
    * unchecked.
    */
   predicate secretType(TypeItem t) {
-    (P::secretByName(t) or wipesSelf(t)) and
+    (P::secretByName(t) or declaresErase(t)) and
     fileOf(t).fromSource() and
     not isTestCode(t)
   }
@@ -136,12 +136,15 @@ module Secret<SecretPolicySig P> {
    * Holds if something erases the secret material in `t`.
    *
    * Either `t` erases itself, or every secret-bearing field it holds is erased,
-   * recursively.
+   * recursively. A type that is secret only for declaring `Zeroize` leaves the
+   * erase to whoever holds it.
    */
   predicate zeroizeSatisfied(TypeItem t) {
     wipesDirectly(t)
     or
     fieldsWipe(t)
+    or
+    declaresErase(t) and not P::secretByName(t)
   }
 
   /**
