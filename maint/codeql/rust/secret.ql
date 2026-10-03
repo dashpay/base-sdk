@@ -15,6 +15,7 @@
 
 import lib.crates
 import lib.fmt
+import lib.paths
 import lib.policy
 import lib.secret
 import lib.traits
@@ -64,6 +65,19 @@ predicate leakySecretBridge(TypeItem t) {
   not usesSecretBridge(t)
 }
 
+/**
+ * Gets the file a model row is reported at, the root of the first enforced
+ * crate, as the model file itself is not in the database.
+ */
+SourceFile modelAnchor() {
+  result =
+    min(SourceFile sf |
+      Policy::enforcedFile(sf.getFile()) and sf.getFile().getBaseName() = "lib.rs"
+    |
+      sf order by sf.getFile().getAbsolutePath()
+    )
+}
+
 from Locatable e, string message
 where
   Secrets::unwipedSecret(e) and message = "secret type is never wiped"
@@ -84,5 +98,9 @@ where
   or
   exists(string how | Secrets::variableTimeSecretTest(e, how) |
     message = fmt("secret type test uses {0}, which stops early", how)
+  )
+  or
+  exists(ModelPath p | not exists(itemOf(p)) |
+    e = modelAnchor() and message = fmt("model row `{0}` names no item", p)
   )
 select e, message

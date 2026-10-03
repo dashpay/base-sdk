@@ -8,6 +8,7 @@
  */
 
 import lib.ast
+import lib.paths
 import lib.policy
 import lib.traits
 import rust
@@ -51,19 +52,19 @@ predicate wipesSelf(TypeItem t) {
 }
 
 /**
- * Holds if the dependency type `t` erases itself on drop.
+ * Holds if the dependency type at `path` erases itself on drop.
  *
- * Enumerated because the extractor keeps dependency function bodies out of
- * the database.
+ * The extractor leaves dependency bodies out. Rows live in `secret.model.yml`.
  */
-predicate externalWiper(TypeItem t) {
-  not isWorkspaceFile(fileOf(t)) and
-  (
-    // `blst::{min_pk,min_sig}::SecretKey` are declared `#[zeroize(drop)]`.
-    nameOf(t) = "SecretKey" and
-    fileOf(t).getAbsolutePath().matches("%/blst-%/src/lib.rs")
-  )
+extensible predicate erasingTypes(string path);
+
+/** A path an `erasingTypes` row names. */
+private class ErasingType extends ModelPath {
+  ErasingType() { erasingTypes(this) }
 }
+
+/** Holds if the dependency type `t` erases itself on drop. */
+predicate externalWiper(TypeItem t) { t = itemOf(any(ErasingType p)) }
 
 /** Holds if `t` erases its own storage, without delegating to a field. */
 predicate wipesDirectly(TypeItem t) {
