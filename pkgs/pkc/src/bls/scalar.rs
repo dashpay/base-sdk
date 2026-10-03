@@ -58,8 +58,9 @@ impl Fr {
   }
 
   /// Emits the canonical big-endian encoding.
-  pub(crate) fn to_bendian(self) -> Zeroizing<[u8; 32]> {
+  pub(crate) fn to_bendian(mut self) -> Zeroizing<[u8; 32]> {
     let mut bytes = self.to_lendian();
+    self.zeroize();
     bytes.reverse();
     bytes
   }

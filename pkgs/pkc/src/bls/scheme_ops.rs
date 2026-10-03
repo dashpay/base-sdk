@@ -16,7 +16,7 @@ use crate::aes_cbc::{self, AES_BLOCK_LEN, AES_KEY_LEN};
 use crate::prelude::*;
 
 use blst::BLST_ERROR;
-use ff::{Field, PrimeField};
+use ff::Field;
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
@@ -260,7 +260,10 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     let scalar = tweak_scalar(tweak)?;
     let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
-    let mut sum = current + scalar;
+    // A borrow reads the tweak in place, where `*scalar` would copy it out of
+    // its wrapper onto the stack unwiped.
+    let mut sum = current;
+    sum += &*scalar;
     current.zeroize();
 
     // A zero sum hands back a key whoever chose the tweak already knows.
@@ -269,7 +272,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     }
 
     // `Fr` is `Copy`, so it cannot wipe itself on the way out of scope.
-    let tweaked = Self::sk_from_bytes(&sum.to_bendian());
+    let tweaked = Self::sk_from_bytes(&Zeroizing::new(sum.to_bendian()));
     sum.zeroize();
     tweaked.map_err(|_| BlsError::InvalidTweak)
   }
@@ -285,7 +288,10 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     let scalar = tweak_scalar(tweak)?;
     let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
-    let mut product = current * scalar;
+    // A borrow reads the tweak in place, where `*scalar` would copy it out of
+    // its wrapper onto the stack unwiped.
+    let mut product = current;
+    product *= &*scalar;
     current.zeroize();
 
     if bool::from(product.is_zero()) {
@@ -337,8 +343,10 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// does not decode.
   fn mul_tweak_pk(pk: &Self::InnerPk, tweak: &[u8; 32]) -> Result<Self::InnerPk, BlsError> {
     let scalar = tweak_scalar(tweak)?;
-    let blst_scalar = blst::blst_scalar::from(&scalar);
-    Self::tweaked_g1_to_pk(Self::pk_to_g1(pk)?.mul_scalar(&blst_scalar.b, FR_BITS))
+    let mut blst_scalar = blst::blst_scalar::from(&*scalar);
+    let product = Self::pk_to_g1(pk).map(|point| point.mul_scalar(&blst_scalar.b, FR_BITS));
+    blst_scalar.b.zeroize();
+    Self::tweaked_g1_to_pk(product?)
   }
 
   /// Negate a public key's point.
@@ -855,11 +863,15 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
 /// # Errors
 ///
 /// Returns `InvalidTweak` when `tweak` is not below the group order.
-fn tweak_scalar(tweak: &[u8; 32]) -> Result<Fr, BlsError> {
-  let mut lendian = *tweak;
+fn tweak_scalar(tweak: &[u8; 32]) -> Result<Zeroizing<Fr>, BlsError> {
+  // A tweak can be as secret as the key it moves, such as a derivation's
+  // `IL`, so every copy of it is wiped like a key's would be.
+  let mut lendian = Zeroizing::new(*tweak);
   lendian.reverse();
 
-  Fr::from_repr(lendian).into_option().ok_or(BlsError::InvalidTweak)
+  Fr::from_lendian(&lendian)
+    .map(Zeroizing::new)
+    .ok_or(BlsError::InvalidTweak)
 }
 
 /// Reduce participant ids into the scalar field, rejecting ids that
