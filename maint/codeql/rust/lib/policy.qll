@@ -66,16 +66,6 @@ predicate isSecretType(TypeItem t) {
     ]
 }
 
-/**
- * Holds if `tr` names a heap-growable container.
- *
- * A `Vec` or `String` can reallocate while being filled, stranding a copy at
- * the old allocation that drop-time wiping cannot reach.
- */
-predicate isGrowableType(TypeRepr tr) {
-  typeHead(tr) = ["Vec", "String", "VecDeque", "BTreeMap", "BTreeSet", "BinaryHeap"]
-}
-
 /** Holds if `t` is an iterator type (name ends with Iterator or Iter). */
 predicate isIteratorType(TypeItem t) {
   nameOf(t).matches("%Iterator") or
