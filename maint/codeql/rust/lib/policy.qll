@@ -29,6 +29,13 @@ predicate hasDerive(TypeItem t, string name) {
   )
 }
 
+/**
+ * Holds if `t` implements `name`, through an impl the extractor saw or a
+ * derive read from source.
+ */
+bindingset[name]
+predicate hasTrait(TypeItem t, string name) { implementsTrait(t, name) or hasDerive(t, name) }
+
 /** Holds if `t` is a non-wire type (Unencodable derive, or has __CodecMarker w/o Hashable). */
 predicate isNotEncodable(TypeItem t) {
   hasDerive(t, "Unencodable")
@@ -64,16 +71,6 @@ predicate isSecretType(TypeItem t) {
       // Serde artifact to deserialize a tagged enum.
       "__Seed"
     ]
-}
-
-/**
- * Holds if `tr` names a heap-growable container.
- *
- * A `Vec` or `String` can reallocate while being filled, stranding a copy at
- * the old allocation that drop-time wiping cannot reach.
- */
-predicate isGrowableType(TypeRepr tr) {
-  typeHead(tr) = ["Vec", "String", "VecDeque", "BTreeMap", "BTreeSet", "BinaryHeap"]
 }
 
 /** Holds if `t` is an iterator type (name ends with Iterator or Iter). */

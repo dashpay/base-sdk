@@ -16,7 +16,7 @@ use crate::aes_cbc::{self, AES_BLOCK_LEN, AES_KEY_LEN};
 use crate::prelude::*;
 
 use blst::BLST_ERROR;
-use ff::{Field, PrimeField};
+use ff::Field;
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
 
@@ -70,8 +70,8 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when the bytes are not a valid scalar.
   fn sk_from_bytes(b: &[u8; 32]) -> Result<Self::InnerSk, BlsError>;
 
-  /// Serialize a secret key to 32 big-endian bytes.
-  fn sk_to_bytes(sk: &Self::InnerSk) -> [u8; 32];
+  /// Serialize a secret key to 32 big-endian bytes, wiped when dropped.
+  fn sk_to_bytes(sk: &Self::InnerSk) -> Zeroizing<[u8; 32]>;
 
   /// Derive the public key corresponding to a secret key.
   fn derive_pk(sk: &Self::InnerSk) -> Self::InnerPk;
@@ -148,10 +148,9 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// is invalid.
   fn dh_exchange(sk: &Self::InnerSk, peer_pk: &Self::InnerPk) -> Result<Self::InnerPk, BlsError> {
     let point = Self::pk_to_g1(peer_pk)?;
-    let mut sk_bytes = Self::sk_to_bytes(sk);
+    let sk_bytes = Self::sk_to_bytes(sk);
     let mut sk_scalar = blst_ffi::scalar_from_bendian(&sk_bytes);
     let product = point.mul_scalar(&sk_scalar.b, FR_BITS);
-    sk_bytes.zeroize();
     sk_scalar.b.zeroize();
     Self::g1_to_pk(product)
   }
@@ -258,9 +257,12 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is.
   fn add_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
     let scalar = tweak_scalar(tweak)?;
-    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let bytes = Self::sk_to_bytes(sk);
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
-    let mut sum = current + scalar;
+    // A borrow reads the tweak in place, where `*scalar` would copy it out of
+    // its wrapper onto the stack unwiped.
+    let mut sum = current;
+    sum += &*scalar;
     current.zeroize();
 
     // A zero sum hands back a key whoever chose the tweak already knows.
@@ -269,7 +271,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     }
 
     // `Fr` is `Copy`, so it cannot wipe itself on the way out of scope.
-    let tweaked = Self::sk_from_bytes(&sum.to_bendian());
+    let tweaked = Self::sk_from_bytes(&Zeroizing::new(sum.to_bendian()));
     sum.zeroize();
     tweaked.map_err(|_| BlsError::InvalidTweak)
   }
@@ -283,9 +285,12 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is.
   fn mul_tweak_sk(sk: &Self::InnerSk, tweak: &[u8; 32]) -> Result<Self::InnerSk, BlsError> {
     let scalar = tweak_scalar(tweak)?;
-    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let bytes = Self::sk_to_bytes(sk);
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
-    let mut product = current * scalar;
+    // A borrow reads the tweak in place, where `*scalar` would copy it out of
+    // its wrapper onto the stack unwiped.
+    let mut product = current;
+    product *= &*scalar;
     current.zeroize();
 
     if bool::from(product.is_zero()) {
@@ -305,7 +310,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// Returns `InvalidSecretKey` when `sk` is zero, which a key never is. The
   /// negation of a nonzero scalar is nonzero, so the backend takes it back.
   fn negate_sk(sk: &Self::InnerSk) -> Result<Self::InnerSk, BlsError> {
-    let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let bytes = Self::sk_to_bytes(sk);
     let mut current = Fr::from_bendian_reduce(&bytes).map_err(|_| BlsError::InvalidSecretKey)?;
     let mut negated = -current;
     current.zeroize();
@@ -337,8 +342,10 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
   /// does not decode.
   fn mul_tweak_pk(pk: &Self::InnerPk, tweak: &[u8; 32]) -> Result<Self::InnerPk, BlsError> {
     let scalar = tweak_scalar(tweak)?;
-    let blst_scalar = blst::blst_scalar::from(&scalar);
-    Self::tweaked_g1_to_pk(Self::pk_to_g1(pk)?.mul_scalar(&blst_scalar.b, FR_BITS))
+    let mut blst_scalar = blst::blst_scalar::from(&*scalar);
+    let product = Self::pk_to_g1(pk).map(|point| point.mul_scalar(&blst_scalar.b, FR_BITS));
+    blst_scalar.b.zeroize();
+    Self::tweaked_g1_to_pk(product?)
   }
 
   /// Negate a public key's point.
@@ -472,8 +479,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     if sks.is_empty() {
       return Err(BlsError::EmptyAggregation);
     }
-    let byte_vecs = Zeroizing::new(sks.iter().map(|k| Self::sk_to_bytes(k)).collect::<Vec<[u8; 32]>>());
-    let out_bytes = sum_sk_scalars(&byte_vecs);
+    let out_bytes = sum_sk_scalars(sks.iter().map(|k| Self::sk_to_bytes(k)));
     Self::sk_from_bytes(&out_bytes).map_err(|_| BlsError::InvalidSecretKey)
   }
 
@@ -502,7 +508,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
     let id_refs: Vec<&BlsShareId> = ids.iter().collect();
     let xs = reduce_share_ids(&id_refs)?;
 
-    let sk_bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+    let sk_bytes = Self::sk_to_bytes(sk);
     let raw = generate_shares(&sk_bytes, threshold, ids, &xs, rng).map_err(|()| BlsError::InvalidSecretKey)?;
 
     raw
@@ -623,7 +629,7 @@ pub trait BlsScheme: BlsSchemeId + sealed::Sealed + Sized {
 
     let mut coeffs = Zeroizing::new(Vec::with_capacity(master_sks.len()));
     for sk in master_sks {
-      let bytes = Zeroizing::new(Self::sk_to_bytes(sk));
+      let bytes = Self::sk_to_bytes(sk);
       let mut scalar = blst_ffi::scalar_from_bendian(&bytes);
       coeffs.push(Fr::from(&scalar));
       scalar.b.zeroize();
@@ -665,10 +671,10 @@ fn secure_weights(sorted_pks: &[[u8; 48]]) -> Vec<blst::blst_scalar> {
 }
 
 /// Sum secret key scalars (mod group order).
-fn sum_sk_scalars(key_bytes: &[[u8; 32]]) -> Zeroizing<[u8; 32]> {
+fn sum_sk_scalars(key_bytes: impl Iterator<Item = Zeroizing<[u8; 32]>>) -> Zeroizing<[u8; 32]> {
   let mut acc = Fr::default();
   for bytes in key_bytes {
-    let mut scalar = blst_ffi::scalar_from_bendian(bytes);
+    let mut scalar = blst_ffi::scalar_from_bendian(&bytes);
     let mut term = Fr::from(&scalar);
     acc += term;
     term.zeroize();
@@ -732,14 +738,14 @@ fn generate_shares(
     let mut y = poly_eval(&coeffs, x);
 
     let mut y_scalar = blst::blst_scalar::from(&y);
-    let y_bytes = blst_ffi::bendian_from_scalar(&y_scalar);
+    let y_bytes = Zeroizing::new(blst_ffi::bendian_from_scalar(&y_scalar));
     y_scalar.b.zeroize();
     y.zeroize();
 
-    // Wrap so unprocessed shares still zeroize if a later caller step fails.
+    // Wrapped so unprocessed shares still zeroize if a later caller step fails.
     shares.push(RawShare {
       id: *id,
-      secret: Zeroizing::new(y_bytes),
+      secret: y_bytes,
     });
   }
 
@@ -855,11 +861,15 @@ fn eval_poly_g1(coeffs_g1: &[G1], x: &Fr) -> G1 {
 /// # Errors
 ///
 /// Returns `InvalidTweak` when `tweak` is not below the group order.
-fn tweak_scalar(tweak: &[u8; 32]) -> Result<Fr, BlsError> {
-  let mut lendian = *tweak;
+fn tweak_scalar(tweak: &[u8; 32]) -> Result<Zeroizing<Fr>, BlsError> {
+  // A tweak can be as secret as the key it moves, such as a derivation's
+  // `IL`, so every copy of it is wiped like a key's would be.
+  let mut lendian = Zeroizing::new(*tweak);
   lendian.reverse();
 
-  Fr::from_repr(lendian).into_option().ok_or(BlsError::InvalidTweak)
+  Fr::from_lendian(&lendian)
+    .map(Zeroizing::new)
+    .ok_or(BlsError::InvalidTweak)
 }
 
 /// Reduce participant ids into the scalar field, rejecting ids that

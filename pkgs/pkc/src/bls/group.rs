@@ -18,6 +18,7 @@ use group::{Group, GroupEncoding};
 use hex_conservative::DisplayHex;
 use rand_core::TryRng;
 use subtle::{Choice, CtOption};
+use zeroize::Zeroize;
 
 use core::fmt::{self, Debug, Formatter};
 use core::iter::Sum;

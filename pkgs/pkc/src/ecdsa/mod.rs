@@ -9,6 +9,7 @@
 mod error;
 mod public_bytes;
 mod public_hash;
+#[cfg_attr(feature = "codec", expect(unsafe_code, reason = "buffer zeroization"))] // nosemgrep: pkc-no-unsafe-code
 mod secret_bytes;
 mod sig_bytes;
 mod sig_rec_bytes;

@@ -105,11 +105,9 @@ impl Fr {
   pub(crate) fn from_lendian(bytes: &[u8; 32]) -> Option<Self> {
     let mut scalar = blst_scalar::default();
     unsafe { blst_scalar_from_lendian(&mut scalar, bytes.as_ptr()) };
-    if unsafe { blst_scalar_fr_check(&scalar) } {
-      Some(Self::from(&scalar))
-    } else {
-      None
-    }
+    let parsed = unsafe { blst_scalar_fr_check(&scalar) }.then(|| Self::from(&scalar));
+    scalar.b.zeroize();
+    parsed
   }
 
   /// Reduces a little-endian integer of any width into the field.
@@ -140,20 +138,24 @@ impl Fr {
   }
 
   /// Emits the canonical little-endian encoding.
-  pub(crate) fn to_lendian(self) -> Zeroizing<[u8; 32]> {
+  pub(crate) fn to_lendian(mut self) -> Zeroizing<[u8; 32]> {
     let mut scalar = blst_scalar::from(&self);
     let bytes = Zeroizing::new(scalar.b);
     scalar.b.zeroize();
+    self.zeroize();
     bytes
   }
 }
 
+// `Fr` is `Copy`, so the operands arrive as copies the caller cannot wipe.
 impl Add for Fr {
   type Output = Self;
 
-  fn add(self, rhs: Self) -> Self::Output {
+  fn add(mut self, mut rhs: Self) -> Self::Output {
     let mut out = blst_fr::default();
     unsafe { blst_fr_add(&mut out, &self.0, &rhs.0) };
+    self.zeroize();
+    rhs.zeroize();
     Self(out)
   }
 }
@@ -161,9 +163,11 @@ impl Add for Fr {
 impl Mul for Fr {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self::Output {
+  fn mul(mut self, mut rhs: Self) -> Self::Output {
     let mut out = blst_fr::default();
     unsafe { blst_fr_mul(&mut out, &self.0, &rhs.0) };
+    self.zeroize();
+    rhs.zeroize();
     Self(out)
   }
 }
@@ -171,9 +175,10 @@ impl Mul for Fr {
 impl Neg for Fr {
   type Output = Self;
 
-  fn neg(self) -> Self::Output {
+  fn neg(mut self) -> Self::Output {
     let mut out = blst_fr::default();
     unsafe { blst_fr_cneg(&mut out, &self.0, true) };
+    self.zeroize();
     Self(out)
   }
 }
@@ -181,9 +186,11 @@ impl Neg for Fr {
 impl Sub for Fr {
   type Output = Self;
 
-  fn sub(self, rhs: Self) -> Self::Output {
+  fn sub(mut self, mut rhs: Self) -> Self::Output {
     let mut out = blst_fr::default();
     unsafe { blst_fr_sub(&mut out, &self.0, &rhs.0) };
+    self.zeroize();
+    rhs.zeroize();
     Self(out)
   }
 }

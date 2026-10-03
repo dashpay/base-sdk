@@ -179,8 +179,10 @@ impl EcdsaPublicKey {
     tweak: &[u8; ECDSA_SK_LEN],
     op: impl Fn(PublicKey, &Scalar) -> Result<PublicKey, secp256k1::Error>,
   ) -> Result<Self, EcdsaError> {
-    let scalar = tweak_scalar(tweak)?;
-    let point = op(self.inner, &scalar).map_err(|_| EcdsaError::InvalidTweak)?;
+    let mut scalar = tweak_scalar(tweak)?;
+    let point = op(self.inner, &scalar);
+    scalar.non_secure_erase();
+    let point = point.map_err(|_| EcdsaError::InvalidTweak)?;
 
     Ok(Self {
       inner: point,

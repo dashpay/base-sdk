@@ -65,8 +65,8 @@ impl EcdsaSkBytes {
       34 if data[33] == 0x01 => Compression::Compressed,
       _ => return None,
     };
-    let key: [u8; ECDSA_SK_LEN] = data[1..33].try_into().ok()?;
-    let sk = Self::from_bytes(key, compressed);
+    let key = Zeroizing::new(<[u8; ECDSA_SK_LEN]>::try_from(&data[1..33]).ok()?);
+    let sk = Self::from_bytes(*key, compressed);
     (!sk.is_null()).then_some((sk, data[0]))
   }
 
@@ -94,8 +94,20 @@ impl EcdsaSkBytes {
     } else {
       33
     };
-    let wif = Base58CkString::encode_unbounded(&buf[..len]);
-    Some(Zeroizing::new(String::from(wif.as_str())))
+    let mut wif = Base58CkString::encode_unbounded(&buf[..len]);
+    let out = Zeroizing::new(String::from(wif.as_str()));
+    let (addr, n) = (wif.as_bytes().as_ptr().addr(), wif.len());
+    let base = (&raw mut wif).cast::<u8>();
+    // base58ck keeps strings this short inline, so the text sits inside `wif`.
+    let off = addr
+      .checked_sub(base.addr())
+      .filter(|off| off + n <= size_of::<Base58CkString>());
+    debug_assert!(off.is_some(), "to_wif: text left base58ck's inline buffer");
+    if let Some(off) = off {
+      // SAFETY: `off..off + n` lies inside `wif` and any byte keeps it valid.
+      unsafe { core::slice::from_raw_parts_mut(base.add(off), n) }.zeroize();
+    }
+    Some(out)
   }
 }
 

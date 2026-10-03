@@ -51,6 +51,12 @@ string pathName(Path p) { result = p.getSegment().getIdentifier().getText() }
 /** Gets the identifier of `p`'s qualifier, e.g. `b` for `a::b::c`. */
 string pathQualifierName(Path p) { result = pathName(p.getQualifier()) }
 
+/** Gets the path `c` calls, e.g. `a::b::c` for `a::b::c(x)`. */
+Path calledPath(CallExpr c) { result = c.getFunction().(PathExpr).getPath() }
+
+/** Gets the identifier of the path `c` calls, e.g. `c` for `a::b::c(x)`. */
+string calledName(CallExpr c) { result = pathName(calledPath(c)) }
+
 /** Gets an attribute of a preamble item (Use, Module, or ExternCrate). */
 private Attr itemAttr(Item item) {
   result = item.(Use).getAnAttr() or
@@ -85,9 +91,26 @@ string usePrefix(Use u) { result = pathName(rootPath(u.getUseTree().getPath())) 
 /** Gets the head identifier of `tr`, e.g. `Vec` for `Vec<u8>`. */
 string typeHead(TypeRepr tr) { result = pathName(tr.(PathTypeRepr).getPath()) }
 
+/** Gets the first type argument of `tr`, e.g. `T` for `Option<T>`. */
+TypeRepr firstTypeArg(TypeRepr tr) {
+  result =
+    tr.(PathTypeRepr)
+        .getPath()
+        .getSegment()
+        .getGenericArgList()
+        .getGenericArg(0)
+        .(TypeArg)
+        .getTypeRepr()
+}
+
 /** Gets the type item `tr` names, resolved through the type layer. */
 TypeItem namedTypeItem(TypeRepr tr) {
   result = tr.(TypeMention).getType().(T::DataType).getTypeItem()
+}
+
+/** Gets the trait `i` implements, resolved through the type layer. */
+Trait implTrait(Impl i) {
+  result = i.getTraitTy().(TypeMention).getType().(T::TraitType).getTrait()
 }
 
 /** Gets the declared type of a field of `t`, including enum variant fields. */
@@ -105,4 +128,14 @@ TypeRepr fieldTypeRepr(TypeItem t) {
       result = v.getFieldList().(TupleFieldList).getField(_).getTypeRepr()
     )
   )
+}
+
+/**
+ * Gets the struct declaring the field `fe` reads, with `fr` its declared type.
+ *
+ * A declared type belongs to one field, so it identifies the owner.
+ */
+TypeItem fieldOwner(FieldExpr fe, TypeRepr fr) {
+  fr = [fe.getStructField().getTypeRepr(), fe.getTupleField().getTypeRepr()] and
+  fr = fieldTypeRepr(result.(Struct))
 }

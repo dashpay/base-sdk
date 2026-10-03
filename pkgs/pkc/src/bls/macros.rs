@@ -93,8 +93,14 @@ macro_rules! impl_group {
     impl Mul<Fr> for $name {
       type Output = Self;
 
-      fn mul(self, rhs: Fr) -> Self::Output {
-        self.mul_scalar(&rhs.to_repr(), FR_BITS)
+      fn mul(self, mut rhs: Fr) -> Self::Output {
+        // `Fr` is `Copy`, so the scalar arrives as a copy the caller cannot
+        // wipe, and its byte form for the backend is one more.
+        let mut repr = rhs.to_repr();
+        let product = self.mul_scalar(&repr, FR_BITS);
+        repr.zeroize();
+        rhs.zeroize();
+        product
       }
     }
 

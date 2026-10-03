@@ -47,6 +47,34 @@ AssocItem implItem(Impl i) { result = i.getAssocItemList().getAnAssocItem() }
 /** Gets a method defined in `i`'s associated item list. */
 private Function implMethod(Impl i) { result = implItem(i) }
 
+/** Gets the method `name` that `t`'s impl of `trait` defines. */
+Function methodOf(TypeItem t, string trait, string name) {
+  exists(Impl i |
+    i.getSelf() = t and
+    implTraitName(i) = trait and
+    result = implMethod(i) and
+    nameOf(result) = name
+  )
+}
+
+/**
+ * Holds if `f` is reachable from outside its crate.
+ *
+ * It is bare `pub`, or a method of a trait that is foreign, bare `pub` or
+ * unresolved.
+ */
+predicate exposedFunction(Function f) {
+  isBarePublic(f.getVisibility())
+  or
+  exists(Impl i | f = implMethod(i) and exists(i.getTraitTy()) |
+    not exists(implTrait(i))
+    or
+    exists(Trait t | t = implTrait(i) |
+      not isWorkspaceFile(fileOf(t)) or isBarePublic(t.getVisibility())
+    )
+  )
+}
+
 /**
  * Holds if `over` in `i` overrides the default body that `decl` supplies
  * in trait `t`, i.e. both layers define the same method name and the

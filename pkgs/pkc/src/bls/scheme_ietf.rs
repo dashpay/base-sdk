@@ -14,6 +14,7 @@ use super::sig_id::BlsSigId;
 use crate::prelude::*;
 
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, PublicKey, SecretKey, Signature};
+use zeroize::Zeroizing;
 
 /// Domain separation tag for the basic (NUL) signature scheme.
 const DST_BASIC: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
@@ -41,8 +42,8 @@ impl BlsScheme for BlsScIetf {
   }
 
   /// Emit the scalar as big-endian bytes.
-  fn sk_to_bytes(sk: &Self::InnerSk) -> [u8; 32] {
-    sk.to_bytes()
+  fn sk_to_bytes(sk: &Self::InnerSk) -> Zeroizing<[u8; 32]> {
+    Zeroizing::new(sk.to_bytes())
   }
 
   /// Map the secret key to its G1 public key.
