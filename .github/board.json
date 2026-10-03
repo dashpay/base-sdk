@@ -1,0 +1,21 @@
+{
+  "projects": {
+    "defaults": {
+      "owner": "dashpay",
+      "field": "Status"
+    },
+    "allow": [
+      { "number": 13 },
+      { "number": 14 }
+    ]
+  },
+  "topics": [
+    "Build/CI",
+    "Codec",
+    "Crypto",
+    "Documentation",
+    "FFI",
+    "P2P",
+    "Primitives"
+  ]
+}

@@ -16,13 +16,21 @@ The full guide is at [`docs/dev/guide_rust.md`](./docs/dev/guide_rust.md). Key p
   decide when to clone.
 - **Conversions**: `as_` (free, borrow), `to_` (allocates), `into_` (consumes). Implement `From`/`TryFrom`, never `Into`
   directly.
-- **Comments**: inline comments max 80 chars, 3 lines. Rustdoc summary max 3 lines, don't restate the signature.
-  Document `# Errors` for `Result`-returning functions.
+- **Comments**:
+  - Inline comments max 80 chars, 3 lines.
+  - Rustdoc summary max 3 lines, don't restate the signature.
+  - Document `# Errors` for `Result`-returning functions.
+  - Comments are brief and either directly relevant to the reader or actionable.
+  - Avoid colons; prefer semicolons, periods and commas.
+  - Split run-on sentences and multi-clause sentences to prevent reading fatigue, balance against sentence
+    fragmentation.
+  - No vague references (`the other`, `that thing`); name the item.
+  - No exposition, history, or conversational tone.
 - **Code segmentation**: organise code through modules (in-file or separate files) and naming prefixes. Never use
   decorative separator comments (`// ----`, `// ====`, `// -- Section --`). Latin-1/ISO 8859-1 characters in source
   files only; no Unicode dashes, arrows, box drawing, or other decoration in comments or identifiers.
-- **Security**: never log secrets, custom `Debug` for sensitive types, constant-time comparison for secrets, zeroize
-  after use.
+- **Security**: never log secrets, custom `Debug` for sensitive types, use `subtle` for constant-time comparison of
+  secrets, `zeroize` after use.
 
 ## Crate standards
 
@@ -120,11 +128,8 @@ dash-num = { version = "0.0.0", path = "../num" }
 
 ## Verification
 
-All changes must pass before merge. Use `full` for the widest coverage.
+All changes must pass before merge.
 
 ```sh
-cargo fmt --check
-cargo test --features full
-cargo bench --features full
-cargo clippy --features full --tests
+just test lint
 ```

@@ -14,7 +14,8 @@ use [`lint_all.py`](./lint_all.py).
 
 | Name | Purpose | Verbs | Depends on |
 | ---- | ------- | ---------- | ---------- |
-| [`lint_cargo.py`](./lint/lint_cargo.py) | Deny dependencies per [`deny.toml`](../deny.toml), check/format TOML files against [`.taplo.toml`](../.taplo.toml) | `check` , `apply`, `apply-all` | `cargo-deny` (deny dependencies), `taplo` (TOML formatting) |
+| [`lint_commit.py`](./lint/lint_commit.py) | Lint commit names against [`unconv.toml`](./unconv.toml) | `run` | `git` |
+| [`lint_cargo.py`](./lint/lint_cargo.py) | Deny dependencies per [`deny.toml`](../deny.toml), check/format TOML files against [`taplo.toml`](./taplo.toml) | `check` , `apply`, `apply-all` | `cargo-deny` (deny dependencies), `taplo` (TOML formatting) |
 | [`lint_codeql.py`](./lint/lint_codeql.py) | Query Rust sources against [`maint/codeql/rust/*.ql`](./codeql/rust) | `check`, `apply`, `apply-all`, `run`, `run-all` | `codeql`, `rustc` |
 | [`lint_javascript.py`](./lint/lint_javascript.py) | Lint Javascript sources against [`eslint.config.mjs`](js/eslint.config.mjs) | *None* | `npx` (part of Node.js), `eslint` (auto-retrieved by script) |
 | [`lint_markdown.py`](./lint/lint_markdown.py) | Lint Markdown [documentation](../docs/dev/about_docs.md) | *None* | `pymarkdownlnt` |
@@ -23,7 +24,6 @@ use [`lint_all.py`](./lint_all.py).
 | [`lint_rust.py`](./lint/lint_rust.py) | Lint Rust sources against [`rustfmt.toml`](../rustfmt.toml) | *None* | `cargo`, `rustfmt` |
 | [`lint_semgrep.py`](./lint/lint_semgrep.py) | Lint source code against [`maint/semgrep`](./semgrep/rust) definitions | *None* | `semgrep` |
 | [`lint_symlinks.py`](./lint/lint_symlinks.py) | Lint symbolic links | *None* | `git` |
-| [`lint_unconv.py`](./lint/lint_unconv.py) | Lint commit names in ranges specified against [`unconv.toml`](./unconv.toml) | `run` | `git` |
 
 ## Generating lockfiles
 

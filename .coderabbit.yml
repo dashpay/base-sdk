@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+early_access: false
+enable_free_tier: true
+inheritance: false
+chat:
+  allow_non_org_members: false
+  auto_reply: true
+  art: false
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+  planning:
+    enabled: false
+  labeling:
+    enabled: false
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "docs/dev/guide_rust.md"
+language: en-US
+reviews:
+  auto_apply_labels: false
+  auto_assign_reviewers: false
+  auto_review:
+    enabled: true
+    base_branches:
+      - "develop"
+    drafts: false
+  changed_files_summary: false
+  collapse_walkthrough: true
+  estimate_code_review_effort: false
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+  high_level_summary_in_walkthrough: true
+  in_progress_fortune: false
+  path_filters:
+    - "!**/*.json"
+    - "!**/*.json5"
+    - "!**/*.lock"
+  poem: false
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+  profile: chill
+  related_issues: false
+  related_prs: false
+  request_changes_workflow: false
+  sequence_diagrams: true
+  suggested_labels: false
