@@ -24,6 +24,12 @@ pub enum P2pDecodeError {
     /// The raw command bytes.
     bytes: [u8; 12],
   },
+  /// A command or long-form type Core's transport refuses, which it drops
+  /// while keeping the peer.
+  InvalidCommand {
+    /// The command as received.
+    command: CommandString,
+  },
   /// V2 short ID does not map to a known message.
   UnknownShortId {
     /// The short ID byte.
@@ -75,6 +81,9 @@ impl fmt::Display for P2pDecodeError {
           }
         }
         Ok(())
+      }
+      Self::InvalidCommand { command } => {
+        write!(f, "invalid command: {:02x?}", command.as_bytes())
       }
       Self::UnknownShortId { id } => {
         write!(f, "unknown v2 short id: {id}")
