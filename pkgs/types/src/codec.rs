@@ -312,8 +312,9 @@ impl<T: BaseCodec> BaseCodec for Vec<T> {
     let mut allocated = 0usize;
     for _ in 0..count {
       if items.len() == allocated {
+        // Core's `reserve(allocated)`: exactly one batch beyond the items read.
         allocated = count.min(allocated + batch);
-        items.reserve(allocated - items.len());
+        items.reserve_exact(allocated - items.len());
       }
       items.push(T::decode(data)?);
     }
@@ -445,6 +446,16 @@ mod tests {
         value: MAX_SER_SIZE as u64 + 1,
       })
     );
+  }
+
+  /// Each batch is reserved exactly, as Core's `reserve(allocated)` does, so a
+  /// count below one batch allocates no spare capacity.
+  #[rstest]
+  fn vec_reserves_batches_exactly() {
+    use crate::codec::BaseCodec;
+
+    let decoded = Vec::<u8>::decode(&mut &[0x03, 0x01, 0x02, 0x03][..]);
+    assert_eq!(decoded.as_ref().map(Vec::capacity), Ok(3));
   }
 
   /// Consumes the whole cursor, so `end()` sees no trailing bytes.

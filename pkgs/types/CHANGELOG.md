@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `Vec<u8>` as the fixed return type must now mention it explicitly.
 - `serialize::str_u64` writes a native `u64` to machine-readable formats. `str_u64` is a workaround for number-precision
   limitations in JSON and is now contained only for human-readable formats.
+- Decoding `Vec<T>` reserves each batch exactly, as Dash Core's `reserve(allocated)` does, rather than growing its
+  capacity geometrically past the batch.
 
 ### Removed
 
