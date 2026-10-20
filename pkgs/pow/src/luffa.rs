@@ -5,6 +5,7 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 // Adapted from sphlib, written by Thomas Pornin <thomas.pornin@cryptolog.com>
+// Message-free blank round first observed in work by sp <amigaguru@gmail.com>
 //
 
 //! Luffa-512 hash function.
@@ -120,9 +121,11 @@ fn write_output_half(state: &[[u32; 8]; 5], out: &mut [u8]) {
   }
 }
 
-/// Injects one message block into the five branches.
+/// Applies the state-only half of the message injection.
+///
+/// A blank finalization block has a zero message, so its injection ends here.
 #[cfg_attr(not(debug_assertions), inline(always))]
-fn inject_message(state: &mut [[u32; 8]; 5], msg: &[u32; 8]) {
+fn inject_blank(state: &mut [[u32; 8]; 5]) {
   let [mut b0, mut b1, mut b2, mut b3, mut b4] = *state;
 
   let mut sum = [0u32; 8];
@@ -163,20 +166,26 @@ fn inject_message(state: &mut [[u32; 8]; 5], msg: &[u32; 8]) {
   apply_m2_in_place(&mut b1);
   xor_words(&mut b1, &carry);
 
+  *state = [b0, b1, b2, b3, b4];
+}
+
+/// Injects one message block into the five branches.
+#[cfg_attr(not(debug_assertions), inline(always))]
+fn inject_message(state: &mut [[u32; 8]; 5], msg: &[u32; 8]) {
+  inject_blank(state);
+
   let mut msg_step = *msg;
   // The message is injected with the same repeated `M2` step so each branch
   // sees a rotated copy of the same 256-bit block.
-  xor_words(&mut b0, &msg_step);
+  xor_words(&mut state[0], &msg_step);
   apply_m2_in_place(&mut msg_step);
-  xor_words(&mut b1, &msg_step);
+  xor_words(&mut state[1], &msg_step);
   apply_m2_in_place(&mut msg_step);
-  xor_words(&mut b2, &msg_step);
+  xor_words(&mut state[2], &msg_step);
   apply_m2_in_place(&mut msg_step);
-  xor_words(&mut b3, &msg_step);
+  xor_words(&mut state[3], &msg_step);
   apply_m2_in_place(&mut msg_step);
-  xor_words(&mut b4, &msg_step);
-
-  *state = [b0, b1, b2, b3, b4];
+  xor_words(&mut state[4], &msg_step);
 }
 
 /// Rotates words 4 through 7 in branches 1 through 4.
@@ -316,10 +325,10 @@ impl FixedOutput for Luffa512 {
     // then each drain one half of the digest.
     self.core.compress(self.buffer.pad(0x80));
     let state = &mut self.core.state;
-    inject_message(state, &[0u32; 8]);
+    inject_blank(state);
     permute_state(state);
     write_output_half(state, &mut out[..32]);
-    inject_message(state, &[0u32; 8]);
+    inject_blank(state);
     permute_state(state);
     write_output_half(state, &mut out[32..]);
   }
