@@ -13,7 +13,7 @@ use crate::consts::luffa::{BLOCK, IV, RC, RC_FIRST4_HIGH, RC_FIRST4_LOW};
 use crate::util::arx::rotl_u32x4;
 use crate::util::buffer::{Buffer, Compress};
 use crate::util::impl_digest;
-use crate::util::memops::{load_u32_le, store_u32_le};
+use crate::util::memops::store_u32_le;
 
 use digest::{FixedOutput, Output, Update};
 use wide::u32x4;
@@ -224,9 +224,10 @@ fn permute_state(state: &mut [[u32; 8]; 5]) {
   permute_branch(&mut state[4], &RC[4][0], &RC[4][1]);
 }
 
+/// Reads one 32-byte block as eight big-endian words.
 #[cfg_attr(not(debug_assertions), inline(always))]
-fn load_block_words(buf: &[u8]) -> [u32; 8] {
-  core::array::from_fn(|i| load_u32_le(buf, i).swap_bytes())
+fn load_block_words(block: &[u8; BLOCK]) -> [u32; 8] {
+  core::array::from_fn(|i| u32::from_be_bytes([block[4 * i], block[4 * i + 1], block[4 * i + 2], block[4 * i + 3]]))
 }
 
 /// Transposes branches 0 through 3 into word-position vectors, runs the 8-round
