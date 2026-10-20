@@ -15,7 +15,8 @@ use crate::util::memops::{load_u64_le, store_u64_le};
 use crate::util::{impl_digest, impl_hash};
 
 use digest::{FixedOutput, Output, Update};
-use wide::u32x4;
+use wide::bytemuck::cast;
+use wide::{u16x8, u32x4};
 
 /// One 128-bit JH row, stored as four 32-bit lanes.
 type Row = u32x4;
@@ -65,6 +66,16 @@ fn swap_bit_groups<const LOW: u32, const WIDTH: u32>(x: Row) -> Row {
   ((x & const { Row::splat(LOW) }) << WIDTH) | ((x & const { Row::splat(!LOW) }) >> WIDTH)
 }
 
+/// Swaps the low and high byte inside each 16-bit chunk.
+///
+/// A 16-bit rotate lowers to `rev16` or `pshufb` where the target has one,
+/// and to two shifts and an or on plain SSE2.
+#[cfg_attr(not(debug_assertions), inline(always))]
+fn swap_bytes_in_half_words(x: Row) -> Row {
+  let halves: u16x8 = cast(x);
+  cast((halves << 8) | (halves >> 8))
+}
+
 /// Applies the S-box and linear layer to all eight rows.
 #[cfg_attr(not(debug_assertions), inline(always))]
 fn apply_round_core(state: &mut State, constants: [u64; 4]) {
@@ -104,7 +115,7 @@ fn apply_swap<const OP: usize>(state: &mut State) {
       0 => state[row] = swap_bit_groups::<0x5555_5555, 1>(state[row]),
       1 => state[row] = swap_bit_groups::<0x3333_3333, 2>(state[row]),
       2 => state[row] = swap_bit_groups::<0x0f0f_0f0f, 4>(state[row]),
-      3 => state[row] = swap_bit_groups::<0x00ff_00ff, 8>(state[row]),
+      3 => state[row] = swap_bytes_in_half_words(state[row]),
       4 => state[row] = swap_bit_groups::<0x0000_ffff, 16>(state[row]),
       5 => state[row] = state[row].shuffle(SWAP_WORDS),
       6 => state[row] = state[row].shuffle(SWAP_DWORDS),
