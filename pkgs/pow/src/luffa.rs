@@ -14,7 +14,6 @@ use crate::consts::luffa::{BLOCK, IV, RC, RC_FIRST4_HIGH, RC_FIRST4_LOW};
 use crate::util::arx::rotl_u32x4;
 use crate::util::buffer::{Buffer, Compress};
 use crate::util::impl_digest;
-use crate::util::memops::store_u32_le;
 
 use digest::{FixedOutput, Output, Update};
 use wide::u32x4;
@@ -111,12 +110,13 @@ fn xor_words(dst: &mut [u32; 8], src: &[u32; 8]) {
   }
 }
 
-/// Xors all five branches and writes one 32-byte output half (LE store + swap).
+/// Xors all five branches into one 32-byte output half of big-endian words.
+#[cfg_attr(not(debug_assertions), inline(always))]
 fn write_output_half(state: &[[u32; 8]; 5], out: &mut [u8]) {
   let mut i = 0;
   while i < 8 {
     let word = state[0][i] ^ state[1][i] ^ state[2][i] ^ state[3][i] ^ state[4][i];
-    store_u32_le(out, i, word.swap_bytes());
+    out[i * 4..i * 4 + 4].copy_from_slice(&word.to_be_bytes());
     i += 1;
   }
 }
