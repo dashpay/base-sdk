@@ -11,7 +11,7 @@
 
 use crate::consts::jh::{BLOCK, IV, ROUND_CONST_WORDS};
 use crate::util::buffer::{Buffer, Compress};
-use crate::util::memops::{load_u64_le, store_u64_le};
+use crate::util::memops::{load_u32s_le, store_u64_le};
 use crate::util::{impl_digest, impl_hash};
 
 use digest::{FixedOutput, Output, Update};
@@ -165,11 +165,12 @@ fn store_row(buf: &mut [u8], index: usize, row: Row) {
   store_u64_le(buf, index * 2 + 1, row[1]);
 }
 
+/// Runs the F_8 compression on one block held as four message rows.
 #[cfg_attr(not(debug_assertions), inline(always))]
-fn compress(state: &mut State, block_words: &[u64; 8]) {
+fn compress(state: &mut State, rows: &[Row; 4]) {
   let mut row = 0;
   while row < 4 {
-    state[row] ^= row_from_u64_pair([block_words[row * 2], block_words[row * 2 + 1]]);
+    state[row] ^= rows[row];
     row += 1;
   }
 
@@ -177,13 +178,15 @@ fn compress(state: &mut State, block_words: &[u64; 8]) {
 
   row = 0;
   while row < 4 {
-    state[row + 4] ^= row_from_u64_pair([block_words[row * 2], block_words[row * 2 + 1]]);
+    state[row + 4] ^= rows[row];
     row += 1;
   }
 }
 
-fn load_block_words(buf: &[u8]) -> [u64; 8] {
-  core::array::from_fn(|i| load_u64_le(buf, i))
+/// Reads one 64-byte block as four rows of little-endian words.
+#[cfg_attr(not(debug_assertions), inline(always))]
+fn load_block_rows(block: &[u8; BLOCK]) -> [Row; 4] {
+  core::array::from_fn(|row| Row::new(load_u32s_le(&block[16 * row..])))
 }
 
 /// State and block count.
@@ -196,7 +199,7 @@ struct Core {
 impl Compress<BLOCK> for Core {
   #[cfg_attr(not(debug_assertions), inline(always))]
   fn compress(&mut self, block: &[u8; BLOCK]) {
-    compress(&mut self.state, &load_block_words(block));
+    compress(&mut self.state, &load_block_rows(block));
     self.blocks = self.blocks.wrapping_add(1);
   }
 }
