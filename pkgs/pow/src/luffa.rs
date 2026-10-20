@@ -231,22 +231,10 @@ fn load_block_words(block: &[u8; BLOCK]) -> [u32; 8] {
   core::array::from_fn(|i| u32::from_be_bytes([block[4 * i], block[4 * i + 1], block[4 * i + 2], block[4 * i + 3]]))
 }
 
-/// Transposes branches 0 through 3 into word-position vectors, runs the 8-round
-/// permutation, then writes the results back.
-///
-/// Each lane holds the same word index from one branch. That lets one
-/// `u32x4` instruction update four branches at once while keeping the
-/// branch-local message injection and finalization code unchanged.
-fn permute_first_four_branches(state: &mut [[u32; 8]; 5]) {
-  let mut x0 = WordVec::new([state[0][0], state[1][0], state[2][0], state[3][0]]);
-  let mut x1 = WordVec::new([state[0][1], state[1][1], state[2][1], state[3][1]]);
-  let mut x2 = WordVec::new([state[0][2], state[1][2], state[2][2], state[3][2]]);
-  let mut x3 = WordVec::new([state[0][3], state[1][3], state[2][3], state[3][3]]);
-  let mut x4 = WordVec::new([state[0][4], state[1][4], state[2][4], state[3][4]]);
-  let mut x5 = WordVec::new([state[0][5], state[1][5], state[2][5], state[3][5]]);
-  let mut x6 = WordVec::new([state[0][6], state[1][6], state[2][6], state[3][6]]);
-  let mut x7 = WordVec::new([state[0][7], state[1][7], state[2][7], state[3][7]]);
-
+/// Runs the eight rounds on the lane layout of one branch per lane.
+#[cfg_attr(not(debug_assertions), inline(always))]
+fn run_rounds(words: [WordVec; 8]) -> [WordVec; 8] {
+  let [mut x0, mut x1, mut x2, mut x3, mut x4, mut x5, mut x6, mut x7] = words;
   let mut round = 0;
   while round < 8 {
     apply_sub_crumb_vec(&mut x0, &mut x1, &mut x2, &mut x3);
@@ -259,25 +247,45 @@ fn permute_first_four_branches(state: &mut [[u32; 8]; 5]) {
     x4 ^= RC_FIRST4_HIGH[round];
     round += 1;
   }
+  [x0, x1, x2, x3, x4, x5, x6, x7]
+}
 
-  let y0 = x0.to_array();
-  let y1 = x1.to_array();
-  let y2 = x2.to_array();
-  let y3 = x3.to_array();
-  let y4 = x4.to_array();
-  let y5 = x5.to_array();
-  let y6 = x6.to_array();
-  let y7 = x7.to_array();
+/// Transposes branches 0 through 3 into word-position vectors, runs the 8-round
+/// permutation, then writes the results back.
+///
+/// Each lane holds the same word index from one branch. That lets one
+/// `u32x4` instruction update four branches at once while keeping the
+/// branch-local message injection and finalization code unchanged.
+#[cfg_attr(not(debug_assertions), inline(always))]
+fn permute_first_four_branches(state: &mut [[u32; 8]; 5]) {
+  let x0 = WordVec::new([state[0][0], state[1][0], state[2][0], state[3][0]]);
+  let x1 = WordVec::new([state[0][1], state[1][1], state[2][1], state[3][1]]);
+  let x2 = WordVec::new([state[0][2], state[1][2], state[2][2], state[3][2]]);
+  let x3 = WordVec::new([state[0][3], state[1][3], state[2][3], state[3][3]]);
+  let x4 = WordVec::new([state[0][4], state[1][4], state[2][4], state[3][4]]);
+  let x5 = WordVec::new([state[0][5], state[1][5], state[2][5], state[3][5]]);
+  let x6 = WordVec::new([state[0][6], state[1][6], state[2][6], state[3][6]]);
+  let x7 = WordVec::new([state[0][7], state[1][7], state[2][7], state[3][7]]);
+
+  let [x0, x1, x2, x3, x4, x5, x6, x7] = run_rounds([x0, x1, x2, x3, x4, x5, x6, x7]);
+
+  let y = [
+    x0.to_array(),
+    x1.to_array(),
+    x2.to_array(),
+    x3.to_array(),
+    x4.to_array(),
+    x5.to_array(),
+    x6.to_array(),
+    x7.to_array(),
+  ];
   let mut branch = 0;
   while branch < 4 {
-    state[branch][0] = y0[branch];
-    state[branch][1] = y1[branch];
-    state[branch][2] = y2[branch];
-    state[branch][3] = y3[branch];
-    state[branch][4] = y4[branch];
-    state[branch][5] = y5[branch];
-    state[branch][6] = y6[branch];
-    state[branch][7] = y7[branch];
+    let mut word = 0;
+    while word < 8 {
+      state[branch][word] = y[word][branch];
+      word += 1;
+    }
     branch += 1;
   }
 }
