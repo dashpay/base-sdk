@@ -9,7 +9,7 @@
 
 //! JH-512 hash function.
 
-use crate::consts::jh::{BLOCK, IV, ROUND_CONSTS};
+use crate::consts::jh::{BLOCK, IV, ROUND_CONST_WORDS};
 use crate::util::buffer::{Buffer, Compress};
 use crate::util::memops::{load_u64_le, store_u64_le};
 use crate::util::{impl_digest, impl_hash};
@@ -76,17 +76,22 @@ fn swap_bytes_in_half_words(x: Row) -> Row {
   cast((halves << 8) | (halves >> 8))
 }
 
+/// Loads one round's constants for the even or odd columns.
+#[cfg_attr(not(debug_assertions), inline(always))]
+fn load_constants(constants: &[u32; 8], half: usize) -> Row {
+  Row::new([
+    constants[half * 4],
+    constants[half * 4 + 1],
+    constants[half * 4 + 2],
+    constants[half * 4 + 3],
+  ])
+}
+
 /// Applies the S-box and linear layer to all eight rows.
 #[cfg_attr(not(debug_assertions), inline(always))]
-fn apply_round_core(state: &mut State, constants: [u64; 4]) {
-  let [y0, y1, y2, y3] = sbox(
-    [state[0], state[2], state[4], state[6]],
-    row_from_u64_pair([constants[0], constants[1]]),
-  );
-  let [y4, y5, y6, y7] = sbox(
-    [state[1], state[3], state[5], state[7]],
-    row_from_u64_pair([constants[2], constants[3]]),
-  );
+fn apply_round_core(state: &mut State, constants: &[u32; 8]) {
+  let [y0, y1, y2, y3] = sbox([state[0], state[2], state[4], state[6]], load_constants(constants, 0));
+  let [y4, y5, y6, y7] = sbox([state[1], state[3], state[5], state[7]], load_constants(constants, 1));
 
   // The S-box works on even and odd columns, while the linear layer mixes
   // the results in row order.
@@ -134,19 +139,19 @@ fn apply_e8(state: &mut State) {
   let mut group = 0;
   while group < 6 {
     let base = group * 7;
-    apply_round_core(state, ROUND_CONSTS[base]);
+    apply_round_core(state, &ROUND_CONST_WORDS[base]);
     apply_swap::<0>(state);
-    apply_round_core(state, ROUND_CONSTS[base + 1]);
+    apply_round_core(state, &ROUND_CONST_WORDS[base + 1]);
     apply_swap::<1>(state);
-    apply_round_core(state, ROUND_CONSTS[base + 2]);
+    apply_round_core(state, &ROUND_CONST_WORDS[base + 2]);
     apply_swap::<2>(state);
-    apply_round_core(state, ROUND_CONSTS[base + 3]);
+    apply_round_core(state, &ROUND_CONST_WORDS[base + 3]);
     apply_swap::<3>(state);
-    apply_round_core(state, ROUND_CONSTS[base + 4]);
+    apply_round_core(state, &ROUND_CONST_WORDS[base + 4]);
     apply_swap::<4>(state);
-    apply_round_core(state, ROUND_CONSTS[base + 5]);
+    apply_round_core(state, &ROUND_CONST_WORDS[base + 5]);
     apply_swap::<5>(state);
-    apply_round_core(state, ROUND_CONSTS[base + 6]);
+    apply_round_core(state, &ROUND_CONST_WORDS[base + 6]);
     apply_swap::<6>(state);
     group += 1;
   }
