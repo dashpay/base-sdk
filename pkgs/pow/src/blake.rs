@@ -5,6 +5,7 @@
 // See the accompanying file LICENSE or https://opensource.org/license/MIT
 //
 // Adapted from sphlib, written by Thomas Pornin <thomas.pornin@cryptolog.com>
+// Adapted from SUPERCOP (regs), written by Jean-Philippe Aumasson
 //
 
 //! Blake-512 hash function.
@@ -30,14 +31,16 @@ fn compress(h: &mut [u64; 8], m: &[u64; 16], t0: u64, t1: u64) {
     t0 ^ CB[4], t0 ^ CB[5], t1 ^ CB[6], t1 ^ CB[7],
   ];
 
+  // The message-word constant is added before the `b` word so the addition
+  // that waits on the previous G output is the last one in the chain.
   macro_rules! g {
     ($r:expr, $a:expr, $b:expr, $c:expr, $d:expr, $i:expr) => {{
       const S: &[usize; 16] = &SIGMA[$r];
-      v[$a] = v[$a].wrapping_add(v[$b]).wrapping_add(m[S[$i]] ^ CB[S[$i + 1]]);
+      v[$a] = v[$a].wrapping_add(m[S[$i]] ^ CB[S[$i + 1]]).wrapping_add(v[$b]);
       v[$d] = (v[$d] ^ v[$a]).rotate_right(32);
       v[$c] = v[$c].wrapping_add(v[$d]);
       v[$b] = (v[$b] ^ v[$c]).rotate_right(25);
-      v[$a] = v[$a].wrapping_add(v[$b]).wrapping_add(m[S[$i + 1]] ^ CB[S[$i]]);
+      v[$a] = v[$a].wrapping_add(m[S[$i + 1]] ^ CB[S[$i]]).wrapping_add(v[$b]);
       v[$d] = (v[$d] ^ v[$a]).rotate_right(16);
       v[$c] = v[$c].wrapping_add(v[$d]);
       v[$b] = (v[$b] ^ v[$c]).rotate_right(11);
