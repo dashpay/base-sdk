@@ -1,0 +1,900 @@
+//
+// Chain parameter vectors. Generated with the reference implementation
+// (dashpay/dash v24.0.0-rc.3, 0364ed626e).
+//
+// Each section comes with the program used to generate the vectors.
+//
+// To run a program, paste it at the end of the `llmq_params_tests` suite in
+// `src/test/llmq_params_tests.cpp` at the specified revision, build it with
+// `make -C src test/test_dash` and run
+// `./src/test/test_dash --run_test=llmq_params_tests/<name>`. The output
+// should match the section.
+//
+
+{
+/*
+static void PrintField(int depth, const std::string& key, const std::string& value)
+{
+    std::printf("%*s\"%s\": %s,\n", 2 * depth, "", key.c_str(), value.c_str());
+}
+
+static void PrintField(int depth, const std::string& key, int64_t value)
+{
+    PrintField(depth, key, strprintf("%d", value));
+}
+
+static std::string Quoted(const std::string& text) { return "\"" + text + "\""; }
+
+static std::string Flag(bool flag) { return flag ? "true" : "false"; }
+
+static std::string Pair(int height, const uint256& hash) { return strprintf("[%d, \"%s\"]", height, hash.GetHex()); }
+
+static std::string Rate(double rate)
+{
+    char buf[32];
+    for (int precision = 1;; ++precision) {
+        std::snprintf(buf, sizeof(buf), "%.*g", precision, rate);
+        if (std::strtod(buf, nullptr) == rate) return buf;
+    }
+}
+
+static std::string List(const std::vector<std::string>& items)
+{
+    std::string list;
+    for (const std::string& item : items) {
+        list += (list.empty() ? "" : ", ") + Quoted(item);
+    }
+    return "[" + list + "]";
+}
+
+static std::string LLMQName(Consensus::LLMQType type)
+{
+    for (const auto& llmq : Consensus::available_llmqs) {
+        if (llmq.type == type) return Quoted(std::string{llmq.name});
+    }
+    return Quoted("none");
+}
+
+static void PrintDeployment(const std::string& name, const Consensus::BIP9Deployment& dep)
+{
+    std::printf("          \"%s\": {\n", name.c_str());
+    PrintField(6, "bit", dep.bit);
+    PrintField(6, "start_time", dep.nStartTime);
+    PrintField(6, "timeout", dep.nTimeout);
+    PrintField(6, "min_activation_height", dep.min_activation_height);
+    PrintField(6, "window_size", dep.nWindowSize);
+    PrintField(6, "threshold_start", dep.nThresholdStart);
+    PrintField(6, "threshold_min", dep.nThresholdMin);
+    PrintField(6, "falloff_coeff", dep.nFalloffCoeff);
+    PrintField(6, "use_ehf", Flag(dep.useEHF));
+    std::printf("          },\n");
+}
+
+BOOST_AUTO_TEST_CASE(chain_params)
+{
+    for (const std::string& chain : {CBaseChainParams::MAIN, CBaseChainParams::TESTNET, CBaseChainParams::REGTEST}) {
+        const auto params{CreateChainParams(ArgsManager{}, chain)};
+        const auto base{CreateBaseChainParams(chain)};
+        const Consensus::Params& consensus{params->GetConsensus()};
+        std::printf("    {\n");
+        PrintField(3, "network_id", Quoted(params->NetworkIDString()));
+        std::printf("      \"consensus\": {\n");
+        PrintField(4, "hash_genesis_block", Quoted(consensus.hashGenesisBlock.GetHex()));
+        PrintField(4, "subsidy_halving_interval", consensus.nSubsidyHalvingInterval);
+        PrintField(4, "masternode_payments_start_block", consensus.nMasternodePaymentsStartBlock);
+        PrintField(4, "masternode_payments_increase_block", consensus.nMasternodePaymentsIncreaseBlock);
+        PrintField(4, "masternode_payments_increase_period", consensus.nMasternodePaymentsIncreasePeriod);
+        PrintField(4, "instant_send_confirmations_required", consensus.nInstantSendConfirmationsRequired);
+        PrintField(4, "instant_send_keep_lock", consensus.nInstantSendKeepLock);
+        PrintField(4, "budget_payments_start_block", consensus.nBudgetPaymentsStartBlock);
+        PrintField(4, "budget_payments_cycle_blocks", consensus.nBudgetPaymentsCycleBlocks);
+        PrintField(4, "budget_payments_window_blocks", consensus.nBudgetPaymentsWindowBlocks);
+        PrintField(4, "superblock_start", Pair(consensus.nSuperblockStartBlock, consensus.nSuperblockStartHash));
+        PrintField(4, "superblock_cycle", consensus.nSuperblockCycle);
+        PrintField(4, "superblock_maturity_window", consensus.nSuperblockMaturityWindow);
+        PrintField(4, "governance_min_quorum", consensus.nGovernanceMinQuorum);
+        PrintField(4, "governance_filter_elements", consensus.nGovernanceFilterElements);
+        PrintField(4, "masternode_minimum_confirmations", consensus.nMasternodeMinimumConfirmations);
+        PrintField(4, "bip34", Pair(consensus.BIP34Height, consensus.BIP34Hash));
+        PrintField(4, "bip65_height", consensus.BIP65Height);
+        PrintField(4, "bip66_height", consensus.BIP66Height);
+        PrintField(4, "bip147_height", consensus.BIP147Height);
+        PrintField(4, "csv_height", consensus.CSVHeight);
+        PrintField(4, "dip0001_height", consensus.DIP0001Height);
+        PrintField(4, "dip0003_height", consensus.DIP0003Height);
+        PrintField(4, "dip0003_enforcement",
+                   Pair(consensus.DIP0003EnforcementHeight, consensus.DIP0003EnforcementHash));
+        PrintField(4, "dip0008_height", consensus.DIP0008Height);
+        PrintField(4, "brr_height", consensus.BRRHeight);
+        PrintField(4, "dip0020_height", consensus.DIP0020Height);
+        PrintField(4, "dip0024_height", consensus.DIP0024Height);
+        PrintField(4, "dip0024_quorums_height", consensus.DIP0024QuorumsHeight);
+        PrintField(4, "v19_height", consensus.V19Height);
+        PrintField(4, "v20_height", consensus.V20Height);
+        PrintField(4, "mn_rr_height", consensus.MN_RRHeight);
+        PrintField(4, "withdrawals_height", consensus.WithdrawalsHeight);
+        PrintField(4, "min_bip9_warning_height", consensus.MinBIP9WarningHeight);
+        PrintField(4, "rule_change_activation_threshold", consensus.nRuleChangeActivationThreshold);
+        PrintField(4, "miner_confirmation_window", consensus.nMinerConfirmationWindow);
+        std::printf("        \"deployments\": {\n");
+        PrintDeployment("test_dummy", consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY]);
+        PrintDeployment("v24", consensus.vDeployments[Consensus::DEPLOYMENT_V24]);
+        PrintDeployment("evo_shares", consensus.vDeployments[Consensus::DEPLOYMENT_EVO_SHARES]);
+        std::printf("        },\n");
+        PrintField(4, "pow_limit", Quoted(consensus.powLimit.GetHex()));
+        PrintField(4, "pow_allow_min_difficulty_blocks", Flag(consensus.fPowAllowMinDifficultyBlocks));
+        PrintField(4, "pow_no_retargeting", Flag(consensus.fPowNoRetargeting));
+        PrintField(4, "pow_target_spacing", consensus.nPowTargetSpacing);
+        PrintField(4, "pow_target_timespan", consensus.nPowTargetTimespan);
+        PrintField(4, "pow_kgw_height", consensus.nPowKGWHeight);
+        PrintField(4, "pow_dgw_height", consensus.nPowDGWHeight);
+        PrintField(4, "minimum_chain_work", Quoted(consensus.nMinimumChainWork.GetHex()));
+        PrintField(4, "default_assume_valid", Quoted(consensus.defaultAssumeValid.GetHex()));
+        std::vector<std::string> llmqs;
+        for (const auto& llmq : consensus.llmqs) {
+            llmqs.emplace_back(llmq.name);
+        }
+        PrintField(4, "llmqs", List(llmqs));
+        PrintField(4, "llmq_type_chain_locks", LLMQName(consensus.llmqTypeChainLocks));
+        PrintField(4, "llmq_type_dip0024_instant_send", LLMQName(consensus.llmqTypeDIP0024InstantSend));
+        PrintField(4, "llmq_type_platform", LLMQName(consensus.llmqTypePlatform));
+        PrintField(4, "llmq_type_mnhf", LLMQName(consensus.llmqTypeMnhf));
+        std::printf("      },\n");
+        PrintField(3, "message_start", Quoted(HexStr(params->MessageStart())));
+        PrintField(3, "default_port", params->GetDefaultPort());
+        PrintField(3, "default_platform_p2p_port", params->GetDefaultPlatformP2PPort());
+        PrintField(3, "default_platform_http_port", params->GetDefaultPlatformHTTPPort());
+        PrintField(3, "rpc_port", base->RPCPort());
+        PrintField(3, "onion_service_target_port", base->OnionServiceTargetPort());
+        PrintField(3, "prune_after_height", params->PruneAfterHeight());
+        PrintField(3, "assumed_blockchain_size_gb", params->AssumedBlockchainSize());
+        PrintField(3, "assumed_chain_state_size_gb", params->AssumedChainStateSize());
+        PrintField(3, "dns_seeds", List(params->DNSSeeds()));
+        std::printf("      \"addr_params\": {\n");
+        PrintField(4, "pubkey_addr", Quoted(HexStr(params->Base58Prefix(CChainParams::PUBKEY_ADDRESS))));
+        PrintField(4, "script_addr", Quoted(HexStr(params->Base58Prefix(CChainParams::SCRIPT_ADDRESS))));
+        PrintField(4, "secret_key", Quoted(HexStr(params->Base58Prefix(CChainParams::SECRET_KEY))));
+        PrintField(4, "ext_pubkey", Quoted(HexStr(params->Base58Prefix(CChainParams::EXT_PUBLIC_KEY))));
+        PrintField(4, "ext_secret", Quoted(HexStr(params->Base58Prefix(CChainParams::EXT_SECRET_KEY))));
+        PrintField(4, "bip44_idx", params->ExtCoinType());
+        std::printf("      },\n");
+        PrintField(3, "platform_hrp", Quoted(params->Bech32PlatformHRP()));
+        PrintField(3, "is_test_chain", Flag(params->IsTestChain()));
+        PrintField(3, "default_consistency_checks", Flag(params->DefaultConsistencyChecks()));
+        PrintField(3, "is_mockable_chain", Flag(params->IsMockableChain()));
+        PrintField(3, "pool_min_participants", params->PoolMinParticipants());
+        PrintField(3, "pool_max_participants", params->PoolMaxParticipants());
+        PrintField(3, "spork_address", Quoted(params->SporkAddress()));
+        PrintField(3, "credit_pool_period_blocks", params->CreditPoolPeriodBlocks());
+        std::printf("      \"checkpoints\": [\n");
+        for (const auto& [height, hash] : params->Checkpoints().mapCheckpoints) {
+            std::printf("        %s,\n", Pair(height, hash).c_str());
+        }
+        std::printf("      ],\n");
+        std::printf("      \"chain_tx_data\": {\n");
+        PrintField(4, "timestamp", params->TxData().nTime);
+        PrintField(4, "tx_count", params->TxData().nTxCount);
+        PrintField(4, "tx_rate", Rate(params->TxData().dTxRate));
+        std::printf("      },\n");
+        std::printf("    },\n");
+    }
+}
+*/
+  // Each vector holds the parameters of one chain, as the reference
+  // implementation builds them without options. Hashes and 256-bit numbers
+  // are big-endian hex, each pair holds a height and a block hash, LLMQ types
+  // are named, and address prefixes are hex.
+  "chains": [
+    // Mainnet, the production network.
+    {
+      "network_id": "main",
+      "consensus": {
+        "hash_genesis_block": "00000ffd590b1485b3caadc19b22e6379c733355108f107a430458cdf3407ab6",
+        "subsidy_halving_interval": 210240,
+        "masternode_payments_start_block": 100000,
+        "masternode_payments_increase_block": 158000,
+        "masternode_payments_increase_period": 17280,
+        "instant_send_confirmations_required": 6,
+        "instant_send_keep_lock": 24,
+        "budget_payments_start_block": 328008,
+        "budget_payments_cycle_blocks": 16616,
+        "budget_payments_window_blocks": 100,
+        "superblock_start": [614820, "0000000000020cb27c7ef164d21003d5d20cdca2f54dd9a9ca6d45f4d47f8aa3"],
+        "superblock_cycle": 16616,
+        "superblock_maturity_window": 1662,
+        "governance_min_quorum": 10,
+        "governance_filter_elements": 20000,
+        "masternode_minimum_confirmations": 15,
+        "bip34": [951, "000001f35e70f7c5705f64c6c5cc3dea9449e74d5b5c7cf74dad1bcca14a8012"],
+        "bip65_height": 619382,
+        "bip66_height": 245817,
+        "bip147_height": 939456,
+        "csv_height": 622944,
+        "dip0001_height": 782208,
+        "dip0003_height": 1028160,
+        "dip0003_enforcement": [1047200, "000000000000002d1734087b4c5afc3133e4e1c3e1a89218f62bcd9bb3d17f81"],
+        "dip0008_height": 1088640,
+        "brr_height": 1374912,
+        "dip0020_height": 1516032,
+        "dip0024_height": 1737792,
+        "dip0024_quorums_height": 1738698,
+        "v19_height": 1899072,
+        "v20_height": 1987776,
+        "mn_rr_height": 2128896,
+        "withdrawals_height": 2201472,
+        "min_bip9_warning_height": 2203488,
+        "rule_change_activation_threshold": 1815,
+        "miner_confirmation_window": 2016,
+        "deployments": {
+          "test_dummy": {
+            "bit": 28,
+            "start_time": -2,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 0,
+            "threshold_start": 0,
+            "threshold_min": 0,
+            "falloff_coeff": 0,
+            "use_ehf": false,
+          },
+          "v24": {
+            "bit": 13,
+            "start_time": -2,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 4032,
+            "threshold_start": 3226,
+            "threshold_min": 2420,
+            "falloff_coeff": 5,
+            "use_ehf": true,
+          },
+          "evo_shares": {
+            "bit": 14,
+            "start_time": -2,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 4032,
+            "threshold_start": 3226,
+            "threshold_min": 2420,
+            "falloff_coeff": 5,
+            "use_ehf": true,
+          },
+        },
+        "pow_limit": "00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "pow_allow_min_difficulty_blocks": false,
+        "pow_no_retargeting": false,
+        "pow_target_spacing": 150,
+        "pow_target_timespan": 86400,
+        "pow_kgw_height": 15200,
+        "pow_dgw_height": 34140,
+        "minimum_chain_work": "00000000000000000000000000000000000000000000ba7225adc3153945d14d",
+        "default_assume_valid": "00000000000000119fe42827219e0686d3f7b494ae65f823194c740c5dbab492",
+        "llmqs": ["llmq_50_60", "llmq_60_75", "llmq_400_60", "llmq_400_85", "llmq_100_67"],
+        "llmq_type_chain_locks": "llmq_400_60",
+        "llmq_type_dip0024_instant_send": "llmq_60_75",
+        "llmq_type_platform": "llmq_100_67",
+        "llmq_type_mnhf": "llmq_400_85",
+      },
+      "message_start": "bf0c6bbd",
+      "default_port": 9999,
+      "default_platform_p2p_port": 26656,
+      "default_platform_http_port": 443,
+      "rpc_port": 9998,
+      "onion_service_target_port": 9996,
+      "prune_after_height": 100000,
+      "assumed_blockchain_size_gb": 57,
+      "assumed_chain_state_size_gb": 1,
+      "dns_seeds": ["dnsseed.dash.org."],
+      "addr_params": {
+        "pubkey_addr": "4c",
+        "script_addr": "10",
+        "secret_key": "cc",
+        "ext_pubkey": "0488b21e",
+        "ext_secret": "0488ade4",
+        "bip44_idx": 5,
+      },
+      "platform_hrp": "dash",
+      "is_test_chain": false,
+      "default_consistency_checks": false,
+      "is_mockable_chain": false,
+      "pool_min_participants": 3,
+      "pool_max_participants": 20,
+      "spork_address": "Xgtyuk76vhuFW2iT7UAiHgNdWXCf3J34wh",
+      "credit_pool_period_blocks": 576,
+      "checkpoints": [
+        [1500, "000000aaf0300f59f49bc3e970bad15c11f961fe2347accffff19d96ec9778e3"],
+        [4991, "000000003b01809551952460744d5dbb8fcbd6cbae3c220267bf7fa43f837367"],
+        [9918, "00000000213e229f332c0ffbe34defdaa9e74de87f2d8d1f01af8d121c3c170b"],
+        [16912, "00000000075c0d10371d55a60634da70f197548dbbfa4123e12abfcbc5738af9"],
+        [23912, "0000000000335eac6703f3b1732ec8b2f89c3ba3a7889e5767b090556bb9a276"],
+        [35457, "0000000000b0ae211be59b048df14820475ad0dd53b9ff83b010f71a77342d9f"],
+        [45479, "000000000063d411655d590590e16960f15ceea4257122ac430c6fbe39fbf02d"],
+        [55895, "0000000000ae4c53a43639a4ca027282f69da9c67ba951768a20415b6439a2d7"],
+        [68899, "0000000000194ab4d3d9eeb1f2f792f21bb39ff767cb547fe977640f969d77b7"],
+        [74619, "000000000011d28f38f05d01650a502cc3f4d0e793fbc26e2a2ca71f07dc3842"],
+        [75095, "0000000000193d12f6ad352a9996ee58ef8bdc4946818a5fec5ce99c11b87f0d"],
+        [88805, "00000000001392f1652e9bf45cd8bc79dc60fe935277cd11538565b4a94fa85f"],
+        [107996, "00000000000a23840ac16115407488267aa3da2b9bc843e301185b7d17e4dc40"],
+        [137993, "00000000000cf69ce152b1bffdeddc59188d7a80879210d6e5c9503011929c3c"],
+        [167996, "000000000009486020a80f7f2cc065342b0c2fb59af5e090cd813dba68ab0fed"],
+        [207992, "00000000000d85c22be098f74576ef00b7aa00c05777e966aff68a270f1e01a5"],
+        [312645, "0000000000059dcb71ad35a9e40526c44e7aae6c99169a9e7017b7d84b1c2daf"],
+        [407452, "000000000003c6a87e73623b9d70af7cd908ae22fee466063e4ffc20be1d2dbc"],
+        [523412, "000000000000e54f036576a10597e0e42cc22a5159ce572f999c33975e121d4d"],
+        [523930, "0000000000000bccdb11c2b1cfb0ecab452abf267d89b7f46eaf2d54ce6e652c"],
+        [750000, "00000000000000b4181bbbdddbae464ce11fede5d0292fb63fdede1e7c8ab21c"],
+        [888900, "0000000000000026c29d576073ab51ebd1d3c938de02e9a44c7ee9e16f82db28"],
+        [967800, "0000000000000024e26c7df7e46d673724d223cf4ca2b2adc21297cc095600f4"],
+        [1067570, "000000000000001e09926bcf5fa4513d23e870a34f74e38200db99eb3f5b7a70"],
+        [1167570, "000000000000000fb7b1e9b81700283dff0f7d87cf458e5edfdae00c669de661"],
+        [1364585, "00000000000000022f355c52417fca9b73306958f7c0832b3a7bce006ca369ef"],
+        [1450000, "00000000000000105cfae44a995332d8ec256850ea33a1f7b700474e3dad82bc"],
+        [1796500, "000000000000001d531f36005159f19351bd49ca676398a561e55dcccb84eacd"],
+        [1850400, "00000000000000261bdbe99c01fcba992e577efa6cc41aae564b8ca9f112b2a3"],
+        [1889000, "00000000000000075300e852d5bf5380f905b2768241f8b442498442084807a7"],
+        [1969000, "000000000000000c8b7a3bdcd8b9f516462122314529c8342244c685a4c899bf"],
+        [2029000, "0000000000000020d5e38b6aef5bc8e430029444d7977b46f710c7d281ef1281"],
+        [2109672, "000000000000001889bd33ef019065e250d32bd46911f4003d3fdd8128b5358d"],
+        [2175051, "000000000000001cf26547602d982dcaa909231bbcd1e70c0eb3c65de25473ba"],
+        [2216986, "0000000000000010b1135dc743f27f6fc8a138c6420a9d963fc676f96c2048f4"],
+        [2361500, "0000000000000009ba1e8f47851d036bb618a4f6565eb3c32d1f647d450ff195"],
+        [2421800, "000000000000000718ed026ebd644a8b70b42d4cbd7b25304c066c9bf15f85b7"],
+        [2471728, "000000000000001a19ad7270422a00f86123ea94e0b295a3a796d6861bd7b032"],
+        [2487500, "00000000000000119fe42827219e0686d3f7b494ae65f823194c740c5dbab492"],
+      ],
+      "chain_tx_data": {
+        "timestamp": 1781318234,
+        "tx_count": 69770814,
+        "tx_rate": 0.1569520632249578,
+      },
+    },
+    // Testnet, the public test network.
+    {
+      "network_id": "test",
+      "consensus": {
+        "hash_genesis_block": "00000bafbc94add76cb75e2ec92894837288a481e5c005f6563d91623bf8bc2c",
+        "subsidy_halving_interval": 210240,
+        "masternode_payments_start_block": 4010,
+        "masternode_payments_increase_block": 4030,
+        "masternode_payments_increase_period": 10,
+        "instant_send_confirmations_required": 2,
+        "instant_send_keep_lock": 6,
+        "budget_payments_start_block": 4100,
+        "budget_payments_cycle_blocks": 50,
+        "budget_payments_window_blocks": 10,
+        "superblock_start": [4200, "0000000000000000000000000000000000000000000000000000000000000000"],
+        "superblock_cycle": 24,
+        "superblock_maturity_window": 8,
+        "governance_min_quorum": 1,
+        "governance_filter_elements": 500,
+        "masternode_minimum_confirmations": 1,
+        "bip34": [76, "000008ebb1db2598e897d17275285767717c6acfeac4c73def49fbea1ddcbcb6"],
+        "bip65_height": 2431,
+        "bip66_height": 2075,
+        "bip147_height": 4300,
+        "csv_height": 8064,
+        "dip0001_height": 5500,
+        "dip0003_height": 7000,
+        "dip0003_enforcement": [7300, "00000055ebc0e974ba3a3fb785c5ad4365a39637d4df168169ee80d313612f8f"],
+        "dip0008_height": 78800,
+        "brr_height": 387500,
+        "dip0020_height": 414100,
+        "dip0024_height": 769700,
+        "dip0024_quorums_height": 770730,
+        "v19_height": 850100,
+        "v20_height": 905100,
+        "mn_rr_height": 1066900,
+        "withdrawals_height": 1148500,
+        "min_bip9_warning_height": 1150516,
+        "rule_change_activation_threshold": 1512,
+        "miner_confirmation_window": 2016,
+        "deployments": {
+          "test_dummy": {
+            "bit": 28,
+            "start_time": -2,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 0,
+            "threshold_start": 0,
+            "threshold_min": 0,
+            "falloff_coeff": 0,
+            "use_ehf": false,
+          },
+          "v24": {
+            "bit": 13,
+            "start_time": 1790208000,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 100,
+            "threshold_start": 80,
+            "threshold_min": 60,
+            "falloff_coeff": 5,
+            "use_ehf": true,
+          },
+          "evo_shares": {
+            "bit": 14,
+            "start_time": 1790208000,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 100,
+            "threshold_start": 80,
+            "threshold_min": 60,
+            "falloff_coeff": 5,
+            "use_ehf": true,
+          },
+        },
+        "pow_limit": "00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "pow_allow_min_difficulty_blocks": true,
+        "pow_no_retargeting": false,
+        "pow_target_spacing": 150,
+        "pow_target_timespan": 86400,
+        "pow_kgw_height": 4002,
+        "pow_dgw_height": 4002,
+        "minimum_chain_work": "000000000000000000000000000000000000000000000000036c8f738da818d2",
+        "default_assume_valid": "000000541a23f9db7411cddbe50f9f1ebd4aa7108ebdcad62214753f648c0239",
+        "llmqs": ["llmq_50_60", "llmq_60_75", "llmq_400_60", "llmq_400_85", "llmq_100_67", "llmq_25_67"],
+        "llmq_type_chain_locks": "llmq_50_60",
+        "llmq_type_dip0024_instant_send": "llmq_60_75",
+        "llmq_type_platform": "llmq_25_67",
+        "llmq_type_mnhf": "llmq_50_60",
+      },
+      "message_start": "cee2caff",
+      "default_port": 19999,
+      "default_platform_p2p_port": 22000,
+      "default_platform_http_port": 22001,
+      "rpc_port": 19998,
+      "onion_service_target_port": 19996,
+      "prune_after_height": 1000,
+      "assumed_blockchain_size_gb": 10,
+      "assumed_chain_state_size_gb": 1,
+      "dns_seeds": ["testnet-seed.dashdot.io."],
+      "addr_params": {
+        "pubkey_addr": "8c",
+        "script_addr": "13",
+        "secret_key": "ef",
+        "ext_pubkey": "043587cf",
+        "ext_secret": "04358394",
+        "bip44_idx": 1,
+      },
+      "platform_hrp": "tdash",
+      "is_test_chain": true,
+      "default_consistency_checks": false,
+      "is_mockable_chain": false,
+      "pool_min_participants": 2,
+      "pool_max_participants": 20,
+      "spork_address": "yjPtiKh2uwk3bDutTEA2q9mCtXyiZRWn55",
+      "credit_pool_period_blocks": 576,
+      "checkpoints": [
+        [255, "0000080b600e06f4c07880673f027210f9314575f5f875fafe51971e268b886a"],
+        [261, "00000c26026d0815a7e2ce4fa270775f61403c040647ff2c3091f99e894a4618"],
+        [1999, "00000052e538d27fa53693efe6fb6892a0c1d26c0235f599171c48a3cce553b1"],
+        [2999, "0000024bc3f4f4cb30d29827c13d921ad77d2c6072e586c7f60d83c2722cdcc5"],
+        [96090, "00000000033df4b94d17ab43e999caaf6c4735095cc77703685da81254d09bba"],
+        [200000, "000000001015eb5ef86a8fe2b3074d947bc972c5befe32b28dd5ce915dc0d029"],
+        [395750, "000008b78b6aef3fd05ab78db8b76c02163e885305545144420cb08704dce538"],
+        [470000, "0000009303aeadf8cf3812f5c869691dbd4cb118ad20e9bf553be434bafe6a52"],
+        [794950, "000001860e4c7248a9c5cc3bc7106041750560dc5cd9b3a2641b49494bcff5f2"],
+        [808000, "00000104cb60a2b5e00a8a4259582756e5bf0dca201c0993c63f0e54971ea91a"],
+        [840000, "000000cd7c3084499912ae893125c13e8c3c656abb6e511dcec6619c3d65a510"],
+        [851000, "0000014d3b875540ff75517b7fbb1714e25d50ce92f65d7086cfce357928bb02"],
+        [905100, "0000020c5e0f86f385cbf8e90210de9a9fd63633f01433bf47a6b3227a2851fd"],
+        [960000, "0000000386cf5061ea16404c66deb83eb67892fa4f79b9e58e5eaab097ec2bd6"],
+        [1069875, "00000034bfeb926662ba547c0b8dd4ba8cbb6e0c581f4e7d1bddce8f9ca3a608"],
+        [1143608, "000000eef20eb0062abd4e799967e98bdebb165dd1c567ab4118c1c86c6e948f"],
+        [1189000, "000001690314036dfbbecbdf382b230ead8e9c584241290a51f9f05a87a9cf7e"],
+        [1295700, "00000107d42829a38e31c1a38c660d621e1ca376a880df1520e85e38af175d3a"],
+        [1380000, "000000a98084beaf77ed26a905a7d59979009e23367a55b5d634962d7d65a1f9"],
+      ],
+      "chain_tx_data": {
+        "timestamp": 1765334452,
+        "tx_count": 8182713,
+        "tx_rate": 0.1796716675173412,
+      },
+    },
+    // Regtest, the network for local regression tests.
+    {
+      "network_id": "regtest",
+      "consensus": {
+        "hash_genesis_block": "000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e",
+        "subsidy_halving_interval": 150,
+        "masternode_payments_start_block": 240,
+        "masternode_payments_increase_block": 350,
+        "masternode_payments_increase_period": 10,
+        "instant_send_confirmations_required": 2,
+        "instant_send_keep_lock": 6,
+        "budget_payments_start_block": 1000,
+        "budget_payments_cycle_blocks": 50,
+        "budget_payments_window_blocks": 10,
+        "superblock_start": [1500, "0000000000000000000000000000000000000000000000000000000000000000"],
+        "superblock_cycle": 20,
+        "superblock_maturity_window": 10,
+        "governance_min_quorum": 1,
+        "governance_filter_elements": 100,
+        "masternode_minimum_confirmations": 1,
+        "bip34": [1, "0000000000000000000000000000000000000000000000000000000000000000"],
+        "bip65_height": 1,
+        "bip66_height": 1,
+        "bip147_height": 0,
+        "csv_height": 1,
+        "dip0001_height": 1,
+        "dip0003_height": 432,
+        "dip0003_enforcement": [500, "0000000000000000000000000000000000000000000000000000000000000000"],
+        "dip0008_height": 1,
+        "brr_height": 1,
+        "dip0020_height": 1,
+        "dip0024_height": 1,
+        "dip0024_quorums_height": 1,
+        "v19_height": 1,
+        "v20_height": 432,
+        "mn_rr_height": 432,
+        "withdrawals_height": 600,
+        "min_bip9_warning_height": 0,
+        "rule_change_activation_threshold": 108,
+        "miner_confirmation_window": 144,
+        "deployments": {
+          "test_dummy": {
+            "bit": 28,
+            "start_time": 0,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 0,
+            "threshold_start": 0,
+            "threshold_min": 0,
+            "falloff_coeff": 0,
+            "use_ehf": false,
+          },
+          "v24": {
+            "bit": 13,
+            "start_time": 0,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 250,
+            "threshold_start": 200,
+            "threshold_min": 150,
+            "falloff_coeff": 5,
+            "use_ehf": true,
+          },
+          "evo_shares": {
+            "bit": 14,
+            "start_time": 0,
+            "timeout": 9223372036854775807,
+            "min_activation_height": 0,
+            "window_size": 250,
+            "threshold_start": 200,
+            "threshold_min": 150,
+            "falloff_coeff": 5,
+            "use_ehf": true,
+          },
+        },
+        "pow_limit": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "pow_allow_min_difficulty_blocks": true,
+        "pow_no_retargeting": true,
+        "pow_target_spacing": 150,
+        "pow_target_timespan": 86400,
+        "pow_kgw_height": 15200,
+        "pow_dgw_height": 34140,
+        "minimum_chain_work": "0000000000000000000000000000000000000000000000000000000000000000",
+        "default_assume_valid": "0000000000000000000000000000000000000000000000000000000000000000",
+        "llmqs": ["llmq_test", "llmq_test_instantsend", "llmq_test_v17", "llmq_test_dip0024", "llmq_test_platform"],
+        "llmq_type_chain_locks": "llmq_test",
+        "llmq_type_dip0024_instant_send": "llmq_test_dip0024",
+        "llmq_type_platform": "llmq_test_platform",
+        "llmq_type_mnhf": "llmq_test",
+      },
+      "message_start": "fcc1b7dc",
+      "default_port": 19899,
+      "default_platform_p2p_port": 22200,
+      "default_platform_http_port": 22201,
+      "rpc_port": 19898,
+      "onion_service_target_port": 19896,
+      "prune_after_height": 1000,
+      "assumed_blockchain_size_gb": 0,
+      "assumed_chain_state_size_gb": 0,
+      "dns_seeds": ["dummySeed.invalid."],
+      "addr_params": {
+        "pubkey_addr": "8c",
+        "script_addr": "13",
+        "secret_key": "ef",
+        "ext_pubkey": "043587cf",
+        "ext_secret": "04358394",
+        "bip44_idx": 1,
+      },
+      "platform_hrp": "tdash",
+      "is_test_chain": true,
+      "default_consistency_checks": true,
+      "is_mockable_chain": true,
+      "pool_min_participants": 2,
+      "pool_max_participants": 20,
+      "spork_address": "yj949n1UH6fDhw6HtVE5VMj2iSTaSWBMcW",
+      "credit_pool_period_blocks": 100,
+      "checkpoints": [
+        [0, "000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e"],
+      ],
+      "chain_tx_data": {
+        "timestamp": 0,
+        "tx_count": 0,
+        "tx_rate": 0,
+      },
+    },
+  ],
+/*
+BOOST_AUTO_TEST_CASE(llmq_params)
+{
+    for (const auto& llmq : Consensus::available_llmqs) {
+        std::printf("    {\n");
+        std::printf("      \"type\": %d,\n", static_cast<int>(llmq.type));
+        std::printf("      \"name\": \"%s\",\n", std::string{llmq.name}.c_str());
+        std::printf("      \"use_rotation\": %s,\n", llmq.useRotation ? "true" : "false");
+        std::printf("      \"size\": %d,\n", llmq.size);
+        std::printf("      \"min_size\": %d,\n", llmq.minSize);
+        std::printf("      \"threshold\": %d,\n", llmq.threshold);
+        std::printf("      \"dkg_interval\": %d,\n", llmq.dkgInterval);
+        std::printf("      \"dkg_phase_blocks\": %d,\n", llmq.dkgPhaseBlocks);
+        std::printf("      \"dkg_mining_window_start\": %d,\n", llmq.dkgMiningWindowStart);
+        std::printf("      \"dkg_mining_window_end\": %d,\n", llmq.dkgMiningWindowEnd);
+        std::printf("      \"dkg_bad_votes_threshold\": %d,\n", llmq.dkgBadVotesThreshold);
+        std::printf("      \"signing_active_quorum_count\": %d,\n", llmq.signingActiveQuorumCount);
+        std::printf("      \"keep_old_connections\": %d,\n", llmq.keepOldConnections);
+        std::printf("      \"keep_old_keys\": %d,\n", llmq.keepOldKeys);
+        std::printf("      \"recovery_members\": %d,\n", llmq.recoveryMembers);
+        std::printf("    },\n");
+    }
+}
+*/
+  // Each vector holds one entry of the reference implementation's LLMQ table,
+  // in its order. `type` is the byte of the LLMQ type.
+  "llmqs": [
+    // Regtest's ChainLocks and hard-fork signalling quorum.
+    {
+      "type": 100,
+      "name": "llmq_test",
+      "use_rotation": false,
+      "size": 3,
+      "min_size": 2,
+      "threshold": 2,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 2,
+      "signing_active_quorum_count": 2,
+      "keep_old_connections": 3,
+      "keep_old_keys": 4,
+      "recovery_members": 3,
+    },
+    // Run by regtest, with the shape of `llmq_test`.
+    {
+      "type": 104,
+      "name": "llmq_test_instantsend",
+      "use_rotation": false,
+      "size": 3,
+      "min_size": 2,
+      "threshold": 2,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 2,
+      "signing_active_quorum_count": 2,
+      "keep_old_connections": 3,
+      "keep_old_keys": 4,
+      "recovery_members": 3,
+    },
+    // Run by regtest to test the activation of a new quorum type.
+    {
+      "type": 102,
+      "name": "llmq_test_v17",
+      "use_rotation": false,
+      "size": 3,
+      "min_size": 2,
+      "threshold": 2,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 2,
+      "signing_active_quorum_count": 2,
+      "keep_old_connections": 3,
+      "keep_old_keys": 4,
+      "recovery_members": 3,
+    },
+    // Regtest's rotating InstantSend quorum.
+    {
+      "type": 103,
+      "name": "llmq_test_dip0024",
+      "use_rotation": true,
+      "size": 4,
+      "min_size": 4,
+      "threshold": 3,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 12,
+      "dkg_mining_window_end": 20,
+      "dkg_bad_votes_threshold": 2,
+      "signing_active_quorum_count": 2,
+      "keep_old_connections": 4,
+      "keep_old_keys": 4,
+      "recovery_members": 3,
+    },
+    // Regtest's Platform quorum.
+    {
+      "type": 106,
+      "name": "llmq_test_platform",
+      "use_rotation": false,
+      "size": 3,
+      "min_size": 2,
+      "threshold": 2,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 2,
+      "signing_active_quorum_count": 2,
+      "keep_old_connections": 4,
+      "keep_old_keys": 1440,
+      "recovery_members": 3,
+    },
+    // A quorum that none of the three chains runs.
+    {
+      "type": 101,
+      "name": "llmq_devnet",
+      "use_rotation": false,
+      "size": 12,
+      "min_size": 7,
+      "threshold": 6,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 7,
+      "signing_active_quorum_count": 4,
+      "keep_old_connections": 5,
+      "keep_old_keys": 8,
+      "recovery_members": 6,
+    },
+    // A rotating quorum that none of the three chains runs.
+    {
+      "type": 105,
+      "name": "llmq_devnet_dip0024",
+      "use_rotation": true,
+      "size": 8,
+      "min_size": 6,
+      "threshold": 4,
+      "dkg_interval": 48,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 12,
+      "dkg_mining_window_end": 20,
+      "dkg_bad_votes_threshold": 7,
+      "signing_active_quorum_count": 2,
+      "keep_old_connections": 4,
+      "keep_old_keys": 4,
+      "recovery_members": 4,
+    },
+    // A Platform quorum that none of the three chains runs.
+    {
+      "type": 107,
+      "name": "llmq_devnet_platform",
+      "use_rotation": false,
+      "size": 12,
+      "min_size": 9,
+      "threshold": 8,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 7,
+      "signing_active_quorum_count": 4,
+      "keep_old_connections": 5,
+      "keep_old_keys": 1440,
+      "recovery_members": 6,
+    },
+    // Testnet's ChainLocks and hard-fork signalling quorum, also run on mainnet.
+    {
+      "type": 1,
+      "name": "llmq_50_60",
+      "use_rotation": false,
+      "size": 50,
+      "min_size": 40,
+      "threshold": 30,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 40,
+      "signing_active_quorum_count": 24,
+      "keep_old_connections": 25,
+      "keep_old_keys": 48,
+      "recovery_members": 25,
+    },
+    // The rotating InstantSend quorum of mainnet and testnet.
+    {
+      "type": 5,
+      "name": "llmq_60_75",
+      "use_rotation": true,
+      "size": 60,
+      "min_size": 50,
+      "threshold": 45,
+      "dkg_interval": 288,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 42,
+      "dkg_mining_window_end": 50,
+      "dkg_bad_votes_threshold": 48,
+      "signing_active_quorum_count": 32,
+      "keep_old_connections": 64,
+      "keep_old_keys": 64,
+      "recovery_members": 25,
+    },
+    // Mainnet's ChainLocks quorum, also run on testnet.
+    {
+      "type": 2,
+      "name": "llmq_400_60",
+      "use_rotation": false,
+      "size": 400,
+      "min_size": 300,
+      "threshold": 240,
+      "dkg_interval": 288,
+      "dkg_phase_blocks": 4,
+      "dkg_mining_window_start": 20,
+      "dkg_mining_window_end": 28,
+      "dkg_bad_votes_threshold": 300,
+      "signing_active_quorum_count": 4,
+      "keep_old_connections": 5,
+      "keep_old_keys": 8,
+      "recovery_members": 100,
+    },
+    // Mainnet's hard-fork signalling quorum, also run on testnet, with the widest mining window.
+    {
+      "type": 3,
+      "name": "llmq_400_85",
+      "use_rotation": false,
+      "size": 400,
+      "min_size": 350,
+      "threshold": 340,
+      "dkg_interval": 576,
+      "dkg_phase_blocks": 4,
+      "dkg_mining_window_start": 20,
+      "dkg_mining_window_end": 48,
+      "dkg_bad_votes_threshold": 300,
+      "signing_active_quorum_count": 4,
+      "keep_old_connections": 5,
+      "keep_old_keys": 8,
+      "recovery_members": 100,
+    },
+    // Mainnet's Platform quorum, also run on testnet.
+    {
+      "type": 4,
+      "name": "llmq_100_67",
+      "use_rotation": false,
+      "size": 100,
+      "min_size": 80,
+      "threshold": 67,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 80,
+      "signing_active_quorum_count": 24,
+      "keep_old_connections": 25,
+      "keep_old_keys": 1440,
+      "recovery_members": 50,
+    },
+    // Testnet's Platform quorum.
+    {
+      "type": 6,
+      "name": "llmq_25_67",
+      "use_rotation": false,
+      "size": 25,
+      "min_size": 22,
+      "threshold": 17,
+      "dkg_interval": 24,
+      "dkg_phase_blocks": 2,
+      "dkg_mining_window_start": 10,
+      "dkg_mining_window_end": 18,
+      "dkg_bad_votes_threshold": 22,
+      "signing_active_quorum_count": 24,
+      "keep_old_connections": 25,
+      "keep_old_keys": 1440,
+      "recovery_members": 12,
+    },
+  ],
+}

@@ -6,6 +6,8 @@
 
 //! Shared type definitions for chain parameters.
 
+use crate::{LlmqParams, AVAILABLE_LLMQS};
+
 pub(crate) use bitcoin_units::BlockHeight;
 use dash_num::{Arith256, Hash256};
 use dash_primitives::LlmqType;
@@ -72,6 +74,9 @@ pub struct Bip9Deployments {
   pub test_dummy: Bip9Deployment,
   /// Deployment parameters for the v24 upgrade.
   pub v24: Bip9Deployment,
+  /// Deployment parameters for shared EvoNode collateral and multiple owner
+  /// payouts.
+  pub evo_shares: Bip9Deployment,
 }
 
 /// Buried deployment positions with hardcoded activation heights.
@@ -219,6 +224,8 @@ pub struct ConsensusParams {
   /// Block hash assumed valid for fast initial
   /// sync.
   pub default_assume_valid: Hash256,
+  /// LLMQ types the chain runs.
+  pub llmqs: &'static [LlmqType],
   /// LLMQ type used for ChainLocks.
   pub llmq_type_chain_locks: LlmqType,
   /// LLMQ type used for DIP0024 InstantSend.
@@ -251,6 +258,15 @@ impl ConsensusParams {
       BuriedDeployment::Withdrawals => self.withdrawals_height,
     }
   }
+
+  /// Returns the parameters of an LLMQ type the chain
+  /// runs, or `None` if the chain does not run it.
+  pub fn llmq(&self, llmq_type: LlmqType) -> Option<&'static LlmqParams> {
+    if !self.llmqs.contains(&llmq_type) {
+      return None;
+    }
+    AVAILABLE_LLMQS.iter().find(|llmq| llmq.llmq_type == llmq_type)
+  }
 }
 
 /// Complete chain parameters for a network.
@@ -280,13 +296,12 @@ pub struct ChainParams {
   pub dns_seeds: &'static [&'static str],
   /// Address encoding parameters.
   pub addr_params: AddrParams,
+  /// Bech32m human-readable part of DIP0018 Platform addresses.
+  pub platform_hrp: &'static str,
   /// Human-readable network identifier string.
   pub network_id: &'static str,
   /// Whether this is a test network.
   pub is_test_chain: bool,
-  /// Whether non-standard transactions are
-  /// rejected.
-  pub require_standard: bool,
   /// Whether internal consistency checks run by
   /// default.
   pub default_consistency_checks: bool,
@@ -296,6 +311,8 @@ pub struct ChainParams {
   pub pool_min_participants: i32,
   /// Maximum participants for a CoinJoin session.
   pub pool_max_participants: i32,
+  /// Address of the key that signs sporks.
+  pub spork_address: &'static str,
   /// Number of blocks in a credit-pool accounting
   /// period.
   pub credit_pool_period_blocks: i32,

@@ -125,8 +125,19 @@ pub static PARAMS: ChainParams = ChainParams {
         use_ehf: false,
       },
       v24: Bip9Deployment {
-        bit: 12,
-        start_time: Bip9Deployment::NEVER_ACTIVE,
+        bit: 13,
+        start_time: 1_790_208_000, // 2026-09-24T00:00:00Z
+        timeout: Bip9Deployment::NO_TIMEOUT,
+        min_activation_height: BlockHeight::from_u32(0),
+        window_size: 100,
+        threshold_start: 80, // 80% of 100
+        threshold_min: 60,   // 60% of 100
+        falloff_coeff: 5,
+        use_ehf: true,
+      },
+      evo_shares: Bip9Deployment {
+        bit: 14,
+        start_time: 1_790_208_000, // 2026-09-24T00:00:00Z
         timeout: Bip9Deployment::NO_TIMEOUT,
         min_activation_height: BlockHeight::from_u32(0),
         window_size: 100,
@@ -150,6 +161,14 @@ pub static PARAMS: ChainParams = ChainParams {
     default_assume_valid: Hash256::from_bendian(hex!(
       "000000541a23f9db7411cddbe50f9f1ebd4aa7108ebdcad62214753f648c0239"
     )),
+    llmqs: &[
+      LlmqType::Llmq50_60,
+      LlmqType::Llmq60_75,
+      LlmqType::Llmq400_60,
+      LlmqType::Llmq400_85,
+      LlmqType::Llmq100_67,
+      LlmqType::Llmq25_67,
+    ],
     llmq_type_chain_locks: LlmqType::Llmq50_60,
     llmq_type_dip0024_instant_send: LlmqType::Llmq60_75,
     llmq_type_platform: LlmqType::Llmq25_67,
@@ -166,13 +185,14 @@ pub static PARAMS: ChainParams = ChainParams {
   assumed_chain_state_size_gb: 1,
   dns_seeds: &["testnet-seed.dashdot.io."],
   addr_params: dash_script::__private::params::TESTNET,
+  platform_hrp: "tdash",
   network_id: "test",
   is_test_chain: true,
-  require_standard: false,
   default_consistency_checks: false,
   is_mockable_chain: false,
   pool_min_participants: 2,
   pool_max_participants: 20,
+  spork_address: "yjPtiKh2uwk3bDutTEA2q9mCtXyiZRWn55",
   credit_pool_period_blocks: 576,
   checkpoints: &CHECKPOINTS,
   chain_tx_data: ChainTxData {
