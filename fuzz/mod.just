@@ -36,6 +36,7 @@ reduce crate target:
 run crate target *args: mount-ramdisk
     RUSTFLAGS="{{ rustflags }}" CARGO_TARGET_DIR={{ ramdisk }}/target \
       cargo afl build --release -p dash-{{ crate }}-fuzz --bin {{ target }}
+    mkdir -p {{ ramdisk }}/out
     AFL_AUTORESUME=1 cargo afl fuzz -i {{ crate }}/corpora/{{ target }} -o {{ ramdisk }}/out/{{ target }} \
       -x dicts/byte_patterns.dict {{ args }} \
       -- {{ ramdisk }}/target/release/{{ target }}
