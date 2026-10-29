@@ -9,9 +9,10 @@
 
 """Reduce an AFL++ queue into a committed fuzz corpus.
 
-Runs `afl-cmin.bash` to keep one input per coverage tuple, `afl-tmin` on each
-survivor, then replaces the corpus with the results named by their SHA-1. The
-Python `afl-cmin` writes nothing on macOS and the awk one refuses to run.
+Pools the queue with the corpus, then runs `afl-cmin.bash` to keep one input
+per coverage tuple and `afl-tmin` on each survivor. The corpus becomes the
+results, named by their SHA-1. The Python `afl-cmin` writes nothing on macOS
+and the awk one refuses to run.
 
 Usage:
 
@@ -89,17 +90,31 @@ def _sizes(paths: list[Path]) -> str:
   return f"{len(paths)} files, {total} bytes"
 
 
+def _digest(data: bytes) -> str:
+  """Return the SHA-1 name of *data*."""
+  return hashlib.sha1(data, usedforsecurity=False).hexdigest()
+
+
 def _reduce(args: argparse.Namespace) -> int:
   afl_bin = _afl_bin(args.afl_bin)
-  queue = sorted(path for path in args.queue.iterdir() if path.is_file())
-  if not queue:
+  inputs = sorted(path for path in args.queue.iterdir() if path.is_file())
+  if not inputs:
     raise RuntimeError(f"{args.queue} holds no inputs")
-  print(f"queue: {_sizes(queue)}")
+  print(f"queue: {_sizes(inputs)}")
+  # The corpus joins the pool so no committed input is dropped unexamined.
+  if args.corpus.is_dir():
+    inputs += [path for path in args.corpus.iterdir() if path.is_file()]
 
   with tempfile.TemporaryDirectory(dir=args.queue.parent) as work:
+    pool = Path(work) / "pool"
+    pool.mkdir()
+    for path in inputs:
+      data = path.read_bytes()
+      (pool / _digest(data)).write_bytes(data)
+
     kept = Path(work) / "cmin"
     cmin = afl_bin / "afl-cmin.bash"
-    _run(afl_bin, cmin, "-i", args.queue, "-o", kept, "--", args.binary)
+    _run(afl_bin, cmin, "-i", pool, "-o", kept, "--", args.binary)
     survivors = sorted(kept.iterdir())
     # A silent failure leaves no inputs, which is never a valid reduction.
     if not survivors:
@@ -109,9 +124,9 @@ def _reduce(args: argparse.Namespace) -> int:
     trimmed = Path(work) / "tmin"
     trimmed.mkdir()
     tmin = afl_bin / "afl-tmin"
-    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool_jobs:
       jobs = [
-        pool.submit(
+        pool_jobs.submit(
           _run,
           afl_bin,
           *(tmin, "-i", path, "-o", trimmed / path.name, "--", args.binary),
@@ -122,30 +137,17 @@ def _reduce(args: argparse.Namespace) -> int:
         job.result()
 
     # Inputs that trim to the same bytes share a name and collapse into one.
-    inputs = {}
+    reduced = {}
     for path in trimmed.iterdir():
       data = path.read_bytes()
-      inputs[hashlib.sha1(data, usedforsecurity=False).hexdigest()] = data
-    print(f"tmin:  {_sizes(list(trimmed.iterdir()))}, {len(inputs)} distinct")
+      reduced[_digest(data)] = data
+    print(f"tmin:  {_sizes(list(trimmed.iterdir()))}, {len(reduced)} distinct")
 
   args.corpus.mkdir(parents=True, exist_ok=True)
-  # A seed absent from the queue means the fuzzer did not start from the
-  # corpus, so replacing it may drop coverage the queue never had.
-  queued = {path.read_bytes() for path in queue}
-  unseen = [
-    path
-    for path in args.corpus.iterdir()
-    if path.is_file() and path.read_bytes() not in queued
-  ]
-  if unseen:
-    print(
-      f"warning: {len(unseen)} corpus inputs are not in the queue",
-      file=sys.stderr,
-    )
   for stale in args.corpus.iterdir():
     if stale.is_file():
       stale.unlink()
-  for name, data in inputs.items():
+  for name, data in reduced.items():
     (args.corpus / name).write_bytes(data)
   print(f"wrote {args.corpus}")
   return RETCODE_PASS
