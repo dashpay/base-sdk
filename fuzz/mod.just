@@ -10,15 +10,14 @@ x86_64_flags := "-C target-cpu=x86-64-v3 -C target-feature=+aes"
 aarch64_flags := "-C target-cpu=generic -C target-feature=+aes"
 rustflags := if arch() == "x86_64" { x86_64_flags } else if arch() == "aarch64" { aarch64_flags } else { "" }
 
+import "pow/mod.just"
+
 # AFL++ needs `cargo afl system-config` again after every reboot.
 # Fetch sphlib, install cargo-afl and build AFL++
 setup:
     git submodule update --init pow/sphlib
     cargo install --locked cargo-afl@0.18.2
     cargo afl config --build
-
-# Fuzz a `dash-pow` `target` against sphlib; extra arguments go to `afl-fuzz`
-pow target *args: (run "pow" target args)
 
 # Check every stage against sphlib, natively and as a baseline `portable` build
 test:
