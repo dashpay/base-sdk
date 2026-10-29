@@ -25,20 +25,26 @@ test:
     cargo test --locked --workspace
     RUSTFLAGS="" cargo test --locked --workspace --features dash-pow/portable
 
-# Reduce the AFL++ queue of `target` into its committed corpus
-reduce crate target:
-    {{ python }} ../contrib/reduce_corpora.py --queue {{ ramdisk }}/out/{{ target }}/default/queue \
-      --binary {{ ramdisk }}/target/release/{{ target }} --corpus {{ crate }}/corpora/{{ target }}
+# Reduce the queues of `target` under each of `roots` into its committed corpus
+[private]
+reduce-from crate target +roots:
+    {{ python }} ../contrib/reduce_corpora.py --corpus {{ crate }}/corpora/{{ target }} \
+      {{ prepend("--queue ", append("/out/" + target + "/default/queue", roots)) }} \
+      {{ prepend("--binary ", append("/target/release/" + target, roots)) }}
+
+# Build `target` of `dash-<crate>-fuzz` for AFL++ in a ramdisk
+[private]
+build crate target flags features root: mount-ramdisk
+    RUSTFLAGS="{{ flags }}" CARGO_TARGET_DIR={{ root }}/target \
+      cargo afl build --release -p dash-{{ crate }}-fuzz --bin {{ target }} {{ features }}
 
 # Fuzz `target` of `dash-<crate>-fuzz` with AFL++ in a ramdisk
 [private]
-run crate target *args: mount-ramdisk
-    RUSTFLAGS="{{ rustflags }}" CARGO_TARGET_DIR={{ ramdisk }}/target \
-      cargo afl build --release -p dash-{{ crate }}-fuzz --bin {{ target }}
-    mkdir -p {{ ramdisk }}/out
-    AFL_AUTORESUME=1 cargo afl fuzz -i {{ crate }}/corpora/{{ target }} -o {{ ramdisk }}/out/{{ target }} \
+run crate target flags features root *args: (build crate target flags features root)
+    mkdir -p {{ root }}/out
+    AFL_AUTORESUME=1 cargo afl fuzz -i {{ crate }}/corpora/{{ target }} -o {{ root }}/out/{{ target }} \
       -x dicts/byte_patterns.dict {{ args }} \
-      -- {{ ramdisk }}/target/release/{{ target }}
+      -- {{ root }}/target/release/{{ target }}
 
 [private]
 ramdisk *args:
