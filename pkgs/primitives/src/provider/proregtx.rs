@@ -105,7 +105,8 @@ pub struct ProRegTx {
 
 impl_payload!(ProRegTx);
 
-/// Checks that platform fields are consistent with mn_type and version.
+/// Checks that platform fields are consistent with mn_type and version, and
+/// that an Evo node's platform node ID is not null.
 pub(super) fn check_platform_fields(
   mn_type: MnType,
   version: ProTxVersion,
@@ -114,8 +115,11 @@ pub(super) fn check_platform_fields(
   platform_http_port: Option<u16>,
 ) -> Option<ProTxInvalid> {
   if mn_type == MnType::Evo {
-    if platform_node_id.is_none() {
+    let Some(node_id) = platform_node_id else {
       return Some(ProTxInvalid::BadPlatformFields);
+    };
+    if node_id.is_null() {
+      return Some(ProTxInvalid::NullPlatformNodeId);
     }
     if version < ProTxVersion::ExtAddr {
       if platform_p2p_port.is_none() || platform_http_port.is_none() {
@@ -362,6 +366,14 @@ impl Checkable for ProRegTx {
       }
     }
 
+    if self.operator_reward > MAX_OPERATOR_REWARD {
+      return Some(ProTxInvalid::OperatorRewardTooHigh {
+        reward: self.operator_reward,
+      });
+    }
+
+    // The reference checks the reward with the payload itself, and the
+    // platform fields only after that.
     if let Some(e) = check_platform_fields(
       self.mn_type,
       self.version,
@@ -370,12 +382,6 @@ impl Checkable for ProRegTx {
       self.platform_http_port,
     ) {
       return Some(e);
-    }
-
-    if self.operator_reward > MAX_OPERATOR_REWARD {
-      return Some(ProTxInvalid::OperatorRewardTooHigh {
-        reward: self.operator_reward,
-      });
     }
 
     None
@@ -584,6 +590,27 @@ mod tests {
     registration(),
     |ptx: &mut ProRegTx| ptx.script_payout = ptx.payouts[0].script_payout().clone(),
     ProTxInvalid::PayoutVersionMismatch { version: ProTxVersion::ExtAddr }
+  )]
+  #[case::null_platform_node_id(
+    entry("2770d2493755b59b3426474b2a18eb5c34df636530ae8059aa1fe4b22ce47c3c"),
+    |ptx: &mut ProRegTx| ptx.platform_node_id = Some(PlatformNodeId::default()),
+    ProTxInvalid::NullPlatformNodeId
+  )]
+  #[case::null_platform_node_id_before_ports(
+    entry("2770d2493755b59b3426474b2a18eb5c34df636530ae8059aa1fe4b22ce47c3c"),
+    |ptx: &mut ProRegTx| {
+      ptx.platform_node_id = Some(PlatformNodeId::default());
+      ptx.platform_p2p_port = Some(26656);
+    },
+    ProTxInvalid::NullPlatformNodeId
+  )]
+  #[case::operator_reward_before_null_platform_node_id(
+    entry("2770d2493755b59b3426474b2a18eb5c34df636530ae8059aa1fe4b22ce47c3c"),
+    |ptx: &mut ProRegTx| {
+      ptx.platform_node_id = Some(PlatformNodeId::default());
+      ptx.operator_reward = MAX_OPERATOR_REWARD + 1;
+    },
+    ProTxInvalid::OperatorRewardTooHigh { reward: MAX_OPERATOR_REWARD + 1 }
   )]
   fn check(#[case] mut ptx: ProRegTx, #[case] edit: fn(&mut ProRegTx), #[case] expected: ProTxInvalid) {
     assert_eq!(ptx.check(), None);
