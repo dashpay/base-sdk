@@ -6,21 +6,29 @@
 
 //! Provider transaction payloads.
 
+mod prodistx;
 mod proregtx;
 mod proupregtx;
 mod prouprevtx;
 mod proupservtx;
+mod proupsharedregtx;
+mod proupsharetx;
+mod share;
 mod sig;
 mod version;
 
 #[cfg(feature = "serde")]
 pub(crate) use self::sig::compact_hex;
 
+pub use self::prodistx::ProDisTx;
 pub use self::proregtx::ProRegTx;
 pub use self::proupregtx::ProUpRegTx;
 pub use self::prouprevtx::ProUpRevTx;
 pub use self::proupservtx::ProUpServTx;
-pub use self::sig::{CollateralSig, OperatorSig, OwnerSig};
+pub use self::proupsharedregtx::ProUpSharedRegTx;
+pub use self::proupsharetx::ProUpShareTx;
+pub use self::share::{CollateralShare, PayoutShare};
+pub use self::sig::{CollateralSig, DissolveSig, EcdsaRecSigArray, JoinSig, OperatorSig, OwnerSig, SharedRegistrarSig};
 pub use self::version::ProTxVersion;
 
 pub use dash_pkc::__private::__EddsaPkHash as PlatformNodeId;

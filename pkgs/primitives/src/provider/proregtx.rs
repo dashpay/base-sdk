@@ -6,8 +6,10 @@
 
 //! ProRegTx registration payload (type 1).
 
-use super::{CollateralSig, ProTxVersion};
-use crate::codec::impl_payload;
+use super::share::{check_payout_version, check_payouts, check_shares, EVO_COLLATERAL, MAX_REWARD, REGULAR_COLLATERAL};
+use super::sig::is_valid_operator_key;
+use super::{CollateralShare, CollateralSig, JoinSig, PayoutShare, ProTxVersion};
+use crate::codec::{decode_items, decode_list, encode_items, encode_list, impl_payload};
 use crate::prelude::*;
 use crate::provider::PlatformNodeId;
 use crate::sign::{message_digest, unsigned_digest, verify_compact};
@@ -33,7 +35,7 @@ use core::fmt;
 ///
 /// - v1: LegacyBLS
 /// - v2: BasicBLS
-/// - v3: ExtAddr (extended network info)
+/// - v3: ExtAddr (extended network info, owner payouts, collateral shares)
 #[derive(Clone, CopyGetters, Debug, Eq, Getters, Hash, PartialEq, TypeId)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
@@ -68,9 +70,24 @@ pub struct ProRegTx {
   /// Operator reward in basis points (0-10000).
   #[getset(get_copy = "pub")]
   operator_reward: u16,
-  /// Payout script.
+  /// Payout script (version < 3 only).
   #[getset(get = "pub")]
   script_payout: ScriptPubKeyBuf,
+  /// Owner payouts (version 3).
+  #[getset(get = "pub")]
+  payouts: Vec<PayoutShare>,
+  /// Collateral shares, empty unless the collateral is shared (version 3).
+  #[getset(get = "pub")]
+  shares: Vec<CollateralShare>,
+  /// Consent signatures, one per share in share order (version 3).
+  #[getset(get = "pub")]
+  join_sigs: Vec<JoinSig>,
+  /// Early dissolution period in blocks (version 3).
+  #[getset(get_copy = "pub")]
+  early_period_blocks: u32,
+  /// Early dissolution penalty in duffs (version 3).
+  #[getset(get_copy = "pub")]
+  early_penalty: i64,
   /// Hash of all inputs.
   #[getset(get_copy = "pub")]
   inputs_hash: InputsHash,
@@ -93,7 +110,8 @@ pub struct ProRegTx {
 
 impl_payload!(ProRegTx);
 
-/// Checks that platform fields are consistent with mn_type and version.
+/// Checks that platform fields are consistent with mn_type and version, and
+/// that an Evo node's platform node ID is not null.
 pub(super) fn check_platform_fields(
   mn_type: MnType,
   version: ProTxVersion,
@@ -102,8 +120,11 @@ pub(super) fn check_platform_fields(
   platform_http_port: Option<u16>,
 ) -> Option<ProTxInvalid> {
   if mn_type == MnType::Evo {
-    if platform_node_id.is_none() {
+    let Some(node_id) = platform_node_id else {
       return Some(ProTxInvalid::BadPlatformFields);
+    };
+    if node_id.is_null() {
+      return Some(ProTxInvalid::NullPlatformNodeId);
     }
     if version < ProTxVersion::ExtAddr {
       if platform_p2p_port.is_none() || platform_http_port.is_none() {
@@ -116,6 +137,14 @@ pub(super) fn check_platform_fields(
     return Some(ProTxInvalid::BadPlatformFields);
   }
   None
+}
+
+/// The address a payout script pays, or the script in hex.
+fn payee_string(script: &ScriptPubKeyBuf, ctx: &AddrParams) -> String {
+  let script = script.as_bytes();
+  Recipient::from_script(script)
+    .and_then(|r| r.to_base58c(ctx))
+    .unwrap_or_else(|| script.to_lower_hex_string())
 }
 
 impl BaseCodec for ProRegTx {
@@ -134,7 +163,19 @@ impl BaseCodec for ProRegTx {
     let pub_key_operator = BlsPkBytes::decode(data)?;
     let key_id_voting = PubKeyHash::decode(data)?;
     let operator_reward = u16::decode(data)?;
-    let script_payout = ScriptPubKeyBuf::decode(data)?;
+    let (script_payout, payouts) = if version >= ProTxVersion::ExtAddr {
+      (ScriptPubKeyBuf::new(), decode_list(data)?)
+    } else {
+      (ScriptPubKeyBuf::decode(data)?, Vec::new())
+    };
+    let (shares, join_sigs, early_period_blocks, early_penalty) = if version >= ProTxVersion::ExtAddr {
+      let count = u8::decode(data)?;
+      let shares = decode_items(data, count)?;
+      let join_sigs = decode_items(data, count)?;
+      (shares, join_sigs, u32::decode(data)?, i64::decode(data)?)
+    } else {
+      (Vec::new(), Vec::new(), 0, 0)
+    };
     let inputs_hash = InputsHash::decode(data)?;
     let (platform_node_id, platform_p2p_port, platform_http_port) = if mn_type == MnType::Evo {
       let node_id = PlatformNodeId::decode(data)?;
@@ -159,6 +200,11 @@ impl BaseCodec for ProRegTx {
       key_id_voting,
       operator_reward,
       script_payout,
+      payouts,
+      shares,
+      join_sigs,
+      early_period_blocks,
+      early_penalty,
       inputs_hash,
       platform_node_id,
       platform_p2p_port,
@@ -186,7 +232,17 @@ impl BaseCodec for ProRegTx {
     self.pub_key_operator.encode(buf);
     self.key_id_voting.encode(buf);
     self.operator_reward.encode(buf);
-    self.script_payout.encode(buf);
+    if self.version >= ProTxVersion::ExtAddr {
+      encode_list(&self.payouts, buf);
+      // The signatures reuse the share count, so a signature list of another
+      // length does not read back.
+      encode_list(&self.shares, buf);
+      encode_items(&self.join_sigs, buf);
+      self.early_period_blocks.encode(buf);
+      self.early_penalty.encode(buf);
+    } else {
+      self.script_payout.encode(buf);
+    }
     self.inputs_hash.encode(buf);
     if self.mn_type == MnType::Evo {
       self.platform_node_id.unwrap_or_default().encode(buf);
@@ -205,10 +261,16 @@ impl Signable for ProRegTx {
   type Error = EcdsaError;
 
   fn payload(&self, ctx: &AddrParams) -> Vec<u8> {
-    let payout = self.script_payout.as_bytes();
-    let payout = Recipient::from_script(payout)
-      .and_then(|r| r.to_base58c(ctx))
-      .unwrap_or_else(|| payout.to_lower_hex_string());
+    let payout = if self.version >= ProTxVersion::ExtAddr {
+      let payouts: Vec<String> = self
+        .payouts
+        .iter()
+        .map(|p| format!("{}:{}", payee_string(p.script_payout(), ctx), p.reward()))
+        .collect();
+      payouts.join(",")
+    } else {
+      payee_string(&self.script_payout, ctx)
+    };
     let msg = format!(
       "{payout}|{}|{}|{}|{}",
       self.operator_reward,
@@ -250,18 +312,43 @@ impl Checkable for ProRegTx {
       return Some(ProTxInvalid::BadMode { mode: self.mode });
     }
 
-    if self.key_id_owner.is_null() || self.key_id_voting.is_null() {
-      return Some(ProTxInvalid::NullKey);
+    let shared = !self.shares.is_empty();
+    if self.join_sigs.len() != self.shares.len() {
+      return Some(ProTxInvalid::JoinSigCountMismatch {
+        sigs: self.join_sigs.len(),
+        shares: self.shares.len(),
+      });
     }
-    if self.pub_key_operator.is_null() {
+    if shared && self.version < ProTxVersion::ExtAddr {
+      return Some(ProTxInvalid::SharesVersionTooLow { version: self.version });
+    }
+    if let Some(e) = check_payout_version(self.version, &self.script_payout, &self.payouts) {
+      return Some(e);
+    }
+    if shared {
+      if !self.collateral_hash.is_null() {
+        return Some(ProTxInvalid::ExternalSharedCollateral);
+      }
+      if !self.key_id_owner.is_null() {
+        return Some(ProTxInvalid::SharedOwnerKey);
+      }
+      if !self.payouts.is_empty() {
+        return Some(ProTxInvalid::SharedPayouts);
+      }
+    } else {
+      if self.early_period_blocks != 0 || self.early_penalty != 0 {
+        return Some(ProTxInvalid::UnsharedEarlyTerms);
+      }
+      if self.key_id_owner.is_null() {
+        return Some(ProTxInvalid::NullKey);
+      }
+    }
+    if !is_valid_operator_key(self.version, &self.pub_key_operator) || self.key_id_voting.is_null() {
       return Some(ProTxInvalid::NullKey);
     }
 
-    let payout = self.script_payout.as_bytes();
-    let recipient = Recipient::from_script(payout);
-    match &recipient {
-      Some(Recipient::PubKeyHash(_) | Recipient::ScriptHash(_)) => {}
-      _ => return Some(ProTxInvalid::BadPayoutScript),
+    if let Some(e) = self.check_owner_rewards() {
+      return Some(e);
     }
 
     let is_extended = matches!(self.net_info, NetInfo::Extended(_));
@@ -294,12 +381,6 @@ impl Checkable for ProRegTx {
       return Some(e);
     }
 
-    if let Some(Recipient::PubKeyHash(hash)) = &recipient {
-      if *hash == self.key_id_owner || *hash == self.key_id_voting {
-        return Some(ProTxInvalid::PayoutKeyReuse);
-      }
-    }
-
     if self.operator_reward > MAX_OPERATOR_REWARD {
       return Some(ProTxInvalid::OperatorRewardTooHigh {
         reward: self.operator_reward,
@@ -327,6 +408,11 @@ impl ProRegTx {
     key_id_voting: PubKeyHash,
     operator_reward: u16,
     script_payout: ScriptPubKeyBuf,
+    payouts: Vec<PayoutShare>,
+    shares: Vec<CollateralShare>,
+    join_sigs: Vec<JoinSig>,
+    early_period_blocks: u32,
+    early_penalty: i64,
     inputs_hash: InputsHash,
     platform_node_id: Option<PlatformNodeId>,
     platform_p2p_port: Option<u16>,
@@ -344,12 +430,39 @@ impl ProRegTx {
       key_id_voting,
       operator_reward,
       script_payout,
+      payouts,
+      shares,
+      join_sigs,
+      early_period_blocks,
+      early_penalty,
       inputs_hash,
       platform_node_id,
       platform_p2p_port,
       platform_http_port,
       sig: CollateralSig::default(),
     }
+  }
+
+  /// Checks the collateral shares, or the owner payouts when unshared.
+  fn check_owner_rewards(&self) -> Option<ProTxInvalid> {
+    if !self.shares.is_empty() {
+      let collateral = match self.mn_type {
+        MnType::Evo => EVO_COLLATERAL,
+        _ => REGULAR_COLLATERAL,
+      };
+      return check_shares(
+        &self.shares,
+        collateral,
+        self.early_period_blocks,
+        self.early_penalty,
+        &self.key_id_voting,
+      );
+    }
+    if self.version >= ProTxVersion::ExtAddr {
+      return check_payouts(&self.payouts, Some(&self.key_id_owner), &self.key_id_voting);
+    }
+    let payout = PayoutShare::new(self.script_payout.clone(), MAX_REWARD);
+    check_payouts(&[payout], Some(&self.key_id_owner), &self.key_id_voting)
   }
 }
 
@@ -365,10 +478,14 @@ impl fmt::Display for ProRegTx {
 }
 
 #[cfg(all(test, feature = "serde"))]
+#[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
+  use crate::provider::share::tests::script;
+  use crate::provider::sig::tests::KeyEdit;
 
-  use dash_dev::{assert_serde_rt, check_sptx, Corpus};
+  use dash_dev::{arr_from_hex, assert_serde_rt, check_sptx, Corpus};
+  use dash_params::Network;
   use rstest::rstest;
 
   #[rstest]
@@ -376,5 +493,168 @@ mod tests {
     let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "proregtx");
     let items = corpus.entries::<ProRegTx>("proregtx", check_sptx);
     assert_serde_rt("proregtx", &items);
+  }
+
+  /// The payload of `txid` in the corpus.
+  fn entry(txid: &str) -> ProRegTx {
+    let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "proregtx");
+    corpus
+      .entries::<ProRegTx>("proregtx", |_, _, _| {})
+      .remove(txid)
+      .unwrap()
+  }
+
+  /// A testnet registration with one payout.
+  fn registration() -> ProRegTx {
+    entry("13ccca675ed8a8a788693f46191e7237e2896701ede3058c20263e1b2343923d")
+  }
+
+  /// A regtest registration with two shares.
+  fn shared() -> ProRegTx {
+    entry("be0bcc4773f4510a7a3afdfd18e7758f007c3ff1eb57c3c7a500620c13a05b9c")
+  }
+
+  /// A version 2 registration from the chain.
+  fn basic_bls() -> ProRegTx {
+    entry("a3d16d7b7f53adf5403b2082b1ddeae9ad52163d29d5c84cb5eea2e0bc1a486c")
+  }
+
+  /// From version 2 the operator key must be a valid basic-scheme key.
+  #[rstest]
+  #[case::valid(KeyEdit::Kept, None)]
+  #[case::null(KeyEdit::Null, Some(ProTxInvalid::NullKey))]
+  #[case::off_curve(KeyEdit::OffCurve, Some(ProTxInvalid::NullKey))]
+  #[case::off_subgroup(KeyEdit::OffSubgroup, Some(ProTxInvalid::NullKey))]
+  #[case::infinity(KeyEdit::Infinity, Some(ProTxInvalid::NullKey))]
+  #[case::uncompressed(KeyEdit::Uncompressed, Some(ProTxInvalid::NullKey))]
+  fn operator_key(
+    #[values(basic_bls(), registration(), shared())] mut ptx: ProRegTx,
+    #[case] edit: KeyEdit,
+    #[case] expected: Option<ProTxInvalid>,
+  ) {
+    ptx.pub_key_operator = edit.apply(ptx.pub_key_operator);
+    assert_eq!(ptx.check(), expected);
+  }
+
+  /// Legacy-scheme keys keep the null check.
+  #[rstest]
+  #[case::non_null(KeyEdit::Kept, None)]
+  #[case::null(KeyEdit::Null, Some(ProTxInvalid::NullKey))]
+  #[case::uncompressed(KeyEdit::Uncompressed, None)]
+  fn operator_key_legacy(#[case] edit: KeyEdit, #[case] expected: Option<ProTxInvalid>) {
+    let mut ptx = basic_bls();
+    ptx.version = ProTxVersion::LegacyBls;
+    ptx.pub_key_operator = edit.apply(ptx.pub_key_operator);
+    assert_eq!(ptx.check(), expected);
+  }
+
+  /// `share` with its refund script paying `key`.
+  fn refund_to(share: &CollateralShare, key: PubKeyHash) -> CollateralShare {
+    CollateralShare::new(
+      share.amount(),
+      script(Recipient::PubKeyHash(key)),
+      share.script_reward().clone(),
+      share.key_id_owner(),
+    )
+  }
+
+  #[rstest]
+  #[case::payout_to_owner(
+    registration(),
+    |ptx: &mut ProRegTx| ptx.payouts[0] = PayoutShare::new(script(Recipient::PubKeyHash(ptx.key_id_owner)), MAX_REWARD),
+    ProTxInvalid::PayoutKeyReuse
+  )]
+  #[case::unshared_early_period(
+    registration(),
+    |ptx: &mut ProRegTx| ptx.early_period_blocks = 1,
+    ProTxInvalid::UnsharedEarlyTerms
+  )]
+  #[case::unshared_early_penalty(
+    registration(),
+    |ptx: &mut ProRegTx| ptx.early_penalty = 1,
+    ProTxInvalid::UnsharedEarlyTerms
+  )]
+  #[case::unshared_null_owner(
+    registration(),
+    |ptx: &mut ProRegTx| ptx.key_id_owner = PubKeyHash::default(),
+    ProTxInvalid::NullKey
+  )]
+  #[case::shared_external_collateral(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.collateral_hash = TxHash::from_lendian([1; 32]),
+    ProTxInvalid::ExternalSharedCollateral
+  )]
+  #[case::shared_owner_key(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.key_id_owner = ptx.shares[0].key_id_owner(),
+    ProTxInvalid::SharedOwnerKey
+  )]
+  #[case::shared_payouts(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.payouts = registration().payouts,
+    ProTxInvalid::SharedPayouts
+  )]
+  #[case::share_refund_to_voting(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.shares[0] = refund_to(&ptx.shares[0], ptx.key_id_voting),
+    ProTxInvalid::ShareKeyReuse
+  )]
+  #[case::evo_shares_of_regular_collateral(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.mn_type = MnType::Evo,
+    ProTxInvalid::BadShareAmountSum { total: REGULAR_COLLATERAL }
+  )]
+  #[case::sig_missing(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.join_sigs.truncate(1),
+    ProTxInvalid::JoinSigCountMismatch { sigs: 1, shares: 2 }
+  )]
+  #[case::sig_extra(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.join_sigs.push(ptx.join_sigs[0]),
+    ProTxInvalid::JoinSigCountMismatch { sigs: 3, shares: 2 }
+  )]
+  #[case::sigs_unshared(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.shares.clear(),
+    ProTxInvalid::JoinSigCountMismatch { sigs: 2, shares: 0 }
+  )]
+  #[case::shares_basic_bls(
+    shared(),
+    |ptx: &mut ProRegTx| ptx.version = ProTxVersion::BasicBls,
+    ProTxInvalid::SharesVersionTooLow { version: ProTxVersion::BasicBls }
+  )]
+  #[case::payout_version(
+    registration(),
+    |ptx: &mut ProRegTx| ptx.script_payout = ptx.payouts[0].script_payout().clone(),
+    ProTxInvalid::PayoutVersionMismatch { version: ProTxVersion::ExtAddr }
+  )]
+  #[case::null_platform_node_id(
+    entry("2770d2493755b59b3426474b2a18eb5c34df636530ae8059aa1fe4b22ce47c3c"),
+    |ptx: &mut ProRegTx| ptx.platform_node_id = Some(PlatformNodeId::default()),
+    ProTxInvalid::NullPlatformNodeId
+  )]
+  #[case::null_platform_node_id_before_ports(
+    entry("2770d2493755b59b3426474b2a18eb5c34df636530ae8059aa1fe4b22ce47c3c"),
+    |ptx: &mut ProRegTx| {
+      ptx.platform_node_id = Some(PlatformNodeId::default());
+      ptx.platform_p2p_port = Some(26656);
+    },
+    ProTxInvalid::NullPlatformNodeId
+  )]
+  fn check(#[case] mut ptx: ProRegTx, #[case] edit: fn(&mut ProRegTx), #[case] expected: ProTxInvalid) {
+    assert_eq!(ptx.check(), None);
+    edit(&mut ptx);
+    assert_eq!(ptx.check(), Some(expected));
+  }
+
+  /// The collateral key of regtest registration `e069aa21` signs its two
+  /// payouts. It is the key of output 2 of `d7f51e30` in the same chain.
+  #[rstest]
+  fn collateral_key_signs_payouts() {
+    let ptx = entry("e069aa21a4c70c3cfec548d2fb99004207145cae53c400ae319626c966f471c8");
+    let key = PubKeyHash::from_lendian(arr_from_hex("aa20a04ead2af1a823293452a32c6f5b33caccaa"));
+    assert_eq!(ptx.payouts.len(), 2);
+    assert_eq!(ptx.verify(&key, Network::Regtest.addr()), None);
   }
 }

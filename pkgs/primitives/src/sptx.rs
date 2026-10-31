@@ -12,7 +12,9 @@ use crate::payload::{
   FinalCommitment, MnHardFork, MnHardForkInvalid,
 };
 use crate::prelude::*;
-use crate::provider::{ProRegTx, ProTxVersion, ProUpRegTx, ProUpRevTx, ProUpServTx};
+use crate::provider::{
+  ProDisTx, ProRegTx, ProTxVersion, ProUpRegTx, ProUpRevTx, ProUpServTx, ProUpShareTx, ProUpSharedRegTx,
+};
 use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
 
 use dash_num::make_hash;
@@ -61,6 +63,12 @@ enum_map! {
     AssetLock = 8 => "asset_lock",
     /// Asset unlock: platform to L1 (type 9).
     AssetUnlock = 9 => "asset_unlock",
+    /// Shared masternode dissolution (type 10).
+    ProviderDissolve = 10 => "provider_dissolve",
+    /// Share reward script update (type 11).
+    ProviderUpdateShare = 11 => "provider_update_share",
+    /// Shared masternode registrar update (type 12).
+    ProviderUpdateSharedRegistrar = 12 => "provider_update_shared_registrar",
   }
 }
 
@@ -119,6 +127,90 @@ pub enum ProTxInvalid {
   /// `bad-protx-payee-reuse`
   #[error("bad-protx-payee-reuse")]
   PayoutKeyReuse,
+  /// `bad-protx-payouts-count`
+  #[error("bad-protx-payouts-count: {count}")]
+  BadPayoutCount { count: usize },
+  /// `bad-protx-payout-reward`
+  #[error("bad-protx-payout-reward: {reward}")]
+  BadPayoutReward { reward: u16 },
+  /// `bad-protx-payee-dup`
+  #[error("bad-protx-payee-dup")]
+  DuplicatePayout,
+  /// `bad-protx-payout-reward-sum`
+  #[error("bad-protx-payout-reward-sum: {total}")]
+  BadPayoutRewardSum { total: u32 },
+  /// `bad-protx-shares-external`
+  #[error("bad-protx-shares-external")]
+  ExternalSharedCollateral,
+  /// `bad-protx-shares-owner-key`
+  #[error("bad-protx-shares-owner-key")]
+  SharedOwnerKey,
+  /// `bad-protx-shares-payouts`
+  #[error("bad-protx-shares-payouts")]
+  SharedPayouts,
+  /// `bad-protx-shares-empty-fields`
+  #[error("bad-protx-shares-empty-fields")]
+  UnsharedEarlyTerms,
+  /// `bad-protx-shares-count`
+  #[error("bad-protx-shares-count: {count}")]
+  BadShareCount { count: usize },
+  /// `bad-protx-shares-early-period`
+  #[error("bad-protx-shares-early-period: {blocks}")]
+  BadEarlyPeriod { blocks: u32 },
+  /// `bad-protx-shares-amount`
+  #[error("bad-protx-shares-amount: {amount}")]
+  BadShareAmount { amount: i64 },
+  /// `bad-protx-shares-key-null`
+  #[error("bad-protx-shares-key-null")]
+  NullShareKey,
+  /// `bad-protx-shares-dup-key`
+  #[error("bad-protx-shares-dup-key")]
+  DuplicateShareKey,
+  /// `bad-protx-shares-dup-refund`
+  #[error("bad-protx-shares-dup-refund")]
+  DuplicateShareRefund,
+  /// `bad-protx-shares-payee`
+  #[error("bad-protx-shares-payee")]
+  BadShareScript,
+  /// `bad-protx-shares-payee-reuse`
+  #[error("bad-protx-shares-payee-reuse")]
+  ShareKeyReuse,
+  /// `bad-protx-shares-amount-sum`
+  #[error("bad-protx-shares-amount-sum: {total}")]
+  BadShareAmountSum { total: i64 },
+  /// `bad-protx-shares-penalty`
+  #[error("bad-protx-shares-penalty: {penalty}")]
+  BadEarlyPenalty { penalty: i64 },
+  /// The join signatures are not one per share.
+  #[error("join signature count {sigs} does not match share count {shares}")]
+  JoinSigCountMismatch { sigs: usize, shares: usize },
+  /// Shares in a version that does not carry them.
+  #[error("shares in version {version}")]
+  SharesVersionTooLow { version: ProTxVersion },
+  /// A payout form that the version does not carry.
+  #[error("payout form does not match version {version}")]
+  PayoutVersionMismatch { version: ProTxVersion },
+  /// `bad-prodis-version`
+  #[error("bad-prodis-version: {version}")]
+  BadDissolveVersion { version: u16 },
+  /// `bad-prodis-sig-count`
+  #[error("bad-prodis-sig-count: {count}")]
+  BadDissolveSigCount { count: usize },
+  /// `bad-proupshare-version`
+  #[error("bad-proupshare-version: {version}")]
+  BadShareUpdateVersion { version: u16 },
+  /// `bad-proupshare-sig-size`
+  #[error("bad-proupshare-sig-size: {size}")]
+  BadShareUpdateSigSize { size: usize },
+  /// `bad-proupshare-payee`
+  #[error("bad-proupshare-payee")]
+  BadShareUpdateScript,
+  /// `bad-proupsharedreg-version`
+  #[error("bad-proupsharedreg-version: {version}")]
+  BadSharedRegistrarVersion { version: u16 },
+  /// `bad-proupsharedreg-sig-count`
+  #[error("bad-proupsharedreg-sig-count: {count}")]
+  BadSharedRegistrarSigCount { count: usize },
   /// `bad-protx-operator-reward`
   #[error("bad-protx-operator-reward: {reward}")]
   OperatorRewardTooHigh { reward: u16 },
@@ -128,6 +220,9 @@ pub enum ProTxInvalid {
   /// `bad-protx-platform-fields`
   #[error("bad-protx-platform-fields")]
   BadPlatformFields,
+  /// `bad-protx-platform-nodeid`
+  #[error("bad-protx-platform-nodeid")]
+  NullPlatformNodeId,
 }
 
 /// Checks that an extended net info payload is trivially valid.
@@ -179,6 +274,12 @@ pub enum SpecialPayload {
   AssetLock(AssetLock),
   /// Asset unlock: Platform to L1 (type 9).
   AssetUnlock(AssetUnlock),
+  /// Shared masternode dissolution (type 10).
+  ProviderDissolve(ProDisTx),
+  /// Share reward script update (type 11).
+  ProviderUpdateShare(ProUpShareTx),
+  /// Shared masternode registrar update (type 12).
+  ProviderUpdateSharedRegistrar(ProUpSharedRegTx),
   /// Unrecognized type, stored as raw bytes.
   Unknown {
     /// The transaction type code.
@@ -242,6 +343,9 @@ impl Checkable for SpecialPayload {
       Self::MnhfSignal(p) => p.check().map(PayloadInvalid::MnHardFork),
       Self::AssetLock(p) => p.check().map(PayloadInvalid::AssetLock),
       Self::AssetUnlock(p) => p.check().map(PayloadInvalid::AssetUnlock),
+      Self::ProviderDissolve(p) => p.check().map(PayloadInvalid::ProTx),
+      Self::ProviderUpdateShare(p) => p.check().map(PayloadInvalid::ProTx),
+      Self::ProviderUpdateSharedRegistrar(p) => p.check().map(PayloadInvalid::ProTx),
       Self::Unknown { .. } => None,
     }
   }
@@ -284,6 +388,11 @@ impl SpecialPayload {
       TxType::MnhfSignal => MnHardFork::decode(data).map(Self::MnhfSignal).map_err(err),
       TxType::AssetLock => AssetLock::decode(data).map(Self::AssetLock).map_err(err),
       TxType::AssetUnlock => AssetUnlock::decode(data).map(Self::AssetUnlock).map_err(err),
+      TxType::ProviderDissolve => ProDisTx::decode(data).map(Self::ProviderDissolve).map_err(err),
+      TxType::ProviderUpdateShare => ProUpShareTx::decode(data).map(Self::ProviderUpdateShare).map_err(err),
+      TxType::ProviderUpdateSharedRegistrar => ProUpSharedRegTx::decode(data)
+        .map(Self::ProviderUpdateSharedRegistrar)
+        .map_err(err),
       unknown => {
         let bytes = data.to_vec();
         *data = &[];
