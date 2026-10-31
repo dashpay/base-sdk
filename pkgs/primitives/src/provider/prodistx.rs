@@ -132,6 +132,47 @@ mod tests {
     assert_eq!(Transaction::decode(&mut &raw[..]).unwrap().check(), None, "{txid}");
   }
 
+  /// The fields that `decoderawtransaction` of the reference implementation at
+  /// v24.0.0-rc.5 reports for each regtest transaction. Each assertion names
+  /// the RPC field it checks.
+  #[rstest]
+  #[case::masternode_shares_1072(
+    REGTEST[0].0,
+    "be0bcc4773f4510a7a3afdfd18e7758f007c3ff1eb57c3c7a500620c13a05b9c",
+    1,
+    1
+  )]
+  #[case::masternode_shares_1168(
+    REGTEST[1].0,
+    "8ce2d3817397814c285afc44397b17e6a6d963982dde08b365ceb2c2e7747dd3",
+    0,
+    2
+  )]
+  #[case::masternode_shares_601(
+    REGTEST[2].0,
+    "bf813e5304627a0d8865651afeb9d104518c7b757a1e492fa7a92825d3cae1d4",
+    7,
+    8
+  )]
+  #[case::masternode_shares_1400(
+    REGTEST[3].0,
+    "7cf73bfa24c05f3ef39b4c365366a0622c72a4de43ec8c18adfefa246be70ae7",
+    1,
+    2
+  )]
+  fn reference_fields(
+    #[case] txid: &str,
+    #[case] pro_tx_hash: &str,
+    #[case] actor_index: u16,
+    #[case] sig_count: usize,
+  ) {
+    let ptx = regtest(txid);
+    assert_eq!(ptx.version, 1, "version");
+    assert_eq!(ptx.pro_tx_hash.to_string(), pro_tx_hash, "proTxHash");
+    assert_eq!(ptx.actor_index, actor_index, "actorIndex");
+    assert_eq!(ptx.sigs.len(), sig_count, "sigCount");
+  }
+
   #[rstest]
   #[case::wide_actor_index(|ptx: &mut ProDisTx| ptx.actor_index = 256, None)]
   #[case::no_sigs(|ptx: &mut ProDisTx| ptx.sigs.clear(), Some(ProTxInvalid::BadDissolveSigCount { count: 0 }))]

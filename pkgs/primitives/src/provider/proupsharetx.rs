@@ -84,6 +84,7 @@ mod tests {
   use crate::Transaction;
 
   use dash_dev::{assert_json_rt, check_sptx_raw, vec_from_hex};
+  use dash_params::Network;
   use dash_script::{Recipient, ScriptHash};
   use dash_types::codec::BaseCodec;
   use rstest::rstest;
@@ -111,6 +112,34 @@ mod tests {
     let raw = vec_from_hex(raw);
     assert_json_rt(&check_sptx_raw::<ProUpShareTx>(&raw, txid));
     assert_eq!(Transaction::decode(&mut &raw[..]).unwrap().check(), None, "{txid}");
+  }
+
+  /// The fields that `decoderawtransaction` of the reference implementation at
+  /// v24.0.0-rc.5 reports for each regtest transaction. Each assertion names
+  /// the RPC field it checks.
+  #[rstest]
+  #[case::masternode_shares_907(
+    REGTEST[0].0,
+    "be0bcc4773f4510a7a3afdfd18e7758f007c3ff1eb57c3c7a500620c13a05b9c",
+    0,
+    "yZZ3k3JysMy7cdZrL5SFMF8krFUEGnuz9e",
+    "8ab47d6b7c8b99245668abac6e5b4135c21eebf65eb801d24e1c3cab37a542a9"
+  )]
+  fn reference_fields(
+    #[case] txid: &str,
+    #[case] pro_tx_hash: &str,
+    #[case] share_index: u16,
+    #[case] reward_address: &str,
+    #[case] inputs_hash: &str,
+  ) {
+    let ptx = regtest(txid);
+    let reward =
+      Recipient::from_script(ptx.script_reward.as_bytes()).and_then(|r| r.to_base58c(Network::Regtest.addr()));
+    assert_eq!(ptx.version, 1, "version");
+    assert_eq!(ptx.pro_tx_hash.to_string(), pro_tx_hash, "proTxHash");
+    assert_eq!(ptx.share_index, share_index, "shareIndex");
+    assert_eq!(reward.as_deref(), Some(reward_address), "rewardAddress");
+    assert_eq!(ptx.inputs_hash.to_string(), inputs_hash, "inputsHash");
   }
 
   #[rstest]

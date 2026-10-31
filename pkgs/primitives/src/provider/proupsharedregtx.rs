@@ -110,6 +110,8 @@ mod tests {
   use crate::Transaction;
 
   use dash_dev::{assert_json_rt, check_sptx_raw, vec_from_hex};
+  use dash_params::Network;
+  use hex_conservative::DisplayHex;
   use rstest::rstest;
 
   // TODO(pasta): remove these once they're live on mainnet and
@@ -138,6 +140,51 @@ mod tests {
     let raw = vec_from_hex(raw);
     assert_json_rt(&check_sptx_raw::<ProUpSharedRegTx>(&raw, txid));
     assert_eq!(Transaction::decode(&mut &raw[..]).unwrap().check(), None, "{txid}");
+  }
+
+  /// The fields that `decoderawtransaction` of the reference implementation at
+  /// v24.0.0-rc.5 reports for each regtest transaction. Each assertion names
+  /// the RPC field it checks.
+  #[rstest]
+  #[case::masternode_shares_952(
+    REGTEST[0].0,
+    "be0bcc4773f4510a7a3afdfd18e7758f007c3ff1eb57c3c7a500620c13a05b9c",
+    "yVHujage9tZXwABW9yJWxw62stLvwHFkLv",
+    "8d24b1b6c5f86af4b8fa3fc6396ceda6dd6745b1e242ca6db2e403df8ebe94d6c0f487a9d4d7abb1eb4c614f5c83f64d",
+    "ee9fcc2f5a43bda03ac6a85bba4deb1a62df5982487b80e55c3eece110a2ba2a",
+    2
+  )]
+  #[case::masternode_shares_583(
+    REGTEST[1].0,
+    "bf813e5304627a0d8865651afeb9d104518c7b757a1e492fa7a92825d3cae1d4",
+    "yPjvLbfci5HuMWPXhVgRs5kSkc2zr7KVVj",
+    "a0051de2878b2fdc3074d372adc46189190184070c4174841fae6d1d3bc8346bff4dc83aa4707c14ce6a4ff897b83dc0",
+    "73b0b2df97fda3312e1d286d4474294facde39754cdfa75920f60346048031b3",
+    8
+  )]
+  fn reference_fields(
+    #[case] txid: &str,
+    #[case] pro_tx_hash: &str,
+    #[case] voting_address: &str,
+    #[case] pub_key_operator: &str,
+    #[case] inputs_hash: &str,
+    #[case] sig_count: usize,
+  ) {
+    let ptx = regtest(txid);
+    assert_eq!(ptx.version, 1, "version");
+    assert_eq!(ptx.pro_tx_hash.to_string(), pro_tx_hash, "proTxHash");
+    assert_eq!(
+      ptx.key_id_voting.to_base58c(Network::Regtest.addr().pubkey_addr),
+      voting_address,
+      "votingAddress"
+    );
+    assert_eq!(
+      ptx.pub_key_operator.as_bytes().to_lower_hex_string(),
+      pub_key_operator,
+      "pubKeyOperator"
+    );
+    assert_eq!(ptx.inputs_hash.to_string(), inputs_hash, "inputsHash");
+    assert_eq!(ptx.sigs.len(), sig_count, "sigCount");
   }
 
   /// The regtest update `29196a97`, with two signatures.

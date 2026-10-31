@@ -533,6 +533,117 @@ mod tests {
     assert_json_rt(&check_sptx_raw::<ProRegTx>(&vec_from_hex(raw), txid));
   }
 
+  /// A share's `amount`, `refundScript`, `rewardScript` and `ownerAddress`, as
+  /// `decoderawtransaction` reports them.
+  type ReferenceShare = (i64, &'static str, &'static str, &'static str);
+
+  /// The two shares of `be0bcc47`, whose reward scripts the payload leaves
+  /// empty, so the reference reports the refund scripts.
+  const SHARES_BE0BCC47: [ReferenceShare; 2] = [
+    (
+      60_000_000_000,
+      "76a914add27799695434616eb5e3082da1369de92a0c7588ac",
+      "76a914add27799695434616eb5e3082da1369de92a0c7588ac",
+      "yYSaSNfBxK2wG4jqMsxDcXMhJBNVqgsuzZ",
+    ),
+    (
+      40_000_000_000,
+      "76a9144ff00c1437dfe8d85b6f90a67abe3fbf1de8742588ac",
+      "76a9144ff00c1437dfe8d85b6f90a67abe3fbf1de8742588ac",
+      "yhW94atMjMPdhE9ZgfFQ3BwvsQzgCvPGph",
+    ),
+  ];
+
+  /// The eight shares of `bf813e53`, each with its own reward script, and
+  /// the last refunded to a script hash.
+  const SHARES_BF813E53: [ReferenceShare; 8] = [
+    (
+      10_000_000_000,
+      "76a9146e6c55150a2a7a03298b0f15cee13bf62067c4fe88ac",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yWvRvkJPdE2AZjHstnZWQDohUtmz7dHJp7",
+    ),
+    (
+      10_000_000_000,
+      "76a914836fc8a301096552ec69a94e2b76e39f75d48deb88ac",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yfaBhEXeqHjjwNnhAWsxagAhaF73rG2H2P",
+    ),
+    (
+      10_000_000_000,
+      "76a914ea1f0a66a9ca78aee3fd9eb6721ba60fee114ba688ac",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yf7wRnVz8URtMHdEnf5ZSHhZ5x1qmLWo4n",
+    ),
+    (
+      10_000_000_000,
+      "76a91440f1b5b19fbb0966c86d923344af3046457a6ca188ac",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yXY35zJcLBMe9GxroAqQ8gV9MQDyD4Boir",
+    ),
+    (
+      10_000_000_000,
+      "76a91438ae4e6283fd8a4e7066d43bb21dc782889d9c9988ac",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yjcyZogWadDZk5gvD7oYffvbNW64poFtV6",
+    ),
+    (
+      10_000_000_000,
+      "76a9145e040300c831d56611a3c10ab6a66d49862326b188ac",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yeR1nD6MS1sBzoj6mt6gcoeFW8Eq5hQyeW",
+    ),
+    (
+      10_000_000_000,
+      "76a9149d3a6b20a07d182519e2c55e445d040c56b1a08d88ac",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yUdQAnfQauG7YjGsLvYU59sY36t23arGJz",
+    ),
+    (
+      30_000_000_000,
+      "a914d015a362e5cf69693545428baa6d7e78d423afcd87",
+      "76a914755c798132ad433dc1b37fecd792f8acd7c1cf4788ac",
+      "yUKytwQjcEw1RsCdxV3nGzMHg1zxdZ9Qr9",
+    ),
+  ];
+
+  /// The share table and early terms that `decoderawtransaction` of the
+  /// reference implementation at v24.0.0-rc.5 reports for a two-share and
+  /// an eight-share registration, in share order.
+  ///
+  /// The reference reports the refund script as the reward script where the
+  /// payload leaves the reward script empty.
+  #[rstest]
+  #[case::masternode_shares_95(REGTEST[2].0, 30, 5_000_000_000, &SHARES_BE0BCC47)]
+  #[case::masternode_shares_458(REGTEST[3].0, 100, 1_000_000_000, &SHARES_BF813E53)]
+  fn reference_shares(
+    #[case] txid: &str,
+    #[case] early_period_blocks: u32,
+    #[case] early_penalty: i64,
+    #[case] want: &[ReferenceShare],
+  ) {
+    let ptx = regtest(txid);
+    assert_eq!(ptx.early_period_blocks, early_period_blocks, "earlyPeriodBlocks");
+    assert_eq!(ptx.early_penalty, early_penalty, "earlyPenalty");
+    let hex = |script: &ScriptPubKeyBuf| script.as_bytes().to_lower_hex_string();
+    let got: Vec<(i64, String, String, String)> = ptx
+      .shares
+      .iter()
+      .map(|share| {
+        let refund = share.script_refund();
+        let reward = share.script_reward();
+        let reward = if reward.as_bytes().is_empty() { refund } else { reward };
+        let owner = share.key_id_owner().to_base58c(Network::Regtest.addr().pubkey_addr);
+        (share.amount(), hex(refund), hex(reward), owner)
+      })
+      .collect();
+    let want: Vec<(i64, String, String, String)> = want
+      .iter()
+      .map(|&(amount, refund, reward, owner)| (amount, refund.into(), reward.into(), owner.into()))
+      .collect();
+    assert_eq!(got, want, "shares");
+  }
+
   /// A testnet registration with one payout.
   fn registration() -> ProRegTx {
     entry("13ccca675ed8a8a788693f46191e7237e2896701ede3058c20263e1b2343923d")
