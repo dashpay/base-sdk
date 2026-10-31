@@ -22,9 +22,6 @@ use getset::{CopyGetters, Getters};
 
 use core::fmt;
 
-/// The payload version `check` accepts.
-const VERSION: u16 = 1;
-
 impl_new! {
 /// ProUpSharedRegTx -- update the keys of a shared masternode (type 12).
 #[derive(Clone, CopyGetters, Debug, Eq, Getters, Hash, PartialEq, TypeId)]
@@ -80,7 +77,7 @@ impl Checkable for ProUpSharedRegTx {
   type Error = ProTxInvalid;
 
   fn check(&self) -> Option<Self::Error> {
-    if self.version != VERSION {
+    if self.version != Self::CURRENT_VERSION {
       return Some(ProTxInvalid::BadSharedRegistrarVersion { version: self.version });
     }
     if self.pub_key_operator.is_null() || self.key_id_voting.is_null() {
@@ -94,6 +91,11 @@ impl Checkable for ProUpSharedRegTx {
 }
 
 hash_impl!(ProUpSharedRegTx);
+
+impl ProUpSharedRegTx {
+  /// The payload version `check` accepts.
+  const CURRENT_VERSION: u16 = 1;
+}
 
 impl fmt::Display for ProUpSharedRegTx {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
