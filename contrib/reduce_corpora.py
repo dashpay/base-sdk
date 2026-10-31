@@ -9,15 +9,15 @@
 
 """Reduce AFL++ queues into a committed fuzz corpus.
 
-Pools every queue with the corpus and runs `afl-cmin.bash` once per binary to
-keep one input per coverage tuple. The corpus becomes the union of survivors,
-named by their SHA-1. The Python `afl-cmin` writes nothing on macOS and the awk
-one refuses to run.
+Pools the queue of every instance under each AFL++ output directory with the
+corpus and runs `afl-cmin.bash` once per binary to keep one input per coverage
+tuple. The corpus becomes the union of survivors, named by their SHA-1. The
+Python `afl-cmin` writes nothing on macOS and the awk one refuses to run.
 
 Usage:
 
   ./contrib/reduce_corpora.py \\
-    --queue /Volumes/mrd-fuzz/out/blake/default/queue \\
+    --output /Volumes/mrd-fuzz/out/blake \\
     --binary /Volumes/mrd-fuzz/target/release/blake \\
     --corpus fuzz/pow/corpora/blake
 """
@@ -97,9 +97,16 @@ def _digest(data: bytes) -> str:
 
 def _reduce(args: argparse.Namespace) -> int:
   afl_bin = _afl_bin(args.afl_bin)
-  queues = [queue for queue in args.queue if queue.is_dir()]
+  # `afl-fuzz -M` and `-S` name each instance's directory; other runs use
+  # `default`.
+  queues = sorted(
+    queue
+    for output in args.output
+    for queue in output.glob("*/queue")
+    if queue.is_dir()
+  )
   if not queues:
-    raise RuntimeError("none of the queues exist")
+    raise RuntimeError("none of the outputs hold a queue")
   inputs = [
     path for queue in queues for path in queue.iterdir() if path.is_file()
   ]
@@ -171,11 +178,11 @@ def _parse_args() -> argparse.Namespace:
     formatter_class=argparse.RawDescriptionHelpFormatter,
   )
   parser.add_argument(
-    "--queue",
+    "--output",
     type=Path,
     action="append",
     required=True,
-    help="AFL++ queue directory, repeatable; missing ones are skipped",
+    help="AFL++ output directory, repeatable; missing ones are skipped",
   )
   parser.add_argument(
     "--binary",

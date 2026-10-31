@@ -29,7 +29,7 @@ test:
 [private]
 reduce-from crate target +roots:
     {{ python }} ../contrib/reduce_corpora.py --corpus {{ crate }}/corpora/{{ target }} \
-      {{ prepend("--queue ", append("/out/" + target + "/default/queue", roots)) }} \
+      {{ prepend("--output ", append("/out/" + target, roots)) }} \
       {{ prepend("--binary ", append("/target/release/" + target, roots)) }}
 
 # Build `target` of `dash-<crate>-fuzz` for AFL++ in a ramdisk
