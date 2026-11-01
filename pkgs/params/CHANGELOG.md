@@ -8,3 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 - Initial release.
+
+### Changed
+
+- **`ChainParams` drops the runtime-policy fields** `prune_after_height`, `assumed_blockchain_size_gb`,
+  `assumed_chain_state_size_gb`, `default_consistency_checks` and `is_mockable_chain`.
