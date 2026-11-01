@@ -19,7 +19,7 @@ corpus=$(cd "$corpus" && pwd)
 
 # Each release as tag=commit.
 releases="v24.0.0-rc.5=8163290aa0307ed4bc2fc0ba15b78c20d61dfa88 v23.1.8=728f5055836c6d29806412fc7223ac8fe05af991"
-corpora="aggregate hash ies keygen llmq_100 secure_aggregate serialize sign threshold"
+corpora="aggregate hash ies keygen llmq_100 read secure_aggregate serialize sign threshold"
 
 tags=
 for pair in $releases; do
