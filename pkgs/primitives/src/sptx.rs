@@ -15,7 +15,7 @@ use crate::prelude::*;
 use crate::provider::{
   ProDisTx, ProRegTx, ProTxVersion, ProUpRegTx, ProUpRevTx, ProUpServTx, ProUpShareTx, ProUpSharedRegTx,
 };
-use crate::types::{NIError, NIPurpose, NITrait, NetInfoV2};
+use crate::types::{NIError, NIPurpose, NITrait, NetInfo};
 
 use dash_num::make_hash;
 use dash_types::type_id::{TypeId, Unencodable};
@@ -225,24 +225,25 @@ pub enum ProTxInvalid {
   NullPlatformNodeId,
 }
 
-/// Checks that an extended net info payload is trivially valid.
-pub(crate) fn check_sptx_netinfo(ext: &NetInfoV2, version: ProTxVersion, mn_type: MnType) -> Option<ProTxInvalid> {
-  if let Some(error) = ext.check() {
-    return Some(ProTxInvalid::NetInfoInvalid { error });
-  }
-  if !ext.has_entries(NIPurpose::CoreP2p) {
+/// Checks the purposes of a net info that is not empty, before its entries.
+///
+/// It needs core P2P entries. A regular node may have no platform entries,
+/// and an Evo node needs both platform purposes when the net info can store
+/// them.
+pub(crate) fn check_netinfo_purposes(net_info: &NetInfo, mn_type: MnType) -> Option<ProTxInvalid> {
+  if !net_info.has_entries(NIPurpose::CoreP2p) {
     return Some(ProTxInvalid::NetInfoEmpty);
   }
   if mn_type == MnType::Regular
-    && (ext.has_entries(NIPurpose::PlatformP2p) || ext.has_entries(NIPurpose::PlatformHttps))
+    && (net_info.has_entries(NIPurpose::PlatformP2p) || net_info.has_entries(NIPurpose::PlatformHttps))
   {
     return Some(ProTxInvalid::NetInfoInvalid {
       error: NIError::Malformed,
     });
   }
-  if version >= ProTxVersion::CoreV24
+  if net_info.stores_platform()
     && mn_type == MnType::Evo
-    && (!ext.has_entries(NIPurpose::PlatformP2p) || !ext.has_entries(NIPurpose::PlatformHttps))
+    && (!net_info.has_entries(NIPurpose::PlatformP2p) || !net_info.has_entries(NIPurpose::PlatformHttps))
   {
     return Some(ProTxInvalid::NetInfoEmpty);
   }

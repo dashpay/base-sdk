@@ -12,7 +12,7 @@ use crate::codec::{decode_items, decode_list, encode_items, encode_list, impl_pa
 use crate::prelude::*;
 use crate::provider::PlatformNodeId;
 use crate::sign::{message_digest, unsigned_digest, verify_compact};
-use crate::sptx::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid, MAX_OPERATOR_REWARD};
+use crate::sptx::{check_netinfo_purposes, InputsHash, MnType, ProTxInvalid, MAX_OPERATOR_REWARD};
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2};
 use crate::{hash_impl, TxHash};
 
@@ -351,19 +351,12 @@ impl Checkable for ProRegTx {
       return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
-    if !self.net_info.is_empty() {
-      match &self.net_info {
-        NetInfo::Legacy(addr) => {
-          if let Some(error) = addr.check() {
-            return Some(ProTxInvalid::NetInfoInvalid { error });
-          }
-        }
-        NetInfo::Extended(addr) => {
-          if let Some(e) = check_sptx_netinfo(addr, self.version, self.mn_type) {
-            return Some(e);
-          }
-        }
-      }
+    // The reference checks the purposes of a net info that is not empty with
+    // the payload itself, which ends with the reward. Its entries, and then
+    // the platform fields, are checked only after that.
+    let net_info = (!self.net_info.is_empty()).then_some(&self.net_info);
+    if let Some(e) = net_info.and_then(|n| check_netinfo_purposes(n, self.mn_type)) {
+      return Some(e);
     }
 
     if self.operator_reward > MAX_OPERATOR_REWARD {
@@ -372,8 +365,9 @@ impl Checkable for ProRegTx {
       });
     }
 
-    // The reference checks the reward with the payload itself, and the
-    // platform fields only after that.
+    if let Some(error) = net_info.and_then(|n| n.check()) {
+      return Some(ProTxInvalid::NetInfoInvalid { error });
+    }
     if let Some(e) = check_platform_fields(
       self.mn_type,
       self.version,
@@ -479,6 +473,7 @@ impl fmt::Display for ProRegTx {
 mod tests {
   use super::*;
   use crate::provider::share::tests::script;
+  use crate::types::{NIEntry, NIError, NIPurpose};
 
   use dash_dev::{arr_from_hex, assert_json_rt, assert_serde_rt, check_sptx, check_sptx_raw, vec_from_hex, Corpus};
   use dash_params::Network;
@@ -654,6 +649,23 @@ mod tests {
     regtest("be0bcc4773f4510a7a3afdfd18e7758f007c3ff1eb57c3c7a500620c13a05b9c")
   }
 
+  /// An extended net info with the entries of `net_info`, its first core P2P
+  /// entry listed twice.
+  fn duplicate_core_entry(net_info: &NetInfo) -> NetInfo {
+    let groups = [NIPurpose::CoreP2p, NIPurpose::PlatformP2p, NIPurpose::PlatformHttps]
+      .into_iter()
+      .map(|purpose| {
+        let mut group: Vec<NIEntry> = net_info.entries(Some(purpose)).collect();
+        if purpose == NIPurpose::CoreP2p {
+          group.extend(group.first().cloned());
+        }
+        (purpose, group)
+      })
+      .filter(|(_, group)| !group.is_empty())
+      .collect();
+    NetInfo::Extended(NetInfoV2::new(1, groups))
+  }
+
   /// `share` with its refund script paying `key`.
   fn refund_to(share: &CollateralShare, key: PubKeyHash) -> CollateralShare {
     CollateralShare::new(
@@ -755,6 +767,50 @@ mod tests {
       ptx.operator_reward = MAX_OPERATOR_REWARD + 1;
     },
     ProTxInvalid::OperatorRewardTooHigh { reward: MAX_OPERATOR_REWARD + 1 }
+  )]
+  #[case::netinfo_purposes_before_operator_reward(
+    registration(),
+    |ptx: &mut ProRegTx| {
+      ptx.net_info = NetInfo::Extended(NetInfoV2::new(2, Vec::new()));
+      ptx.operator_reward = MAX_OPERATOR_REWARD + 1;
+    },
+    ProTxInvalid::NetInfoEmpty
+  )]
+  #[case::operator_reward_before_netinfo_entries(
+    registration(),
+    |ptx: &mut ProRegTx| {
+      ptx.net_info = duplicate_core_entry(&ptx.net_info);
+      ptx.operator_reward = MAX_OPERATOR_REWARD + 1;
+    },
+    ProTxInvalid::OperatorRewardTooHigh { reward: MAX_OPERATOR_REWARD + 1 }
+  )]
+  #[case::operator_reward_before_legacy_netinfo(
+    entry("a9e25c9aa56874c5703fc78ce8541364560d5b21eb12812cf452a27776b1f840"),
+    |ptx: &mut ProRegTx| {
+      ptx.net_info = NetInfo::Legacy(NetInfoV1::new("194.163.172.206:0".parse().unwrap()));
+      ptx.operator_reward = MAX_OPERATOR_REWARD + 1;
+    },
+    ProTxInvalid::OperatorRewardTooHigh { reward: MAX_OPERATOR_REWARD + 1 }
+  )]
+  #[case::netinfo_entries_before_null_platform_node_id(
+    entry("2770d2493755b59b3426474b2a18eb5c34df636530ae8059aa1fe4b22ce47c3c"),
+    |ptx: &mut ProRegTx| {
+      ptx.net_info = duplicate_core_entry(&ptx.net_info);
+      ptx.platform_node_id = Some(PlatformNodeId::default());
+    },
+    ProTxInvalid::NetInfoInvalid { error: NIError::Duplicate }
+  )]
+  #[case::netinfo_unsupported_version(
+    registration(),
+    |ptx: &mut ProRegTx| ptx.net_info = NetInfo::Extended(NetInfoV2::new(2, Vec::new())),
+    ProTxInvalid::NetInfoEmpty
+  )]
+  #[case::netinfo_empty_core_group(
+    registration(),
+    |ptx: &mut ProRegTx| {
+      ptx.net_info = NetInfo::Extended(NetInfoV2::new(1, vec![(NIPurpose::CoreP2p, Vec::new())]));
+    },
+    ProTxInvalid::NetInfoEmpty
   )]
   fn check(#[case] mut ptx: ProRegTx, #[case] edit: fn(&mut ProRegTx), #[case] expected: ProTxInvalid) {
     assert_eq!(ptx.check(), None);

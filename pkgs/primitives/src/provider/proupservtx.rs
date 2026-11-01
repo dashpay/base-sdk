@@ -13,7 +13,7 @@ use crate::codec::impl_payload;
 use crate::prelude::*;
 use crate::provider::PlatformNodeId;
 use crate::sign::unsigned_digest;
-use crate::sptx::{check_sptx_netinfo, InputsHash, MnType, ProTxInvalid};
+use crate::sptx::{check_netinfo_purposes, InputsHash, MnType, ProTxInvalid};
 use crate::types::{NITrait, NetInfo, NetInfoV1, NetInfoV2};
 use crate::{hash_impl, TxHash};
 
@@ -180,20 +180,16 @@ impl Checkable for ProUpServTx {
       return Some(ProTxInvalid::NetInfoVersionMismatch);
     }
 
-    match &self.net_info {
-      NetInfo::Legacy(addr) => {
-        if addr.is_empty() {
-          return Some(ProTxInvalid::NetInfoEmpty);
-        }
-        if let Some(error) = addr.check() {
-          return Some(ProTxInvalid::NetInfoInvalid { error });
-        }
-      }
-      NetInfo::Extended(addr) => {
-        if let Some(e) = check_sptx_netinfo(addr, self.version, self.mn_type) {
-          return Some(e);
-        }
-      }
+    // As in the reference, the net info is checked for being empty, then for
+    // its purposes, and only then for its entries.
+    if self.net_info.is_empty() {
+      return Some(ProTxInvalid::NetInfoEmpty);
+    }
+    if let Some(e) = check_netinfo_purposes(&self.net_info, self.mn_type) {
+      return Some(e);
+    }
+    if let Some(error) = self.net_info.check() {
+      return Some(ProTxInvalid::NetInfoInvalid { error });
     }
 
     if let Some(e) = check_platform_fields(
@@ -256,6 +252,7 @@ impl fmt::Display for ProUpServTx {
 #[expect(clippy::unwrap_used, reason = "test code")]
 mod tests {
   use super::*;
+  use crate::types::NIPurpose;
 
   use dash_dev::{assert_serde_rt, check_sptx, Corpus};
   use rstest::rstest;
@@ -298,17 +295,42 @@ mod tests {
     assert_serde_rt("proupservtx", &items);
   }
 
-  /// Checks on mainnet Evo update `e8812ae7`.
+  /// Mainnet Evo update `e8812ae7`, with a legacy net info.
+  const E8812AE7: &str = "e8812ae795f44406cbdc70fc5ebe8e975180e8b28d7ab4eb0f7b3e9d66b1d62b";
+
+  /// Synthetic Evo update `369881c1`, with an extended net info.
+  const S369881C1: &str = "369881c12aa676d0a9829cdc849df0c75e9729296883cbbdc3822f1e267c6368";
+
+  /// Checks on corpus update `txid`.
   #[rstest]
   #[case::null_platform_node_id(
+    E8812AE7,
     |ptx: &mut ProUpServTx| ptx.platform_node_id = Some(PlatformNodeId::default()),
     ProTxInvalid::NullPlatformNodeId
   )]
-  fn check(#[case] edit: fn(&mut ProUpServTx), #[case] expected: ProTxInvalid) {
+  #[case::netinfo_empty(
+    S369881C1,
+    |ptx: &mut ProUpServTx| ptx.net_info = NetInfo::Extended(NetInfoV2::new(1, Vec::new())),
+    ProTxInvalid::NetInfoEmpty
+  )]
+  #[case::netinfo_unsupported_version(
+    S369881C1,
+    |ptx: &mut ProUpServTx| ptx.net_info = NetInfo::Extended(NetInfoV2::new(2, Vec::new())),
+    ProTxInvalid::NetInfoEmpty
+  )]
+  #[case::netinfo_purposes_before_entries(
+    S369881C1,
+    |ptx: &mut ProUpServTx| {
+      let core = ptx.net_info.entries(Some(NIPurpose::CoreP2p)).next().unwrap();
+      ptx.net_info = NetInfo::Extended(NetInfoV2::new(1, vec![(NIPurpose::CoreP2p, vec![core.clone(), core])]));
+    },
+    ProTxInvalid::NetInfoEmpty
+  )]
+  fn check(#[case] txid: &str, #[case] edit: fn(&mut ProUpServTx), #[case] expected: ProTxInvalid) {
     let corpus = Corpus::open(env!("CARGO_MANIFEST_DIR"), "proupservtx");
     let mut ptx = corpus
       .entries::<ProUpServTx>("proupservtx", |_, _, _| {})
-      .remove("e8812ae795f44406cbdc70fc5ebe8e975180e8b28d7ab4eb0f7b3e9d66b1d62b")
+      .remove(txid)
       .unwrap();
     assert_eq!(ptx.check(), None);
     edit(&mut ptx);
