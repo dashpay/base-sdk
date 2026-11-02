@@ -70,12 +70,8 @@ impl BaseCodec for AddrV2 {
       NetworkType::Ipv6 => {
         let mut buf = [0u8; 16];
         buf.copy_from_slice(raw);
-        // BIP155: fc00::/8 is CJDNS, not generic IPv6.
-        if buf[0] == 0xfc {
-          Ok(Self::Cjdns(buf))
-        } else {
-          Ok(Self::Ipv6(buf))
-        }
+        // Only network 6 is CJDNS, as in the reference implementation.
+        Ok(Self::Ipv6(buf))
       }
       NetworkType::TorV3 => {
         let mut buf = [0u8; 32];
@@ -121,12 +117,6 @@ impl Checkable for AddrV2 {
         // broadcast address (255.255.255.255)
         if *b == [255; 4] {
           return Some(NetAddrError::BadRange { value: 255 });
-        }
-      }
-      Self::Ipv6(b) => {
-        // fc00::/8 belongs in the Cjdns variant per BIP155.
-        if b[0] == 0xfc {
-          return Some(NetAddrError::BadRange { value: 0xfc });
         }
       }
       Self::Cjdns(b) => {
@@ -265,6 +255,9 @@ type_cvrt!(From<AddrV1> for AddrV2, |v1| {
   }
 });
 
+/// Reads the text of an address. Text in fc00::/8 reads as
+/// [`AddrV2::Ipv6`], so an [`AddrV2::Cjdns`] address does not read back
+/// from its text.
 impl FromStr for AddrV2 {
   type Err = NetAddrError;
 
@@ -317,11 +310,7 @@ impl FromStr for AddrV2 {
     }
     if let Some(inner) = s.strip_prefix('[').and_then(|r| r.strip_suffix(']')) {
       let ip: Ipv6Addr = inner.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
-      let octets = ip.octets();
-      if octets[0] == 0xfc {
-        return Ok(Self::Cjdns(octets));
-      }
-      return Ok(Self::Ipv6(octets));
+      return Ok(Self::Ipv6(ip.octets()));
     }
     let ip: Ipv4Addr = s.parse().map_err(|_| NetAddrError::BadEncode { pos: 0 })?;
     Ok(Self::Ipv4(ip.octets()))
@@ -424,13 +413,22 @@ mod tests {
     AddrV2::Ipv6(hex!("00000000000000000000000000000001")),
     "[::1]",
   )]
-  #[case::cjdns(
-    AddrV2::Cjdns(hex!("fc000000000000000000000000000001")),
+  #[case::ipv6_fc00(
+    AddrV2::Ipv6(hex!("fc000000000000000000000000000001")),
     "[fc00::1]",
   )]
   fn display(#[case] addr: AddrV2, #[case] expected: &str) {
     assert_eq!(addr.to_string(), expected);
     assert_eq!(expected.parse::<AddrV2>().unwrap(), addr);
+  }
+
+  /// A CJDNS address shows as IPv6 text, which reads back as IPv6.
+  #[rstest]
+  fn cjdns_text_reads_as_ipv6() {
+    let bytes = hex!("fc000000000000000000000000000001");
+    let text = AddrV2::Cjdns(bytes).to_string();
+    assert_eq!(text, "[fc00::1]");
+    assert_eq!(text.parse::<AddrV2>().unwrap(), AddrV2::Ipv6(bytes));
   }
 
   #[rstest]
@@ -441,6 +439,25 @@ mod tests {
     addr.encode(&mut buf);
     let decoded = AddrV2::decode(&mut buf.as_slice()).unwrap();
     assert_eq!(decoded, addr);
+  }
+
+  /// An address keeps the network it was read with, whatever its prefix.
+  #[rstest]
+  #[case::ipv6(
+    hex!("0210fc000000000000000000000000000001"),
+    AddrV2::Ipv6(hex!("fc000000000000000000000000000001")),
+  )]
+  #[case::cjdns(
+    hex!("0610fc000000000000000000000000000001"),
+    AddrV2::Cjdns(hex!("fc000000000000000000000000000001")),
+  )]
+  fn decode_keeps_network(#[case] raw: [u8; 18], #[case] expected: AddrV2) {
+    let mut data = raw.as_slice();
+    assert_eq!(AddrV2::decode(&mut data), Ok(expected.clone()));
+    assert!(data.is_empty());
+    let mut written = Vec::new();
+    expected.encode(&mut written);
+    assert_eq!(written, raw);
   }
 
   #[rstest]
@@ -498,10 +515,7 @@ mod tests {
     Some(NetAddrError::BadRange { value: 0xfd }),
   )]
   #[case::cjdns_valid(AddrV2::Cjdns(hex!("fc000000000000000000000000000001")), None)]
-  #[case::ipv6_cjdns_range(
-    AddrV2::Ipv6(hex!("fc000000000000000000000000000001")),
-    Some(NetAddrError::BadRange { value: 0xfc }),
-  )]
+  #[case::ipv6_fc00(AddrV2::Ipv6(hex!("fc000000000000000000000000000001")), None)]
   #[case::unknown_known_id(
     AddrV2::Unknown { network: 1, addr: vec![1, 2, 3, 4] },
     Some(NetAddrError::BadRange { value: 1 }),
@@ -542,7 +556,7 @@ mod tests {
   #[rstest]
   #[case::ipv4("1.2.3.4:8333")]
   #[case::ipv6("[::1]:9999")]
-  #[case::cjdns("[fc00::1]:1234")]
+  #[case::ipv6_fc00("[fc00::1]:1234")]
   #[case::tor("pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion:8333")]
   #[case::i2p("ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p:7654")]
   fn service_from_str_roundtrip(#[case] s: &str) {
