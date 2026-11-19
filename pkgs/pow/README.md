@@ -52,6 +52,16 @@ Using non-`portable` builds on hosts that do not meet the above requirements wil
 due to illegal instructions (`SIGILL`).
 <!-- [end:sysinfo] -->
 
+## Debug Builds
+
+Unoptimized builds hash tens of times slower than release builds. The SIMD code relies on the optimizer to turn each
+vector operation into a single instruction. Optimize `dash-pow` in the root `Cargo.toml` of your workspace.
+
+```toml
+[profile.dev.package.dash-pow]
+opt-level = 3
+```
+
 <!-- [start:omit] -->
 
 ## Documentation
