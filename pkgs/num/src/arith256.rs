@@ -383,7 +383,25 @@ impl Div<u64> for Arith256 {
   type Output = Self;
   #[inline]
   fn div(self, rhs: u64) -> Self {
-    self / Self::from_u64(rhs)
+    if rhs == 0 {
+      return Self::ZERO;
+    }
+    let dividend = self.to_lendian();
+    let mut quotient = [0u8; 32];
+    let mut rem = 0u128;
+    for (limb, out) in dividend
+      .as_chunks::<8>()
+      .0
+      .iter()
+      .zip(quotient.as_chunks_mut::<8>().0)
+      .rev()
+    {
+      let current = rem << 64 | u128::from(u64::from_le_bytes(*limb));
+      // rem < rhs, so each quotient limb fits in u64.
+      *out = ((current / u128::from(rhs)) as u64).to_le_bytes();
+      rem = current % u128::from(rhs);
+    }
+    Self::from_lendian(quotient)
   }
 }
 
@@ -1014,14 +1032,15 @@ mod tests {
     }
 
     #[rstest]
-    #[case(0x1234_5678)]
-    #[case(0x1_0000_0000)]
-    #[case(u64::MAX)]
-    fn div_matches_wide_divisor(r1: Arith256, #[case] d: u64) {
-      assert_eq!(r1 / d, r1 / Arith256::from_u64(d));
-      let mut v = r1;
+    #[case(r1::default(), 0x1234_5678)]
+    #[case(r1::default(), 0x1_0000_0000)]
+    #[case(r1::default(), u64::MAX)]
+    #[case(from_array([u64::MAX - 1, u64::MAX, u64::MAX, u64::MAX]), u64::MAX)]
+    fn div_matches_wide_divisor(#[case] n: Arith256, #[case] d: u64) {
+      assert_eq!(n / d, n / Arith256::from_u64(d));
+      let mut v = n;
       v /= d;
-      assert_eq!(v, r1 / d);
+      assert_eq!(v, n / d);
     }
 
     #[rstest]
