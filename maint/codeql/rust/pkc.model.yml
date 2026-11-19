@@ -54,6 +54,9 @@ extensions:
       - ["Ecdsa", "SkBytes", "is_compressed"]             # Query
       - ["Ecdsa", "PkBytes", "is_compressed"]             # Query
       - ["Ecdsa", "PkBytes", "size"]                      # Live length, since SEC1 is not fixed width
+      # Key exchange
+      - ["Ecdsa", "SecretKey", "ecdh_shared_secret"]      # Derive hashed shared secret
+      - ["Ecdsa", "SecretKey", "ecdh_shared_point"]       # Derive raw shared point
       # Encoding
       - ["Ecdsa", "Signature", "from_der"]                # Read DER
       - ["Ecdsa", "Signature", "to_der"]                  # Emit DER

@@ -28,6 +28,7 @@ use dash_types::{impl_stype, type_id::TypeId, ArrayBuf};
 #[cfg(feature = "codec")]
 use dash_types::{Hashable, Numeric};
 use rand_core::CryptoRng;
+use secp256k1::ecdh::{shared_secret_point, SharedSecret};
 use secp256k1::ecdsa::{sign_low_r, RecoverableSignature};
 use secp256k1::{Message, PublicKey, Scalar, SecretKey};
 use subtle::ConstantTimeEq;
@@ -304,6 +305,16 @@ impl EcdsaSecretKey {
     Zeroizing::new(self.inner.to_secret_bytes())
   }
 
+  /// ECDH shared secret with `peer`, as `SHA256(0x02 | (y & 1) || x)`.
+  pub fn ecdh_shared_secret(&self, peer: &EcdsaPublicKey) -> Zeroizing<[u8; 32]> {
+    Zeroizing::new(SharedSecret::new(peer.as_inner(), &self.inner).to_secret_bytes())
+  }
+
+  /// ECDH shared point with `peer`, as the unhashed `x || y` coordinates.
+  pub fn ecdh_shared_point(&self, peer: &EcdsaPublicKey) -> Zeroizing<[u8; 64]> {
+    Zeroizing::new(shared_secret_point(peer.as_inner(), &self.inner))
+  }
+
   /// Produce an ECDSA signature over a 32-byte prehashed message (RFC 6979,
   /// low-S normalised, low-R ground).
   ///
@@ -391,6 +402,7 @@ mod tests {
   use crate::ecdsa::{Compression, EcdsaError, EcdsaPublicKey, EcdsaSecretKey, ECDSA_SK_LEN};
   use crate::prelude::*;
 
+  use bitcoin_hashes::sha256;
   use dash_dev::{arr_from_hex, Corpus};
   use dash_types::codec::BaseCodec;
   use rstest::*;
@@ -408,6 +420,19 @@ mod tests {
     msg: String,
     sig: String,
     recovery_id: u8,
+  }
+
+  #[rstest]
+  fn ecdh_is_symmetric_and_hashes_the_point(alice_sk: EcdsaSecretKey, bob_sk: EcdsaSecretKey) {
+    let point = alice_sk.ecdh_shared_point(&bob_sk.public_key());
+    assert_eq!(*point, *bob_sk.ecdh_shared_point(&alice_sk.public_key()));
+
+    let secret = alice_sk.ecdh_shared_secret(&bob_sk.public_key());
+    assert_eq!(*secret, *bob_sk.ecdh_shared_secret(&alice_sk.public_key()));
+
+    let mut prefixed = [0x02 | (point[63] & 1); 33];
+    prefixed[1..].copy_from_slice(&point[..32]);
+    assert_eq!(*secret, sha256::Hash::hash(&prefixed).to_byte_array());
   }
 
   #[rstest]
